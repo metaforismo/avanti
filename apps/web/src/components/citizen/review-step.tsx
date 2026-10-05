@@ -2,11 +2,11 @@
 
 import { AlertTriangle, Pencil } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { CitizenContact } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { format } from "@/lib/citizen/messages";
 import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
+import { isEmail } from "@/lib/validation";
 import { ActionErrorNotice } from "./action-error";
 import type { ContactDraft, StepProps } from "./citizen-app";
 
@@ -55,8 +55,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
     if (!raw.firstName) next.firstName = m.review.fieldRequired;
     if (!raw.lastName) next.lastName = m.review.fieldRequired;
     if (!raw.phone && !raw.email) next.contact = m.review.contactRequired;
-    if (raw.email && !CitizenContact.shape.email.safeParse(raw.email).success)
-      next.email = m.review.emailInvalid;
+    if (raw.email && !isEmail(raw.email)) next.email = m.review.emailInvalid;
     if (form.get("confirmed") !== "on") next.confirmed = m.review.confirmRequired;
     setErrors(next);
 

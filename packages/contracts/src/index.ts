@@ -4,15 +4,16 @@
  * imports the inferred types. Changing a schema is a breaking API change.
  */
 import { z } from "zod";
+import { LANGUAGES, PRACTICE_IDS } from "./constants";
+
+export { LANGUAGES, PRACTICE_IDS, RTL_LANGUAGES, UPLOAD_LIMITS } from "./constants";
 
 /* ------------------------------------------------------------------ */
 /* Primitives                                                          */
 /* ------------------------------------------------------------------ */
 
-export const LANGUAGES = ["it", "en", "fr", "es", "ro", "uk", "ar", "bn"] as const;
 export const Language = z.enum(LANGUAGES);
 export type Language = z.infer<typeof Language>;
-export const RTL_LANGUAGES: readonly Language[] = ["ar"];
 
 export const Id = z.string().min(1).max(64);
 export const IsoDateTime = z.string().datetime({ offset: true });
@@ -22,17 +23,6 @@ export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 /* Practice catalog                                                    */
 /* ------------------------------------------------------------------ */
 
-export const PRACTICE_IDS = [
-  "isee_ordinario",
-  "isee_universitario",
-  "modello_730",
-  "red",
-  "assegno_unico",
-  "successione_semplice",
-  "permesso_soggiorno",
-  "cittadinanza",
-  "naspi",
-] as const;
 export const PracticeId = z.enum(PRACTICE_IDS);
 export type PracticeId = z.infer<typeof PracticeId>;
 
@@ -217,11 +207,6 @@ export const DocumentSummary = z.object({
   analysis: DocumentAnalysis.nullable(),
 });
 export type DocumentSummary = z.infer<typeof DocumentSummary>;
-
-export const UPLOAD_LIMITS = {
-  maxBytes: 4 * 1024 * 1024,
-  mimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"],
-} as const;
 
 /* ------------------------------------------------------------------ */
 /* Case                                                                */

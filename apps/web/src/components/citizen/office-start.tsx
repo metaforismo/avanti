@@ -4,14 +4,8 @@ import { MapPin, Phone, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import {
-  LANGUAGES,
-  RTL_LANGUAGES,
-  type Language,
-  type Office,
-  type OrganizationPublic,
-  type StartIntakeResponse,
-} from "@avanti/contracts";
+import type { Language, Office, OrganizationPublic, StartIntakeResponse } from "@avanti/contracts";
+import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { apiFetch, ApiRequestError } from "@/lib/api";

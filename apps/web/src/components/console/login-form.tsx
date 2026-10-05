@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { LoginRequest } from "@avanti/contracts";
+import { isEmail, text } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
@@ -22,16 +22,12 @@ export function LoginForm() {
     if (pending) return;
     const form = event.currentTarget;
     const data = new FormData(form);
-    const parsed = LoginRequest.safeParse({
-      email: data.get("email"),
-      password: data.get("password"),
-    });
-    if (!parsed.success) {
-      const next: typeof fieldErrors = {};
-      for (const issue of parsed.error.issues) {
-        if (issue.path[0] === "email") next.email = "Scrivi un'email valida.";
-        if (issue.path[0] === "password") next.password = "Scrivi la password.";
-      }
+    const email = text(data.get("email")).toLowerCase();
+    const password = typeof data.get("password") === "string" ? String(data.get("password")) : "";
+    const next: typeof fieldErrors = {};
+    if (!isEmail(email)) next.email = "Scrivi un'email valida.";
+    if (!password) next.password = "Scrivi la password.";
+    if (next.email || next.password) {
       setFieldErrors(next);
       setError(null);
       (form.elements.namedItem(next.email ? "email" : "password") as HTMLElement | null)?.focus();
@@ -41,7 +37,7 @@ export function LoginForm() {
     setPending(true);
     setError(null);
     try {
-      await apiFetch("/api/auth/login", { method: "POST", body: parsed.data });
+      await apiFetch("/api/auth/login", { method: "POST", body: { email, password } });
       router.replace(safeNext(params.get("next")));
       router.refresh();
     } catch (err) {

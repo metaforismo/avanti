@@ -3,7 +3,8 @@
 import { Check, ChevronDown, Globe, WifiOff } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import { useSyncExternalStore } from "react";
-import { LANGUAGES, RTL_LANGUAGES, type CitizenCase } from "@avanti/contracts";
+import type { CitizenCase } from "@avanti/contracts";
+import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { Spinner } from "@/components/ui/spinner";
 import { format, LANGUAGE_NAMES, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi } from "@/lib/citizen/use-citizen-case";

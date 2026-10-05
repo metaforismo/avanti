@@ -5,12 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import type { Route } from "next";
-import {
-  PRACTICE_IDS,
-  type CaseListItem,
-  type CaseListResponse,
-  type CaseStatus,
-} from "@avanti/contracts";
+import type { CaseListItem, CaseListResponse, CaseStatus } from "@avanti/contracts";
+import { PRACTICE_IDS } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import {

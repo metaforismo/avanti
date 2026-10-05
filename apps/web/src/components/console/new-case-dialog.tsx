@@ -3,13 +3,8 @@
 import { MessageCircle, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import {
-  LANGUAGES,
-  type CreateCaseResponse,
-  type Language,
-  type PracticeId,
-  type PracticeSummary,
-} from "@avanti/contracts";
+import type { CreateCaseResponse, Language, PracticeId, PracticeSummary } from "@avanti/contracts";
+import { LANGUAGES } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";

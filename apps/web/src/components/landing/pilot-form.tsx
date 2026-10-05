@@ -3,7 +3,8 @@
 import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { PilotLeadRequest } from "@avanti/contracts";
+import type { PilotLeadRequest } from "@avanti/contracts";
+import { isEmail, text } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
@@ -26,24 +27,29 @@ export function PilotForm() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const raw = {
-      name: data.get("name"),
-      organization: data.get("organization"),
-      role: data.get("role") || undefined,
-      email: data.get("email"),
-      phone: data.get("phone") || undefined,
-      offices: data.get("offices") || undefined,
-      message: data.get("message") || undefined,
-      privacyAccepted: data.get("privacyAccepted") === "on" ? true : undefined,
-      website: data.get("website") || undefined,
+    const officesText = text(data.get("offices"));
+    const offices = officesText ? Number(officesText) : undefined;
+    const lead: PilotLeadRequest = {
+      name: text(data.get("name")),
+      organization: text(data.get("organization")),
+      role: text(data.get("role")) || undefined,
+      email: text(data.get("email")),
+      phone: text(data.get("phone")) || undefined,
+      offices,
+      message: text(data.get("message")) || undefined,
+      privacyAccepted: true,
+      website: text(data.get("website")) || undefined,
     };
-    const parsed = PilotLeadRequest.safeParse(raw);
-    if (!parsed.success) {
-      const next: Errors = {};
-      for (const issue of parsed.error.issues) {
-        const key = String(issue.path[0]);
-        next[key] ??= FIELD_MESSAGES[key] ?? "Controlla questo campo.";
-      }
+
+    const next: Errors = {};
+    if (lead.name.length < 2) next.name = FIELD_MESSAGES.name;
+    if (lead.organization.length < 2) next.organization = FIELD_MESSAGES.organization;
+    if (!isEmail(lead.email)) next.email = FIELD_MESSAGES.email;
+    if (offices !== undefined && (!Number.isInteger(offices) || offices < 1 || offices > 5000)) {
+      next.offices = FIELD_MESSAGES.offices;
+    }
+    if (data.get("privacyAccepted") !== "on") next.privacyAccepted = FIELD_MESSAGES.privacyAccepted;
+    if (Object.keys(next).length > 0) {
       setErrors(next);
       setFormError(null);
       const first = Object.keys(next)[0];
@@ -55,7 +61,7 @@ export function PilotForm() {
     setFormError(null);
     setStatus("sending");
     try {
-      await apiFetch("/api/leads", { method: "POST", body: parsed.data });
+      await apiFetch("/api/leads", { method: "POST", body: lead });
       setStatus("sent");
     } catch (error) {
       setStatus("idle");

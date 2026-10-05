@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { LANGUAGES, RTL_LANGUAGES, type Language } from "@avanti/contracts";
+import type { Language } from "@avanti/contracts";
+import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 
 /** First supported language among the browser's preferences, Italian otherwise. */
 export function browserLanguage(): Language {

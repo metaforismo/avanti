@@ -1,4 +1,4 @@
-import { ApiError, type ErrorCode } from "@avanti/contracts";
+import type { ApiError, ErrorCode } from "@avanti/contracts";
 
 export class ApiRequestError extends Error {
   constructor(
@@ -46,12 +46,22 @@ export async function apiFetch<T = unknown>(path: string, options: Options = {})
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const parsed = ApiError.safeParse(payload);
-    if (parsed.success) {
-      const { code, message, fields, requestId } = parsed.data.error;
+    if (isApiError(payload)) {
+      const { code, message, fields, requestId } = payload.error;
       throw new ApiRequestError(response.status, code, message, fields, requestId);
     }
     throw new ApiRequestError(response.status, "internal", UNKNOWN_MESSAGE);
   }
   return payload as T;
+}
+
+function isApiError(payload: unknown): payload is ApiError {
+  if (!payload || typeof payload !== "object" || !("error" in payload)) return false;
+  const error = (payload as { error: unknown }).error;
+  return (
+    !!error &&
+    typeof error === "object" &&
+    typeof (error as { code?: unknown }).code === "string" &&
+    typeof (error as { message?: unknown }).message === "string"
+  );
 }
