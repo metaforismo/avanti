@@ -13,6 +13,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@avanti/api": "workspace:*",
     "@avanti/contracts": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^1.52.0",

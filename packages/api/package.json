@@ -1,0 +1,34 @@
+{
+  "name": "@avanti/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@avanti/contracts": "workspace:*",
+    "@avanti/core": "workspace:*",
+    "@avanti/db": "workspace:*",
+    "hono": "^4",
+    "drizzle-orm": "^0.45",
+    "ai": "^7",
+    "@vercel/blob": "^2",
+    "pdf-lib": "^1.17",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "regenerator-runtime": "^0.14.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.3",
+    "tsx": "^4"
+  }
+}
