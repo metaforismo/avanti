@@ -3,7 +3,7 @@
 import { AlertTriangle, Inbox, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import type { Route } from "next";
 import {
   PRACTICE_IDS,
@@ -12,7 +12,6 @@ import {
   type CaseStatus,
 } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import {
   CASE_STATUS,
@@ -40,7 +39,13 @@ function Queue() {
   const practice = params.get("pratica") ?? "";
   const assignee = params.get("assegnatario") ?? "";
   const [search, setSearch] = useState(params.get("q") ?? "");
-  const deferredSearch = useDeferredValue(search.trim());
+  const [debouncedSearch, setDebouncedSearch] = useState(search.trim());
+  // One request per pause in typing, not per keystroke.
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [search]);
+  const deferredSearch = debouncedSearch;
 
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -100,15 +105,15 @@ function Queue() {
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
       <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Pratiche</h1>
 
-      <div role="tablist" aria-label="Stato" className="-mx-1 mt-5 flex gap-1 overflow-x-auto pb-1">
+      <div role="group" aria-label="Stato" className="-mx-1 mt-5 flex gap-1 overflow-x-auto pb-1">
         {STATUS_ORDER.map((key) => {
           const active = key === status;
           const count = counts?.[key];
           return (
             <button
               key={key}
-              role="tab"
-              aria-selected={active}
+              type="button"
+              aria-pressed={active}
               title={CASE_STATUS[key].hint}
               onClick={() => setParam("stato", key === "submitted" ? "" : key)}
               className={cn(
@@ -146,10 +151,13 @@ function Queue() {
           />
           <input
             type="search"
+            name="q"
+            autoComplete="off"
+            spellCheck={false}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onBlur={() => setParam("q", search.trim())}
-            placeholder="Cerca per nome o codice pratica"
+            placeholder="Cerca per nome o codice pratica…"
             aria-label="Cerca pratiche"
             className="h-10 w-full rounded-sm bg-surface ps-9 pe-9 text-[0.9375rem] ring-1 ring-line-strong ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
           />
@@ -160,7 +168,7 @@ function Queue() {
                 setSearch("");
                 setParam("q", "");
               }}
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-1 text-ink-3 hover:text-ink"
+              className="absolute top-1/2 right-1 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-ink-3 hover:text-ink"
               aria-label="Cancella ricerca"
             >
               <X className="size-4" />
@@ -192,7 +200,12 @@ function Queue() {
         </select>
       </div>
 
-      <section aria-live="polite" aria-busy={list.status === "loading"} className="mt-5">
+      <p role="status" className="sr-only">
+        {list.status === "ready"
+          ? `${items.length} pratiche: ${CASE_STATUS[status].label.toLowerCase()}`
+          : ""}
+      </p>
+      <section aria-busy={list.status === "loading" || list.refreshing} className="mt-5">
         {list.status === "error" && !list.data ? (
           <div className="rounded-lg bg-danger-wash p-6 text-danger">
             <p className="font-semibold">Impossibile caricare le pratiche.</p>
@@ -247,7 +260,9 @@ function QueueRow({ item }: { item: CaseListItem }) {
             {item.citizenName ?? "Cittadino senza nome"}
           </span>
           <span className="flex items-center gap-2 text-sm text-ink-3">
-            <span className="font-mono text-xs">{item.reference}</span>
+            <span className="font-mono text-xs" translate="no">
+              {item.reference}
+            </span>
             {item.language !== "it" && (
               <span className="rounded-xs bg-folder px-1.5 text-xs text-ink-2">
                 {LANGUAGE_IT[item.language]}
@@ -256,6 +271,7 @@ function QueueRow({ item }: { item: CaseListItem }) {
           </span>
         </span>
         <span className="min-w-0 text-[0.9375rem]">
+          <span className="sr-only">Pratica: </span>
           <span className="block truncate">
             {item.practice ? PRACTICE_SHORT[item.practice.id] : "Da capire"}
           </span>
@@ -271,6 +287,7 @@ function QueueRow({ item }: { item: CaseListItem }) {
             />
           </span>
           <span className="tabular text-sm text-ink-2">
+            <span className="sr-only">Documenti pronti: </span>
             {documentsDone}/{documentsRequired}
           </span>
         </span>
@@ -335,19 +352,21 @@ function EmptyQueue({ status, filtered }: { status: CaseStatus; filtered: boolea
 
 function QueueSkeleton() {
   return (
-    <div className="divide-y divide-line rounded-lg bg-surface ring-1 ring-line" aria-hidden>
-      {Array.from({ length: 6 }, (_, i) => (
-        <div key={i} className="flex items-center gap-4 px-4 py-4">
-          <div className="flex-1 space-y-2">
-            <div className="h-4 w-1/3 animate-pulse rounded-xs bg-sunk" />
-            <div className="h-3 w-1/4 animate-pulse rounded-xs bg-sunk" />
+    <>
+      <p role="status" className="sr-only">
+        Caricamento delle pratiche…
+      </p>
+      <div className="divide-y divide-line rounded-lg bg-surface ring-1 ring-line" aria-hidden>
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="flex items-center gap-4 px-4 py-4">
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/3 animate-pulse rounded-xs bg-sunk" />
+              <div className="h-3 w-1/4 animate-pulse rounded-xs bg-sunk" />
+            </div>
+            <div className="h-3 w-24 animate-pulse rounded-xs bg-sunk" />
           </div>
-          <div className="h-3 w-24 animate-pulse rounded-xs bg-sunk" />
-        </div>
-      ))}
-      <span className="sr-only">
-        <Spinner label="Caricamento" />
-      </span>
-    </div>
+        ))}
+      </div>
+    </>
   );
 }

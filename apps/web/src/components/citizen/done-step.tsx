@@ -1,12 +1,15 @@
 "use client";
 
-import { Check, Copy, IdCard, MapPin, Phone } from "lucide-react";
-import { useState } from "react";
+import { Check, Copy, IdCard, MapPin, Phone, Share2 } from "lucide-react";
+import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
+import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import type { StepProps } from "./citizen-app";
 
+const noSubscribe = () => () => {};
+
 export function DoneStep({ data, m }: StepProps) {
-  const [copied, setCopied] = useState(false);
   const statusLine =
     data.status === "in_review"
       ? m.done.inReview
@@ -16,13 +19,22 @@ export function DoneStep({ data, m }: StepProps) {
           ? m.done.closed
           : null;
 
-  async function copyLink() {
+  const link = useSyncExternalStore(
+    noSubscribe,
+    () => window.location.href,
+    () => "",
+  );
+  const canShare = useSyncExternalStore(
+    noSubscribe,
+    () => typeof navigator.share === "function",
+    () => false,
+  );
+
+  async function share() {
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2400);
+      await navigator.share({ title: data.reference, url: link });
     } catch {
-      // Clipboard can be blocked (insecure context, permissions): the link stays visible to copy by hand.
+      // Cancelled by the user or unsupported target: nothing to report.
     }
   }
 
@@ -32,7 +44,11 @@ export function DoneStep({ data, m }: StepProps) {
         <span className="grid size-16 animate-pop place-items-center rounded-full bg-ok text-white">
           <Check className="size-8" strokeWidth={2.5} aria-hidden />
         </span>
-        <h1 className="mt-6 font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em]">
+        <h1
+          id={STEP_TITLE_ID}
+          tabIndex={-1}
+          className="mt-6 font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em] outline-none"
+        >
           {m.done.title}
         </h1>
         <p className="mt-3 text-lg text-ink-2">{m.done.lead}</p>
@@ -45,7 +61,11 @@ export function DoneStep({ data, m }: StepProps) {
 
       <dl className="rounded-lg bg-surface p-5 ring-1 ring-line">
         <dt className="text-sm text-ink-3">{m.done.reference}</dt>
-        <dd className="mt-1 font-mono text-2xl font-semibold tracking-wide" dir="ltr">
+        <dd
+          className="mt-1 font-mono text-2xl font-semibold tracking-wide"
+          dir="ltr"
+          translate="no"
+        >
           {data.reference}
         </dd>
         {data.practice && <dd className="mt-1 text-ink-2">{data.practice.name}</dd>}
@@ -61,19 +81,18 @@ export function DoneStep({ data, m }: StepProps) {
             <Copy className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
             <span>{m.done.save}</span>
           </span>
-          <Button
-            variant="secondary"
-            onClick={() => void copyLink()}
-            className="ms-8 w-fit"
-            aria-live="polite"
-          >
-            {copied ? (
-              <Check className="size-4 text-ok" aria-hidden />
-            ) : (
-              <Copy className="size-4" aria-hidden />
+          <div className="ms-8 flex flex-wrap items-start gap-2">
+            <CopyButton
+              value={link}
+              labels={{ copy: m.done.copyLink, copied: m.done.copied, failed: m.done.copyFailed }}
+            />
+            {canShare && (
+              <Button variant="secondary" onClick={() => void share()}>
+                <Share2 className="size-4" aria-hidden />
+                {m.done.share}
+              </Button>
             )}
-            {copied ? m.done.copied : m.done.copyLink}
-          </Button>
+          </div>
         </li>
       </ul>
 

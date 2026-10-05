@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy, MessageCircle, Smartphone } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   LANGUAGES,
@@ -84,13 +84,14 @@ function CreateForm({
 }) {
   const operator = useOperator();
   const [practices, setPractices] = useState<PracticeSummary[]>([]);
+  const [practicesFailed, setPracticesFailed] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<PracticeSummary[]>("/api/practices?lang=it")
       .then((list) => setPractices(list.filter((p) => p.availability !== "coming_soon")))
-      .catch(() => setPractices([]));
+      .catch(() => setPracticesFailed(true));
   }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -141,7 +142,14 @@ function CreateForm({
         <input type="hidden" name="officeId" value={operator.offices[0]?.id ?? ""} />
       )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Pratica" hint="Se non la sai, la capisce Avanti.">
+        <Field
+          label="Pratica"
+          hint={
+            practicesFailed
+              ? "Elenco non disponibile: la pratica la capirà Avanti dal racconto del cittadino."
+              : "Se non la sai, la capisce Avanti."
+          }
+        >
           {(p) => (
             <select {...p} name="practiceId" className={selectClass} defaultValue="">
               <option value="">Da capire con il cittadino</option>
@@ -203,7 +211,6 @@ function Created({
   language: Language;
   onDone: () => void;
 }) {
-  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const link = response.citizenLink;
   const message = inviteMessage(language, link);
@@ -262,14 +269,10 @@ function Created({
           </a>
         </Button>
       </div>
-      <Button
-        size="lg"
-        onClick={() => {
-          onDone();
-          router.push(`/console/pratiche/${response.case.id}`);
-        }}
-      >
-        Apri il fascicolo
+      <Button size="lg" asChild>
+        <Link href={`/console/pratiche/${response.case.id}`} onClick={onDone}>
+          Apri il fascicolo
+        </Link>
       </Button>
     </div>
   );

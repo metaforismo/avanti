@@ -26,7 +26,7 @@ export function Dialog({
         <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-ink/40 backdrop-blur-[2px]" />
         <Primitive.Content
           className={cn(
-            "fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] animate-rise overflow-y-auto rounded-t-xl bg-surface p-6 shadow-float outline-none",
+            "fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] animate-rise overflow-y-auto overscroll-contain rounded-t-xl bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-float outline-none",
             "sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl",
             className,
           )}

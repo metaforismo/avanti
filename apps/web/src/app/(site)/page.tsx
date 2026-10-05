@@ -452,6 +452,7 @@ function DossierPreview() {
                     ? "grid size-6 shrink-0 place-items-center rounded-full bg-warn-wash text-warn"
                     : "grid size-6 shrink-0 place-items-center rounded-full bg-danger-wash text-danger"
               }
+              role="img"
               aria-label={
                 row.state === "ok" ? "Presente" : row.state === "warn" ? "Avviso" : "Mancante"
               }

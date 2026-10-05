@@ -211,14 +211,14 @@ function ChecklistRow({
           className="mt-3 flex animate-fade-in flex-wrap gap-2 rounded-md bg-paper p-3"
         >
           <label htmlFor={`note-${item.id}`} className="sr-only">
-            Motivo per il cittadino
+            Motivo per il cittadino, in italiano: viene tradotto nella sua lingua
           </label>
           <input
             id={`note-${item.id}`}
             name="note"
             autoFocus
             maxLength={500}
-            placeholder="Motivo, in italiano: lo traduciamo per il cittadino"
+            placeholder="es. Manca il retro della carta d'identità…"
             className="h-9 min-w-0 flex-1 basis-64 rounded-sm bg-surface px-3 text-sm ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
           />
           <Button type="submit" size="sm" variant="danger" loading={busy}>
@@ -261,7 +261,8 @@ function DocChip({
       <span className="truncate">{name}</span>
       {confidence !== undefined && confidence < 0.6 && (
         <span className="shrink-0 text-xs text-warn" title="Riconoscimento incerto">
-          ?
+          <span aria-hidden>?</span>
+          <span className="sr-only">(riconoscimento incerto)</span>
         </span>
       )}
     </button>

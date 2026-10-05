@@ -115,7 +115,7 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
           <svg
             ref={svgRef}
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-            className="h-auto w-full touch-none select-none"
+            className="h-auto w-full touch-pan-y select-none"
             role="img"
             aria-label="Pratiche avviate e inviate al giorno. Usa la tabella per i valori."
             onPointerMove={onMove}

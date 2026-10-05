@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, Minus, Plus } from "lucide-react";
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { AnswerValue, MemberInput, Question } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
@@ -18,17 +18,25 @@ type Props = {
   initial?: AnswerValue;
   /** Household size already stated by the citizen, to pre-create the right number of rows. */
   expectedMembers?: number;
+  /** Move focus to the question when it replaces a previous one (not on first page load). */
+  autoFocus?: boolean;
 };
 
 /**
  * One question at a time, with the input that fits its kind. Choice answers submit on tap:
  * fewer steps for people who struggle with forms.
  */
-export function QuestionCard({ api, question, m, initial, expectedMembers }: Props) {
+export function QuestionCard({ api, question, m, initial, expectedMembers, autoFocus }: Props) {
   const titleId = useId();
+  const errorId = `${titleId}-error`;
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const busy = api.pending === "answer" || api.pending === "skip";
+
+  useEffect(() => {
+    if (autoFocus) titleRef.current?.focus({ preventScroll: true });
+  }, [autoFocus]);
 
   async function answer(value: AnswerValue) {
     setLocalError(null);
@@ -44,7 +52,9 @@ export function QuestionCard({ api, question, m, initial, expectedMembers }: Pro
       <p className="text-sm text-ink-3">{question.section}</p>
       <h2
         id={titleId}
-        className="mt-1 font-display text-2xl leading-tight font-semibold tracking-[-0.015em]"
+        ref={titleRef}
+        tabIndex={-1}
+        className="mt-1 font-display text-2xl leading-tight font-semibold tracking-[-0.015em] outline-none"
       >
         {question.prompt}
       </h2>
@@ -61,6 +71,7 @@ export function QuestionCard({ api, question, m, initial, expectedMembers }: Pro
                   ]
                 : (question.options ?? [])
             }
+            labelledBy={titleId}
             pendingValue={busy ? chosen : null}
             disabled={busy}
             selected={initial === undefined ? null : String(initial)}
@@ -78,6 +89,8 @@ export function QuestionCard({ api, question, m, initial, expectedMembers }: Pro
             initial={initial}
             onSubmit={answer}
             onInvalid={setLocalError}
+            labelledBy={titleId}
+            errorId={localError ? errorId : undefined}
           />
         )}
         {(question.kind === "number" || question.kind === "text" || question.kind === "date") && (
@@ -88,6 +101,7 @@ export function QuestionCard({ api, question, m, initial, expectedMembers }: Pro
             initial={initial}
             onSubmit={answer}
             onInvalid={setLocalError}
+            errorId={localError ? errorId : undefined}
           />
         )}
         {question.kind === "members" && (
@@ -102,7 +116,7 @@ export function QuestionCard({ api, question, m, initial, expectedMembers }: Pro
       </div>
 
       {localError && (
-        <p role="alert" className="mt-3 text-sm font-medium text-danger">
+        <p id={errorId} role="alert" className="mt-3 text-sm font-medium text-danger">
           {localError}
         </p>
       )}
@@ -112,7 +126,7 @@ export function QuestionCard({ api, question, m, initial, expectedMembers }: Pro
           type="button"
           disabled={busy}
           onClick={() => void api.turn({ type: "skip", questionId: question.id }, "skip")}
-          className="mt-4 inline-flex items-center gap-2 rounded-sm text-ink-2 underline underline-offset-4 hover:text-ink disabled:opacity-50"
+          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-sm text-ink-2 underline underline-offset-4 hover:text-ink disabled:opacity-50"
         >
           {m.interview.skip}
           {api.pending === "skip" && <Spinner className="size-4" />}
@@ -155,7 +169,9 @@ function ChoiceList({
   pendingValue,
   disabled,
   selected,
+  labelledBy,
 }: {
+  labelledBy: string;
   options: { value: string; label: string; hint?: string }[];
   onChoose: (value: string) => void;
   pendingValue: string | null;
@@ -163,7 +179,7 @@ function ChoiceList({
   selected: string | null;
 }) {
   return (
-    <div role="group" className="grid gap-2">
+    <div role="group" aria-labelledby={labelledBy} className="grid gap-2">
       {options.map((option) => (
         <button
           key={option.value}
@@ -198,6 +214,8 @@ function MultiChoice({
   initial,
   onSubmit,
   onInvalid,
+  labelledBy,
+  errorId,
 }: {
   question: Question;
   m: Widen<CitizenMessages>;
@@ -205,6 +223,8 @@ function MultiChoice({
   initial?: AnswerValue;
   onSubmit: (value: AnswerValue) => Promise<void>;
   onInvalid: (message: string | null) => void;
+  labelledBy: string;
+  errorId?: string;
 }) {
   const [values, setValues] = useState<string[]>(
     Array.isArray(initial)
@@ -213,43 +233,51 @@ function MultiChoice({
   );
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (busy) return;
     if (question.required && values.length === 0) return onInvalid(m.interview.selectAtLeastOne);
     void onSubmit(values);
   }
   return (
     <form onSubmit={submit} className="grid gap-2">
-      {(question.options ?? []).map((option) => {
-        const checked = values.includes(option.value);
-        return (
-          <label
-            key={option.value}
-            className={cn(
-              "flex min-h-14 cursor-pointer items-center gap-3 rounded-md px-4 py-3 text-lg ring-1 ring-line-strong ring-inset has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
-              checked && "bg-stamp-wash ring-2 ring-stamp",
-            )}
-          >
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={(e) => {
-                onInvalid(null);
-                setValues((list) =>
-                  e.target.checked
-                    ? [...list, option.value]
-                    : list.filter((v) => v !== option.value),
-                );
-              }}
-              className="size-5 shrink-0 accent-stamp"
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold">{option.label}</span>
-              {option.hint && (
-                <span className="mt-0.5 block text-base text-ink-3">{option.hint}</span>
+      <div
+        role="group"
+        aria-labelledby={labelledBy}
+        aria-describedby={errorId}
+        className="grid gap-2"
+      >
+        {(question.options ?? []).map((option) => {
+          const checked = values.includes(option.value);
+          return (
+            <label
+              key={option.value}
+              className={cn(
+                "flex min-h-14 cursor-pointer items-center gap-3 rounded-md px-4 py-3 text-lg ring-1 ring-line-strong ring-inset has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
+                checked && "bg-stamp-wash ring-2 ring-stamp",
               )}
-            </span>
-          </label>
-        );
-      })}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => {
+                  onInvalid(null);
+                  setValues((list) =>
+                    e.target.checked
+                      ? [...list, option.value]
+                      : list.filter((v) => v !== option.value),
+                  );
+                }}
+                className="size-5 shrink-0 accent-stamp"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">{option.label}</span>
+                {option.hint && (
+                  <span className="mt-0.5 block text-base text-ink-3">{option.hint}</span>
+                )}
+              </span>
+            </label>
+          );
+        })}
+      </div>
       <Button type="submit" size="lg" loading={busy} className="mt-2 w-full">
         {m.common.continue}
       </Button>
@@ -264,6 +292,7 @@ function ValueInput({
   initial,
   onSubmit,
   onInvalid,
+  errorId,
 }: {
   question: Question;
   m: Widen<CitizenMessages>;
@@ -271,18 +300,17 @@ function ValueInput({
   initial?: AnswerValue;
   onSubmit: (value: AnswerValue) => Promise<void>;
   onInvalid: (message: string | null) => void;
+  errorId?: string;
 }) {
+  // Numbers start empty: a prefilled 0 would let a quick tap submit an answer nobody gave.
   const [value, setValue] = useState(
-    typeof initial === "string" || typeof initial === "number"
-      ? String(initial)
-      : question.kind === "number"
-        ? String(question.min ?? 0)
-        : "",
+    typeof initial === "string" || typeof initial === "number" ? String(initial) : "",
   );
   const isNumber = question.kind === "number";
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (busy) return;
     const trimmed = value.trim();
     if (!trimmed) return question.required ? onInvalid(m.interview.required) : undefined;
     if (isNumber) {
@@ -299,7 +327,11 @@ function ValueInput({
   const step = (delta: number) => {
     onInvalid(null);
     setValue((current) => {
-      const n = (Number(current) || 0) + delta;
+      const base =
+        current.trim() === ""
+          ? (question.min ?? 0) - (delta > 0 ? delta : 0)
+          : Number(current) || 0;
+      const n = base + delta;
       const clamped = Math.min(question.max ?? Infinity, Math.max(question.min ?? 0, n));
       return String(clamped);
     });
@@ -315,7 +347,7 @@ function ValueInput({
             size="icon"
             className="size-14"
             onClick={() => step(-1)}
-            aria-label="−1"
+            aria-label={m.common.decrease}
           >
             <Minus className="size-5" />
           </Button>
@@ -326,7 +358,12 @@ function ValueInput({
               setValue(e.target.value);
             }}
             inputMode="numeric"
+            name="answer"
+            autoComplete="off"
+            placeholder={question.min !== undefined ? String(question.min) : "0"}
             aria-label={question.prompt}
+            aria-invalid={errorId ? true : undefined}
+            aria-describedby={errorId}
             className="tabular h-14 flex-1 text-center font-display text-2xl font-semibold"
           />
           <Button
@@ -335,7 +372,7 @@ function ValueInput({
             size="icon"
             className="size-14"
             onClick={() => step(1)}
-            aria-label="+1"
+            aria-label={m.common.increase}
           >
             <Plus className="size-5" />
           </Button>
@@ -348,7 +385,11 @@ function ValueInput({
             onInvalid(null);
             setValue(e.target.value);
           }}
+          name="answer"
+          autoComplete="off"
           aria-label={question.prompt}
+          aria-invalid={errorId ? true : undefined}
+          aria-describedby={errorId}
           className="h-14 text-lg"
           maxLength={2000}
         />

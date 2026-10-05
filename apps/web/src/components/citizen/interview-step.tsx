@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/cn";
+import { format } from "@/lib/citizen/messages";
+import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import { ActionErrorNotice } from "./action-error";
 import { AssistantMessage, lastMessage } from "./assistant-message";
 import type { StepProps } from "./citizen-app";
@@ -22,19 +23,24 @@ export function InterviewStep({ api, data, m }: StepProps) {
   return (
     <div className="grid gap-5">
       <div>
-        {data.practice && (
-          <p className="font-display text-xl font-semibold tracking-[-0.01em]">
-            {data.practice.name}
-          </p>
-        )}
+        <h1
+          id={STEP_TITLE_ID}
+          tabIndex={-1}
+          className="font-display text-xl font-semibold tracking-[-0.01em] outline-none"
+        >
+          {data.practice?.name ?? m.steps.interview}
+        </h1>
         {questionsTotal > 0 && (
           <div className="mt-2 flex items-center gap-3">
             <ProgressBar
               value={(questionsAnswered / questionsTotal) * 100}
-              label={`${questionsAnswered}/${questionsTotal}`}
+              label={format(m.interview.progressLabel, {
+                n: questionsAnswered,
+                total: questionsTotal,
+              })}
               className="flex-1"
             />
-            <span className="tabular text-sm text-ink-3" dir="ltr">
+            <span aria-hidden className="tabular text-sm text-ink-3" dir="ltr">
               {questionsAnswered}/{questionsTotal}
             </span>
           </div>
@@ -55,6 +61,7 @@ export function InterviewStep({ api, data, m }: StepProps) {
           question={question}
           m={m}
           initial={data.answers[question.id]}
+          autoFocus={api.lastTurn !== null}
           expectedMembers={
             typeof data.answers.household_count === "number"
               ? data.answers.household_count
@@ -79,12 +86,14 @@ export function InterviewStep({ api, data, m }: StepProps) {
         {answered.length === 0 ? (
           <p className="px-4 pb-4 text-ink-3">{m.interview.noAnswers}</p>
         ) : (
-          <dl className="divide-y divide-line border-t border-line">
+          <ul className="divide-y divide-line border-t border-line">
             {answered.map((item) => (
-              <div key={item.questionId} className="flex items-start gap-3 px-4 py-3">
+              <li key={item.questionId} className="flex items-start gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
-                  <dt className="text-sm text-ink-3">{item.question}</dt>
-                  <dd className="mt-0.5 font-semibold break-words">{item.answer}</dd>
+                  <p className="text-sm text-ink-3">{item.question}</p>
+                  <p dir="auto" className="mt-0.5 font-semibold break-words">
+                    {item.answer}
+                  </p>
                 </div>
                 {item.editable && (
                   <button
@@ -96,7 +105,7 @@ export function InterviewStep({ api, data, m }: StepProps) {
                         `edit:${item.questionId}`,
                       )
                     }
-                    className="-me-2 inline-flex shrink-0 items-center gap-1.5 rounded-sm px-2 py-1.5 text-sm font-semibold text-stamp hover:bg-stamp-wash disabled:opacity-50"
+                    className="-me-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-sm px-3 text-sm font-semibold text-stamp hover:bg-stamp-wash disabled:opacity-50"
                     aria-label={`${m.common.edit}: ${item.question}`}
                   >
                     {api.pending === `edit:${item.questionId}` ? (
@@ -107,9 +116,9 @@ export function InterviewStep({ api, data, m }: StepProps) {
                     {m.common.edit}
                   </button>
                 )}
-              </div>
+              </li>
             ))}
-          </dl>
+          </ul>
         )}
       </details>
     </div>
@@ -120,12 +129,17 @@ export function InterviewStep({ api, data, m }: StepProps) {
 function FreeText({ api, m }: Pick<StepProps, "api" | "m">) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const [tooShort, setTooShort] = useState(false);
   const inputId = useId();
   const sending = api.pending === "text";
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (text.trim().length < 3) return;
+    if (sending) return;
+    if (text.trim().length < 3) {
+      setTooShort(true);
+      return;
+    }
     const result = await api.turn({ type: "text", text: text.trim() });
     if (result) {
       setText("");
@@ -147,28 +161,41 @@ function FreeText({ api, m }: Pick<StepProps, "api" | "m">) {
   }
 
   return (
-    <form onSubmit={submit} className={cn("flex animate-fade-in gap-2")}>
-      <label htmlFor={inputId} className="sr-only">
-        {m.interview.writeInstead}
-      </label>
-      <Input
-        id={inputId}
-        autoFocus
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={m.interview.writePlaceholder}
-        maxLength={2000}
-        className="h-12 flex-1 text-base"
-      />
-      <Button
-        type="submit"
-        size="icon"
-        className="size-12"
-        loading={sending}
-        aria-label={m.interview.send}
-      >
-        <SendHorizontal className="rtl-flip size-5" aria-hidden />
-      </Button>
+    <form onSubmit={submit} className="grid animate-fade-in gap-1.5">
+      <div className="flex gap-2">
+        <label htmlFor={inputId} className="sr-only">
+          {m.interview.writeInstead}
+        </label>
+        <Input
+          id={inputId}
+          autoFocus
+          value={text}
+          autoComplete="off"
+          aria-invalid={tooShort || undefined}
+          aria-describedby={tooShort ? `${inputId}-error` : undefined}
+          onChange={(e) => {
+            setText(e.target.value);
+            setTooShort(false);
+          }}
+          placeholder={m.interview.writePlaceholder}
+          maxLength={2000}
+          className="h-12 flex-1 text-base"
+        />
+        <Button
+          type="submit"
+          size="icon"
+          className="size-12"
+          loading={sending}
+          aria-label={m.interview.send}
+        >
+          <SendHorizontal className="rtl-flip size-5" aria-hidden />
+        </Button>
+      </div>
+      {tooShort && (
+        <p id={`${inputId}-error`} role="alert" className="text-sm font-medium text-danger">
+          {m.need.tooShort}
+        </p>
+      )}
     </form>
   );
 }

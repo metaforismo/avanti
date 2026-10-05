@@ -24,7 +24,9 @@ export function AnswersSection({ dossier }: { dossier: CaseDossier }) {
                   className="grid gap-1 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-4"
                 >
                   <dt className="text-ink-2">{answer.question}</dt>
-                  <dd className="font-semibold">{answer.answer}</dd>
+                  <dd dir="auto" className="font-semibold break-words">
+                    {answer.answer}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -49,7 +51,9 @@ export function ConversationSection({ dossier }: { dossier: CaseDossier }) {
     <section aria-labelledby="conversation-title">
       <details className="group">
         <summary className="flex cursor-pointer list-none items-baseline gap-3 font-display text-xl font-semibold [&::-webkit-details-marker]:hidden">
-          <span id="conversation-title">Conversazione</span>
+          <h2 id="conversation-title" className="font-display text-xl font-semibold">
+            Conversazione
+          </h2>
           <span className="text-sm font-normal text-ink-3 group-open:hidden">
             {messages.length} messaggi, mostra
           </span>
@@ -68,7 +72,9 @@ export function ConversationSection({ dossier }: { dossier: CaseDossier }) {
               <p className="text-xs font-semibold text-ink-3">
                 {ROLE_LABEL[message.role]}, {formatDateTime(message.createdAt)}
               </p>
-              <p className="mt-1 whitespace-pre-line">{message.text}</p>
+              <p dir="auto" className="mt-1 break-words whitespace-pre-line">
+                {message.text}
+              </p>
               {message.originalText && message.originalText !== message.text && (
                 <p className="mt-2 border-t border-line pt-2 text-sm text-ink-3">
                   Originale: <span className="whitespace-pre-line">{message.originalText}</span>

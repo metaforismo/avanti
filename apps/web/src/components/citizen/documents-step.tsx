@@ -20,10 +20,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
-import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { DONE_STATUSES } from "@/lib/citizen/view";
 import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
+import { STEP_TITLE_ID } from "@/lib/citizen/view";
 
 type M = Widen<CitizenMessages>;
 
@@ -39,7 +39,11 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
   return (
     <div className="grid gap-6">
       <div>
-        <h1 className="font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em]">
+        <h1
+          id={STEP_TITLE_ID}
+          tabIndex={-1}
+          className="font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em] outline-none"
+        >
           {m.docs.title}
         </h1>
         <p className="mt-2 text-lg text-ink-2">{m.docs.lead}</p>
@@ -139,7 +143,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
         <UploadButtons api={api} m={m} checklistItemId={null} className="mt-4" />
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur-md">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface shadow-[0_-8px_24px_-16px_rgb(20_27_45/0.25)]">
         <div className="mx-auto flex max-w-xl flex-col gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <p
             className={cn(
@@ -345,7 +349,6 @@ function UploadButtons({
 }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const touch = useMediaQuery("(pointer: coarse)");
 
   const onFiles = (files: FileList | null) => {
     for (const file of Array.from(files ?? [])) void api.upload(file, checklistItemId);
@@ -379,25 +382,27 @@ function UploadButtons({
           e.target.value = "";
         }}
       />
-      {touch && (
-        <Button
-          type="button"
-          variant="secondary"
-          className="flex-1 text-stamp"
-          onClick={() => cameraRef.current?.click()}
-        >
-          <Camera className="size-4" aria-hidden />
-          {hasDocuments ? m.docs.addPage : m.docs.takePhoto}
-        </Button>
-      )}
+      {/* Pointer type is decided in CSS, not after hydration: no layout shift on phones. */}
       <Button
         type="button"
         variant="secondary"
-        className={cn(touch ? "flex-1" : "text-stamp")}
+        className="hidden flex-1 text-stamp pointer-coarse:inline-flex"
+        onClick={() => cameraRef.current?.click()}
+      >
+        <Camera className="size-4" aria-hidden />
+        {hasDocuments ? m.docs.addPage : m.docs.takePhoto}
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        className="text-stamp pointer-coarse:flex-1 pointer-coarse:text-ink"
         onClick={() => fileRef.current?.click()}
       >
         <FileUp className="size-4" aria-hidden />
-        {touch ? m.docs.chooseFile : hasDocuments ? m.docs.addPage : m.docs.upload}
+        <span className="pointer-coarse:hidden">
+          {hasDocuments ? m.docs.addPage : m.docs.upload}
+        </span>
+        <span className="hidden pointer-coarse:inline">{m.docs.chooseFile}</span>
       </Button>
     </div>
   );
@@ -412,9 +417,9 @@ function PendingUploads({
   api: CitizenCaseApi;
   m: M;
 }) {
-  if (uploads.length === 0) return null;
+  // The live region is always mounted: one that appears with its first item is not announced.
   return (
-    <ul className="mt-3 grid gap-2" aria-live="polite">
+    <ul className="grid gap-2 not-empty:mt-3" aria-live="polite">
       {uploads.map((upload) => {
         const message = upload.error
           ? upload.error === "compress"
@@ -437,7 +442,7 @@ function PendingUploads({
               <Spinner className="size-5 shrink-0 text-stamp" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold" dir="ltr">
+              <p className="truncate text-sm font-semibold" dir="auto">
                 {upload.fileName}
               </p>
               <p className={cn("text-sm", upload.error ? "text-danger" : "text-ink-3")}>
@@ -455,7 +460,7 @@ function PendingUploads({
               <button
                 type="button"
                 onClick={() => api.dismissUpload(upload.id)}
-                className="rounded-sm p-1.5 text-danger hover:bg-danger/10"
+                className="grid size-10 shrink-0 place-items-center rounded-sm text-danger hover:bg-danger/10"
                 aria-label={m.common.close}
               >
                 <X className="size-4" aria-hidden />
@@ -485,6 +490,18 @@ function DocumentRow({
 }) {
   const [confirming, setConfirming] = useState(false);
   const selectId = useId();
+  const confirmId = `${selectId}-confirm`;
+  const trashRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  const openConfirm = () => {
+    setConfirming(true);
+    requestAnimationFrame(() => cancelRef.current?.focus());
+  };
+  const closeConfirm = () => {
+    setConfirming(false);
+    requestAnimationFrame(() => trashRef.current?.focus());
+  };
   const removing = api.pending === `remove:${doc.id}`;
   const reassigning = api.pending === `reassign:${doc.id}`;
   const findings = (doc.analysis?.findings ?? []).filter((f) => f.severity !== "ok");
@@ -509,7 +526,7 @@ function DocumentRow({
           )}
         </a>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold" dir="ltr">
+          <p className="truncate text-sm font-semibold" dir="auto">
             {doc.analysis?.detectedLabel ?? doc.fileName}
           </p>
           <p className="truncate text-sm text-ink-3">
@@ -520,38 +537,46 @@ function DocumentRow({
               </span>
             ) : (
               <>
-                <span dir="ltr">{formatSize(doc.sizeBytes)}</span>
+                <span dir="ltr">{formatSize(doc.sizeBytes, data.language)}</span>
                 {doc.pages && doc.pages > 1 ? ` · ${format(m.docs.pages, { n: doc.pages })}` : ""}
               </>
             )}
           </p>
         </div>
         {confirming ? (
-          <div className="flex shrink-0 items-center gap-1">
+          <div
+            role="group"
+            aria-describedby={confirmId}
+            className="flex shrink-0 items-center gap-1"
+          >
             <Button
-              size="sm"
               variant="danger"
               loading={removing}
               onClick={() => void api.removeDocument(doc.id)}
             >
               {m.common.remove}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+            <Button ref={cancelRef} variant="ghost" onClick={closeConfirm}>
               {m.common.cancel}
             </Button>
           </div>
         ) : (
           <button
+            ref={trashRef}
             type="button"
-            onClick={() => setConfirming(true)}
-            className="shrink-0 rounded-sm p-2 text-ink-3 hover:bg-danger-wash hover:text-danger"
+            onClick={openConfirm}
+            className="grid size-11 shrink-0 place-items-center rounded-sm text-ink-3 hover:bg-danger-wash hover:text-danger"
             aria-label={`${m.common.remove}: ${doc.fileName}`}
           >
             <Trash2 className="size-4" aria-hidden />
           </button>
         )}
       </div>
-      {confirming && <p className="mt-2 text-sm text-ink-2">{m.docs.removeConfirm}</p>}
+      {confirming && (
+        <p id={confirmId} role="status" className="mt-2 text-sm text-ink-2">
+          {m.docs.removeConfirm}
+        </p>
+      )}
       {findings.map((finding) => (
         <FindingLine key={finding.id} finding={finding} />
       ))}
@@ -581,7 +606,11 @@ function DocumentRow({
   );
 }
 
-function formatSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function formatSize(bytes: number, language: string) {
+  const megabytes = bytes >= 1024 * 1024;
+  return new Intl.NumberFormat(language, {
+    style: "unit",
+    unit: megabytes ? "megabyte" : "kilobyte",
+    maximumFractionDigits: megabytes ? 1 : 0,
+  }).format(megabytes ? bytes / (1024 * 1024) : Math.max(1, bytes / 1024));
 }

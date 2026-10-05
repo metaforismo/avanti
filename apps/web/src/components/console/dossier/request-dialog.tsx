@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import type { CaseDossier } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -20,10 +20,17 @@ export function RequestDialog({
   dossier: CaseDossier;
   onSent: (result: CaseDossier | null) => void;
 }) {
+  const edited = useRef(false);
   return (
     <Dialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        // A hand-written message is not lost to a stray Esc or click outside.
+        if (!next && edited.current && !window.confirm("Scartare il messaggio non inviato?"))
+          return;
+        if (!next) edited.current = false;
+        onOpenChange(next);
+      }}
       title="Chiedi un'integrazione"
       description={
         dossier.language === "it"
@@ -34,7 +41,9 @@ export function RequestDialog({
       {open && (
         <RequestForm
           dossier={dossier}
+          onEdited={() => (edited.current = true)}
           onDone={(result) => {
+            edited.current = false;
             onSent(result);
             onOpenChange(false);
           }}
@@ -61,8 +70,10 @@ function defaultMessage(dossier: CaseDossier, titles: string[]) {
 function RequestForm({
   dossier,
   onDone,
+  onEdited,
 }: {
   dossier: CaseDossier;
+  onEdited: () => void;
   onDone: (result: CaseDossier | null) => void;
 }) {
   const candidates = dossier.checklist.filter((item) => NEEDS_ACTION.has(item.status));
@@ -88,7 +99,12 @@ function RequestForm({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!message.trim()) return setError("Scrivi il messaggio per il cittadino.");
+    if (pending) return;
+    if (!message.trim()) {
+      setError("Scrivi il messaggio per il cittadino.");
+      document.getElementById("request-message")?.focus();
+      return;
+    }
     setPending(true);
     setError(null);
     try {
@@ -150,7 +166,11 @@ function RequestForm({
           onChange={(e) => {
             setMessage(e.target.value);
             setTouched(true);
+            setError(null);
+            onEdited();
           }}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "request-error" : undefined}
           rows={6}
           maxLength={1000}
           className="w-full resize-y rounded-sm bg-surface p-3 text-[0.9375rem] ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
@@ -158,7 +178,11 @@ function RequestForm({
         <p className="tabular text-right text-xs text-ink-3">{message.length}/1000</p>
       </div>
       {error && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+        <p
+          id="request-error"
+          role="alert"
+          className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
+        >
           {error}
         </p>
       )}

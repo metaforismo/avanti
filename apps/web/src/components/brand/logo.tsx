@@ -22,7 +22,7 @@ export function LogoMark({ className }: { className?: string }) {
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
+    <span translate="no" className={cn("inline-flex items-center gap-2", className)}>
       <LogoMark />
       <span className="font-display text-[1.375rem] leading-none font-bold tracking-[-0.02em] text-ink [font-stretch:92%]">
         Avanti
