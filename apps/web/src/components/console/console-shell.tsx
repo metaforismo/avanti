@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Inbox, LogOut, Menu, Plus, QrCode, X } from "lucide-react";
+import { BarChart3, CircleHelp, Inbox, LogOut, Menu, Plus, QrCode, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -34,6 +34,12 @@ const NAV: { href: Route; label: string; icon: typeof Inbox; match: (path: strin
       label: "Sportelli e QR",
       icon: QrCode,
       match: (p) => p.startsWith("/console/sportelli"),
+    },
+    {
+      href: "/console/aiuto",
+      label: "Aiuto",
+      icon: CircleHelp,
+      match: (p) => p.startsWith("/console/aiuto"),
     },
   ];
 
