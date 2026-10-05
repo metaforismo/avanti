@@ -21,3 +21,5 @@ export { dossierSummary, timelineLabel } from "./summary";
 export { requirements, type RequirementId } from "./requirements";
 
 export { calendarDate, calendarYear } from "./calendar";
+
+export { readableAnswer, answeredQuestions } from "./answers";

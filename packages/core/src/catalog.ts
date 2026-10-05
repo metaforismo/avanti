@@ -118,7 +118,7 @@ export const catalog: Record<PracticeId, PracticeDefinition> = {
   },
 };
 
-export function getPractice(id: PracticeId, language: Language, _now: Date): PracticeSummary {
+export function getPractice(id: PracticeId, language: Language): PracticeSummary {
   const definition = catalog[id];
   return {
     id,
@@ -130,30 +130,50 @@ export function getPractice(id: PracticeId, language: Language, _now: Date): Pra
     estimatedMinutes: definition.estimatedMinutes,
   };
 }
-export function listPractices(language: Language, now: Date): PracticeSummary[] {
-  return PRACTICE_IDS.map((id) => getPractice(id, language, now));
+export function listPractices(language: Language): PracticeSummary[] {
+  return PRACTICE_IDS.map((id) => getPractice(id, language));
 }
 
 const extraPrompts = {
   household_exceptions: [
-    "Ci sono coniugi con residenze diverse o figli maggiorenni a carico fiscale che vivono altrove? Il CAF verifica se fanno parte del nucleo.",
-    "Are there spouses at different addresses or adult children living elsewhere who depend on the family for tax purposes? The CAF checks the household.",
-    "Y a-t-il des conjoints à des adresses différentes ou des enfants adultes à charge fiscale vivant ailleurs ? Le CAF vérifie le foyer.",
-    "¿Hay cónyuges con distintas residencias o hijos adultos a cargo fiscal que viven fuera? El CAF revisa la familia.",
-    "Sunt soți cu adrese diferite sau copii adulți în întreținere fiscală care locuiesc separat? CAF verifică familia.",
-    "Чи є подружжя з різними адресами або дорослі діти на податковому утриманні, які живуть окремо? CAF перевірить склад сім’ї.",
-    "هل يوجد زوجان بعنوانين مختلفين أو أبناء بالغون على إعالة الأسرة ضريبيًا يعيشون خارجها؟ يتحقق CAF من الأسرة.",
-    "স্বামী-স্ত্রীর আলাদা ঠিকানা বা করের হিসাবে নির্ভরশীল প্রাপ্তবয়স্ক সন্তান অন্যত্র থাকেন? CAF পরিবার যাচাই করবে।",
+    "Il tuo coniuge o un figlio adulto vive altrove?",
+    "Does your spouse or an adult child live elsewhere?",
+    "Votre conjoint ou un enfant adulte vit-il ailleurs ?",
+    "¿Tu cónyuge o un hijo adulto vive en otro lugar?",
+    "Soțul, soția sau un copil adult locuiește separat?",
+    "Ваш чоловік, дружина або доросла дитина живе окремо?",
+    "هل يعيش زوجك أو زوجتك أو ابن بالغ في مكان آخر؟",
+    "আপনার স্বামী, স্ত্রী বা প্রাপ্তবয়স্ক সন্তান অন্যত্র থাকেন?",
+  ],
+  household_help: [
+    "Indica anche i figli adulti a tuo carico fiscale. Il CAF verifica chi fa parte del nucleo ISEE.",
+    "Include adult children who depend on you for tax purposes. The CAF checks the ISEE household.",
+    "Indiquez aussi les enfants adultes à votre charge fiscale. Le CAF vérifie le foyer ISEE.",
+    "Incluye hijos adultos a tu cargo fiscal. El CAF revisa la familia ISEE.",
+    "Include copiii adulți în întreținere fiscală. CAF verifică familia ISEE.",
+    "Вкажіть дорослих дітей на вашому податковому утриманні. CAF перевірить склад сім’ї ISEE.",
+    "اذكر الأبناء البالغين المعالين ضريبيًا. يتحقق CAF من أسرة ISEE.",
+    "করের হিসাবে নির্ভরশীল প্রাপ্তবয়স্ক সন্তানও জানান। CAF ISEE পরিবার যাচাই করবে।",
   ],
   income_present: [
-    "{name} aveva redditi o trattamenti nel 2025? Se non ne aveva, non serve inventare una CU.",
-    "Did {name} have income or benefits in 2025? If not, you do not need an income certificate (Certificazione Unica).",
-    "{name} avait-il des revenus ou allocations en 2025 ? Sinon, pas besoin d’attestation (Certificazione Unica).",
-    "¿{name} tuvo ingresos o prestaciones en 2025? Si no, no hace falta un certificado (Certificazione Unica).",
-    "{name} a avut venituri sau prestații în 2025? Dacă nu, nu trebuie certificat (Certificazione Unica).",
-    "Чи мав/мала {name} доходи чи виплати у 2025 році? Якщо ні, довідка (Certificazione Unica) не потрібна.",
-    "هل كان لدى {name} دخل أو إعانات في 2025؟ إن لم يكن، لا تحتاج شهادة (Certificazione Unica).",
-    "{name}-এর ২০২৫-এ আয় বা ভাতা ছিল? না থাকলে আয়ের সনদ (Certificazione Unica) দরকার নেই।",
+    "{name} aveva redditi o aiuti economici nel {year}?",
+    "Did {name} have income or benefits in {year}?",
+    "{name} avait-il des revenus ou aides en {year} ?",
+    "¿{name} tuvo ingresos o ayudas en {year}?",
+    "{name} a avut venituri sau ajutoare în {year}?",
+    "Чи мав/мала {name} доходи чи виплати у {year} році?",
+    "هل كان لدى {name} دخل أو مساعدات في {year}؟",
+    "{name}-এর {year} সালে আয় বা ভাতা ছিল?",
+  ],
+  income_help: [
+    "Se non aveva redditi, rispondi No. Se hai dubbi, chiedi al CAF.",
+    "If there was no income, answer No. Ask the CAF if you are unsure.",
+    "Sans revenus, répondez Non. En cas de doute, demandez au CAF.",
+    "Si no tuvo ingresos, responde No. Si tienes dudas, consulta al CAF.",
+    "Fără venituri, răspunde Nu. Dacă ai dubii, întreabă CAF.",
+    "Якщо доходів не було, відповідайте Ні. Якщо не впевнені, запитайте CAF.",
+    "إن لم يوجد دخل، أجب لا. إن لم تكن متأكدًا، اسأل CAF.",
+    "আয় না থাকলে না বলুন। সন্দেহ হলে CAF-এ জিজ্ঞাসা করুন।",
   ],
   account_type: [
     "Rapporto {index}: che tipo è?",
@@ -310,11 +330,106 @@ const extraPrompts = {
   family: ["Famiglia", "Family", "Famille", "Familia", "Familie", "Сім’я", "الأسرة", "পরিবার"],
 } as const satisfies Record<string, Text>;
 
+const assetPrompts = {
+  property: [
+    "Come riconosci l’immobile {index}?",
+    "How do you identify property {index}?",
+    "Comment reconnaître le bien {index} ?",
+    "¿Cómo identificas el inmueble {index}?",
+    "Cum identifici imobilul {index}?",
+    "Як розпізнати нерухомість {index}?",
+    "كيف تميز العقار {index}؟",
+    "সম্পত্তি {index} কীভাবে চেনেন?",
+  ],
+  propertyHelp: [
+    "Comune o breve descrizione. Qui non serve l’indirizzo completo.",
+    "Town or short description. No full address is needed here.",
+    "Commune ou brève description. Pas besoin d’adresse complète ici.",
+    "Municipio o descripción breve. No hace falta la dirección completa aquí.",
+    "Localitate sau descriere scurtă. Nu este necesară adresa completă aici.",
+    "Місто або короткий опис. Повна адреса тут не потрібна.",
+    "المدينة أو وصف قصير. لا نحتاج العنوان الكامل هنا.",
+    "শহর বা ছোট বর্ণনা। এখানে পুরো ঠিকানা দরকার নেই।",
+  ],
+  vehicle: [
+    "Quale veicolo è il numero {index}?",
+    "Which vehicle is number {index}?",
+    "Quel est le véhicule {index} ?",
+    "¿Cuál es el vehículo {index}?",
+    "Care este vehiculul {index}?",
+    "Який це транспорт {index}?",
+    "ما المركبة رقم {index}؟",
+    "কোনটি গাড়ি {index}?",
+  ],
+  vehicleHelp: [
+    "Marca o modello. Qui non serve la targa.",
+    "Make or model. No plate number is needed here.",
+    "Marque ou modèle. Pas besoin de plaque ici.",
+    "Marca o modelo. No hace falta matrícula aquí.",
+    "Marcă sau model. Nu este necesar numărul aici.",
+    "Марка або модель. Номер тут не потрібний.",
+    "الماركة أو الطراز. لا نحتاج رقم اللوحة هنا.",
+    "ব্র্যান্ড বা মডেল। এখানে নম্বর দরকার নেই।",
+  ],
+} as const satisfies Record<string, Text>;
+
+const selectionPrompts: Record<string, Text> = {
+  self_employed: [
+    "Chi aveva un’attività in proprio nel 2025?",
+    "Who ran a business or worked for themselves in 2025?",
+    "Qui avait une entreprise ou travaillait à son compte en 2025 ?",
+    "¿Quién tenía un negocio o trabajaba por cuenta propia en 2025?",
+    "Cine avea o firmă sau lucra pe cont propriu în 2025?",
+    "Хто мав бізнес або працював самостійно у 2025 році?",
+    "من كان لديه عمل تجاري أو عمل مستقل في 2025؟",
+    "২০২৫-এ কার ব্যবসা বা নিজস্ব কাজ ছিল?",
+  ],
+  disability: [
+    "Chi ha una disabilità?",
+    "Who has a disability?",
+    "Qui a un handicap ?",
+    "¿Quién tiene una discapacidad?",
+    "Cine are o dizabilitate?",
+    "Хто має інвалідність?",
+    "من لديه إعاقة؟",
+    "কার প্রতিবন্ধিতা আছে?",
+  ],
+  foreign_income: [
+    "Chi aveva redditi dall’estero nel 2025?",
+    "Who had income from abroad in 2025?",
+    "Qui avait des revenus de l’étranger en 2025 ?",
+    "¿Quién tuvo ingresos del extranjero en 2025?",
+    "Cine avea venituri din străinătate în 2025?",
+    "Хто мав доходи з-за кордону у 2025 році?",
+    "من كان لديه دخل من الخارج في 2025؟",
+    "২০২৫-এ কার বিদেশ থেকে আয় ছিল?",
+  ],
+  maintenance: [
+    "Chi riceveva o pagava il mantenimento nel 2025?",
+    "Who received or paid family support in 2025?",
+    "Qui recevait ou payait une pension familiale en 2025 ?",
+    "¿Quién recibió o pagó manutención en 2025?",
+    "Cine primea sau plătea întreținere în 2025?",
+    "Хто отримував чи сплачував аліменти у 2025 році?",
+    "من تلقّى أو دفع النفقة في 2025؟",
+    "২০২৫-এ কে ভরণপোষণের টাকা পেয়েছেন বা দিয়েছেন?",
+  ],
+  exempt_income: [
+    "Chi aveva redditi senza CU o dichiarazione nel 2025?",
+    "Who had income without CU or a tax return in 2025?",
+    "Qui avait des revenus sans CU ni déclaration en 2025 ?",
+    "¿Quién tuvo ingresos sin CU ni declaración en 2025?",
+    "Cine avea venituri fără CU sau declarație în 2025?",
+    "Хто мав доходи без CU чи декларації у 2025 році?",
+    "من كان لديه دخل دون CU أو إقرار في 2025؟",
+    "২০২৫-এ কার CU বা কর রিটার্ন ছাড়া আয় ছিল?",
+  ],
+};
+
 export function questionDefinitions(
   practiceId: PracticeId,
   answers: Answers,
   language: Language,
-  _now: Date,
 ): QuestionDefinition[] {
   if (catalog[practiceId].availability === "coming_soon") return [];
   const definitions: QuestionDefinition[] = [];
@@ -350,11 +465,11 @@ export function questionDefinitions(
       add(
         id,
         "multi_choice",
-        localize(language, extraPrompts.selectMembers),
+        localize(language, selectionPrompts[parent]!),
         "particular",
         true,
         [parent, "members"],
-        { options: memberOptions, min: 1 },
+        { options: memberOptions, min: 1, help: localize(language, extraPrompts.selectMembers) },
       );
   }
   if (practiceId === "isee_ordinario" || practiceId === "assegno_unico")
@@ -374,17 +489,22 @@ export function questionDefinitions(
       "yes_no",
       localize(language, extraPrompts.household_exceptions),
       "household",
+      true,
+      [],
+      { help: localize(language, extraPrompts.household_help) },
     );
     for (const member of people) {
       add(
         `income_present_${member.id}`,
         "yes_no",
         localize(language, extraPrompts.income_present, {
+          year: catalog[practiceId].referenceYear ?? "",
           name: [member.firstName, member.lastName].filter(Boolean).join(" "),
         }),
         "incomeGroup",
         true,
         ["members"],
+        { help: localize(language, extraPrompts.income_help) },
       );
     }
     named("housing", "single_choice", "home", {
@@ -422,7 +542,11 @@ export function questionDefinitions(
       add(
         `account_owner_${index}`,
         "single_choice",
-        t(language, "owner", { ...variables, kind: t(language, "accountKind") }),
+        t(language, "owner", {
+          label: [t(language, "accountKind"), answers[`account_bank_${index}`] || index + 1].join(
+            " ",
+          ),
+        }),
         "assets",
         true,
         ["accounts_count", "members"],
@@ -435,10 +559,29 @@ export function questionDefinitions(
       ]);
     named("properties_count", "number", "assets", { min: 0, max: 50 });
     for (let index = 0; index < boundedCount(answers.properties_count); index++) {
+      // A new optional description must not reopen an already completed interview.
+      if (
+        !Object.hasOwn(answers, `property_owner_${index}`) ||
+        Object.hasOwn(answers, `property_label_${index}`)
+      )
+        add(
+          `property_label_${index}`,
+          "text",
+          localize(language, assetPrompts.property, { index: index + 1 }),
+          "assets",
+          false,
+          ["properties_count"],
+          { max: 120, help: localize(language, assetPrompts.propertyHelp) },
+        );
       add(
         `property_owner_${index}`,
         "single_choice",
-        t(language, "owner", { index: index + 1, kind: t(language, "propertyKind") }),
+        t(language, "owner", {
+          label: [
+            t(language, "propertyKind"),
+            answers[`property_label_${index}`] || index + 1,
+          ].join(" "),
+        }),
         "assets",
         true,
         ["properties_count", "members"],
@@ -454,16 +597,34 @@ export function questionDefinitions(
       );
     }
     named("vehicles_count", "number", "assets", { min: 0, max: 50 });
-    for (let index = 0; index < boundedCount(answers.vehicles_count); index++)
+    for (let index = 0; index < boundedCount(answers.vehicles_count); index++) {
+      if (
+        !Object.hasOwn(answers, `vehicle_owner_${index}`) ||
+        Object.hasOwn(answers, `vehicle_label_${index}`)
+      )
+        add(
+          `vehicle_label_${index}`,
+          "text",
+          localize(language, assetPrompts.vehicle, { index: index + 1 }),
+          "assets",
+          false,
+          ["vehicles_count"],
+          { max: 120, help: localize(language, assetPrompts.vehicleHelp) },
+        );
       add(
         `vehicle_owner_${index}`,
         "single_choice",
-        t(language, "owner", { index: index + 1, kind: t(language, "vehicleKind") }),
+        t(language, "owner", {
+          label: [t(language, "vehicleKind"), answers[`vehicle_label_${index}`] || index + 1].join(
+            " ",
+          ),
+        }),
         "assets",
         true,
         ["vehicles_count", "members"],
         { options: memberOptions },
       );
+    }
     named("disability", "yes_no", "particular");
     selectMembers("disability_members", "disability");
     named("nonresident_parent", "yes_no", "household");
@@ -532,7 +693,6 @@ export function getQuestions(
   practiceId: PracticeId,
   answers: Answers,
   language: Language,
-  now: Date,
 ): Question[] {
-  return questionDefinitions(practiceId, answers, language, now).map(({ question }) => question);
+  return questionDefinitions(practiceId, answers, language).map(({ question }) => question);
 }
