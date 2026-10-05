@@ -1,0 +1,114 @@
+# API Avanti
+
+Base path `/api`, JSON UTF-8, backend Hono in Next runtime Node. Schemi request/response:
+`@avanti/contracts`. Tutte le risposte sono `Cache-Control: no-store`. Errori nel formato
+`ApiError`: messaggio sicuro, codice stabile e request ID; niente stack o SQL. Gli errori
+di dominio dell'intervista sono nella lingua cittadino, gli errori infrastrutturali in italiano.
+
+## Pubblico
+
+| Metodo | Percorso             | Input                  | Risposta                                                        |
+| ------ | -------------------- | ---------------------- | --------------------------------------------------------------- |
+| GET    | `/health`            | —                      | `{status:"ok"}`: processo API pronto, non prova provider remoti |
+| GET    | `/practices?lang=it` | `Language`, default it | `PracticeSummary[]`, include coming_soon                        |
+| GET    | `/offices/:slug`     | slug pubblico          | `{office:Office,organization:OrganizationPublic}`               |
+| POST   | `/leads`             | `PilotLeadRequest`     | 201 `{ok:true}`                                                 |
+| POST   | `/intake`            | `StartIntakeRequest`   | 201 `StartIntakeResponse`, token mostrato una volta             |
+
+`privacyAccepted:true` obbligatorio per intake e lead. Coming soon non avviabili. La privacy
+è presa visione; il CAF definisce basi giuridiche e deleghe, anche per gli altri membri.
+
+## Cittadino
+
+Capability in `/c/:token`: 32 byte casuali base64url, solo SHA-256 in DB, scadenza di default
+60 giorni. Link scaduto: 410 `link_expired`; inesistente: 404. Nessun account cittadino. Un messaggio iniziale in tutte le lingue indica
+assistenza automatica/AI, verifica umana e possibilità di rivolgersi allo sportello.
+Il link è una credenziale: frontend/proxy devono oscurarlo dai log e applicare no-referrer.
+
+| Metodo | Percorso dopo `/c/:token` | Input                                    | Risposta                             |
+| ------ | ------------------------- | ---------------------------------------- | ------------------------------------ |
+| GET    | ``                        | —                                        | `CitizenCase`                        |
+| POST   | `/turn`                   | `IntakeTurn`                             | `CitizenCase` con `engine` opzionale |
+| PUT    | `/language`               | `UpdateLanguageRequest`                  | `CitizenCase`                        |
+| POST   | `/documents`              | multipart `file`, `UploadDocumentFields` | 201 `CitizenCase`                    |
+| PATCH  | `/documents/:id`          | `ReassignDocumentRequest`                | `CitizenCase`                        |
+| DELETE | `/documents/:id`          | —                                        | `CitizenCase`                        |
+| GET    | `/documents/:id/file`     | —                                        | allegato autorizzato                 |
+| POST   | `/submit`                 | `SubmitCaseRequest`                      | `CitizenCase` con stato submitted    |
+
+Intervista/upload modificabili in `intake` o `needs_citizen`. Invio richiede pratica e
+intervista terminata; può contenere documenti mancanti, esplicitamente segnalati. La prima
+completezza è fotografata al primo invio e non riscritta da integrazioni successive.
+
+`turn`: text classifica/estrae; sotto confidenza 0,65 rimane la scelta esplicita della
+pratica. answer valida tipi/opzioni/condizioni; edit invalida dipendenze; skip ammesso solo
+per domande opzionali; choose_practice riparte con risposte vuote quando cambia pratica.
+AI SDK 7 propone, core convalida. Nessuna chiave/errore/timeout → euristica esplicita.
+
+Upload massimo **4 MiB file**, richiesta multipart 4 MiB + 128 KiB (entro il limite Vercel
+4,5 MB). PDF leggibile dal parser o immagine riconosciuta da magic bytes, MIME dichiarato
+ignorato. Nome sanificato, SHA-256 sui byte originali. `checklistItemId` esplicito deve
+appartenere al fascicolo; auto-abbinamento solo a una singola voce candidata. In presenza
+di più membri/conti serve scelta umana. Riassegnare a null lascia il documento non abbinato.
+
+Quando cambiano i requisiti, documenti conservati e restituiti non abbinati; revisioni
+persistono sugli ID rimasti applicabili. Modificare i file di una voce invalida la verifica
+precedente. Download: attachment, nosniff; storage key e URL Blob mai esposti.
+
+## Autenticazione e console
+
+Cookie `avanti_session`, HttpOnly, SameSite=Lax, Secure in produzione, path `/api`, durata
+scorrevole 8 ore. Solo hash del token salvato. Origin deve coincidere con l’origine della richiesta o con `PUBLIC_APP_URL` per
+login/logout e modifiche operatore. Se manca, è accettato soltanto
+`Sec-Fetch-Site: same-origin`; un Origin presente e diverso resta rifiutato.
+
+| Metodo | Percorso                                 | Input                        | Risposta                                              |
+| ------ | ---------------------------------------- | ---------------------------- | ----------------------------------------------------- |
+| POST   | `/auth/login`                            | `LoginRequest`               | `Operator` + cookie                                   |
+| POST   | `/auth/logout`                           | —                            | `{ok:true}`, sessione revocata                        |
+| GET    | `/auth/me`                               | —                            | `Operator`                                            |
+| GET    | `/cases`                                 | `CaseListQuery`              | `CaseListResponse`                                    |
+| POST   | `/cases`                                 | `CreateCaseRequest`          | 201 `CreateCaseResponse`, link mostrato una volta     |
+| GET    | `/cases/:id`                             | —                            | `CaseDossier`, evento apertura; submitted → in_review |
+| PATCH  | `/cases/:id`                             | `UpdateCaseRequest`          | `CaseDossier`                                         |
+| POST   | `/cases/:id/checklist/:itemId/review`    | `ReviewChecklistItemRequest` | `CaseDossier`                                         |
+| POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`  | `CaseDossier`                                         |
+| GET    | `/cases/:id/export?format=json`          | `ExportFormat` json o pdf    | allegato completo                                     |
+| GET    | `/cases/:id/documents/:docId/file`       | —                            | allegato autorizzato                                  |
+| GET    | `/metrics?from=2027-01-01&to=2027-01-31` | `MetricsQuery`               | `Metrics`                                             |
+
+Ogni accesso è filtrato per organizzazione della sessione. Sedi, assegnatari e documenti
+di altri tenant restituiscono 404. Operatore vede sempre italiano nei testi di dominio;
+le risposte libere e i messaggi del cittadino conservano l'originale per non alterare prove.
+Il dossier non ricostruisce il token cittadino (`citizenLink:null`).
+
+Lista ordinata per updatedAt e id decrescenti, cursore opaco base64url, limite default 50,
+max 100. Counts applica filtri della lista escluso lo stato selezionato. Il cursore non è
+una snapshot: modifiche concorrenti possono cambiare le pagine; ricaricare la prima pagina.
+
+Stati: submitted → in_review → ready → closed; in_review → needs_citizen → submitted
+quando il cittadino reinvia, oppure needs_citizen → in_review. ready può tornare in_review.
+Closed non modificabile nello stato. Ready richiede intervista completa, assenza blocker e
+ogni voce obbligatoria verificata o motivatamente esentata. Rifiuto/esenzione richiedono nota.
+Integrazione preserva messaggio italiano; traduzione AI se disponibile, altrimenti avviso
+localizzato con originale visibile (mai spacciato per traduzione). Header `X-Avanti-Engine`.
+
+## Metriche e limiti
+
+Date reali YYYY-MM-DD, entrambe incluse, giorni **UTC**, massimo 366 giorni. Sede opzionale;
+organizzazione sempre derivata dalla sessione. Avvii da createdAt, invii da primo submittedAt,
+pronti da eventi review.completed; aggregati per pratica/lingua e giorno. Completezza e
+tasso integrazioni riferiti ai fascicoli del cohort inviato nell'intervallo; nessun dato → null.
+Baseline deriva esclusivamente dalle impostazioni dichiarate dal CAF (demo esplicitamente fittizia).
+
+Minuti cittadino: creazione → primo invio; revisione: prima apertura → pronto. Sono intervalli
+trascorsi, includono pause/attesa, non misurano minuti di attività continua. Non usare questi
+intervalli come prova di risparmio di lavoro senza un protocollo di misurazione nel pilota.
+
+Rate limit persistente su hash IP+categoria: login 10, leads 5, intake 30, upload 30, turn
+120 richieste/minuto; 429 `rate_limited`, Retry-After. IP da x-forwarded-for soltanto dietro
+proxy fidato (`VERCEL=1` o `TRUST_PROXY=1`); locale usa bucket condiviso. Non abilitare TRUST_PROXY
+su server direttamente accessibile che accetta header arbitrari.
+
+Provider AI/Blob/Postgres remoto non provati dalla suite locale. I modelli DSU/730 2027
+richiedono aggiornamento normativo prepilota; beta non sostituisce la revisione dello sportello.

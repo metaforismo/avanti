@@ -22,4 +22,4 @@ test-results
 .vercel
 
 # Project-local dependency cache
-.pnpm-store
+.pnpm-store/
