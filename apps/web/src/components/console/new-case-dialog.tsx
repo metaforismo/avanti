@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy, MessageCircle, Smartphone } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   LANGUAGES,
@@ -18,6 +18,24 @@ import { apiFetch, ApiRequestError } from "@/lib/api";
 import { LANGUAGE_IT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 
+/** Invitation text: Italian always, plus the citizen's language so they understand the link. */
+const INVITE: Record<Language, string> = {
+  it: "Per preparare la tua pratica al CAF apri questo link dal telefono:",
+  en: "To prepare your application at the CAF, open this link on your phone:",
+  fr: "Pour préparer ton dossier au CAF, ouvre ce lien sur ton téléphone :",
+  es: "Para preparar tu trámite en el CAF, abre este enlace en el móvil:",
+  ro: "Ca să îți pregătești dosarul la CAF, deschide acest link pe telefon:",
+  uk: "Щоб підготувати свою справу в CAF, відкрий це посилання на телефоні:",
+  ar: "لتحضير ملفك في الـ CAF، افتح هذا الرابط على هاتفك:",
+  bn: "CAF-এ আপনার আবেদন প্রস্তুত করতে ফোনে এই লিংকটি খুলুন:",
+};
+
+function inviteMessage(language: Language, link: string) {
+  const lines = [INVITE.it];
+  if (language !== "it") lines.push(INVITE[language]);
+  return `${lines.join("\n")}\n${link}`;
+}
+
 const selectClass =
   "h-11 w-full rounded-sm bg-surface px-3 text-base ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none";
 
@@ -28,9 +46,11 @@ export function NewCaseDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [created, setCreated] = useState<{ response: CreateCaseResponse; phone?: string } | null>(
-    null,
-  );
+  const [created, setCreated] = useState<{
+    response: CreateCaseResponse;
+    phone?: string;
+    language: Language;
+  } | null>(null);
 
   return (
     <Dialog
@@ -49,7 +69,9 @@ export function NewCaseDialog({
       {created ? (
         <Created {...created} onDone={() => onOpenChange(false)} />
       ) : (
-        <CreateForm onCreated={(response, phone) => setCreated({ response, phone })} />
+        <CreateForm
+          onCreated={(response, phone, language) => setCreated({ response, phone, language })}
+        />
       )}
     </Dialog>
   );
@@ -58,17 +80,18 @@ export function NewCaseDialog({
 function CreateForm({
   onCreated,
 }: {
-  onCreated: (response: CreateCaseResponse, phone?: string) => void;
+  onCreated: (response: CreateCaseResponse, phone: string | undefined, language: Language) => void;
 }) {
   const operator = useOperator();
   const [practices, setPractices] = useState<PracticeSummary[]>([]);
+  const [practicesFailed, setPracticesFailed] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<PracticeSummary[]>("/api/practices?lang=it")
       .then((list) => setPractices(list.filter((p) => p.availability !== "coming_soon")))
-      .catch(() => setPractices([]));
+      .catch(() => setPracticesFailed(true));
   }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -76,6 +99,7 @@ function CreateForm({
     const form = new FormData(event.currentTarget);
     const text = (key: string) => String(form.get(key) ?? "").trim() || undefined;
     const phone = text("phone");
+    const language = (text("language") as Language | undefined) ?? "it";
     setPending(true);
     setError(null);
     try {
@@ -84,11 +108,11 @@ function CreateForm({
         body: {
           officeId: text("officeId"),
           practiceId: (text("practiceId") as PracticeId | undefined) ?? undefined,
-          language: (text("language") as Language | undefined) ?? "it",
+          language,
           citizen: { firstName: text("firstName"), lastName: text("lastName"), phone },
         },
       });
-      onCreated(response, phone);
+      onCreated(response, phone, language);
     } catch (err) {
       setPending(false);
       setError(err instanceof ApiRequestError ? err.message : "Creazione non riuscita. Riprova.");
@@ -118,7 +142,14 @@ function CreateForm({
         <input type="hidden" name="officeId" value={operator.offices[0]?.id ?? ""} />
       )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Pratica" hint="Se non la sai, la capisce Avanti.">
+        <Field
+          label="Pratica"
+          hint={
+            practicesFailed
+              ? "Elenco non disponibile: la pratica la capirà Avanti dal racconto del cittadino."
+              : "Se non la sai, la capisce Avanti."
+          }
+        >
           {(p) => (
             <select {...p} name="practiceId" className={selectClass} defaultValue="">
               <option value="">Da capire con il cittadino</option>
@@ -172,16 +203,17 @@ function CreateForm({
 function Created({
   response,
   phone,
+  language,
   onDone,
 }: {
   response: CreateCaseResponse;
   phone?: string;
+  language: Language;
   onDone: () => void;
 }) {
-  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const link = response.citizenLink;
-  const message = `Ciao, per preparare la tua pratica al CAF apri questo link dal telefono: ${link}`;
+  const message = inviteMessage(language, link);
   const digits = phone?.replace(/[^\d+]/g, "").replace(/^\+/, "");
   // Italian mobile numbers are often typed without the country code.
   const waNumber = digits
@@ -237,14 +269,10 @@ function Created({
           </a>
         </Button>
       </div>
-      <Button
-        size="lg"
-        onClick={() => {
-          onDone();
-          router.push(`/console/pratiche/${response.case.id}`);
-        }}
-      >
-        Apri il fascicolo
+      <Button size="lg" asChild>
+        <Link href={`/console/pratiche/${response.case.id}`} onClick={onDone}>
+          Apri il fascicolo
+        </Link>
       </Button>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Printer } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Office, OrganizationPublic } from "@avanti/contracts";
 import { LogoMark } from "@/components/brand/logo";
@@ -45,7 +46,22 @@ export function OfficePoster({ officeSlug }: { officeSlug: string }) {
     );
   }
   if (data === "error") {
-    return <p className="p-10 text-center text-lg">Sportello non trovato.</p>;
+    return (
+      <div className="grid min-h-dvh place-items-center p-10 text-center">
+        <div>
+          <p className="font-display text-2xl font-semibold">Cartello non disponibile</p>
+          <p className="mt-2 text-ink-2">
+            Lo sportello non esiste o la connessione non è riuscita.
+          </p>
+          <div className="mt-6 flex justify-center gap-2">
+            <Button onClick={() => window.location.reload()}>Riprova</Button>
+            <Button asChild variant="secondary">
+              <Link href="/console/sportelli">Torna agli sportelli</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

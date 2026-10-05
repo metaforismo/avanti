@@ -1,8 +1,10 @@
 "use client";
 
-import { Check, Copy, Mail, Phone } from "lucide-react";
-import { useState } from "react";
+import { Mail, Phone } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CaseDossier } from "@avanti/contracts";
+import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatDateTime, formatMinutes, LANGUAGE_IT, timeAgo } from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
@@ -19,13 +21,12 @@ export function DossierAside({
   return (
     <aside className="grid content-start gap-5">
       <Card title="Cittadino">
-        <dl className="grid gap-3 text-[0.9375rem]">
+        <div className="grid gap-3 text-[0.9375rem]">
           <div>
-            <dt className="sr-only">Nome</dt>
-            <dd className="font-semibold">
+            <p className="font-semibold break-words">
               {[citizen.firstName, citizen.lastName].filter(Boolean).join(" ") || "Non indicato"}
-            </dd>
-            <dd className="text-sm text-ink-3">Lingua: {LANGUAGE_IT[dossier.language]}</dd>
+            </p>
+            <p className="text-sm text-ink-3">Lingua: {LANGUAGE_IT[dossier.language]}</p>
           </div>
           {citizen.phone && (
             <a
@@ -45,12 +46,25 @@ export function DossierAside({
               {citizen.email}
             </a>
           )}
-        </dl>
-        {dossier.citizenLink && <CopyLink link={dossier.citizenLink} />}
+        </div>
+        {dossier.citizenLink && (
+          <CopyButton
+            value={dossier.citizenLink}
+            size="sm"
+            className="mt-4"
+            labels={{
+              copy: "Copia il link del cittadino",
+              copied: "Link copiato",
+              failed: "Copia non riuscita: seleziona il link e copialo a mano.",
+            }}
+          />
+        )}
         {dossier.citizenNote && (
           <div className="mt-4 rounded-sm bg-marker-soft px-3 py-2.5 text-[0.9375rem]">
             <p className="text-xs font-semibold text-ink-2">Nota del cittadino</p>
-            <p className="mt-1 whitespace-pre-line">{dossier.citizenNote}</p>
+            <p dir="auto" className="mt-1 break-words whitespace-pre-line">
+              {dossier.citizenNote}
+            </p>
           </div>
         )}
       </Card>
@@ -131,58 +145,53 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-function CopyLink({ link }: { link: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(link);
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 2000);
-        } catch {}
-      }}
-      className="mt-4 inline-flex items-center gap-2 rounded-sm text-sm font-semibold text-stamp hover:underline"
-    >
-      {copied ? (
-        <Check className="size-4 text-ok" aria-hidden />
-      ) : (
-        <Copy className="size-4" aria-hidden />
-      )}
-      {copied ? "Link copiato" : "Copia il link del cittadino"}
-    </button>
-  );
-}
+const AUTOSAVE_MS = 1200;
 
 function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: DossierActions }) {
   const [value, setValue] = useState(dossier.internalNotes ?? "");
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const dirty = value !== (dossier.internalNotes ?? "");
+  const saved = dossier.internalNotes ?? "";
+  const dirty = value !== saved;
+  const latest = useRef(value);
+  useEffect(() => {
+    latest.current = value;
+  }, [value]);
 
-  async function save() {
-    if (!dirty) return;
+  const save = useCallback(async () => {
+    const text = latest.current;
+    if (text === saved) return;
     setState("saving");
-    const ok = await actions.update({ internalNotes: value.trim() ? value : null });
+    const ok = await actions.update({ internalNotes: text.trim() ? text : null }, "notes");
     setState(ok ? "saved" : "error");
-  }
+  }, [actions, saved]);
+
+  // Autosave after a pause in typing, so leaving the page rarely loses anything.
+  useEffect(() => {
+    if (!dirty) return;
+    const id = window.setTimeout(() => void save(), AUTOSAVE_MS);
+    return () => window.clearTimeout(id);
+  }, [dirty, value, save]);
+
+  // …and if it would, the browser asks first.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   return (
     <section className="rounded-lg bg-surface p-4 ring-1 ring-line">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex min-h-6 items-center justify-between gap-2">
         <label htmlFor="internal-notes" className="text-sm font-semibold text-ink-2">
           Note interne
         </label>
-        <span className="text-xs text-ink-3" aria-live="polite">
+        <span className="text-xs text-ink-3" role="status">
           {state === "saving" ? (
             <Spinner className="size-3.5" label="Salvataggio" />
           ) : state === "saved" && !dirty ? (
             "Salvate"
-          ) : state === "error" ? (
-            "Non salvate"
-          ) : (
-            ""
-          )}
+          ) : null}
         </span>
       </div>
       <textarea
@@ -190,14 +199,25 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
         value={value}
         onChange={(e) => {
           setValue(e.target.value);
-          setState("idle");
+          if (state !== "saving") setState("idle");
         }}
         onBlur={() => void save()}
         rows={4}
         maxLength={5000}
-        placeholder="Visibili solo agli operatori del CAF"
+        placeholder="Visibili solo agli operatori del CAF…"
         className="w-full resize-y rounded-sm bg-paper p-2.5 text-[0.9375rem] ring-1 ring-line ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
       />
+      {state === "error" && (
+        <div
+          role="alert"
+          className="mt-2 flex items-center justify-between gap-2 text-sm text-danger"
+        >
+          Note non salvate.
+          <Button size="sm" variant="secondary" onClick={() => void save()}>
+            Riprova
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

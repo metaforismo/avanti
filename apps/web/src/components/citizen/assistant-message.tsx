@@ -12,8 +12,16 @@ export function AssistantMessage({
   /** Prompt of the question shown below: a reply that only repeats it adds nothing. */
   question?: string;
 }) {
-  if (!message) return null;
-  if (question && normalize(message.text) === normalize(question)) return null;
+  const visible = message && !(question && normalize(message.text) === normalize(question));
+  // The live region stays mounted so screen readers announce replies that arrive later.
+  return (
+    <div aria-live="polite" aria-atomic="true" className="empty:hidden">
+      {visible && <Bubble message={message} label={label} />}
+    </div>
+  );
+}
+
+function Bubble({ message, label }: { message: ChatMessage; label: string }) {
   return (
     <div
       key={message.id}
@@ -23,7 +31,7 @@ export function AssistantMessage({
         <Sparkles className="size-3.5" aria-hidden />
         {label}
       </p>
-      <p className="text-[1.0625rem] leading-relaxed whitespace-pre-line text-ink">
+      <p dir="auto" className="text-[1.0625rem] leading-relaxed whitespace-pre-line text-ink">
         {message.text}
       </p>
     </div>

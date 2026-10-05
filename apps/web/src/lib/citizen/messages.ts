@@ -8,6 +8,9 @@ import { ar, bn, es, fr, ro, uk } from "./messages-extra";
  */
 const it = {
   common: {
+    decrease: "Diminuisci",
+    increase: "Aumenta",
+    skipToContent: "Vai al contenuto",
     back: "Indietro",
     continue: "Continua",
     cancel: "Annulla",
@@ -63,6 +66,7 @@ const it = {
     tooShort: "Scrivi qualche parola in più.",
   },
   interview: {
+    progressLabel: "Domande: {n} di {total}",
     assistant: "Assistente automatico",
     known: "Abbiamo capito",
     why: "Perché te lo chiediamo",
@@ -79,6 +83,9 @@ const it = {
     section: "Sezione",
   },
   members: {
+    birthYearInvalid: "Scrivi un anno a 4 cifre, per esempio 1985.",
+    birthYearPlaceholder: "es. 1985",
+    removeUnnamed: "Rimuovi questa persona",
     title: "Persone",
     add: "Aggiungi una persona",
     firstName: "Nome",
@@ -139,6 +146,7 @@ const it = {
     pages: "{n} pagine",
   },
   review: {
+    showAll: "Mostra tutti ({n})",
     missingList: "Cosa manca",
     title: "Controlla e invia",
     lead: "Ultimo passo. Lo sportello riceve il fascicolo e ti contatta se serve altro.",
@@ -162,6 +170,8 @@ const it = {
     editDocuments: "Modifica documenti",
   },
   done: {
+    share: "Condividi",
+    copyFailed: "Copia non riuscita: tieni premuto sul link qui sotto per copiarlo.",
     title: "Fatto. La pratica è allo sportello.",
     lead: "Se serve altro ti scriviamo qui e ti contattiamo. Puoi riaprire questo link quando vuoi.",
     reference: "Codice pratica",
@@ -174,6 +184,8 @@ const it = {
     closed: "La pratica è chiusa.",
   },
   request: {
+    untranslated:
+      "Lo sportello ha scritto in italiano: la traduzione automatica non era disponibile.",
     title: "Lo sportello ti chiede",
     lead: "Completa queste voci e la pratica torna allo sportello.",
     resend: "Ho completato, invia di nuovo",
@@ -216,6 +228,9 @@ type Widen<T> = T extends string
 
 const en: Widen<CitizenMessages> = {
   common: {
+    decrease: "Decrease",
+    increase: "Increase",
+    skipToContent: "Skip to content",
     back: "Back",
     continue: "Continue",
     cancel: "Cancel",
@@ -271,6 +286,7 @@ const en: Widen<CitizenMessages> = {
     tooShort: "Please write a few more words.",
   },
   interview: {
+    progressLabel: "Questions: {n} of {total}",
     assistant: "Automated assistant",
     known: "What we understood",
     why: "Why we ask",
@@ -287,6 +303,9 @@ const en: Widen<CitizenMessages> = {
     section: "Section",
   },
   members: {
+    birthYearInvalid: "Write a 4-digit year, for example 1985.",
+    birthYearPlaceholder: "e.g. 1985",
+    removeUnnamed: "Remove this person",
     title: "People",
     add: "Add a person",
     firstName: "First name",
@@ -347,6 +366,7 @@ const en: Widen<CitizenMessages> = {
     pages: "{n} pages",
   },
   review: {
+    showAll: "Show all ({n})",
     missingList: "What's missing",
     title: "Check and send",
     lead: "Last step. The office receives your file and contacts you if anything else is needed.",
@@ -370,6 +390,8 @@ const en: Widen<CitizenMessages> = {
     editDocuments: "Edit documents",
   },
   done: {
+    share: "Share",
+    copyFailed: "Copy failed: press and hold the link below to copy it.",
     title: "Done. Your file is at the office.",
     lead: "If anything else is needed we'll write to you here and contact you. You can open this link again at any time.",
     reference: "Reference code",
@@ -382,6 +404,7 @@ const en: Widen<CitizenMessages> = {
     closed: "This application is closed.",
   },
   request: {
+    untranslated: "The office wrote in Italian: automatic translation was not available.",
     title: "The office is asking for",
     lead: "Complete these items and your file goes back to the office.",
     resend: "Done, send it again",

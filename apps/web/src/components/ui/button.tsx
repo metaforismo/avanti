@@ -1,5 +1,5 @@
 import { Slot } from "radix-ui";
-import type { ComponentProps } from "react";
+import type { ComponentProps, MouseEvent as ReactMouseEvent } from "react";
 import { cn } from "@/lib/cn";
 import { Spinner } from "./spinner";
 
@@ -27,6 +27,9 @@ export type ButtonProps = ComponentProps<"button"> & {
   asChild?: boolean;
 };
 
+// Module-level so server-rendered buttons never receive a function prop.
+const preventWhileLoading = (event: ReactMouseEvent<HTMLButtonElement>) => event.preventDefault();
+
 export function Button({
   variant = "primary",
   size = "md",
@@ -35,6 +38,7 @@ export function Button({
   className,
   children,
   disabled,
+  onClick,
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot.Root : "button";
@@ -43,13 +47,17 @@ export function Button({
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center font-semibold whitespace-nowrap select-none",
         "transition-[background-color,color,box-shadow,transform] duration-150 ease-(--ease-out)",
-        "active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50",
+        "active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-busy:cursor-wait",
         variants[variant],
         sizes[size],
         className,
       )}
-      disabled={asChild ? undefined : disabled || loading}
+      // While loading the button stays focusable (aria-disabled, not disabled): a disabled
+      // focused button drops keyboard and screen-reader focus to <body> mid-request.
+      disabled={asChild ? undefined : disabled}
+      aria-disabled={loading || undefined}
       aria-busy={loading || undefined}
+      onClick={loading ? preventWhileLoading : onClick}
       {...props}
     >
       {asChild ? (

@@ -51,7 +51,7 @@ export function CitizenHeader({
   const switching = api.pending === "language";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex max-w-xl items-center gap-3 px-4 pt-3 pb-2.5">
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-base leading-tight font-semibold">
@@ -84,7 +84,7 @@ export function CitizenHeader({
                     value={code}
                     lang={code}
                     dir={RTL_LANGUAGES.includes(code) ? "rtl" : "ltr"}
-                    className="flex h-11 cursor-pointer items-center justify-between gap-4 rounded-sm px-3 text-base outline-none data-[highlighted]:bg-sunk"
+                    className="flex h-11 cursor-pointer items-center justify-between gap-4 rounded-sm px-3 text-base outline-none data-[highlighted]:bg-stamp-wash data-[highlighted]:ring-2 data-[highlighted]:ring-stamp data-[highlighted]:ring-inset"
                   >
                     {LANGUAGE_NAMES[code].native}
                     <DropdownMenu.ItemIndicator>
@@ -113,7 +113,7 @@ export function CitizenHeader({
                     disabled={!canGo}
                     onClick={() => onNavigate(step.view)}
                     aria-current={i === activeIndex ? "step" : undefined}
-                    className="group block w-full text-start disabled:cursor-default"
+                    className="group block min-h-11 w-full py-1 text-start disabled:cursor-default"
                   >
                     <span
                       className={cn(
@@ -123,7 +123,7 @@ export function CitizenHeader({
                     />
                     <span
                       className={cn(
-                        "mt-1.5 block truncate text-xs",
+                        "mt-1.5 block truncate text-sm",
                         i === activeIndex ? "font-semibold text-ink" : "text-ink-3",
                         canGo && "group-hover:text-ink",
                       )}

@@ -3,7 +3,9 @@
 import { ArrowLeft, Check, ChevronDown, Download, FileJson, Send, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import type { Route } from "next";
 import type {
   CaseDossier,
   CaseStatus,
@@ -12,6 +14,7 @@ import type {
   UpdateCaseRequest,
 } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Pill } from "@/components/ui/pill";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, ApiRequestError } from "@/lib/api";
@@ -27,7 +30,8 @@ import { AnswersSection, ConversationSection } from "./secondary-sections";
 
 export type DossierActions = {
   review: (itemId: string, input: ReviewChecklistItemRequest) => Promise<boolean>;
-  update: (input: UpdateCaseRequest) => Promise<boolean>;
+  /** `key` separates background saves (notes) from button spinners. */
+  update: (input: UpdateCaseRequest, key?: string) => Promise<boolean>;
   openDocument: (doc: DocumentSummary) => void;
   pending: string | null;
 };
@@ -37,7 +41,22 @@ export function DossierView({ caseId }: { caseId: string }) {
   const dossier = useResource<CaseDossier>(`/api/cases/${encodeURIComponent(caseId)}`);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [viewing, setViewing] = useState<DocumentSummary | null>(null);
+  const [confirmClose, setConfirmClose] = useState(false);
+  // The open document lives in the URL: shareable with a colleague, closed by the Back button.
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const viewingId = params.get("documento");
+  const setViewing = (doc: DocumentSummary | null) => {
+    const next = new URLSearchParams(params);
+    if (doc) next.set("documento", doc.id);
+    else next.delete("documento");
+    const search = next.toString();
+    const href = (search ? `${pathname}?${search}` : pathname) as Route;
+    // Opening adds a history entry (Back closes it); moving between documents or closing replaces it.
+    if (doc && !viewingId) router.push(href, { scroll: false });
+    else router.replace(href, { scroll: false });
+  };
   const [requesting, setRequesting] = useState(false);
 
   async function mutate(key: string, run: () => Promise<CaseDossier | unknown>) {
@@ -84,6 +103,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   }
 
   const data = dossier.data!;
+  const viewing = viewingId ? (data.documents.find((doc) => doc.id === viewingId) ?? null) : null;
   const status = CASE_STATUS[data.status];
   const base = `/api/cases/${encodeURIComponent(data.id)}`;
   const assignedToMe = data.assignee?.id === operator.id;
@@ -98,8 +118,8 @@ export function DossierView({ caseId }: { caseId: string }) {
           body: input,
         }),
       ),
-    update: (input) =>
-      mutate("update", () => apiFetch(`${base}`, { method: "PATCH", body: input })),
+    update: (input, key = "update") =>
+      mutate(key, () => apiFetch(`${base}`, { method: "PATCH", body: input })),
   };
 
   const setStatus = (next: CaseStatus) => actions.update({ status: next });
@@ -157,7 +177,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           )}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <Button variant="secondary" aria-label="Altre azioni">
+              <Button variant="secondary">
                 Altro
                 <ChevronDown className="size-4" aria-hidden />
               </Button>
@@ -186,7 +206,7 @@ export function DossierView({ caseId }: { caseId: string }) {
                         Torna in revisione
                       </MenuItem>
                     )}
-                    <MenuItem onSelect={() => void setStatus("closed")}>Chiudi e archivia</MenuItem>
+                    <MenuItem onSelect={() => setConfirmClose(true)}>Chiudi e archivia…</MenuItem>
                   </>
                 )}
                 {assignedToMe && (
@@ -238,6 +258,27 @@ export function DossierView({ caseId }: { caseId: string }) {
         onClose={() => setViewing(null)}
         onNavigate={setViewing}
       />
+      <Dialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        title="Chiudere e archiviare la pratica?"
+        description="Il cittadino non potrà più caricare documenti da questo link. Potrai riaprirla dal menu Altro."
+      >
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={() => setConfirmClose(false)}>
+            Annulla
+          </Button>
+          <Button
+            variant="danger"
+            loading={pending === "update"}
+            onClick={async () => {
+              if (await actions.update({ status: "closed" })) setConfirmClose(false);
+            }}
+          >
+            Chiudi e archivia
+          </Button>
+        </div>
+      </Dialog>
       <RequestDialog
         open={requesting}
         onOpenChange={setRequesting}

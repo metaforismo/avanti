@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LANGUAGES, RTL_LANGUAGES, type CitizenCase, type Language } from "@avanti/contracts";
+import { useEffect, useRef, useState } from "react";
+import type { CitizenCase, CitizenContact } from "@avanti/contracts";
+import {
+  directionOf,
+  useBrowserLanguage,
+  useDocumentLanguage,
+} from "@/lib/citizen/document-language";
 import { forgetCaseToken } from "@/lib/citizen/local-cases";
 import { messagesFor, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import { useCitizenCase, type CitizenCaseApi } from "@/lib/citizen/use-citizen-case";
-import { resolveView, type View } from "@/lib/citizen/view";
+import { resolveView, STEP_TITLE_ID, type View } from "@/lib/citizen/view";
 import { CitizenHeader } from "./citizen-header";
 import { DocumentsStep } from "./documents-step";
 import { DoneStep } from "./done-step";
@@ -23,20 +28,21 @@ export type StepProps = {
   goTo: (view: View | null) => void;
   /** Capability token, needed to build file URLs. */
   token: string;
+  /** Review form values survive going back to edit answers or documents. */
+  draft: ContactDraft;
+  setDraft: (draft: ContactDraft) => void;
 };
 
-const SUBMITTED_STATUSES = new Set(["submitted", "in_review", "ready", "closed"]);
+export type ContactDraft = Partial<CitizenContact> & { note?: string };
 
-function guessLanguage(): Language {
-  if (typeof navigator === "undefined") return "it";
-  const base = navigator.language.slice(0, 2).toLowerCase();
-  return (LANGUAGES as readonly string[]).includes(base) ? (base as Language) : "it";
-}
+const SUBMITTED_STATUSES = new Set(["submitted", "in_review", "ready", "closed"]);
 
 export function CitizenApp({ token }: { token: string }) {
   const api = useCitizenCase(token);
   // Local navigation on top of the server step: going back to edit, or forward to review.
   const [view, setView] = useState<View | null>(null);
+  const [draft, setDraft] = useState<ContactDraft>({});
+  const firstStep = useRef(true);
 
   const { state } = api;
   useEffect(() => {
@@ -50,17 +56,27 @@ export function CitizenApp({ token }: { token: string }) {
     state.kind === "ready" ? `${state.data.status}:${state.data.step}:${view}` : state.kind;
   useEffect(() => {
     window.scrollTo({ top: 0 });
-  }, [stepKey]);
+    if (firstStep.current) {
+      firstStep.current = state.kind !== "ready";
+      return;
+    }
+    document.getElementById(STEP_TITLE_ID)?.focus({ preventScroll: true });
+  }, [stepKey, state.kind]);
+
+  const deviceLanguage = useBrowserLanguage();
+  const language = state.kind === "ready" ? state.data.language : deviceLanguage;
+  useDocumentLanguage(language);
 
   const goTo = (next: View | null) => {
     setView(next);
     window.scrollTo({ top: 0 });
   };
 
-  if (state.kind === "loading") return <LoadingShell />;
+  if (state.kind === "loading")
+    return <LoadingShell label={messagesFor(language).common.loading} />;
 
   if (state.kind === "error") {
-    const m = messagesFor(guessLanguage());
+    const m = messagesFor(language);
     const expired = state.code === "link_expired";
     const missing = state.code === "not_found";
     return (
@@ -71,6 +87,8 @@ export function CitizenApp({ token }: { token: string }) {
         body={expired ? m.errors.expiredBody : missing ? m.errors.notFoundBody : m.errors.network}
         onRetry={expired || missing ? undefined : () => void api.reload()}
         retryLabel={m.common.retry}
+        lang={language}
+        dir={directionOf(language)}
       />
     );
   }
@@ -79,16 +97,18 @@ export function CitizenApp({ token }: { token: string }) {
   const m = messagesFor(data.language);
   const submitted = SUBMITTED_STATUSES.has(data.status);
   const current: View = submitted ? "submitted" : resolveView(view, data);
-  const props: StepProps = { api, data, m, goTo, token };
+  const props: StepProps = { api, data, m, goTo, token, draft, setDraft };
 
   return (
-    <div
-      lang={data.language}
-      dir={RTL_LANGUAGES.includes(data.language) ? "rtl" : "ltr"}
-      className="flex min-h-dvh flex-col"
-    >
+    <div lang={data.language} dir={directionOf(data.language)} className="flex min-h-dvh flex-col">
+      <a
+        href="#contenuto"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+      >
+        {m.common.skipToContent}
+      </a>
       <CitizenHeader data={data} m={m} view={current} api={api} onNavigate={goTo} />
-      <main className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-32">
+      <main id="contenuto" className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-32">
         {current === "need" && <NeedStep {...props} />}
         {current === "interview" && <InterviewStep {...props} />}
         {current === "documents" && <DocumentsStep {...props} />}
@@ -99,9 +119,12 @@ export function CitizenApp({ token }: { token: string }) {
   );
 }
 
-function LoadingShell() {
+function LoadingShell({ label }: { label: string }) {
   return (
     <div className="min-h-dvh" aria-busy="true">
+      <p role="status" className="sr-only">
+        {label}
+      </p>
       <div className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-4">
           <div className="flex-1 space-y-2">
