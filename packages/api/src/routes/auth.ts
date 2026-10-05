@@ -53,6 +53,7 @@ export function mountAuthRoutes(app: App, services: Services) {
     await services.db.insert(sessions).values({
       id: crypto.randomUUID(),
       operatorId: operator.id,
+      createdAt: services.clock().toISOString(),
       tokenHash: hashToken(token),
       expiresAt: new Date(services.clock().getTime() + SESSION_SECONDS * 1000).toISOString(),
     });

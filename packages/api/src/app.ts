@@ -8,6 +8,7 @@ import { authenticateCitizen, authenticateOperator } from "./middleware/auth";
 import { registerErrors } from "./middleware/errors";
 import { requireOrigin } from "./middleware/origin";
 import { rateLimit } from "./middleware/rate-limit";
+import { maintenance } from "./middleware/maintenance";
 import { requestMetadata } from "./middleware/request";
 import { mountAuthRoutes } from "./routes/auth";
 import { mountPublicRoutes } from "./routes/public";
@@ -15,6 +16,10 @@ import { mountCitizenRoutes } from "./citizen";
 import { mountOperatorRoutes } from "./operator";
 
 export function createApp(options: ApiOptions) {
+  if (options.production && !options.publicUrl)
+    throw new Error("PUBLIC_APP_URL required in production");
+  if (options.production && !options.rateLimitSecret)
+    throw new Error("RATE_LIMIT_SECRET required in production");
   const services: Services = {
     ...options,
     clock: options.clock ?? (() => new Date()),
@@ -33,16 +38,16 @@ export function createApp(options: ApiOptions) {
       },
     }),
   );
-  registerErrors(app);
+  registerErrors(app, options.errorLogger);
+  app.use("*", maintenance(services));
   app.use("*", rateLimit(services));
   app.use("/auth/*", requireOrigin(services));
   const authenticated = authenticateOperator(services);
-  for (const path of ["/auth/me", "/auth/logout", "/cases", "/cases/*", "/metrics"]) {
+  for (const path of ["/auth/me", "/auth/logout", "/cases/*", "/metrics"]) {
     if (!path.startsWith("/auth/")) app.use(path, requireOrigin(services));
     app.use(path, authenticated);
   }
   const citizen = authenticateCitizen(services);
-  app.use("/c/:token", citizen);
   app.use("/c/:token/*", citizen);
   mountPublicRoutes(app, services);
   mountAuthRoutes(app, services);
