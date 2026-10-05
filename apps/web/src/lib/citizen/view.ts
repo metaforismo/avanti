@@ -1,4 +1,11 @@
-import type { CitizenCase } from "@avanti/contracts";
+import type { ChecklistStatus, CitizenCase } from "@avanti/contracts";
+
+/** Checklist states that need nothing more from the citizen. */
+export const DONE_STATUSES: ReadonlySet<ChecklistStatus> = new Set([
+  "uploaded",
+  "verified",
+  "waived",
+]);
 
 export type View = "need" | "interview" | "documents" | "review" | "submitted";
 

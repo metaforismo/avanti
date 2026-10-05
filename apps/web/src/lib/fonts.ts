@@ -12,6 +12,8 @@ export const body = Atkinson_Hyperlegible_Next({
   subsets: ["latin", "latin-ext"],
   variable: "--font-body",
   display: "swap",
+  // Next has no metric overrides for Atkinson yet; skip the (failing) fallback generation.
+  adjustFontFallback: false,
 });
 
 export const display = Bricolage_Grotesque({
@@ -25,6 +27,7 @@ export const code = Atkinson_Hyperlegible_Mono({
   subsets: ["latin"],
   variable: "--font-code",
   display: "swap",
+  adjustFontFallback: false,
 });
 
 // Script fallbacks are not preloaded: unicode-range means they download only when a page

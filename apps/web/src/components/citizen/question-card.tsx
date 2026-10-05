@@ -16,13 +16,15 @@ type Props = {
   question: Question;
   m: Widen<CitizenMessages>;
   initial?: AnswerValue;
+  /** Household size already stated by the citizen, to pre-create the right number of rows. */
+  expectedMembers?: number;
 };
 
 /**
  * One question at a time, with the input that fits its kind. Choice answers submit on tap:
  * fewer steps for people who struggle with forms.
  */
-export function QuestionCard({ api, question, m, initial }: Props) {
+export function QuestionCard({ api, question, m, initial, expectedMembers }: Props) {
   const titleId = useId();
   const [localError, setLocalError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -93,6 +95,7 @@ export function QuestionCard({ api, question, m, initial }: Props) {
             m={m}
             busy={busy}
             initial={Array.isArray(initial) ? (initial as MemberInput[]) : []}
+            expected={expectedMembers}
             onSubmit={(members) => void answer(members)}
           />
         )}

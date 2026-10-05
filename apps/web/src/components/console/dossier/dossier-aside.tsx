@@ -79,7 +79,7 @@ export function DossierAside({
 
       <Card title="Cronologia">
         <ol className="relative grid gap-4 border-s border-line ps-4">
-          {[...dossier.timeline].reverse().map((event) => (
+          {collapseTimeline(dossier.timeline).map(({ event, count }) => (
             <li key={event.id} className="relative">
               <span
                 aria-hidden
@@ -92,7 +92,10 @@ export function DossierAside({
                       : "bg-line-strong",
                 )}
               />
-              <p className="text-[0.9375rem]">{event.label}</p>
+              <p className="text-[0.9375rem]">
+                {event.label}
+                {count > 1 && <span className="text-ink-3"> ({count} volte)</span>}
+              </p>
               <p className="text-xs text-ink-3">
                 {event.actorName ? `${event.actorName}, ` : ""}
                 <time dateTime={event.at} title={formatDateTime(event.at)}>
@@ -105,6 +108,18 @@ export function DossierAside({
       </Card>
     </aside>
   );
+}
+
+/** Newest first; consecutive identical events (e.g. many answers) become one line. */
+function collapseTimeline(timeline: CaseDossier["timeline"]) {
+  const rows: { event: CaseDossier["timeline"][number]; count: number }[] = [];
+  for (const event of [...timeline].reverse()) {
+    const last = rows.at(-1);
+    if (last && last.event.type === event.type && last.event.actorName === event.actorName)
+      last.count += 1;
+    else rows.push({ event, count: 1 });
+  }
+  return rows;
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {

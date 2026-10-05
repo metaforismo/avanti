@@ -98,7 +98,10 @@ function ChecklistRow({
   const [rejecting, setRejecting] = useState(false);
   const docs = dossier.documents.filter((d) => d.checklistItemId === item.id);
   const findings = dossier.findings.filter(
-    (f) => f.checklistItemId === item.id && (f.severity === "blocker" || f.severity === "warning"),
+    (f) =>
+      f.checklistItemId === item.id &&
+      f.code !== "checklist.missing" &&
+      (f.severity === "blocker" || f.severity === "warning"),
   );
   const status = CHECKLIST_STATUS[item.status];
   const busy = actions.pending === `review:${item.id}`;
@@ -162,29 +165,32 @@ function ChecklistRow({
               </Button>
             ) : (
               <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={busy && !rejecting}
-                  disabled={docs.length === 0}
-                  title={docs.length === 0 ? "Nessun documento da verificare" : undefined}
-                  onClick={() => void actions.review(item.id, { decision: "verified" })}
-                >
-                  <Check className="size-4 text-ok" aria-hidden />
-                  Verifica
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setRejecting((v) => !v)}
-                  aria-expanded={rejecting}
-                >
-                  Rifiuta
-                </Button>
-                {item.status === "missing" && (
+                {docs.length > 0 ? (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={busy && !rejecting}
+                      onClick={() => void actions.review(item.id, { decision: "verified" })}
+                    >
+                      <Check className="size-4 text-ok" aria-hidden />
+                      Verifica
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setRejecting((v) => !v)}
+                      aria-expanded={rejecting}
+                    >
+                      Rifiuta
+                    </Button>
+                  </>
+                ) : (
                   <Button
                     variant="ghost"
                     size="sm"
+                    loading={busy}
+                    title="Segna la voce come non necessaria per questo nucleo"
                     onClick={() =>
                       void actions.review(item.id, {
                         decision: "waived",

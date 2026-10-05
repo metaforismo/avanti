@@ -6,6 +6,7 @@ import { CitizenContact } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { format } from "@/lib/citizen/messages";
+import { DONE_STATUSES } from "@/lib/citizen/view";
 import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
 
@@ -13,8 +14,8 @@ type Errors = Partial<Record<"firstName" | "lastName" | "contact" | "email" | "c
 
 export function ReviewStep({ api, data, m, goTo }: StepProps) {
   const [errors, setErrors] = useState<Errors>({});
-  const blockers = data.findings.filter((f) => f.severity === "blocker");
-  const required = data.checklist.filter((item) => item.required);
+  const missing = data.checklist.filter((item) => item.required && !DONE_STATUSES.has(item.status));
+  const MAX_SHOWN = 8;
   const contact = data.contact;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -81,25 +82,27 @@ export function ReviewStep({ api, data, m, goTo }: StepProps) {
         />
       </dl>
 
-      {blockers.length > 0 && (
+      {missing.length > 0 && (
         <section className="rounded-lg bg-warn-wash p-4">
           <h2 className="flex items-center gap-2 font-semibold text-warn">
             <AlertTriangle className="size-5" aria-hidden />
             {m.review.missingList}
           </h2>
           <ul className="mt-2 grid gap-1.5 text-ink">
-            {blockers.slice(0, 8).map((finding) => (
-              <li key={finding.id} className="flex gap-2">
+            {missing.slice(0, MAX_SHOWN).map((item) => (
+              <li key={item.id} className="flex gap-2">
                 <span aria-hidden>•</span>
-                {finding.message}
+                <span>
+                  {item.title}
+                  {item.memberName && <span className="text-ink-2"> ({item.memberName})</span>}
+                </span>
               </li>
             ))}
+            {missing.length > MAX_SHOWN && (
+              <li className="ps-4 text-ink-2">+ {missing.length - MAX_SHOWN}</li>
+            )}
           </ul>
-          <p className="mt-3 text-sm text-ink-2">
-            {format(m.docs.missing, {
-              n: required.filter((i) => i.status === "missing").length || blockers.length,
-            })}
-          </p>
+          <p className="mt-3 text-sm text-ink-2">{format(m.docs.missing, { n: missing.length })}</p>
         </section>
       )}
 

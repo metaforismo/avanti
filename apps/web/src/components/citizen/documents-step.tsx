@@ -21,17 +21,17 @@ import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/ci
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
+import { DONE_STATUSES } from "@/lib/citizen/view";
 import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
 
 type M = Widen<CitizenMessages>;
 
-const DONE = new Set(["uploaded", "verified", "waived"]);
 const ACCEPT = "application/pdf,image/jpeg,image/png,image/webp,image/heic,.heic,.heif";
 
 export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
   const required = data.checklist.filter((item) => item.required);
-  const missingRequired = required.filter((item) => !DONE.has(item.status)).length;
+  const missingRequired = required.filter((item) => !DONE_STATUSES.has(item.status)).length;
   const unmatched = data.documents.filter((doc) => !doc.checklistItemId);
   const operatorMessage = data.status === "needs_citizen" ? lastOperatorMessage(data) : null;
   const sections = groupByMember(data.checklist, m);
@@ -174,7 +174,8 @@ function groupByMember(items: ChecklistItem[], m: M) {
     sections.get(key)!.items.push(item);
   }
   // Required and unfinished first: what still needs doing is what people look for.
-  const rank = (item: ChecklistItem) => (item.required ? 0 : 2) + (DONE.has(item.status) ? 1 : 0);
+  const rank = (item: ChecklistItem) =>
+    (item.required ? 0 : 2) + (DONE_STATUSES.has(item.status) ? 1 : 0);
   return [...sections.values()].map((section) => ({
     ...section,
     items: [...section.items].sort((a, b) => rank(a) - rank(b)),
@@ -182,12 +183,12 @@ function groupByMember(items: ChecklistItem[], m: M) {
 }
 
 function StatusBadge({ item, m }: { item: ChecklistItem; m: M }) {
-  const tone = DONE.has(item.status)
+  const tone = DONE_STATUSES.has(item.status)
     ? "bg-ok-wash text-ok"
     : item.status === "issue" || item.status === "rejected"
       ? "bg-warn-wash text-warn"
       : "bg-sunk text-ink-2";
-  const Icon = DONE.has(item.status)
+  const Icon = DONE_STATUSES.has(item.status)
     ? Check
     : item.status === "issue" || item.status === "rejected"
       ? AlertTriangle
@@ -229,7 +230,7 @@ function ChecklistCard({
       f.code !== "checklist.missing",
   );
   const uploads = api.uploads.filter((u) => u.checklistItemId === item.id);
-  const done = DONE.has(item.status);
+  const done = DONE_STATUSES.has(item.status);
 
   return (
     <li
@@ -344,7 +345,7 @@ function UploadButtons({
   };
 
   return (
-    <div className={cn("flex flex-wrap gap-2", className)}>
+    <div className={cn("flex gap-2", className)}>
       <input
         ref={cameraRef}
         type="file"
@@ -374,7 +375,8 @@ function UploadButtons({
       {touch && (
         <Button
           type="button"
-          variant={hasDocuments ? "secondary" : "primary"}
+          variant="secondary"
+          className="flex-1 text-stamp"
           onClick={() => cameraRef.current?.click()}
         >
           <Camera className="size-4" aria-hidden />
@@ -383,7 +385,8 @@ function UploadButtons({
       )}
       <Button
         type="button"
-        variant={touch || hasDocuments ? "secondary" : "primary"}
+        variant="secondary"
+        className={cn(touch ? "flex-1" : "text-stamp")}
         onClick={() => fileRef.current?.click()}
       >
         <FileUp className="size-4" aria-hidden />

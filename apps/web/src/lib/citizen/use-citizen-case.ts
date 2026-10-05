@@ -67,6 +67,8 @@ export function useCitizenCase(token: string) {
   const [pending, setPending] = useState<string | null>(null);
   const [actionError, setActionError] = useState<ActionError | null>(null);
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
+  // Assistant replies only answer free text; after a tapped answer they would be stale.
+  const [lastTurn, setLastTurn] = useState<IntakeTurn["type"] | null>(null);
   const base = `/api/c/${encodeURIComponent(token)}`;
   const inFlight = useRef(0);
 
@@ -131,7 +133,10 @@ export function useCitizenCase(token: string) {
   const turn = useCallback(
     (input: IntakeTurn, key: string = input.type) =>
       run(key, () => apiFetch<CitizenCase>(`${base}/turn`, { method: "POST", body: input })).then(
-        apply,
+        (data) => {
+          if (data) setLastTurn(input.type);
+          return apply(data);
+        },
       ),
     [apply, base, run],
   );
@@ -218,6 +223,7 @@ export function useCitizenCase(token: string) {
     actionError,
     clearActionError: () => setActionError(null),
     uploads,
+    lastTurn,
     reload: load,
     turn,
     setLanguage,

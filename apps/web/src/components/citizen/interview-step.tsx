@@ -16,7 +16,8 @@ export function InterviewStep({ api, data, m }: StepProps) {
   const question = data.nextQuestion;
   const answered = data.answered ?? [];
   const { questionsAnswered, questionsTotal } = data.progress;
-  const assistant = lastMessage(data.messages, "assistant");
+  const showAssistant = api.lastTurn === "text" || api.lastTurn === "choose_practice";
+  const assistant = showAssistant ? lastMessage(data.messages, "assistant") : undefined;
 
   return (
     <div className="grid gap-5">
@@ -40,7 +41,11 @@ export function InterviewStep({ api, data, m }: StepProps) {
         )}
       </div>
 
-      <AssistantMessage message={assistant} label={m.interview.assistant} />
+      <AssistantMessage
+        message={assistant}
+        label={m.interview.assistant}
+        question={data.nextQuestion?.prompt}
+      />
       <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
 
       {question && (
@@ -50,6 +55,11 @@ export function InterviewStep({ api, data, m }: StepProps) {
           question={question}
           m={m}
           initial={data.answers[question.id]}
+          expectedMembers={
+            typeof data.answers.household_count === "number"
+              ? data.answers.household_count
+              : undefined
+          }
         />
       )}
 

@@ -45,6 +45,13 @@ export function CitizenApp({ token }: { token: string }) {
     }
   }, [state, token]);
 
+  // Every step change starts from the top, including server-driven ones (e.g. after submit).
+  const stepKey =
+    state.kind === "ready" ? `${state.data.status}:${state.data.step}:${view}` : state.kind;
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [stepKey]);
+
   const goTo = (next: View | null) => {
     setView(next);
     window.scrollTo({ top: 0 });

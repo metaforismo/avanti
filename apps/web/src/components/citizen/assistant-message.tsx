@@ -5,11 +5,15 @@ import type { ChatMessage } from "@avanti/contracts";
 export function AssistantMessage({
   message,
   label,
+  question,
 }: {
   message: ChatMessage | undefined;
   label: string;
+  /** Prompt of the question shown below: a reply that only repeats it adds nothing. */
+  question?: string;
 }) {
   if (!message) return null;
+  if (question && normalize(message.text) === normalize(question)) return null;
   return (
     <div
       key={message.id}
@@ -32,3 +36,5 @@ export function lastMessage(messages: ChatMessage[], role: ChatMessage["role"]) 
   }
   return undefined;
 }
+
+const normalize = (text: string) => text.trim().replace(/\s+/g, " ").toLowerCase();

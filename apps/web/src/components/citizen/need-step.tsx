@@ -50,7 +50,13 @@ export function NeedStep({ api, data, m }: StepProps) {
         <p className="mt-2 text-lg text-ink-2">{m.need.hint}</p>
       </div>
 
-      {assistant && <AssistantMessage message={assistant} label={m.interview.assistant} />}
+      {assistant && (
+        <AssistantMessage
+          message={assistant}
+          label={m.interview.assistant}
+          question={data.nextQuestion?.prompt}
+        />
+      )}
       {data.nextQuestion && <QuestionCard api={api} question={data.nextQuestion} m={m} />}
 
       <form onSubmit={onSubmit} className="grid gap-3">

@@ -19,18 +19,24 @@ export function MembersEditor({
   m,
   busy,
   initial,
+  expected,
   onSubmit,
 }: {
   m: Widen<CitizenMessages>;
   busy: boolean;
   initial: MemberInput[];
+  expected?: number;
   onSubmit: (members: MemberInput[]) => void;
 }) {
   const [members, setMembers] = useState<Draft[]>(() => {
-    const list = initial.map((member) => ({ ...member, key: newKey() }));
+    const list: Draft[] = initial.map((member) => ({ ...member, key: newKey() }));
     // The applicant is always part of the household, first.
     if (!list.some((member) => member.role === "richiedente")) {
       list.unshift({ role: "richiedente", firstName: "", key: newKey() });
+    }
+    // The citizen already told us how many they are: offer that many rows to fill.
+    while (expected && list.length < Math.min(expected, MAX_MEMBERS)) {
+      list.push({ role: "altro", firstName: "", key: newKey() });
     }
     return list;
   });
