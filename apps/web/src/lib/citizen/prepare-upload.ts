@@ -1,4 +1,4 @@
-import { UPLOAD_LIMITS } from "@avanti/contracts";
+import { UPLOAD_LIMITS } from "@avanti/contracts/constants";
 
 const MAX_EDGE = 2400;
 const JPEG_QUALITY = 0.85;

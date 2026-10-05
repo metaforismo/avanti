@@ -1,8 +1,12 @@
+import Link from "next/link";
 import { AlertTriangle, Check, Clock3, FileCheck2, Languages, ShieldCheck } from "lucide-react";
 import { IntakeDemo } from "@/components/landing/intake-demo";
 import { LanguageShowcase } from "@/components/landing/language-showcase";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { Button } from "@/components/ui/button";
+
+// Public demo office (seeded, fictitious data). Unset in environments without demo data.
+const DEMO_OFFICE = process.env.NEXT_PUBLIC_DEMO_OFFICE_SLUG;
 
 const DESK_QUESTIONS = [
   {
@@ -126,6 +130,17 @@ export default function HomePage() {
               <a href="#come-funziona">Guarda come funziona</a>
             </Button>
           </div>
+          {DEMO_OFFICE && (
+            <p className="mt-5 text-ink-2">
+              Vuoi vederlo dal lato del cittadino?{" "}
+              <Link
+                href={`/s/${DEMO_OFFICE}`}
+                className="font-semibold text-stamp underline underline-offset-4"
+              >
+                Prova la demo dal telefono
+              </Link>
+            </p>
+          )}
         </div>
         <IntakeDemo />
       </section>

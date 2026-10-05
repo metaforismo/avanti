@@ -63,6 +63,7 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 
 - [Architettura](docs/ARCHITECTURE.md)
 - [Design e UX](docs/DESIGN.md)
+- [Guida per gli operatori](docs/guide/operatori.md)
 - [Ricerca: mercato, competitor, normativa](docs/research/README.md)
 - [Istruzioni per agenti e contributori](AGENTS.md)
 

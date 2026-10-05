@@ -1,18 +1,15 @@
 "use client";
 
-import { Check, Copy, MessageCircle, Smartphone } from "lucide-react";
+import { MessageCircle, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import {
-  LANGUAGES,
-  type CreateCaseResponse,
-  type Language,
-  type PracticeId,
-  type PracticeSummary,
-} from "@avanti/contracts";
+import type { CreateCaseResponse, Language, PracticeId, PracticeSummary } from "@avanti/contracts";
+import { LANGUAGES } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
+import { CopyButton } from "@/components/ui/copy-button";
+import { FullscreenQr } from "@/components/ui/fullscreen-qr";
 import { QrCode } from "@/components/ui/qr-code";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { LANGUAGE_IT } from "@/lib/console/labels";
@@ -211,7 +208,6 @@ function Created({
   language: Language;
   onDone: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const link = response.citizenLink;
   const message = inviteMessage(language, link);
   const digits = phone?.replace(/[^\d+]/g, "").replace(/^\+/, "");
@@ -221,14 +217,6 @@ function Created({
       ? `39${digits}`
       : digits
     : "";
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {}
-  }
 
   return (
     <div className="grid gap-5">
@@ -240,18 +228,23 @@ function Created({
         />
         <div className="min-w-0">
           <p className="text-sm text-ink-3">Pratica {response.case.reference}</p>
-          <p className="mt-1 font-mono text-xs break-all text-ink-2">{link}</p>
+          <p className="mt-1 font-mono text-xs break-all text-ink-2" translate="no">
+            {link}
+          </p>
+          <div className="mt-3">
+            <FullscreenQr
+              value={link}
+              title="Inquadra con la fotocamera del telefono"
+              caption="Si apre la tua pratica: scegli la lingua e rispondi alle domande."
+            />
+          </div>
           <p className="mt-2 text-sm text-ink-3">
-            Il cittadino può anche inquadrare il QR dal tuo schermo. Il link è personale: non
-            condividerlo con altri.
+            Il link è personale: non condividerlo con altri.
           </p>
         </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-3">
-        <Button variant="secondary" onClick={() => void copy()}>
-          {copied ? <Check className="size-4 text-ok" /> : <Copy className="size-4" />}
-          {copied ? "Copiato" : "Copia link"}
-        </Button>
+        <CopyButton value={link} showValueOnFailure={false} className="w-full" />
         <Button variant="secondary" asChild>
           <a
             href={`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`}

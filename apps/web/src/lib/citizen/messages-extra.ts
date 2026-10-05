@@ -62,6 +62,7 @@ export const fr: M = {
     tooShort: "Écris quelques mots de plus.",
   },
   interview: {
+    inferred: "Déduit de ce que tu as écrit : vérifie",
     progressLabel: "Questions : {n} sur {total}",
     assistant: "Assistant automatique",
     known: "Ce que nous avons compris",
@@ -100,6 +101,11 @@ export const fr: M = {
     },
   },
   docs: {
+    photoTipsTitle: "Comment faire une bonne photo",
+    photoTip1: "Pose le document sur une table sombre, bien éclairée.",
+    photoTip2: "Cadre bien les quatre coins, sans doigts dessus.",
+    photoTip3: "Pas de flash ni de reflets : le texte doit être lisible.",
+    photoTip4: "Si le document a plusieurs pages ou un verso, prends-les toutes en photo.",
     preview: "Aperçu",
     household: "Pour tout le foyer",
     title: "Les documents à préparer",
@@ -273,6 +279,7 @@ export const es: M = {
     tooShort: "Escribe algunas palabras más.",
   },
   interview: {
+    inferred: "Deducido de lo que escribiste: compruébalo",
     progressLabel: "Preguntas: {n} de {total}",
     assistant: "Asistente automático",
     known: "Lo que hemos entendido",
@@ -311,6 +318,11 @@ export const es: M = {
     },
   },
   docs: {
+    photoTipsTitle: "Cómo hacer una buena foto",
+    photoTip1: "Apoya el documento sobre una mesa oscura, con buena luz.",
+    photoTip2: "Encuadra las cuatro esquinas, sin dedos encima.",
+    photoTip3: "Sin flash ni reflejos: el texto debe leerse bien.",
+    photoTip4: "Si el documento tiene varias páginas o reverso, fotografíalas todas.",
     preview: "Vista previa",
     household: "Para todo el hogar",
     title: "Los documentos que hay que preparar",
@@ -484,6 +496,7 @@ export const ro: M = {
     tooShort: "Scrie câteva cuvinte în plus.",
   },
   interview: {
+    inferred: "Dedus din ce ai scris: verifică",
     progressLabel: "Întrebări: {n} din {total}",
     assistant: "Asistent automat",
     known: "Ce am înțeles",
@@ -522,6 +535,11 @@ export const ro: M = {
     },
   },
   docs: {
+    photoTipsTitle: "Cum faci o fotografie bună",
+    photoTip1: "Pune documentul pe o masă închisă la culoare, cu lumină bună.",
+    photoTip2: "Prinde în cadru toate cele patru colțuri, fără degete pe el.",
+    photoTip3: "Fără bliț și fără reflexii: textul trebuie să se citească bine.",
+    photoTip4: "Dacă documentul are mai multe pagini sau verso, fotografiază-le pe toate.",
     preview: "Previzualizare",
     household: "Pentru toată familia",
     title: "Documentele de pregătit",
@@ -694,6 +712,7 @@ export const uk: M = {
     tooShort: "Напиши трохи більше слів.",
   },
   interview: {
+    inferred: "Взято з того, що ти написав(-ла): перевір",
     progressLabel: "Запитання: {n} з {total}",
     assistant: "Автоматичний помічник",
     known: "Що ми зрозуміли",
@@ -732,6 +751,11 @@ export const uk: M = {
     },
   },
   docs: {
+    photoTipsTitle: "Як зробити гарне фото",
+    photoTip1: "Поклади документ на темний стіл при хорошому освітленні.",
+    photoTip2: "Захопи в кадр усі чотири кути, без пальців на документі.",
+    photoTip3: "Без спалаху й відблисків: текст має добре читатися.",
+    photoTip4: "Якщо документ має кілька сторінок або зворот, сфотографуй усі.",
     preview: "Перегляд",
     household: "Для всієї сім'ї",
     title: "Документи, які треба підготувати",
@@ -901,6 +925,7 @@ export const ar: M = {
     tooShort: "اكتب كلمات أكثر قليلاً.",
   },
   interview: {
+    inferred: "مستنتج مما كتبته: تحقّق منه",
     progressLabel: "الأسئلة: {n} من {total}",
     assistant: "المساعد الآلي",
     known: "ما فهمناه",
@@ -939,6 +964,11 @@ export const ar: M = {
     },
   },
   docs: {
+    photoTipsTitle: "كيف تلتقط صورة جيدة",
+    photoTip1: "ضع المستند على طاولة داكنة وفي إضاءة جيدة.",
+    photoTip2: "اجعل الزوايا الأربع داخل الصورة، دون أصابع فوقها.",
+    photoTip3: "بدون فلاش وبدون انعكاسات: يجب أن يُقرأ النص بوضوح.",
+    photoTip4: "إذا كان للمستند عدة صفحات أو وجه خلفي، صوّرها كلها.",
     preview: "معاينة",
     household: "لكل أفراد الأسرة",
     title: "المستندات المطلوبة",
@@ -1109,6 +1139,7 @@ export const bn: M = {
     tooShort: "আরও কয়েকটি শব্দ লিখুন।",
   },
   interview: {
+    inferred: "আপনার লেখা থেকে ধরা হয়েছে: দেখে নিন",
     progressLabel: "প্রশ্ন: {total}টির মধ্যে {n}টি",
     assistant: "স্বয়ংক্রিয় সহকারী",
     known: "আমরা যা বুঝেছি",
@@ -1147,6 +1178,11 @@ export const bn: M = {
     },
   },
   docs: {
+    photoTipsTitle: "ভালো ছবি কীভাবে তুলবেন",
+    photoTip1: "ভালো আলোয় একটি গাঢ় রঙের টেবিলে কাগজটি রাখুন।",
+    photoTip2: "চারটি কোণই ছবিতে রাখুন, আঙুল যেন না থাকে।",
+    photoTip3: "ফ্ল্যাশ বা প্রতিফলন যেন না থাকে: লেখা যেন পরিষ্কার পড়া যায়।",
+    photoTip4: "কাগজের একাধিক পাতা বা পেছনের দিক থাকলে সবগুলোর ছবি তুলুন।",
     preview: "প্রিভিউ",
     household: "পুরো পরিবারের জন্য",
     title: "যে কাগজপত্র প্রস্তুত করতে হবে",

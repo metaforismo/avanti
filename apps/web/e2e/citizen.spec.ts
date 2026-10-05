@@ -42,7 +42,8 @@ test("a citizen goes from the office QR to a submitted dossier", async ({ page }
 
   await page.getByLabel("Cosa devi fare?").fill("Devo fare l'ISEE, vivo da solo");
   await page.getByRole("button", { name: "Continua" }).click();
-  await expect(page.getByText("ISEE ordinario")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "ISEE ordinario" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Documenti" })).toBeDisabled();
 
   await finishInterview(page, token);
   await page.reload();

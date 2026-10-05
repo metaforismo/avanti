@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LANGUAGES } from "@avanti/contracts";
+import { LANGUAGES } from "@avanti/contracts/constants";
 import { format, MESSAGES } from "./messages";
 
 function leaves(value: unknown, prefix = ""): string[] {

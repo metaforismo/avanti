@@ -18,6 +18,8 @@ type Props = {
   initial?: AnswerValue;
   /** Household size already stated by the citizen, to pre-create the right number of rows. */
   expectedMembers?: number;
+  /** Roles understood from free text ("vivo con mia madre"), used to prefill those rows. */
+  expectedRoles?: MemberInput["role"][];
   /** Move focus to the question when it replaces a previous one (not on first page load). */
   autoFocus?: boolean;
 };
@@ -26,7 +28,15 @@ type Props = {
  * One question at a time, with the input that fits its kind. Choice answers submit on tap:
  * fewer steps for people who struggle with forms.
  */
-export function QuestionCard({ api, question, m, initial, expectedMembers, autoFocus }: Props) {
+export function QuestionCard({
+  api,
+  question,
+  m,
+  initial,
+  expectedMembers,
+  expectedRoles,
+  autoFocus,
+}: Props) {
   const titleId = useId();
   const errorId = `${titleId}-error`;
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -110,6 +120,7 @@ export function QuestionCard({ api, question, m, initial, expectedMembers, autoF
             busy={busy}
             initial={Array.isArray(initial) ? (initial as MemberInput[]) : []}
             expected={expectedMembers}
+            expectedRoles={expectedRoles}
             onSubmit={(members) => void answer(members)}
           />
         )}

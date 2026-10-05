@@ -66,6 +66,7 @@ const it = {
     tooShort: "Scrivi qualche parola in più.",
   },
   interview: {
+    inferred: "Dedotto da quello che hai scritto: controlla",
     progressLabel: "Domande: {n} di {total}",
     assistant: "Assistente automatico",
     known: "Abbiamo capito",
@@ -104,6 +105,11 @@ const it = {
     } satisfies Record<MemberRole, string>,
   },
   docs: {
+    photoTipsTitle: "Come fare una buona foto",
+    photoTip1: "Appoggia il documento su un tavolo scuro, ben illuminato.",
+    photoTip2: "Inquadra tutti e quattro gli angoli, senza dita sopra.",
+    photoTip3: "Niente flash e niente riflessi: il testo deve leggersi bene.",
+    photoTip4: "Se il documento ha più pagine o il retro, fotografale tutte.",
     preview: "Anteprima",
     household: "Per tutta la famiglia",
     title: "I documenti da preparare",
@@ -286,6 +292,7 @@ const en: Widen<CitizenMessages> = {
     tooShort: "Please write a few more words.",
   },
   interview: {
+    inferred: "Taken from what you wrote: please check",
     progressLabel: "Questions: {n} of {total}",
     assistant: "Automated assistant",
     known: "What we understood",
@@ -324,6 +331,11 @@ const en: Widen<CitizenMessages> = {
     },
   },
   docs: {
+    photoTipsTitle: "How to take a good photo",
+    photoTip1: "Lay the document on a dark table, in good light.",
+    photoTip2: "Get all four corners in the frame, with no fingers on it.",
+    photoTip3: "No flash and no glare: the text must be easy to read.",
+    photoTip4: "If the document has several pages or a back side, photograph them all.",
     preview: "Preview",
     household: "For the whole household",
     title: "Documents to prepare",

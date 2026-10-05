@@ -46,12 +46,14 @@ export function MembersEditor({
   busy,
   initial,
   expected,
+  expectedRoles = [],
   onSubmit,
 }: {
   m: Widen<CitizenMessages>;
   busy: boolean;
   initial: MemberInput[];
   expected?: number;
+  expectedRoles?: MemberRole[];
   onSubmit: (members: MemberInput[]) => void;
 }) {
   const [members, setMembers] = useState<Draft[]>(() => {
@@ -60,7 +62,14 @@ export function MembersEditor({
     if (!list.some((member) => member.role === "richiedente")) {
       list.unshift({ key: newKey(), role: "richiedente", firstName: "", yearText: "" });
     }
-    // The citizen already told us how many they are: offer that many rows to fill.
+    // Relatives the citizen already mentioned get a row with the right role…
+    if (initial.length === 0) {
+      for (const role of expectedRoles.filter((r) => r !== "richiedente")) {
+        if (list.length < MAX_MEMBERS)
+          list.push({ key: newKey(), role, firstName: "", yearText: "" });
+      }
+    }
+    // …and the household size they stated decides how many rows to offer.
     while (expected && list.length < Math.min(expected, MAX_MEMBERS)) {
       list.push({ key: newKey(), role: "altro", firstName: "", yearText: "" });
     }

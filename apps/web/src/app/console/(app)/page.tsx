@@ -5,12 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import type { Route } from "next";
-import {
-  PRACTICE_IDS,
-  type CaseListItem,
-  type CaseListResponse,
-  type CaseStatus,
-} from "@avanti/contracts";
+import type { CaseListItem, CaseListResponse, CaseStatus } from "@avanti/contracts";
+import { PRACTICE_IDS } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import {
@@ -78,6 +74,13 @@ function Queue() {
     }, 30_000);
     return () => window.clearInterval(id);
   }, [reload]);
+
+  // Waiting cases in the tab title: visible while the operator works in another tab.
+  const waiting = list.data?.counts.submitted ?? 0;
+  useEffect(() => {
+    document.title =
+      waiting > 0 ? `(${waiting}) Pratiche · Console Avanti` : "Pratiche · Console Avanti";
+  }, [waiting]);
 
   const appended = extra?.query === query ? extra : null;
   const items = [...(list.data?.items ?? []), ...(appended?.items ?? [])];
