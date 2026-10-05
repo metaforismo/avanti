@@ -1,5 +1,6 @@
 import type { AnswerValue, CitizenCase, IntakeTurn, Language, PracticeId } from "@avanti/contracts";
 import {
+  CLASSIFICATION_THRESHOLD,
   applyAnswer,
   DomainValidationError,
   editAnswer,
@@ -12,7 +13,7 @@ import type { CaseRow } from "./dossier";
 import { ApiFailure } from "./security";
 
 export function assertStartable(practiceId: PracticeId | undefined, now: Date) {
-  if (practiceId && getPractice(practiceId, "it", now).availability === "coming_soon") {
+  if (practiceId && getPractice(practiceId, "it").availability === "coming_soon") {
     throw new ApiFailure("bad_request", 400, "Questa pratica non è ancora disponibile.");
   }
 }
@@ -40,7 +41,7 @@ function applyProposedAnswers(
   const maximumPasses = pending.size;
   for (let pass = 0; pass < maximumPasses; pass++) {
     let accepted = false;
-    for (const question of getQuestions(practiceId, answers, language, now)) {
+    for (const question of getQuestions(practiceId, answers, language)) {
       const value = pending.get(question.id);
       if (value === undefined) continue;
       pending.delete(question.id);
@@ -70,12 +71,14 @@ export function applyTurn(
     return { practiceId: input.practiceId, answers };
   }
   if (input.type === "text" && proposal) {
-    if (!practiceId && proposal.practiceId && proposal.confidence >= 0.65) {
+    if (!practiceId && proposal.practiceId && proposal.confidence >= CLASSIFICATION_THRESHOLD) {
       assertStartable(proposal.practiceId, now);
       practiceId = proposal.practiceId;
     }
     if (practiceId)
       answers = applyProposedAnswers(practiceId, answers, proposal, current.language, now);
+    if (proposal.answers.household_roles)
+      answers.household_roles = proposal.answers.household_roles;
     return { practiceId, answers };
   }
   if (!practiceId) throw new ApiFailure("bad_request", 400, "Scegli prima la pratica.");
@@ -94,7 +97,7 @@ export function applyTurn(
       answers = editAnswer(practiceId, answers, input.questionId);
       break;
     case "skip":
-      answers = skipQuestion(practiceId, answers, input.questionId, current.language, now);
+      answers = skipQuestion(practiceId, answers, input.questionId, current.language);
       break;
   }
   return { practiceId, answers };
@@ -121,8 +124,39 @@ const uploadDocuments: Record<Language, string> = {
   bn: "তালিকার নথিগুলো আপলোড করতে পারেন।",
 };
 
+const acknowledgement: Record<Language, [string, string, string, string, string]> = {
+  it: ["Ho capito", "persone", "conti", "immobili", "veicoli"],
+  en: ["I understood", "people", "accounts", "properties", "vehicles"],
+  fr: ["J’ai compris", "personnes", "comptes", "biens", "véhicules"],
+  es: ["He entendido", "personas", "cuentas", "inmuebles", "vehículos"],
+  ro: ["Am înțeles", "persoane", "conturi", "imobile", "vehicule"],
+  uk: ["Я зрозумів", "людей", "рахунків", "нерухомість", "транспорт"],
+  ar: ["فهمت", "أشخاص", "حسابات", "عقارات", "مركبات"],
+  bn: ["বুঝেছি", "জন", "হিসাব", "সম্পত্তি", "গাড়ি"],
+};
 export function assistantReply(view: CitizenCase, proposal: IntakeProposal | null) {
-  if (proposal?.reply) return proposal.reply;
+  if (proposal) {
+    const [prefix, ...labels] = acknowledgement[view.language];
+    const facts: string[] = [];
+    if (view.practice) facts.push(view.practice.name);
+    for (const [index, key] of [
+      "household_count",
+      "accounts_count",
+      "properties_count",
+      "vehicles_count",
+    ].entries()) {
+      const value = view.answers[key];
+      if (typeof value === "number") facts.push(`${labels[index]}: ${value}`);
+    }
+    const banks = Object.entries(view.answers)
+      .filter(
+        ([key, value]) => /^account_bank_\d+$/.test(key) && typeof value === "string" && value,
+      )
+      .map(([, value]) => String(value));
+    if (banks.length) facts.push(banks.join(", "));
+    if (facts.length) return `${prefix}: ${facts.join(", ")}.`;
+    return choosePractice[view.language];
+  }
   if (view.nextQuestion) return view.nextQuestion.prompt;
   return view.practice ? uploadDocuments[view.language] : choosePractice[view.language];
 }

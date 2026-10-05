@@ -19,19 +19,28 @@ import {
   CaseStatus,
 } from "@avanti/contracts";
 import { body, parse, type App, type Services } from "./context";
-import { caseById, dossierView, citizenView, audit, iso, minutes, type CaseRow } from "./dossier";
+import {
+  caseById,
+  dossierView,
+  citizenView,
+  caseListViews,
+  audit,
+  iso,
+  minutes,
+  type CaseRow,
+} from "./dossier";
 import { createCase, download } from "./citizen";
 import { ApiFailure, notFound } from "./security";
 import { exportPdf } from "./export";
 import { calculateMetrics, metricsRange } from "./operator-metrics";
 
 const transitions: Record<CaseRow["status"], CaseRow["status"][]> = {
-  intake: [],
-  submitted: ["in_review"],
-  in_review: ["needs_citizen", "ready"],
-  needs_citizen: ["in_review"],
+  intake: ["closed"],
+  submitted: ["in_review", "closed"],
+  in_review: ["needs_citizen", "ready", "closed"],
+  needs_citizen: ["in_review", "closed"],
   ready: ["in_review", "closed"],
-  closed: [],
+  closed: ["in_review"],
 };
 const emptyCounts = () =>
   Object.fromEntries(CaseStatus.options.map((status) => [status, 0])) as Record<
@@ -82,27 +91,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       .limit(query.limit + 1);
     const page = rows.slice(0, query.limit);
     const last = page.at(-1);
-    const items = await Promise.all(
-      page.map(async (row) => {
-        const d = await dossierView(s.db, row, s.clock());
-        return {
-          id: d.id,
-          reference: d.reference,
-          citizenName: d.citizenName,
-          practice: d.practice,
-          status: d.status,
-          language: d.language,
-          office: d.office,
-          assignee: d.assignee,
-          progress: d.progress,
-          blockers: d.blockers,
-          warnings: d.warnings,
-          createdAt: d.createdAt,
-          updatedAt: d.updatedAt,
-          submittedAt: d.submittedAt,
-        };
-      }),
-    );
+    const items = await caseListViews(s.db, page, s.clock());
     return c.json({
       items,
       counts,
@@ -139,7 +128,10 @@ export function mountOperatorRoutes(app: App, s: Services) {
     });
     return c.json(
       {
-        case: await dossierView(s.db, row, s.clock()),
+        case: {
+          ...(await dossierView(s.db, row, s.clock())),
+          citizenLink: `${s.publicUrl.replace(/\/$/, "")}/pratica/${token}`,
+        },
         citizenLink: `${s.publicUrl.replace(/\/$/, "")}/pratica/${token}`,
       },
       201,
@@ -147,26 +139,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
   });
   app.get("/cases/:id", async (c) => {
     const operator = c.get("operator");
-    const row = await s.db.transaction(async (tx) => {
-      let current = await caseById(tx, c.req.param("id"), operator.organizationId, true);
-      if (current.status === "submitted" || current.status === "in_review") {
-        const [updated] = await tx
-          .update(cases)
-          .set({
-            status: "in_review",
-            reviewStartedAt: current.reviewStartedAt ?? s.clock().toISOString(),
-            updatedAt: s.clock().toISOString(),
-          })
-          .where(and(eq(cases.id, current.id), eq(cases.organizationId, operator.organizationId)))
-          .returning();
-        if (!updated) throw notFound();
-        if (!current.reviewStartedAt)
-          await audit(tx, current, "operator", "review.started", s.clock(), operator.id);
-        current = updated;
-      }
-      await audit(tx, current, "operator", "case.opened", s.clock(), operator.id);
-      return current;
-    });
+    const row = await caseById(s.db, c.req.param("id"), operator.organizationId);
     return c.json(await dossierView(s.db, row, s.clock()));
   });
   app.patch("/cases/:id", async (c) => {
@@ -193,8 +166,9 @@ export function mountOperatorRoutes(app: App, s: Services) {
       )
         throw new ApiFailure("conflict", 409, "Passaggio di stato non consentito.");
       if (input.status === "ready") {
-        const view = await citizenView(tx, current, s.clock(), "it");
+        const view = await citizenView(tx, current, s.clock(), "it", true);
         if (
+          !current.practiceId ||
           view.nextQuestion ||
           view.findings.some((f) => f.severity === "blocker") ||
           view.checklist.some((i) => i.required && i.status !== "verified" && i.status !== "waived")
@@ -228,7 +202,14 @@ export function mountOperatorRoutes(app: App, s: Services) {
       }
       if (input.status === "in_review" && !current.reviewStartedAt)
         await audit(tx, updated, "operator", "review.started", now, operator.id);
-      await audit(tx, updated, "operator", "case.updated", now, operator.id);
+      if (input.status && input.status !== current.status) {
+        const eventType = current.status === "closed" ? "case.reopened" : `case.${input.status}`;
+        await audit(tx, updated, "operator", eventType, now, operator.id);
+      }
+      if (input.assigneeId !== undefined && input.assigneeId !== current.assigneeId)
+        await audit(tx, updated, "operator", "case.assigned", now, operator.id);
+      if (input.internalNotes !== undefined)
+        await audit(tx, updated, "operator", "case.note_updated", now, operator.id);
       return updated;
     });
     return c.json(await dossierView(s.db, row, s.clock()));
@@ -244,7 +225,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
           409,
           "Apri il fascicolo in revisione prima di verificare le voci.",
         );
-      const view = await citizenView(tx, current, s.clock(), "it");
+      const view = await citizenView(tx, current, s.clock(), "it", true);
       const item = view.checklist.find((i) => i.id === c.req.param("itemId"));
       if (!item) throw notFound();
       if (input.decision === "verified" && !item.documentIds.length)
@@ -282,7 +263,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .where(and(eq(cases.id, current.id), eq(cases.organizationId, operator.organizationId)))
         .returning();
       if (!updated) throw notFound();
-      await audit(tx, updated, "operator", "checklist.reviewed", s.clock(), operator.id);
+      await audit(tx, updated, "operator", `checklist.${input.decision}`, s.clock(), operator.id);
       return updated;
     });
     return c.json(await dossierView(s.db, row, s.clock()));
@@ -307,15 +288,47 @@ export function mountOperatorRoutes(app: App, s: Services) {
           409,
           "Apri il fascicolo in revisione prima di chiedere un'integrazione.",
         );
-      const view = await citizenView(tx, current, s.clock(), "it");
+      const view = await citizenView(tx, current, s.clock(), "it", true);
       if (input.checklistItemIds.some((id) => !view.checklist.some((i) => i.id === id)))
         throw notFound();
+      const localized = await citizenView(tx, current, s.clock());
+      const selected = localized.checklist.filter((item) =>
+        input.checklistItemIds.includes(item.id),
+      );
+      for (const item of selected) {
+        await tx
+          .insert(checklistReviews)
+          .values({
+            caseId: current.id,
+            itemId: item.id,
+            decision: "rejected",
+            note: input.message,
+            operatorId: operator.id,
+            reviewedAt: s.clock().toISOString(),
+          })
+          .onConflictDoUpdate({
+            target: [checklistReviews.caseId, checklistReviews.itemId],
+            set: {
+              decision: "rejected",
+              note: input.message,
+              operatorId: operator.id,
+              reviewedAt: s.clock().toISOString(),
+            },
+          });
+      }
+      const labels = selected
+        .map((item) => `${item.title}${item.memberName ? ` · ${item.memberName}` : ""}`)
+        .join("\n");
+      const italianLabels = view.checklist
+        .filter((item) => input.checklistItemIds.includes(item.id))
+        .map((item) => `${item.title}${item.memberName ? ` · ${item.memberName}` : ""}`)
+        .join("\n");
       await tx.insert(messages).values({
         id: crypto.randomUUID(),
         caseId: current.id,
         role: "operator",
-        text: translated.text,
-        originalText: input.message,
+        text: [translated.text, labels].filter(Boolean).join("\n"),
+        originalText: [input.message, italianLabels].filter(Boolean).join("\n"),
         createdAt: s.clock().toISOString(),
       });
       const [updated] = await tx
@@ -324,13 +337,13 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .where(and(eq(cases.id, current.id), eq(cases.organizationId, operator.organizationId)))
         .returning();
       if (!updated) throw notFound();
-      await audit(tx, updated, "operator", "citizen.requested", s.clock(), operator.id, {
+      await audit(tx, updated, "operator", "case.requested", s.clock(), operator.id, {
         itemsCount: input.checklistItemIds.length,
         heuristic: translated.engine === "heuristic",
       });
       return updated;
     });
-    c.header("X-Avanti-Engine", translated.engine);
+    if (translated.engine) c.header("X-Avanti-Engine", translated.engine);
     return c.json(await dossierView(s.db, row, s.clock()));
   });
   app.get("/cases/:id/export", async (c) => {
@@ -338,7 +351,6 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     const row = await caseById(s.db, c.req.param("id"), operator.organizationId);
     const dossier = await dossierView(s.db, row, s.clock());
-    await audit(s.db, row, "operator", "case.exported", s.clock(), operator.id);
     c.header("Content-Disposition", `attachment; filename="${row.reference}.${format}"`);
     if (format === "json") return c.json(dossier);
     const bytes = await exportPdf(dossier);
@@ -348,7 +360,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
   app.get("/cases/:id/documents/:docId/file", async (c) => {
     const operator = c.get("operator");
     const row = await caseById(s.db, c.req.param("id"), operator.organizationId);
-    return download(c, s, row, c.req.param("docId"), "operator", operator.id);
+    return download(c, s, row, c.req.param("docId"));
   });
   app.get("/metrics", async (c) => {
     const q = parse(MetricsQuery, c.req.query());
