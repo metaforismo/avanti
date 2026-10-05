@@ -67,6 +67,7 @@ describe("review regressions", () => {
   });
   it("2: partial names and additional names match as token subsets", () => {
     expect(ownerMatches("Mario Rossi", member)).toBe(true);
+    expect(ownerMatches("Mario", { ...member, lastName: "Rossi" })).toBe(true);
     expect(ownerMatches("Rossi Mario Luigi", { ...member, lastName: "Rossi" })).toBe(true);
     expect(
       ownerMatches("Mario Rossi", { ...member, firstName: "Mario Luigi", lastName: "Rossi" }),

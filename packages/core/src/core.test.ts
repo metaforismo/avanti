@@ -526,10 +526,10 @@ describe("dossier findings and progress", () => {
     );
   });
 
-  it("recognizes full owner names in either order but does not match partial names", () => {
+  it("recognizes reordered and partial owner names pending visual verification", () => {
     const member = buildHousehold(answersWithMembers())[0]!;
     expect(ownerMatches("  Esempio ANNA ", member)).toBe(true);
-    expect(ownerMatches("Anna", member)).toBe(false);
+    expect(ownerMatches("Anna", member)).toBe(true);
     expect(ownerMatches("Anna Esempio Secondo", member)).toBe(true);
   });
 

@@ -447,6 +447,6 @@ export function ownerMatches(name: string, member: Member): boolean {
   const expected = new Set(expectedTokens);
   return (
     expectedTokens.every((token) => actualTokens.has(token)) ||
-    (actualTokens.size >= 2 && [...actualTokens].every((token) => expected.has(token)))
+    [...actualTokens].every((token) => expected.has(token))
   );
 }
