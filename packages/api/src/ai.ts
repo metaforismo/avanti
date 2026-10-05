@@ -33,7 +33,7 @@ export interface Intelligence {
   translate(
     text: string,
     language: Language,
-  ): Promise<{ text: string; engine: "ai" | "heuristic" }>;
+  ): Promise<{ text: string; engine?: "ai" | "heuristic" }>;
 }
 const translationNotice: Record<Language, string> = {
   it: "Il CAF chiede un'integrazione. Leggi il messaggio originale o contatta lo sportello.",
@@ -79,20 +79,46 @@ export function heuristicAnalysis(fileName: string, requirements: string[]): Doc
           : 0)
       : null,
     expiresOn: null,
-    legible: true,
+    legible: false,
     pagesComplete: null,
     findings: [],
   };
 }
+export type AiFallbackRecord = {
+  op: string;
+  errorName: string;
+  statusCode: number | null;
+  model: string;
+};
 export class GatewayIntelligence implements Intelligence {
+  fallbackCount = 0;
   constructor(
     private config: {
       key?: string;
       textModel?: string;
       visionModel?: string;
       provider?: string;
+      logger?: (record: AiFallbackRecord) => void;
     } = {},
   ) {}
+  private fallback(op: "intake" | "analyze" | "translate", error: unknown) {
+    this.fallbackCount++;
+    const model = op === "analyze" ? this.config.visionModel : this.config.textModel;
+    const statusCode =
+      error instanceof Error && "statusCode" in error && typeof error.statusCode === "number"
+        ? error.statusCode
+        : null;
+    const errorName =
+      error instanceof Error && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(error.name)
+        ? error.name
+        : "Error";
+    (this.config.logger ?? console.warn)({
+      op,
+      errorName,
+      statusCode,
+      model: model ?? "anthropic/claude-sonnet-5.5",
+    });
+  }
   private providerOptions() {
     return { gateway: { only: [this.config.provider || "anthropic"] } };
   }
@@ -104,7 +130,7 @@ export class GatewayIntelligence implements Intelligence {
     now: Date,
   ): Promise<IntakeProposal> {
     const fallback = () => ({
-      ...extractFacts(text, language, practiceId ?? undefined, now),
+      ...extractFacts(text, language, practiceId ?? undefined),
       reply: "",
       engine: "heuristic" as const,
     });
@@ -123,7 +149,7 @@ export class GatewayIntelligence implements Intelligence {
         prompt: JSON.stringify({
           language,
           practiceId,
-          practices: listPractices("it", now).filter((p) => p.availability !== "coming_soon"),
+          practices: listPractices("it").filter((p) => p.availability !== "coming_soon"),
           questions: questions.map((q) => ({
             id: q.id,
             kind: q.kind,
@@ -135,7 +161,8 @@ export class GatewayIntelligence implements Intelligence {
         }),
       });
       return { ...Proposal.parse(output), engine: "ai" };
-    } catch {
+    } catch (error) {
+      this.fallback("intake", error);
       return fallback();
     }
   }
@@ -147,6 +174,10 @@ export class GatewayIntelligence implements Intelligence {
   ): Promise<DocumentAnalysis> {
     const fallback = () => heuristicAnalysis(fileName, requirements);
     if (!this.config.key) return fallback();
+    if (mime === "image/heic") {
+      this.fallback("analyze", new TypeError("Unsupported media"));
+      return fallback();
+    }
     try {
       const schema = DocumentAnalysis.omit({ engine: true, findings: true });
       const { output } = await generateText({
@@ -171,17 +202,18 @@ export class GatewayIntelligence implements Intelligence {
       });
       const result = schema.parse(output);
       if (result.detectedRequirementId && !requirements.includes(result.detectedRequirementId))
-        return fallback();
+        throw new TypeError("Invalid requirement");
       return DocumentAnalysis.parse({ ...result, engine: "ai", findings: [] });
-    } catch {
+    } catch (error) {
+      this.fallback("analyze", error);
       return fallback();
     }
   }
   async translate(
     text: string,
     language: Language,
-  ): Promise<{ text: string; engine: "ai" | "heuristic" }> {
-    if (language === "it") return { text, engine: "heuristic" };
+  ): Promise<{ text: string; engine?: "ai" | "heuristic" }> {
+    if (language === "it") return { text };
     if (this.config.key)
       try {
         const { output } = await generateText({
@@ -197,7 +229,8 @@ export class GatewayIntelligence implements Intelligence {
           prompt: JSON.stringify({ language, text }),
         });
         return { text: output.text, engine: "ai" };
-      } catch {
+      } catch (error) {
+        this.fallback("translate", error);
         /* The original is preserved separately; the notice does not pretend to be a translation. */
       }
     return { text: translationNotice[language], engine: "heuristic" };

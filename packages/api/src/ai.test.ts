@@ -78,3 +78,40 @@ describe("AI boundary", () => {
     expect(heuristicAnalysis("saldo 2025.pdf", ["account_balance"]).referenceYear).toBe(2025);
   });
 });
+
+describe("second review AI regressions", () => {
+  it("7: Italian operator messages do not claim a translation engine", async () => {
+    expect(
+      (await new GatewayIntelligence().translate("Porta i documenti", "it")).engine,
+    ).toBeUndefined();
+  });
+  it("13: HEIC never reaches vision even with credentials", async () => {
+    const result = await new GatewayIntelligence({ key: "test-key" }).analyze(
+      new Uint8Array(),
+      "image/heic",
+      "foto.heic",
+      ["identity"],
+    );
+    expect(generateText).not.toHaveBeenCalled();
+    expect(result.engine).toBe("heuristic");
+  });
+  it("20: filename heuristics cannot assert legibility", () => {
+    expect(heuristicAnalysis("identity.pdf", ["identity"]).legible).toBe(false);
+  });
+});
+it("13: provider fallback emits only safe telemetry and increments its counter", async () => {
+  const logger = vi.fn();
+  vi.mocked(generateText).mockRejectedValue(
+    Object.assign(new Error("private-message"), { statusCode: 503 }),
+  );
+  const ai = new GatewayIntelligence({ key: "test-key", logger });
+  await ai.intake("private-citizen-text", "it", null, [], new Date("2027-01-01Z"));
+  expect(ai.fallbackCount).toBe(1);
+  expect(logger).toHaveBeenCalledWith({
+    op: "intake",
+    errorName: "Error",
+    statusCode: 503,
+    model: "anthropic/claude-sonnet-5.5",
+  });
+  expect(JSON.stringify(logger.mock.calls)).not.toContain("private");
+});

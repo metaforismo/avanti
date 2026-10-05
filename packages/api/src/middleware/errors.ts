@@ -1,8 +1,9 @@
 import { DomainValidationError } from "@avanti/core";
-import type { App } from "../context";
+import { safeError } from "../logging";
+import type { App, ApiOptions } from "../context";
 import { ApiFailure } from "../security";
 
-export function registerErrors(app: App) {
+export function registerErrors(app: App, logger: ApiOptions["errorLogger"]) {
   app.onError((error, context) => {
     let failure: ApiFailure;
     if (error instanceof ApiFailure) failure = error;
@@ -15,6 +16,8 @@ export function registerErrors(app: App) {
         "Servizio momentaneamente non disponibile. Riprova.",
       );
     }
+    if (failure.status === 500)
+      (logger ?? console.error)({ requestId: context.get("requestId"), ...safeError(error) });
     return context.json(
       {
         error: {

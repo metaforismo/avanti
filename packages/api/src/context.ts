@@ -1,3 +1,4 @@
+import type { ErrorRecord } from "./logging";
 import type { Hono, Context } from "hono";
 import type { Database } from "@avanti/db";
 import type { FileStorage } from "./storage";
@@ -15,6 +16,16 @@ export interface ApiOptions {
   publicUrl?: string;
   production?: boolean;
   trustProxy?: boolean;
+  errorLogger?: (record: ErrorRecord) => void;
+  storageLogger?: (record: {
+    op: string;
+    caseId: string;
+    documentId: string;
+    errorName: string;
+  }) => void;
+  rateLimitSecret?: string;
+  vercel?: boolean;
+  clientAddress?: (context: ApiContext) => string | null;
   logger?: (record: {
     requestId: string;
     category: string;
