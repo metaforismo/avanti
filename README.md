@@ -105,15 +105,21 @@ Copia `.env.example` in `apps/web/.env.local` per Next. Gli script DB leggono
 variabili della shell: per Postgres esporta `DATABASE_URL` anche quando esegui
 `pnpm db:migrate` e `pnpm db:seed`.
 
-| Variabile                           | Effetto                                                                                      |
-| ----------------------------------- | -------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                      | Postgres con postgres-js; vuota: PGlite in `.data/pglite`                                    |
-| `BLOB_READ_WRITE_TOKEN`             | Vercel Blob privato; vuota: disco `.data/uploads`                                            |
-| `AI_GATEWAY_PROVIDER`               | Provider Gateway unico consentito (default `anthropic`); se non disponibile, fallback locale |
-| `AI_GATEWAY_API_KEY`                | Abilita AI SDK 7; vuota: flusso euristico senza chiamate esterne                             |
-| `AI_MODEL_TEXT` / `AI_MODEL_VISION` | ID Gateway `provider/model`, default `anthropic/claude-sonnet-5.5`                           |
-| `PUBLIC_APP_URL`                    | Origine aggiuntiva ammessa per CSRF e base dei link, default `http://localhost:3400`         |
-| `TRUST_PROXY`                       | `1` solo con proxy fidato che sostituisce x-forwarded-for; automatico su Vercel              |
+| Variabile                           | Effetto                                                                                                         |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                      | Postgres con postgres-js; vuota: PGlite in `.data/pglite`                                                       |
+| `BLOB_READ_WRITE_TOKEN`             | Vercel Blob privato; vuota: disco `.data/uploads`                                                               |
+| `AI_GATEWAY_PROVIDER`               | Provider Gateway unico consentito (default `anthropic`); se non disponibile, fallback locale                    |
+| `AI_GATEWAY_API_KEY`                | Abilita AI SDK 7; vuota: flusso euristico senza chiamate esterne                                                |
+| `AI_MODEL_TEXT` / `AI_MODEL_VISION` | ID Gateway `provider/model`, default `anthropic/claude-sonnet-5.5`                                              |
+| `PUBLIC_APP_URL`                    | Origine aggiuntiva per CSRF e base dei link; obbligatoria in produzione, default locale `http://localhost:3400` |
+| `TRUST_PROXY`                       | `1` con proxy fidato: IP dell’ultimo hop di x-forwarded-for; su Vercel x-real-ip                                |
+
+`RATE_LIMIT_SECRET` è obbligatorio in produzione: segreto casuale stabile per gli
+HMAC dei bucket IP/email. In locale, senza un indirizzo di trasporto attendibile,
+il login usa il limite per email e i turni/upload quello per link cittadino.
+I proxy devono fornire l’header fidato; gli header client non sono usati quando
+`TRUST_PROXY=0`.
 
 Il cookie è una sessione opaca casuale salvata come hash; non necessita di un segreto
 di firma condiviso. I parametri per organizzazione sono in `settings`: baseline
@@ -142,3 +148,13 @@ vengono presentate come traduzioni già verificate.
 ISEE e 730 2027 sono preparati secondo le regole disponibili al 5–6 ottobre 2026:
 modelli e istruzioni annuali vanno ricontrollati prima del pilota. Avanti prepara
 un fascicolo e non trasmette alcuna pratica agli enti.
+
+Le sessioni scadono comunque dopo 12 ore dalla creazione. La manutenzione sulle
+mutazioni elimina sessioni e bucket scaduti e ritenta le cancellazioni dei file;
+i GET non modificano il fascicolo o la cronologia. Le cancellazioni fallite restano
+in `storage_deletions`, senza dati del documento, fino alla conferma dello storage.
+In assenza di traffico il retry attende la successiva mutazione: la tabella deve
+essere monitorata e svuotata prima di attestare una cancellazione completa.
+Ogni pratica accetta al massimo 60 documenti; l’analisi del PDF ha un limite di due
+secondi in un worker terminabile. HEIC resta scaricabile e soggetto a controllo
+visivo dell’operatore, senza invio al modello vision.
