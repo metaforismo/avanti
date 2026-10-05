@@ -75,6 +75,13 @@ function Queue() {
     return () => window.clearInterval(id);
   }, [reload]);
 
+  // Waiting cases in the tab title: visible while the operator works in another tab.
+  const waiting = list.data?.counts.submitted ?? 0;
+  useEffect(() => {
+    document.title =
+      waiting > 0 ? `(${waiting}) Pratiche · Console Avanti` : "Pratiche · Console Avanti";
+  }, [waiting]);
+
   const appended = extra?.query === query ? extra : null;
   const items = [...(list.data?.items ?? []), ...(appended?.items ?? [])];
   const nextCursor = appended ? appended.cursor : (list.data?.nextCursor ?? null);
