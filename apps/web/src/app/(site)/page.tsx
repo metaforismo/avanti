@@ -1,0 +1,477 @@
+import { AlertTriangle, Check, Clock3, FileCheck2, Languages, ShieldCheck } from "lucide-react";
+import { IntakeDemo } from "@/components/landing/intake-demo";
+import { LanguageShowcase } from "@/components/landing/language-showcase";
+import { PilotForm } from "@/components/landing/pilot-form";
+import { Button } from "@/components/ui/button";
+
+const DESK_QUESTIONS = [
+  {
+    asked: "«Che pratica le serve?»",
+    answer:
+      "Avanti la riconosce da come il cittadino la racconta, anche se non conosce il nome giusto. Se ha dubbi, chiede.",
+  },
+  {
+    asked: "«Cosa devo portare?»",
+    answer:
+      "Una checklist costruita su quella famiglia: un estratto per ogni conto, una visura per ogni immobile, un documento per ogni persona.",
+  },
+  {
+    asked: "«Questo documento va bene?»",
+    answer:
+      "Controlla tipo, anno, intestatario, scadenza, leggibilità e pagine mancanti appena il file viene caricato.",
+  },
+  {
+    asked: "«Torni con la giacenza media.»",
+    answer:
+      "Quello che manca il cittadino lo sa prima dell'appuntamento, con le istruzioni per trovarlo, nella sua lingua.",
+  },
+] as const;
+
+const STEPS = [
+  {
+    title: "Racconta",
+    body: "Il cittadino apre il link o inquadra il QR dello sportello e scrive cosa deve fare, con parole sue. Nessun account, nessuna app.",
+  },
+  {
+    title: "Risponde",
+    body: "Avanti fa solo le domande che mancano, una alla volta. Chi ha già detto «vivo con mia madre» non se lo sente richiedere.",
+  },
+  {
+    title: "Carica",
+    body: "Foto o PDF dal telefono. Ogni file viene riconosciuto, abbinato alla voce giusta e controllato. Se non va, lo dice subito e spiega perché.",
+  },
+  {
+    title: "Consegna",
+    body: "Il fascicolo arriva in coda allo sportello, già ordinato: riepilogo, nucleo, documenti, cosa manca. L'operatore verifica e fa la pratica.",
+  },
+] as const;
+
+const PRACTICES = [
+  { name: "ISEE ordinario", when: "Gennaio 2027", status: "Pilota con i CAF", live: true },
+  { name: "Modello 730", when: "Aprile 2027", status: "In preparazione", live: false },
+  { name: "Assegno unico", when: "2027", status: "In preparazione", live: false },
+  { name: "Permesso di soggiorno", when: "2027", status: "In preparazione", live: false },
+  {
+    name: "RED, NASpI, successioni semplici, cittadinanza",
+    when: "Dopo",
+    status: "In programma",
+    live: false,
+  },
+] as const;
+
+const NOT_DOING = [
+  {
+    title: "Non fa la pratica",
+    body: "Non trasmette nulla a INPS o Agenzia delle Entrate. Prepara il lavoro; la pratica la fa l'operatore abilitato.",
+  },
+  {
+    title: "Non sostituisce il gestionale",
+    body: "Sta davanti al software che il CAF usa già. Il fascicolo si esporta in PDF e in un formato strutturato.",
+  },
+  {
+    title: "Non decide al posto delle persone",
+    body: "Segnala dubbi e mancanze; ogni voce del fascicolo resta verificabile e modificabile dall'operatore.",
+  },
+] as const;
+
+const FAQ = [
+  {
+    q: "Il cittadino deve installare qualcosa o registrarsi?",
+    a: "No. Riceve un link personale (o inquadra il QR dello sportello) e lo apre dal browser del telefono. Il link scade da solo dopo un periodo stabilito dal CAF.",
+  },
+  {
+    q: "Chi è titolare dei dati?",
+    a: "Il CAF o il patronato, come oggi. Avanti tratta i dati per conto loro, con un accordo di nomina a responsabile del trattamento. Ogni accesso al fascicolo resta registrato.",
+  },
+  {
+    q: "E se il cittadino non sa scrivere bene, o non sa usare il telefono?",
+    a: "Le domande sono brevi e hanno risposte già pronte da toccare. Se serve, l'operatore può aprire il fascicolo allo sportello e completarlo insieme a lui.",
+  },
+  {
+    q: "Cosa succede se l'AI sbaglia a riconoscere un documento?",
+    a: "Il cittadino vede a quale voce è stato abbinato e può spostarlo. L'operatore vede il grado di certezza e ha sempre l'ultima parola su ogni voce.",
+  },
+  {
+    q: "Funziona con il nostro gestionale?",
+    a: "Avanti non lo sostituisce: esporta un fascicolo leggibile e un file strutturato da cui copiare i dati. Le integrazioni dirette le costruiamo con i CAF pilota.",
+  },
+  {
+    q: "Quanto costa?",
+    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027. Dopo, un canone per sportello che definiamo insieme ai piloti sulla base del tempo risparmiato misurato.",
+  },
+] as const;
+
+export default function HomePage() {
+  return (
+    <>
+      {/* Hero */}
+      <section className="mx-auto grid max-w-6xl gap-12 px-4 pt-10 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-16 lg:pb-28">
+        <div className="flex flex-col justify-center">
+          <p className="bg-surface text-ink-2 ring-line mb-6 inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-sm ring-1">
+            <span className="bg-ok size-1.5 rounded-full" aria-hidden />
+            Pilota ISEE con i CAF, gennaio 2027
+          </p>
+          <h1 className="font-display text-[clamp(2.75rem,7vw,5.25rem)] leading-[0.95] font-bold tracking-[-0.035em] [font-stretch:88%]">
+            Il fascicolo arriva pronto.
+          </h1>
+          <p className="text-ink-2 mt-6 max-w-[34rem] text-lg leading-relaxed sm:text-xl">
+            Avanti è il front office AI per CAF e patronati. Ascolta il cittadino nella sua lingua,
+            prepara la checklist, controlla i documenti. Allo sportello resta il lavoro che conta.
+          </p>
+          <div className="mt-9 flex flex-wrap gap-3">
+            <Button asChild size="lg">
+              <a href="#pilota">Diventa CAF pilota</a>
+            </Button>
+            <Button asChild size="lg" variant="secondary">
+              <a href="#come-funziona">Guarda come funziona</a>
+            </Button>
+          </div>
+        </div>
+        <IntakeDemo />
+      </section>
+
+      {/* Desk questions */}
+      <section aria-labelledby="sportello-title" className="border-line bg-surface border-y">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
+          <div className="max-w-2xl">
+            <h2
+              id="sportello-title"
+              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+            >
+              Prima di aprire la pratica, lo sportello fa domande. Sempre le stesse.
+            </h2>
+            <p className="text-ink-2 mt-5 text-lg">
+              Capire cosa serve, chiedere i documenti, scoprire cosa manca, richiamare. Avanti fa
+              questa parte prima che il cittadino si sieda.
+            </p>
+          </div>
+          <dl className="divide-line border-line mt-14 divide-y border-y">
+            {DESK_QUESTIONS.map((item) => (
+              <div
+                key={item.asked}
+                className="grid gap-2 py-7 md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10"
+              >
+                <dt className="font-display text-ink text-xl font-semibold tracking-[-0.01em] sm:text-2xl">
+                  {item.asked}
+                </dt>
+                <dd className="text-ink-2 max-w-xl text-[1.0625rem] leading-relaxed">
+                  {item.answer}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section
+        id="come-funziona"
+        aria-labelledby="come-title"
+        className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
+      >
+        <h2
+          id="come-title"
+          className="font-display max-w-2xl text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+        >
+          Dal «devo fare l&apos;ISEE» al fascicolo, in quattro passaggi.
+        </h2>
+        <ol className="mt-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+          {STEPS.map((step, i) => (
+            <li key={step.title} className="relative">
+              <div className="flex items-center gap-3">
+                <span className="bg-stamp font-display tabular grid size-9 place-items-center rounded-full text-base font-bold text-white">
+                  {i + 1}
+                </span>
+                {i < STEPS.length - 1 && (
+                  <span aria-hidden className="bg-line-strong hidden h-px flex-1 lg:block" />
+                )}
+              </div>
+              <h3 className="font-display mt-5 text-2xl font-semibold tracking-[-0.015em]">
+                {step.title}
+              </h3>
+              <p className="text-ink-2 mt-2 leading-relaxed">{step.body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Operators */}
+      <section id="operatori" aria-labelledby="operatori-title" className="bg-ink text-white">
+        <div className="mx-auto grid max-w-6xl gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
+          <div>
+            <h2
+              id="operatori-title"
+              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+            >
+              L&apos;operatore apre il fascicolo e sa già dove guardare.
+            </h2>
+            <p className="mt-5 text-lg leading-relaxed text-white/75">
+              Prima i problemi bloccanti, poi gli avvisi, poi tutto il resto. Ogni voce si verifica
+              con un clic; le integrazioni si chiedono al cittadino senza telefonate.
+            </p>
+            <ul className="mt-10 grid gap-5">
+              {[
+                {
+                  icon: FileCheck2,
+                  text: "Documenti rinominati e ordinati per persona, non IMG_2847.jpg",
+                },
+                {
+                  icon: AlertTriangle,
+                  text: "Scadenze, anni sbagliati e pagine mancanti segnalati in cima",
+                },
+                {
+                  icon: Languages,
+                  text: "Tutto in italiano, qualunque lingua abbia usato il cittadino",
+                },
+                {
+                  icon: Clock3,
+                  text: "Tempi misurati pratica per pratica, per sapere quanto si risparmia davvero",
+                },
+              ].map(({ icon: Icon, text }) => (
+                <li key={text} className="flex gap-3.5 text-white/90">
+                  <Icon className="text-marker mt-0.5 size-5 shrink-0" aria-hidden />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DossierPreview />
+        </div>
+      </section>
+
+      {/* Languages */}
+      <section
+        id="lingue"
+        aria-labelledby="lingue-title"
+        className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
+      >
+        <div className="max-w-2xl">
+          <h2
+            id="lingue-title"
+            className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+          >
+            Ognuno risponde nella sua lingua. Lo sportello legge in italiano.
+          </h2>
+          <p className="text-ink-2 mt-5 text-lg">
+            Per chi è arrivato da poco, la parte difficile non è la pratica: è capire cosa chiedono.
+            Avanti spiega con parole semplici e lascia in italiano i nomi che si troveranno scritti
+            sui documenti.
+          </p>
+        </div>
+        <div className="mt-12">
+          <LanguageShowcase />
+        </div>
+      </section>
+
+      {/* Practices */}
+      <section
+        id="pratiche"
+        aria-labelledby="pratiche-title"
+        className="border-line bg-surface border-y"
+      >
+        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
+          <div>
+            <h2
+              id="pratiche-title"
+              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+            >
+              Si parte dall&apos;ISEE. Il resto segue il calendario dei CAF.
+            </h2>
+            <p className="text-ink-2 mt-5 text-lg">
+              Gennaio è il mese più pesante per l&apos;ISEE, aprile apre la campagna 730. Ogni
+              pratica arriva quando è verificata con chi la fa ogni giorno.
+            </p>
+          </div>
+          <ol className="border-line-strong relative grid gap-0 border-s ps-8">
+            {PRACTICES.map((p) => (
+              <li key={p.name} className="relative pb-8 last:pb-0">
+                <span
+                  aria-hidden
+                  className={
+                    p.live
+                      ? "bg-stamp ring-stamp-wash absolute top-1.5 -left-[2.4rem] size-3.5 rounded-full ring-4"
+                      : "bg-surface ring-line-strong absolute top-1.5 -left-[2.3rem] size-3 rounded-full ring-2"
+                  }
+                />
+                <p className="text-ink-3 tabular text-sm">{p.when}</p>
+                <h3 className="font-display mt-0.5 text-xl font-semibold tracking-[-0.01em]">
+                  {p.name}
+                </h3>
+                <p className={p.live ? "text-stamp mt-1 font-semibold" : "text-ink-2 mt-1"}>
+                  {p.status}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Boundaries + privacy */}
+      <section
+        aria-labelledby="limiti-title"
+        className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
+      >
+        <h2
+          id="limiti-title"
+          className="font-display max-w-2xl text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+        >
+          Cosa Avanti non fa, di proposito.
+        </h2>
+        <div className="mt-12 grid gap-10 md:grid-cols-3">
+          {NOT_DOING.map((item) => (
+            <div key={item.title}>
+              <h3 className="font-display text-xl font-semibold tracking-[-0.01em]">
+                {item.title}
+              </h3>
+              <p className="text-ink-2 mt-2 leading-relaxed">{item.body}</p>
+            </div>
+          ))}
+        </div>
+        <div className="bg-folder/55 mt-14 flex flex-col gap-5 rounded-xl p-6 sm:flex-row sm:items-start sm:p-8">
+          <ShieldCheck className="text-stamp size-7 shrink-0" aria-hidden />
+          <div>
+            <h3 className="font-display text-xl font-semibold tracking-[-0.01em]">
+              Documenti di persone vere, trattati di conseguenza
+            </h3>
+            <p className="text-ink-2 mt-2 max-w-3xl leading-relaxed">
+              Il CAF resta titolare dei dati. Il cittadino accede con un link personale che scade,
+              senza password da ricordare. Ogni apertura del fascicolo è registrata, i documenti si
+              cancellano alla fine del periodo di conservazione e l&apos;AI riceve solo ciò che
+              serve a controllare il singolo documento.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Pilot */}
+      <section
+        id="pilota"
+        aria-labelledby="pilota-title"
+        className="border-line bg-sunk/60 border-t"
+      >
+        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:py-28">
+          <div>
+            <h2
+              id="pilota-title"
+              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+            >
+              Cerchiamo tre sportelli per il picco ISEE di gennaio.
+            </h2>
+            <p className="text-ink-2 mt-5 text-lg">
+              Installazione e formazione tra novembre e dicembre, uso vero a gennaio. Gratis fino al
+              31 marzo 2027.
+            </p>
+            <h3 className="mt-10 font-semibold">In cambio vi chiediamo</h3>
+            <ul className="text-ink-2 mt-3 grid gap-3">
+              {[
+                "Una settimana di misure prima di iniziare, per avere un punto di partenza onesto",
+                "Mezz'ora a settimana per dirci cosa non funziona",
+                "Il permesso di raccontare i risultati, anche se non sono quelli sperati",
+              ].map((text) => (
+                <li key={text} className="flex gap-3">
+                  <Check className="text-ok mt-1 size-4 shrink-0" aria-hidden />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <PilotForm />
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section
+        aria-labelledby="faq-title"
+        className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:py-28"
+      >
+        <h2
+          id="faq-title"
+          className="font-display text-[clamp(2rem,4.2vw,3rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+        >
+          Domande dei CAF
+        </h2>
+        <div className="divide-line border-line mt-10 divide-y border-y">
+          {FAQ.map((item) => (
+            <details key={item.q} className="group py-1">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-sm py-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">
+                {item.q}
+                <span
+                  aria-hidden
+                  className="text-ink-3 ring-line-strong grid size-7 shrink-0 place-items-center rounded-full ring-1 transition-transform duration-200 ease-(--ease-out) group-open:rotate-45"
+                >
+                  <svg
+                    viewBox="0 0 12 12"
+                    className="size-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  >
+                    <path d="M6 1v10M1 6h10" strokeLinecap="round" />
+                  </svg>
+                </span>
+              </summary>
+              <p className="text-ink-2 pb-5 leading-relaxed">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** Static, labelled example of the operator dossier view. */
+function DossierPreview() {
+  const rows = [
+    { label: "Documento d'identità, Anna Rossi", state: "warn", note: "Scade il 12/01/2027" },
+    { label: "Saldo e giacenza media 2025, conto Fineco", state: "block", note: "Non caricato" },
+    { label: "Redditi 2025, Mario Rossi", state: "ok", note: "Certificazione Unica 2026" },
+    { label: "Visura catastale, casa di proprietà", state: "ok", note: "1 immobile" },
+    { label: "Targa del veicolo", state: "ok", note: "Dichiarata dal cittadino" },
+  ] as const;
+  return (
+    <figure className="bg-paper text-ink shadow-float self-center rounded-xl ring-1 ring-white/10">
+      <div className="border-line flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6">
+        <div>
+          <p className="font-display text-lg font-semibold tracking-[-0.01em]">
+            ISEE ordinario 2027
+          </p>
+          <p className="text-ink-3 text-sm">Mario Rossi, nucleo di 3 persone</p>
+        </div>
+        <span className="bg-warn-wash text-warn rounded-full px-2.5 py-1 text-sm font-semibold">
+          12 di 13 documenti
+        </span>
+      </div>
+      <ul className="divide-line divide-y">
+        {rows.map((row) => (
+          <li key={row.label} className="flex items-center gap-3 px-5 py-3.5 sm:px-6">
+            <span
+              className={
+                row.state === "ok"
+                  ? "bg-ok-wash text-ok grid size-6 shrink-0 place-items-center rounded-full"
+                  : row.state === "warn"
+                    ? "bg-warn-wash text-warn grid size-6 shrink-0 place-items-center rounded-full"
+                    : "bg-danger-wash text-danger grid size-6 shrink-0 place-items-center rounded-full"
+              }
+              aria-label={
+                row.state === "ok" ? "Presente" : row.state === "warn" ? "Avviso" : "Mancante"
+              }
+            >
+              {row.state === "ok" ? (
+                <Check className="size-3.5" />
+              ) : (
+                <AlertTriangle className="size-3.5" />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-semibold">{row.label}</span>
+              <span className="text-ink-3 block text-sm">{row.note}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <figcaption className="border-line bg-sunk text-ink-3 rounded-b-xl border-t px-5 py-3 text-sm sm:px-6">
+        Esempio con dati inventati
+      </figcaption>
+    </figure>
+  );
+}
