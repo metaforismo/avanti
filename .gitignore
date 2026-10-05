@@ -1,4 +1,5 @@
 node_modules
+.pnpm-store/
 .turbo
 .next
 out
@@ -23,6 +24,3 @@ test-results
 
 # Local agent settings
 .claude/settings.local.json
-
-# Project-local dependency cache
-.pnpm-store/
