@@ -4,6 +4,12 @@ import { resolve } from "node:path";
 import { repoRoot } from "@avanti/db";
 import { ApiFailure } from "./security";
 const runtimeRequire = createRequire(resolve(repoRoot, "packages/api/package.json"));
+function pdfModulePath() {
+  // Next traces pnpm's hoisted external dependency link, not the workspace link.
+  return runtimeRequire.resolve("pdf-lib", {
+    paths: [resolve(repoRoot, "packages/api"), resolve(repoRoot, "node_modules/.pnpm")],
+  });
+}
 export async function pdfPages(
   bytes: Uint8Array,
   mime: string,
@@ -18,7 +24,7 @@ export async function pdfPages(
         PDFDocument.load(workerData.bytes).then(pdf => parentPort.postMessage(pdf.getPageCount())).catch(() => parentPort.postMessage(0));`,
         {
           eval: true,
-          workerData: { modulePath: runtimeRequire.resolve("pdf-lib"), bytes },
+          workerData: { modulePath: pdfModulePath(), bytes },
           resourceLimits: { maxOldGenerationSizeMb: 64 },
         },
       );
