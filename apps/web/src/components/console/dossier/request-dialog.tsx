@@ -44,10 +44,17 @@ export function RequestDialog({
   );
 }
 
+// Long lists would hit the 1000-character limit and are unreadable on a phone anyway:
+// past this size the message points to the list the citizen already sees in the link.
+const MAX_LISTED = 6;
+
 function defaultMessage(dossier: CaseDossier, titles: string[]) {
   const name = dossier.citizen.firstName ? ` ${dossier.citizen.firstName}` : "";
   if (titles.length === 0)
     return `Buongiorno${name}, per completare la pratica ci serve ancora qualcosa. `;
+  if (titles.length > MAX_LISTED) {
+    return `Buongiorno${name}, per completare la pratica ci servono ancora ${titles.length} documenti. Li trovi elencati nel tuo link: puoi caricarli da lì. Grazie.`;
+  }
   return `Buongiorno${name}, per completare la pratica ci servono ancora:\n${titles.map((t) => `- ${t}`).join("\n")}\nPuoi caricarli dallo stesso link. Grazie.`;
 }
 

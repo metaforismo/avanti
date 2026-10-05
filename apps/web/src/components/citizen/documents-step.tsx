@@ -72,7 +72,14 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
             <MessageCircle className="size-5" aria-hidden />
             {m.request.title}
           </h2>
-          <p className="mt-2 text-lg whitespace-pre-line text-ink">{operatorMessage.text}</p>
+          <p dir="auto" className="mt-2 text-lg whitespace-pre-line text-ink">
+            {operatorMessage.text}
+          </p>
+          {data.language !== "it" &&
+            (operatorMessage.originalText === null ||
+              operatorMessage.originalText === operatorMessage.text) && (
+              <p className="mt-2 text-sm text-ink-2">{m.request.untranslated}</p>
+            )}
           <p className="mt-2 text-ink-2">{m.request.lead}</p>
         </section>
       )}

@@ -170,6 +170,8 @@ export const fr: M = {
     closed: "Ce dossier est clos.",
   },
   request: {
+    untranslated:
+      "Le guichet a écrit en italien : la traduction automatique n'était pas disponible.",
     title: "Le guichet te demande",
     lead: "Complète ces points et ton dossier retourne au guichet.",
     resend: "C'est fait, renvoyer",
@@ -369,6 +371,7 @@ export const es: M = {
     closed: "Este trámite está cerrado.",
   },
   request: {
+    untranslated: "La oficina escribió en italiano: la traducción automática no estaba disponible.",
     title: "La oficina te pide",
     lead: "Completa estos puntos y tu expediente vuelve a la oficina.",
     resend: "Ya está, enviar de nuevo",
@@ -570,6 +573,7 @@ export const ro: M = {
     closed: "Acest dosar este închis.",
   },
   request: {
+    untranslated: "Ghișeul a scris în italiană: traducerea automată nu a fost disponibilă.",
     title: "Ghișeul îți cere",
     lead: "Completează aceste puncte și dosarul se întoarce la ghișeu.",
     resend: "Am completat, trimite din nou",
@@ -767,6 +771,7 @@ export const uk: M = {
     closed: "Цю справу закрито.",
   },
   request: {
+    untranslated: "Віконце написало італійською: автоматичний переклад був недоступний.",
     title: "Віконце просить",
     lead: "Заповни ці пункти, і справа повернеться у віконце.",
     resend: "Готово, надіслати знову",
@@ -963,6 +968,7 @@ export const ar: M = {
     closed: "هذا الملف مغلق.",
   },
   request: {
+    untranslated: "كتب المكتب بالإيطالية: لم تكن الترجمة الآلية متاحة.",
     title: "المكتب يطلب منك",
     lead: "أكمل هذه البنود ويعود ملفك إلى المكتب.",
     resend: "أكملت، أرسل من جديد",
@@ -1160,6 +1166,7 @@ export const bn: M = {
     closed: "এই আবেদনটি বন্ধ হয়ে গেছে।",
   },
   request: {
+    untranslated: "অফিস ইতালীয় ভাষায় লিখেছে: স্বয়ংক্রিয় অনুবাদ পাওয়া যায়নি।",
     title: "অফিস আপনার কাছে চাইছে",
     lead: "এগুলো সম্পূর্ণ করুন, তারপর ফাইলটি আবার অফিসে যাবে।",
     resend: "সম্পূর্ণ করেছি, আবার পাঠান",
