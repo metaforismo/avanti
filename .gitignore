@@ -21,5 +21,8 @@ playwright-report
 test-results
 .vercel
 
+# Local agent settings
+.claude/settings.local.json
+
 # Project-local dependency cache
 .pnpm-store/
