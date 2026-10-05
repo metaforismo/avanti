@@ -1,9 +1,11 @@
 "use client";
 
-import { Check, Copy, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { FullscreenQr } from "@/components/ui/fullscreen-qr";
+import { CopyButton } from "@/components/ui/copy-button";
 import { QrCode } from "@/components/ui/qr-code";
 import { useOperator } from "@/lib/console/operator-context";
 
@@ -54,7 +56,14 @@ export default function OfficesPage() {
                       Stampa il cartello
                     </Link>
                   </Button>
-                  <CopyButton value={link} />
+                  <CopyButton value={link} size="sm" />
+                  {link && (
+                    <FullscreenQr
+                      value={link}
+                      title="Prepara la tua pratica dal telefono"
+                      caption={`${office.name}: inquadra il QR, scegli la lingua e inizia.`}
+                    />
+                  )}
                 </div>
               </div>
             </li>
@@ -62,30 +71,5 @@ export default function OfficesPage() {
         })}
       </ul>
     </div>
-  );
-}
-
-function CopyButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <Button
-      size="sm"
-      variant="secondary"
-      disabled={!value}
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(value);
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 2000);
-        } catch {}
-      }}
-    >
-      {copied ? (
-        <Check className="size-4 text-ok" aria-hidden />
-      ) : (
-        <Copy className="size-4" aria-hidden />
-      )}
-      {copied ? "Copiato" : "Copia link"}
-    </Button>
   );
 }
