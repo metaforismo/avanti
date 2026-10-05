@@ -51,12 +51,13 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 
 ## Script
 
-| Comando        | Effetto                                      |
-| -------------- | -------------------------------------------- |
-| `pnpm dev`     | Avvia l'app web con backend integrato        |
-| `pnpm check`   | Lint + typecheck + test di tutti i pacchetti |
-| `pnpm build`   | Build di produzione                          |
-| `pnpm db:seed` | Carica i dati demo                           |
+| Comando                              | Effetto                                             |
+| ------------------------------------ | --------------------------------------------------- |
+| `pnpm dev`                           | Avvia l'app web con backend integrato               |
+| `pnpm check`                         | Lint + typecheck + test di tutti i pacchetti        |
+| `pnpm --filter @avanti/web test:e2e` | Test end-to-end Playwright (Chrome locale, DB demo) |
+| `pnpm build`                         | Build di produzione                                 |
+| `pnpm db:seed`                       | Carica i dati demo                                  |
 
 ## Documentazione
 
