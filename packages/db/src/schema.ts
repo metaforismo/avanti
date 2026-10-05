@@ -5,7 +5,6 @@ import type {
   DocumentAnalysis,
   DocumentStatus,
   Language,
-  MemberRole,
   Operator,
   PracticeId,
 } from "@avanti/contracts";
@@ -85,6 +84,7 @@ export const sessions = pgTable(
       .references(() => operators.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull().unique(),
     expiresAt: instant("expires_at").notNull(),
+    createdAt: instant("created_at").notNull().defaultNow(),
   },
   (t) => [index("sessions_expires_idx").on(t.expiresAt)],
 );
@@ -102,6 +102,7 @@ export const cases = pgTable(
     language: text("language").$type<Language>().notNull(),
     practiceId: text("practice_id").$type<PracticeId>(),
     status: text("status").$type<CaseStatus>().notNull().default("intake"),
+    confirmedAnswers: jsonb("confirmed_answers").$type<string[]>().notNull().default([]),
     answers: jsonb("answers").$type<Record<string, AnswerValue>>().notNull().default({}),
     contact: jsonb("contact").$type<Partial<CitizenContactRequest>>(),
     citizenNote: text("citizen_note"),
@@ -145,21 +146,6 @@ export const cases = pgTable(
       sql`${t.status} in ('intake','submitted','in_review','needs_citizen','ready','closed')`,
     ),
   ],
-);
-
-export const members = pgTable(
-  "members",
-  {
-    id: text("id").notNull(),
-    caseId: text("case_id")
-      .notNull()
-      .references(() => cases.id, { onDelete: "cascade" }),
-    role: text("role").$type<MemberRole>().notNull(),
-    firstName: text("first_name").notNull(),
-    lastName: text("last_name"),
-    birthYear: integer("birth_year"),
-  },
-  (t) => [primaryKey({ columns: [t.caseId, t.id] })],
 );
 
 export const checklistReviews = pgTable(
@@ -319,3 +305,12 @@ export const referenceCounters = pgTable(
     check("reference_counters_value_check", sql`${t.value} > 0`),
   ],
 );
+
+export const storageDeletions = pgTable("storage_deletions", {
+  id: text("id").primaryKey(),
+  caseId: text("case_id").notNull(),
+  storageKey: text("storage_key").notNull(),
+  createdAt: instant("created_at").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: instant("next_attempt_at").notNull(),
+});

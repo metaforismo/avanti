@@ -19,7 +19,6 @@ import {
   checklistReviews,
   documents,
   events,
-  members,
   messages,
   offices,
   operators,
@@ -231,10 +230,10 @@ export async function seedDemo(
     }
     answers.account_owner_0 = household[0]?.id ?? "joint";
     answers.vehicle_owner_0 = household[0]?.id ?? "joint";
-    completeDemoAnswers(answers, options.now);
+    completeDemoAnswers(answers);
     const checklist = options.buildChecklist
       ? options.buildChecklist(answers, household)
-      : buildChecklist("isee_ordinario", answers, household, "it", options.now);
+      : buildChecklist("isee_ordinario", answers, household, "it");
     const complete = [1, 4, 5, 8].includes(position);
     const selected = complete
       ? checklist
@@ -332,7 +331,6 @@ export async function seedDemo(
           expiresAt,
           firstSubmissionComplete: submittedAt ? complete : null,
         });
-        await tx.insert(members).values(household.map((member) => ({ ...member, caseId: id })));
         if (documentRows.length) await tx.insert(documents).values(documentRows);
         if (["ready", "closed"].includes(status) && reviewCompletedAt && selected.length)
           await tx.insert(checklistReviews).values(
@@ -465,9 +463,9 @@ async function examplePdf(
   return pdf.save();
 }
 
-function completeDemoAnswers(answers: Record<string, AnswerValue>, now: Date): void {
+function completeDemoAnswers(answers: Record<string, AnswerValue>): void {
   for (;;) {
-    const unanswered = getQuestions("isee_ordinario", answers, "it", now).filter(
+    const unanswered = getQuestions("isee_ordinario", answers, "it").filter(
       (question) => !Object.hasOwn(answers, question.id),
     );
     if (!unanswered.length) return;

@@ -12,7 +12,7 @@ try {
     uploadsDir: resolve(repoRoot, ".data/uploads"),
     buildHousehold,
     buildChecklist: (answers, household) =>
-      buildChecklist("isee_ordinario", answers, household, "it", now),
+      buildChecklist("isee_ordinario", answers, household, "it"),
   });
   console.info(JSON.stringify({ event: "demo.seeded", created }));
 } finally {

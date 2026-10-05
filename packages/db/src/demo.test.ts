@@ -1,12 +1,12 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { buildChecklist, evaluateDossier, getQuestions } from "@avanti/core";
+import { buildHousehold, buildChecklist, evaluateDossier, getQuestions } from "@avanti/core";
 import { eq } from "drizzle-orm";
 import { expect, it, vi } from "vitest";
 import { createDatabase } from "./client";
 import { seedDemo } from "./demo";
-import { cases, documents, events, members, operators, organizations, messages } from "./schema";
+import { cases, documents, events, operators, organizations, messages } from "./schema";
 
 it("seed is idempotent, creates safe PDFs, and preserves operator edits", async () => {
   const { db, close } = await createDatabase({ memory: true });
@@ -22,24 +22,15 @@ it("seed is idempotent, creates safe PDFs, and preserves operator edits", async 
     expect(await seedDemo(db, options)).toEqual({ created: 0 });
     const seededCases = await db.select().from(cases);
     expect(seededCases).toHaveLength(10);
-    const seededMembers = await db.select().from(members);
     const seededDocuments = await db.select().from(documents);
     for (const row of seededCases) {
-      const household = seededMembers
-        .filter((member) => member.caseId === row.id)
-        .map((member) => ({
-          id: member.id,
-          role: member.role,
-          firstName: member.firstName,
-          lastName: member.lastName ?? undefined,
-          birthYear: member.birthYear ?? undefined,
-        }));
+      const household = buildHousehold(row.answers);
       expect(household).toHaveLength(2);
-      const unanswered = getQuestions("isee_ordinario", row.answers, "it", options.now).filter(
+      const unanswered = getQuestions("isee_ordinario", row.answers, "it").filter(
         (question) => !Object.hasOwn(row.answers, question.id),
       );
       expect(unanswered.map((question) => question.id)).toEqual([]);
-      const checklist = buildChecklist("isee_ordinario", row.answers, household, "it", options.now);
+      const checklist = buildChecklist("isee_ordinario", row.answers, household, "it");
       const linkedDocuments = seededDocuments.filter((document) => document.caseId === row.id);
       const result = evaluateDossier({
         practiceId: row.practiceId,
