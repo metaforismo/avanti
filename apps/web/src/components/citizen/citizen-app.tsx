@@ -5,6 +5,7 @@ import { LANGUAGES, RTL_LANGUAGES, type CitizenCase, type Language } from "@avan
 import { forgetCaseToken } from "@/lib/citizen/local-cases";
 import { messagesFor, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import { useCitizenCase, type CitizenCaseApi } from "@/lib/citizen/use-citizen-case";
+import { resolveView, type View } from "@/lib/citizen/view";
 import { CitizenHeader } from "./citizen-header";
 import { DocumentsStep } from "./documents-step";
 import { DoneStep } from "./done-step";
@@ -13,7 +14,7 @@ import { InterviewStep } from "./interview-step";
 import { NeedStep } from "./need-step";
 import { ReviewStep } from "./review-step";
 
-export type View = "need" | "interview" | "documents" | "review" | "submitted";
+export type { View };
 
 export type StepProps = {
   api: CitizenCaseApi;
@@ -89,16 +90,6 @@ export function CitizenApp({ token }: { token: string }) {
       </main>
     </div>
   );
-}
-
-/** The server decides how far the citizen may go; local views can only move backwards or to review. */
-function resolveView(view: View | null, data: CitizenCase): View {
-  const serverView: View = data.step === "submitted" ? "submitted" : data.step;
-  if (!view) return serverView;
-  if (view === "review")
-    return data.step === "documents" || data.step === "review" ? "review" : serverView;
-  const order: View[] = ["need", "interview", "documents", "review"];
-  return order.indexOf(view) <= order.indexOf(serverView) ? view : serverView;
 }
 
 function LoadingShell() {

@@ -2,17 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import type { Route } from "next";
 import { LoginRequest } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
-
-/** Only same-app console paths are allowed as post-login destinations (no open redirect). */
-function safeNext(value: string | null): Route {
-  if (value && value.startsWith("/console") && !value.startsWith("//")) return value as Route;
-  return "/console";
-}
+import { safeNext } from "@/lib/console/safe-next";
 
 export function LoginForm() {
   const router = useRouter();
