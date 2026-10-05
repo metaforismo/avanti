@@ -5,11 +5,10 @@ export function dossierSummary(
   practiceId: PracticeId | null,
   answers: Answers,
   household: Member[],
-  now: Date,
 ): { headline: string; facts: DossierFact[] } {
   const facts: DossierFact[] = [];
   if (!practiceId) return { headline: "Pratica da identificare", facts };
-  const practice = getPractice(practiceId, "it", now);
+  const practice = getPractice(practiceId, "it");
   if (household.length)
     facts.push({
       label: "Nucleo",
@@ -73,23 +72,23 @@ const timelineLabels: Record<string, string> = {
   "review.completed": "Revisione completata dall'operatore",
   "citizen.requested": "Integrazione richiesta al cittadino",
   "case.created": "Fascicolo aperto",
-  "case.started": "Preparazione iniziata dal cittadino",
-  "case.updated": "Fascicolo aggiornato",
-  "intake.turn": "Intervista aggiornata",
-  "intake.answer": "Risposta registrata",
-  "intake.edit": "Risposta modificata",
-  "case.language_changed": "Lingua aggiornata",
   "document.uploaded": "Documento caricato",
   "document.analyzed": "Analisi documento completata",
   "document.reassigned": "Abbinamento documento modificato",
   "document.deleted": "Documento eliminato",
   "document.downloaded": "Documento consultato",
   "case.submitted": "Fascicolo inviato al CAF",
-  "case.opened": "Fascicolo aperto dall’operatore",
-  "case.review_started": "Revisione iniziata",
   "checklist.reviewed": "Voce della checklist revisionata",
-  "case.integration_requested": "Integrazione richiesta al cittadino",
   "case.requested": "Integrazione richiesta al cittadino",
+  "case.in_review": "Fascicolo in revisione",
+  "case.needs_citizen": "In attesa del cittadino",
+  "case.reopened": "Fascicolo riaperto",
+  "case.assigned": "Assegnazione aggiornata",
+  "case.note_updated": "Nota interna aggiornata",
+  "checklist.verified": "Documento verificato",
+  "checklist.rejected": "Nuovo documento richiesto",
+  "checklist.waived": "Documento non necessario: motivo registrato",
+  "checklist.reset": "Verifica annullata",
   "case.ready": "Fascicolo pronto per il gestionale",
   "case.closed": "Fascicolo chiuso",
   "case.exported": "Fascicolo esportato",

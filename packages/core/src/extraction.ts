@@ -211,7 +211,6 @@ export function extractFacts(
   text: string,
   _language: Language,
   selectedPractice?: PracticeId,
-  _now?: Date,
 ): { practiceId: PracticeId | null; confidence: number; answers: Answers; facts: ExtractedFacts } {
   const normalized = normalize(text);
   const scores = (Object.keys(markers) as PracticeId[])
@@ -276,13 +275,20 @@ export function extractFacts(
           .split(/[.;]|(?:mio padre|my father|mon pere|mi padre).{0,10}(?:non|not|ne |no )/u)[0] ??
         "";
       const relations = [
-        /(?:madre|mamma|mother|mere|mama|мам|والدت|امي|মা)/u,
-        /(?:padre|papa|father|pere|tata|батьк|والد|ابي|বাবা)/u,
-        /(?:moglie|marito|wife|husband|epouse|epoux|esposa|esposo|sot(?:ie)?|дружин|чоловік|زوج|স্ত্রী|স্বামী)/u,
+        /(?:madre|mamma|mother|mere|mama|мама|والدت|امي|মা)/u,
+        /(?:padre|papa|father|pere|tata|батько|والد|ابي|বাবা)/u,
+        /(?:moglie|marito|wife|husband|epouse|epoux|esposa|esposo|sot(?:ie|ul)?|дружина|чоловік|زوج|স্ত্রী|স্বামী)/u,
       ];
-      const known = relations.filter((expression) =>
-        hasPositive(householdClause, expression),
-      ).length;
+      const roles = relations.flatMap((expression, index) => {
+        const bounded = new RegExp(
+          `(?<![\\p{L}\\p{M}])(?:${expression.source})(?![\\p{L}\\p{M}])`,
+          "u",
+        );
+        if (!hasPositive(householdClause, bounded)) return [];
+        return [index === 2 ? "coniuge" : "genitore"];
+      });
+      const known = roles.length;
+      if (known) answers.household_roles = ["richiedente", ...roles];
       if (
         known > 0 &&
         !/figli|children|enfants|hijos|copii|діт|اطفال|সন্তান/u.test(householdClause)
@@ -295,6 +301,7 @@ export function extractFacts(
     /(?:padre|madre|father|mother|pere|mere|tata|mama|батько|мати|الاب|الام).{0,30}(?:non vive|non abita|does not live|doesn t live|not living|ne vit pas|no vive|nu locuieste|не живе|لا يعيش)/u.test(
       normalized,
     ) || undefined;
+  if (facts.nonresidentParent) answers.nonresident_parent = true;
   if (practiceId === "assegno_unico") return { practiceId, confidence, answers, facts };
   const accounts = countNoun(normalized, accountNoun);
   if (accounts !== undefined) answers.accounts_count = accounts;

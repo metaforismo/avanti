@@ -7,7 +7,6 @@ export function buildChecklist(
   answers: Answers,
   household: Member[],
   language: Language,
-  _now: Date,
 ): ChecklistItem[] {
   if (catalog[practiceId].availability === "coming_soon") return [];
   const items: ChecklistItem[] = [];

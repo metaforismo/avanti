@@ -25,10 +25,9 @@ export function nextQuestion(
   practiceId: PracticeId,
   answers: Answers,
   language: Language,
-  now: Date,
 ): Question | null {
   return (
-    getQuestions(practiceId, answers, language, now).find(
+    getQuestions(practiceId, answers, language).find(
       (question) => !Object.hasOwn(answers, question.id),
     ) ?? null
   );
@@ -44,7 +43,7 @@ export function applyAnswer(
 ): Answers {
   if (catalog[practiceId].availability === "coming_soon")
     throw new DomainValidationError(questionId, t(language, "unavailable"));
-  const definition = getQuestions(practiceId, answers, language, now).find(
+  const definition = getQuestions(practiceId, answers, language).find(
     (question) => question.id === questionId,
   );
   const parsed = AnswerValue.safeParse(input);
@@ -124,7 +123,7 @@ export function applyAnswer(
 
 export function editAnswer(practiceId: PracticeId, answers: Answers, questionId: string): Answers {
   // Dependencies come from the old answer graph so hidden children are removed too.
-  const graph = questionDefinitions(practiceId, answers, "it", new Date("2000-01-01T00:00:00Z"));
+  const graph = questionDefinitions(practiceId, answers, "it");
   if (!graph.some((definition) => definition.question.id === questionId))
     throw new DomainValidationError(questionId, t("it", "invalid"));
   const invalidated = new Set([questionId]);
@@ -149,9 +148,8 @@ export function skipQuestion(
   answers: Answers,
   questionId: string,
   language: Language,
-  now: Date,
 ): Answers {
-  const definition = getQuestions(practiceId, answers, language, now).find(
+  const definition = getQuestions(practiceId, answers, language).find(
     (question) => question.id === questionId,
   );
   if (!definition || definition.required)

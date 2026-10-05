@@ -285,7 +285,7 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
       code,
       message: localize(language, messages[code], {
         file: document?.fileName ?? "",
-        title: item?.title ?? "",
+        title: [item?.title, item?.memberName].filter(Boolean).join(" · "),
         owner: item?.memberName ?? "",
         ...vars,
       }),
@@ -297,27 +297,27 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
   const day = calendarDate(now);
   const currentDay = new Date(`${day}T00:00:00Z`).getTime();
   const seenHashes = new Set<string>();
-  const duplicateDocuments = new Set<string>();
   for (const document of documents) {
     const item = checklist.find((entry) => entry.id === document.checklistItemId) ?? null;
     const member = household.find((entry) => entry.id === item?.memberId);
     const blocking: Finding["severity"] =
-      item?.required && item.status !== "waived" ? "blocker" : "warning";
+      item?.required && !["waived", "verified"].includes(item.status) ? "blocker" : "warning";
     const hash = hashes[document.id];
     if (hash) {
-      if (seenHashes.has(hash)) {
+      const scopedHash = `${document.checklistItemId ?? "unmatched"}:${hash}`;
+      if (seenHashes.has(scopedHash)) {
         finding("document.duplicate", "warning", document, item);
-        duplicateDocuments.add(document.id);
-      } else seenHashes.add(hash);
+      } else seenHashes.add(scopedHash);
     }
     if (!item) finding("document.unmatched", "warning", document);
     if (document.status === "failed") finding("document.failed", blocking, document, item);
     const analysis = document.analysis;
     if (!analysis) {
-      finding("document.unchecked", "warning", document, item);
+      if (item?.status !== "verified") finding("document.unchecked", "warning", document, item);
       continue;
     }
-    if (!analysis.legible) finding("document.illegible", blocking, document, item);
+    if (!analysis.legible && analysis.engine !== "heuristic")
+      finding("document.illegible", blocking, document, item);
     if (analysis.pagesComplete === false)
       finding("document.missing_pages", blocking, document, item);
     if (analysis.expiresOn && validDate(analysis.expiresOn)) {
@@ -337,7 +337,7 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
     )
       finding("document.wrong_year", blocking, document, item, { year });
     if (member && analysis.ownerName && !ownerMatches(analysis.ownerName, member))
-      finding("document.wrong_owner", blocking, document, item);
+      finding("document.wrong_owner", member.lastName ? blocking : "warning", document, item);
     const practiceRequirements = new Set(checklist.map((entry) => entry.requirementId));
     if (
       analysis.detectedRequirementId &&
@@ -353,6 +353,7 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
       finding("document.other_practice", severity, document, item);
     }
     if (
+      analysis.engine === "ai" ||
       analysis.engine === "heuristic" ||
       analysis.confidence < 0.75 ||
       analysis.pagesComplete === null ||
@@ -361,7 +362,7 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
         (requirement.reference === "income" || requirement.reference === "assets") &&
         analysis.referenceYear === null)
     )
-      finding("document.unchecked", "warning", document, item);
+      if (item?.status !== "verified") finding("document.unchecked", "warning", document, item);
   }
   let documentsDone = 0;
   const requiredItems = checklist.filter((item) => item.required);
@@ -375,15 +376,11 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
       finding("checklist.rejected", "blocker", null, item);
       continue;
     }
-    const linked = documents.filter(
-      (document) =>
-        document.checklistItemId === item.id &&
-        document.status === "analyzed" &&
-        document.analysis !== null &&
-        !duplicateDocuments.has(document.id),
-    );
+    const linked = documents.filter((document) => document.checklistItemId === item.id);
     const usable = linked.some(
       (document) =>
+        document.status === "analyzed" &&
+        document.analysis !== null &&
         !findings.some((issue) => issue.documentId === document.id && issue.severity === "blocker"),
     );
     if (
@@ -421,15 +418,13 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
   }
   if (practiceId === "assegno_unico") finding("practice.auu_review", "warning");
   if (practiceId === "permesso_soggiorno") finding("practice.permit_review", "warning");
-  const questions = practiceId ? getQuestions(practiceId, answers, language, now) : [];
+  const questions = practiceId ? getQuestions(practiceId, answers, language) : [];
   const questionsAnswered = questions.filter((question) =>
     Object.hasOwn(answers, question.id),
   ).length;
-  const interviewPercent = questions.length
-    ? questionsAnswered / questions.length
-    : practiceId
-      ? 1
-      : 0;
+  let interviewPercent = 0;
+  if (questions.length) interviewPercent = questionsAnswered / questions.length;
+  else if (practiceId) interviewPercent = 1;
   const documentsPercent = requiredItems.length ? documentsDone / requiredItems.length : 0;
   return {
     findings,
@@ -447,10 +442,11 @@ export function ownerMatches(name: string, member: Member): boolean {
   const fullName = normalizedName([member.firstName, member.lastName].filter(Boolean).join(" "));
   const actual = normalizedName(name);
   if (actual === fullName) return true;
-  const expectedTokens = fullName.split(" ").sort();
-  const actualTokens = actual.split(" ").sort();
+  const expectedTokens = fullName.split(" ");
+  const actualTokens = new Set(actual.split(" "));
+  const expected = new Set(expectedTokens);
   return (
-    expectedTokens.length === actualTokens.length &&
-    expectedTokens.every((token, index) => token === actualTokens[index])
+    expectedTokens.every((token) => actualTokens.has(token)) ||
+    (actualTokens.size >= 2 && [...actualTokens].every((token) => expected.has(token)))
   );
 }

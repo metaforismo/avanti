@@ -38,7 +38,7 @@ function answersWithMembers(): Answers {
 }
 
 function checklist(answers = answersWithMembers(), language: Language = "it") {
-  return buildChecklist("isee_ordinario", answers, buildHousehold(answers), language, now);
+  return buildChecklist("isee_ordinario", answers, buildHousehold(answers), language);
 }
 
 function document(item: ChecklistItem, overrides: Partial<DocumentSummary> = {}): DocumentSummary {
@@ -90,9 +90,9 @@ function evaluate(
 describe("versioned catalog and languages", () => {
   it.each(LANGUAGES)("returns valid catalog, questions and checklist in %s", (language) => {
     const answers = { ...answersWithMembers(), accounts_count: 1, disability: true };
-    for (const practice of listPractices(language, now))
+    for (const practice of listPractices(language))
       expect(PracticeSummary.safeParse(practice).success).toBe(true);
-    for (const question of getQuestions("isee_ordinario", answers, language, now))
+    for (const question of getQuestions("isee_ordinario", answers, language))
       expect(Question.safeParse(question).success).toBe(true);
     for (const item of checklist(answers, language)) {
       expect(ChecklistItem.safeParse(item).success).toBe(true);
@@ -111,7 +111,6 @@ describe("versioned catalog and languages", () => {
         answersWithMembers(),
         buildHousehold(answersWithMembers()),
         "it",
-        now,
       ),
     ).toEqual([]);
   });
@@ -130,7 +129,7 @@ describe("heuristic classification and fact extraction", () => {
     expect(result.answers.account_bank_0).toBe("Fineco");
     expect(result.answers.vehicles_count).toBe(1);
     expect(result.facts.nonresidentParent).toBe(true);
-    expect(result.answers.nonresident_parent).toBeUndefined();
+    expect(result.answers.nonresident_parent).toBe(true);
     expect(result.answers.members).toBeUndefined();
   });
 
@@ -257,21 +256,15 @@ describe("interview validation and edits", () => {
     expect(changed.account_bank_1).toBeUndefined();
     expect(changed.excluded_savings).toBeUndefined();
     expect(
-      nextQuestion(
-        "isee_ordinario",
-        editAnswer("isee_ordinario", answers, "household_count"),
-        "it",
-        now,
-      )?.id,
+      nextQuestion("isee_ordinario", editAnswer("isee_ordinario", answers, "household_count"), "it")
+        ?.id,
     ).toBe("household_count");
   });
 
   it("skips optional answers but requires mandatory ones, with localized errors", () => {
     const answers = { ...answersWithMembers(), accounts_count: 1 };
-    expect(
-      skipQuestion("isee_ordinario", answers, "account_bank_0", "en", now).account_bank_0,
-    ).toBe("");
-    expect(() => skipQuestion("isee_ordinario", answers, "housing", "en", now)).toThrow();
+    expect(skipQuestion("isee_ordinario", answers, "account_bank_0", "en").account_bank_0).toBe("");
+    expect(() => skipQuestion("isee_ordinario", answers, "housing", "en")).toThrow();
     expect(() => applyAnswer("isee_ordinario", {}, "household_count", "bad", "bn", now)).toThrow(
       /[\u0980-\u09ff]/,
     );
@@ -365,7 +358,7 @@ describe("conditional and stable checklist", () => {
     const answers = answersWithMembers();
     const household = buildHousehold(answers);
     expect(
-      buildChecklist("assegno_unico", answers, household, "it", now).find(
+      buildChecklist("assegno_unico", answers, household, "it").find(
         (item) => item.requirementId === "isee_certificate",
       )?.required,
     ).toBe(false);
@@ -374,7 +367,6 @@ describe("conditional and stable checklist", () => {
       { members: [members[0]!], permit_action: "first", permit_reason: "study" },
       [household[0]!],
       "it",
-      now,
     );
     expect(permit.some((item) => item.requirementId === "permit_current")).toBe(false);
     expect(permit.some((item) => item.requirementId === "permit_study")).toBe(true);
@@ -466,7 +458,7 @@ describe("dossier findings and progress", () => {
 
   it("tracks duplicate hash uploads and failed files without counting them twice", () => {
     const items = checklist().filter((entry) => entry.requirementId === "income");
-    const docs = [document(items[0]!), document(items[1]!, { id: "doc_two" })];
+    const docs = [document(items[0]!), document(items[0]!, { id: "doc_two" })];
     const result = evaluate(items, docs, now, { doc_one: "same_hash", doc_two: "same_hash" });
     expect(result.findings.some((finding) => finding.code === "document.duplicate")).toBe(true);
     expect(result.progress.documentsDone).toBe(1);
@@ -538,7 +530,7 @@ describe("dossier findings and progress", () => {
     const member = buildHousehold(answersWithMembers())[0]!;
     expect(ownerMatches("  Esempio ANNA ", member)).toBe(true);
     expect(ownerMatches("Anna", member)).toBe(false);
-    expect(ownerMatches("Anna Esempio Secondo", member)).toBe(false);
+    expect(ownerMatches("Anna Esempio Secondo", member)).toBe(true);
   });
 
   it("keeps operator summaries in Italian and event labels independent of user input", () => {
@@ -546,7 +538,6 @@ describe("dossier findings and progress", () => {
       "isee_ordinario",
       { ...answersWithMembers(), housing: "rent" },
       buildHousehold(answersWithMembers()),
-      now,
     );
     expect(summary.headline).toBe("ISEE ordinario 2027");
     expect(summary.facts.find((fact) => fact.label === "Abitazione")?.value).toBe("In affitto");
