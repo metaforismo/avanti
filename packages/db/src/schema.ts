@@ -27,11 +27,15 @@ import {
 
 const instant = (name: string) => timestamp(name, { withTimezone: true, mode: "string" });
 
-export const organizations = pgTable("organizations", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  kind: text("kind").$type<"caf" | "patronato" | "studio">().notNull(),
-});
+export const organizations = pgTable(
+  "organizations",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    kind: text("kind").$type<"caf" | "patronato" | "studio">().notNull(),
+  },
+  (t) => [check("organizations_kind_check", sql`${t.kind} in ('caf', 'patronato', 'studio')`)],
+);
 
 export const offices = pgTable(
   "offices",
@@ -68,6 +72,7 @@ export const operators = pgTable(
   (t) => [
     unique("operators_id_org_unique").on(t.id, t.organizationId),
     index("operators_org_idx").on(t.organizationId),
+    check("operators_role_check", sql`${t.role} in ('admin', 'operator')`),
   ],
 );
 
@@ -121,6 +126,15 @@ export const cases = pgTable(
       foreignColumns: [operators.id, operators.organizationId],
       name: "cases_assignee_org_fk",
     }).onDelete("restrict"),
+    unique("cases_id_org_unique").on(t.id, t.organizationId),
+    check(
+      "cases_language_check",
+      sql`${t.language} in ('it', 'en', 'fr', 'es', 'ro', 'uk', 'ar', 'bn')`,
+    ),
+    check(
+      "cases_practice_check",
+      sql`${t.practiceId} is null or ${t.practiceId} in ('isee_ordinario', 'isee_universitario', 'modello_730', 'red', 'assegno_unico', 'successione_semplice', 'permesso_soggiorno', 'cittadinanza', 'naspi')`,
+    ),
     uniqueIndex("cases_org_reference_unique").on(t.organizationId, t.reference),
     index("cases_org_status_updated_idx").on(t.organizationId, t.status, t.updatedAt, t.id),
     index("cases_org_office_created_idx").on(t.organizationId, t.officeId, t.createdAt),
@@ -160,7 +174,13 @@ export const checklistReviews = pgTable(
     operatorId: text("operator_id").references(() => operators.id, { onDelete: "set null" }),
     reviewedAt: instant("reviewed_at").notNull(),
   },
-  (t) => [primaryKey({ columns: [t.caseId, t.itemId] })],
+  (t) => [
+    primaryKey({ columns: [t.caseId, t.itemId] }),
+    check(
+      "checklist_reviews_decision_check",
+      sql`${t.decision} in ('verified', 'rejected', 'waived')`,
+    ),
+  ],
 );
 
 export const documents = pgTable(
@@ -185,6 +205,7 @@ export const documents = pgTable(
   (t) => [
     index("documents_case_idx").on(t.caseId, t.uploadedAt),
     index("documents_case_sha_idx").on(t.caseId, t.sha256),
+    check("documents_status_check", sql`${t.status} in ('processing', 'analyzed', 'failed')`),
     check("documents_size_check", sql`${t.sizeBytes} >= 0`),
     check("documents_pages_check", sql`${t.pages} is null or ${t.pages} > 0`),
   ],
@@ -202,7 +223,10 @@ export const messages = pgTable(
     originalText: text("original_text"),
     createdAt: instant("created_at").notNull(),
   },
-  (t) => [index("messages_case_time_idx").on(t.caseId, t.createdAt)],
+  (t) => [
+    index("messages_case_time_idx").on(t.caseId, t.createdAt),
+    check("messages_role_check", sql`${t.role} in ('citizen', 'assistant', 'operator', 'system')`),
+  ],
 );
 
 export type EventMetadata = Record<string, number | boolean | null>;
@@ -221,6 +245,16 @@ export const events = pgTable(
     metadata: jsonb("metadata").$type<EventMetadata>().notNull().default({}),
   },
   (t) => [
+    foreignKey({
+      columns: [t.caseId, t.organizationId],
+      foreignColumns: [cases.id, cases.organizationId],
+      name: "events_case_org_fk",
+    }).onDelete("cascade"),
+    check("events_actor_check", sql`${t.actor} in ('citizen', 'operator', 'system', 'ai')`),
+    check(
+      "events_metadata_check",
+      sql`jsonb_typeof(${t.metadata}) = 'object' and not jsonb_path_exists(${t.metadata}, '$.* ? (@.type() != "number" && @.type() != "boolean" && @.type() != "null")')`,
+    ),
     index("events_case_time_idx").on(t.caseId, t.at),
     index("events_org_type_time_idx").on(t.organizationId, t.type, t.at),
   ],
@@ -265,7 +299,10 @@ export const rateLimits = pgTable(
     count: integer("count").notNull(),
     resetAt: instant("reset_at").notNull(),
   },
-  (t) => [index("rate_limits_reset_idx").on(t.resetAt)],
+  (t) => [
+    index("rate_limits_reset_idx").on(t.resetAt),
+    check("rate_limits_count_check", sql`${t.count} > 0`),
+  ],
 );
 
 export const referenceCounters = pgTable(

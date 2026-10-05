@@ -1,11 +1,13 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { eq } from "drizzle-orm";
+import { PGlite } from "@electric-sql/pglite";
+import { drizzle } from "drizzle-orm/pglite";
+import { migrate } from "drizzle-orm/pglite/migrator";
+import { eq, sql } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
-import { createDatabase } from "./client";
+import { createDatabase, repoRoot } from "./client";
 import { nextReference } from "./reference";
-import { cases, documents, organizations, offices, settings } from "./schema";
+import * as schema from "./schema";
+import { cases, documents, events, organizations, offices, operators, settings } from "./schema";
 
 const closes: Array<() => Promise<void>> = [];
 afterEach(async () => {
@@ -73,21 +75,116 @@ describe("PostgreSQL schema on PGlite", () => {
     expect(await db.select().from(documents)).toEqual([]);
   });
 
-  it("applies migrations idempotently and persists local data across reopen", async () => {
-    const dataDir = await mkdtemp(join(tmpdir(), "avanti-pglite-"));
-    try {
-      const first = await createDatabase({ dataDir });
-      await first.db
-        .insert(organizations)
-        .values({ id: "persist", name: "CAF Esempio", kind: "caf" });
-      await first.db.insert(settings).values({ organizationId: "persist" });
-      await first.close();
-      const second = await createDatabase({ dataDir });
-      expect(await second.db.select().from(organizations)).toHaveLength(1);
-      expect((await second.db.select().from(settings))[0]?.linkDays).toBe(60);
-      await second.close();
-    } finally {
-      await rm(dataDir, { recursive: true, force: true });
-    }
+  it("applies migrations twice in memory without losing existing data", async () => {
+    const client = new PGlite();
+    closes.push(() => client.close());
+    const db = drizzle(client, { schema });
+    const options = { migrationsFolder: join(repoRoot, "packages/db/migrations") };
+    await migrate(db, options);
+    await db.insert(organizations).values({ id: "persist", name: "CAF Esempio", kind: "caf" });
+    await db.insert(settings).values({ organizationId: "persist" });
+    await migrate(db, options);
+    expect(await db.select().from(organizations)).toHaveLength(1);
+    expect((await db.select().from(settings))[0]?.linkDays).toBe(60);
+  });
+
+  it("enforces audit tenant boundaries and permits only non-content metadata", async () => {
+    const { db, close } = await createDatabase({ memory: true });
+    closes.push(close);
+    await db.insert(organizations).values([
+      { id: "a", name: "CAF Esempio A", kind: "caf" },
+      { id: "b", name: "CAF Esempio B", kind: "caf" },
+    ]);
+    await db.insert(offices).values({
+      id: "office-a",
+      organizationId: "a",
+      slug: "office-a",
+      name: "Sede",
+      address: "Via Esempio",
+      city: "Milano",
+    });
+    const at = "2027-01-01T00:00:00.000Z";
+    await db.insert(cases).values({
+      id: "case-a",
+      organizationId: "a",
+      officeId: "office-a",
+      tokenHash: "hash",
+      reference: "AV-2027-000001",
+      language: "it",
+      createdAt: at,
+      updatedAt: at,
+      expiresAt: "2027-03-01T00:00:00.000Z",
+    });
+    const event = {
+      id: "audit",
+      caseId: "case-a",
+      organizationId: "b",
+      actor: "system" as const,
+      type: "case.created",
+      at,
+      metadata: {},
+    };
+    await expect(db.insert(events).values(event)).rejects.toThrow();
+    await expect(
+      db.insert(events).values({
+        ...event,
+        organizationId: "a",
+        metadata: sql`'{"text":"private content"}'::jsonb`,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      db.insert(events).values({
+        ...event,
+        organizationId: "a",
+        metadata: sql`'{"nested":{"count":1}}'::jsonb`,
+      }),
+    ).rejects.toThrow();
+    await db.insert(events).values({
+      ...event,
+      organizationId: "a",
+      metadata: { count: 1, heuristic: true, optional: null },
+    });
+    expect(await db.select().from(events)).toHaveLength(1);
+    await db.delete(cases).where(eq(cases.id, "case-a"));
+    expect(await db.select().from(events)).toEqual([]);
+  });
+
+  it("rejects assignment to operators from another organization", async () => {
+    const { db, close } = await createDatabase({ memory: true });
+    closes.push(close);
+    await db.insert(organizations).values([
+      { id: "a", name: "CAF Esempio A", kind: "caf" },
+      { id: "b", name: "CAF Esempio B", kind: "caf" },
+    ]);
+    await db.insert(offices).values({
+      id: "office-a",
+      organizationId: "a",
+      slug: "office-a",
+      name: "Sede",
+      address: "Via Esempio",
+      city: "Milano",
+    });
+    await db.insert(operators).values({
+      id: "operator-b",
+      organizationId: "b",
+      name: "Operatore",
+      email: "operator@example.invalid",
+      passwordHash: "unused",
+      role: "operator",
+    });
+    await expect(
+      db.insert(cases).values({
+        id: "case-a",
+        organizationId: "a",
+        officeId: "office-a",
+        assigneeId: "operator-b",
+        tokenHash: "hash",
+        reference: "AV-2027-000001",
+        language: "it",
+        createdAt: "2027-01-01T00:00:00.000Z",
+        updatedAt: "2027-01-01T00:00:00.000Z",
+        expiresAt: "2027-03-01T00:00:00.000Z",
+      }),
+    ).rejects.toThrow();
   });
 });

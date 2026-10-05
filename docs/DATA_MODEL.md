@@ -47,7 +47,8 @@ dalla data di upload.
 
 Le query della console devono sempre filtrare per `organization_id`; le foreign key
 composte impediscono anche di collegare una pratica a una sede o a un assegnatario di un
-altro tenant. Indici coprono tenant/stato/aggiornamento, tenant/sede/creazione,
+altro tenant. Gli eventi associati a un caso hanno a loro volta una foreign key composta
+per imporre che il tenant dell’audit corrisponda a quello della pratica. Indici coprono tenant/stato/aggiornamento, tenant/sede/creazione,
 assegnatario, hash token, documenti per pratica e audit per tenant/tipo/istante.
 
 La cancellazione di una pratica elimina membri, revisioni, messaggi, eventi e metadati
@@ -63,6 +64,13 @@ dell'operatore restano per l'identificatore stabile della voce; il servizio deve
 l'applicabilità prima di mostrarle. La hash SHA-256 non è univoca: i duplicati devono
 essere conservati e segnalati, evitando di perdere un upload del cittadino.
 
+Lingue, stati, ruoli e decisioni sono verificati anche con vincoli SQL. I metadata
+dell’audit ammettono soltanto un oggetto con valori numerici, booleani o null:
+stringhe, array e oggetti annidati sono rifiutati dal DB. Nomi di chiave e categorie
+devono comunque essere costanti definite dal backend; un numero non garantisce
+da solo l’assenza di dati personali. Non è implementata una policy RLS: i vincoli
+non sostituiscono il filtro tenant e l’autorizzazione delle query API.
+
 ## KPI e demo
 
 Il primo invio salva `submitted_at` e `first_submission_complete` senza riscriverli agli
@@ -77,3 +85,11 @@ separato dai tempi osservati. In assenza di osservazioni una media/percentuale �
 pratiche con persone fittizie. Documenti generati riportano "ESEMPIO" e gli eventi sono
 simulati per mostrare la console: metriche demo non sono risultati del pilota. Gli ID demo
 sono stabili; un secondo seed non sovrascrive pratiche o revisioni modificate dall'operatore.
+
+Il seed rifiuta `NODE_ENV=production` e database con organizzazioni diverse dal tenant
+demo. Nucleo e checklist usano lo stesso core delle API; i contatori demo vengono
+assegnati nella transazione del caso. Se la creazione fallisce, vengono rimossi i file
+scritti da quel tentativo. Nei test PGlite e le migrazioni restano in memoria, mentre
+i PDF sono in directory temporanee rimosse a fine test. Le verifiche locali non
+attestano la compatibilità con uno specifico servizio PostgreSQL remoto, che va
+validato prima del deploy.

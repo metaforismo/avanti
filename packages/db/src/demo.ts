@@ -1,5 +1,5 @@
 import { createHash, randomBytes, scrypt as scryptCallback } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
   AnswerValue,
@@ -9,7 +9,8 @@ import type {
   Language,
   Member,
 } from "@avanti/contracts";
-import { eq } from "drizzle-orm";
+import { buildChecklist, buildHousehold, getQuestions } from "@avanti/core";
+import { eq, ne } from "drizzle-orm";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { Database } from "./client";
 import { nextReference } from "./reference";
@@ -36,6 +37,17 @@ const demoNotice: Record<Language, string> = {
   uk: "Зразок справи. Люди та документи вигадані.",
   ar: "ملف تجريبي. الأشخاص والمستندات غير حقيقيين.",
   bn: "এটি একটি নমুনা ফাইল। এখানে মানুষ ও কাগজপত্র কাল্পনিক।",
+};
+
+const demoIntegrationRequest: Record<Language, string> = {
+  it: "ESEMPIO: porta al CAF la giacenza media 2025 del conto.",
+  en: "SAMPLE: bring the account's average balance for 2025 (giacenza media) to the CAF.",
+  fr: "EXEMPLE : apportez au CAF le solde moyen du compte en 2025 (giacenza media).",
+  es: "EJEMPLO: lleva al CAF el saldo medio de la cuenta en 2025 (giacenza media).",
+  ro: "EXEMPLU: adu la CAF soldul mediu al contului din 2025 (giacenza media).",
+  uk: "ЗРАЗОК: принесіть до CAF середній баланс рахунку за 2025 рік (giacenza media).",
+  ar: "مثال: أحضر إلى CAF متوسط رصيد الحساب لعام 2025 (giacenza media).",
+  bn: "নমুনা: CAF-এ ২০২৫ সালের হিসাবের গড় ব্যালেন্স (giacenza media) আনুন।",
 };
 
 async function demoPasswordHash(): Promise<string> {
@@ -66,7 +78,21 @@ export async function seedDemo(
   db: Database,
   options: DemoSeedOptions,
 ): Promise<{ created: number }> {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Demo seed is disabled in production");
+  }
+  if (!Number.isFinite(options.now.getTime())) {
+    throw new RangeError("Invalid demo clock");
+  }
   const organizationId = "demo-caf-milano";
+  const existing = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(ne(organizations.id, organizationId))
+    .limit(1);
+  if (existing.length) {
+    throw new Error("Demo seed requires an empty database or the existing demo organization");
+  }
   await db
     .insert(organizations)
     .values({ id: organizationId, name: "CAF Demo Milano", kind: "caf" })
@@ -197,33 +223,18 @@ export async function seedDemo(
       foreign_assets: false,
       maintenance: false,
       exempt_income: false,
+      excluded_savings: false,
     };
-    const household = options.buildHousehold?.(answers) ?? [
-      {
-        id: `demo-member-${position + 1}`,
-        role: "richiedente",
-        firstName: "Persona",
-        lastName: `Esempio ${position + 1}`,
-        birthYear: 1985,
-      },
-    ];
+    const household = (options.buildHousehold ?? buildHousehold)(answers);
+    for (const member of household) {
+      answers[`income_present_${member.id}`] = true;
+    }
     answers.account_owner_0 = household[0]?.id ?? "joint";
     answers.vehicle_owner_0 = household[0]?.id ?? "joint";
-    const fallbackChecklist: ChecklistItem[] = household.map((member) => ({
-      id: `identity:${member.id}`,
-      requirementId: "identity",
-      group: "identita",
-      title: "Documento identità",
-      description: "Documento ESEMPIO",
-      howToGet: null,
-      required: true,
-      memberId: member.id,
-      memberName: `${member.firstName} ${member.lastName ?? ""}`.trim(),
-      status: "missing",
-      documentIds: [],
-      note: null,
-    }));
-    const checklist = options.buildChecklist?.(answers, household) ?? fallbackChecklist;
+    completeDemoAnswers(answers, options.now);
+    const checklist = options.buildChecklist
+      ? options.buildChecklist(answers, household)
+      : buildChecklist("isee_ordinario", answers, household, "it", options.now);
     const complete = [1, 4, 5, 8].includes(position);
     const selected = complete
       ? checklist
@@ -231,164 +242,192 @@ export async function seedDemo(
     const caseDirectory = join(options.uploadsDir, id);
     await mkdir(caseDirectory, { recursive: true, mode: 0o700 });
     const documentRows: Array<typeof documents.$inferInsert> = [];
-    for (const [itemPosition, item] of selected.entries()) {
-      const documentId = `demo-doc-${position + 1}-${itemPosition + 1}`;
-      const docBytes = await examplePdf(position + 1, item.title, item.memberName);
-      const storageKey = `${id}/${documentId}.pdf`;
-      await writeFile(join(options.uploadsDir, storageKey), docBytes, { mode: 0o600 });
-      const analysis: DocumentAnalysis = {
-        engine: "heuristic",
-        detectedRequirementId: item.requirementId,
-        detectedLabel: item.title,
-        confidence: 0.8,
-        ownerName: item.memberName,
-        referenceYear: [
-          "income",
-          "account_balance",
-          "account_average",
-          "property",
-          "mortgage",
-          "self_employed",
-          "foreign_income",
-          "foreign_assets",
-        ].includes(item.requirementId)
-          ? 2025
-          : null,
-        expiresOn:
-          item.requirementId === "identity" ? (position === 3 ? "2020-01-01" : "2030-12-31") : null,
-        legible: true,
-        pagesComplete: true,
-        findings: [],
-      };
-      documentRows.push({
-        id: documentId,
-        caseId: id,
-        fileName: `ESEMPIO-${item.requirementId}.pdf`,
-        mimeType: "application/pdf",
-        sizeBytes: docBytes.byteLength,
-        pages: 1,
-        storageKey,
-        sha256: createHash("sha256").update(docBytes).digest("hex"),
-        uploadedAt: new Date(
-          new Date(createdAt).getTime() + (itemPosition + 1) * 10_000,
-        ).toISOString(),
-        checklistItemId: item.id,
-        memberId: item.memberId,
-        status: "analyzed",
-        analysis,
-      });
-    }
-    const tokenHash = createHash("sha256").update(randomBytes(32)).digest("hex");
-    const reference = await nextReference(db, organizationId, new Date(createdAt).getUTCFullYear());
-    await db.transaction(async (tx) => {
-      await tx.insert(cases).values({
-        id,
-        organizationId,
-        officeId: position % 2 === 0 ? "demo-office-centro" : "demo-office-loreto",
-        tokenHash,
-        reference,
-        language,
-        practiceId: "isee_ordinario",
-        status,
-        answers,
-        contact:
-          status === "intake"
-            ? null
-            : {
-                firstName: "Persona",
-                lastName: `Esempio ${position + 1}`,
-                email: `persona${position + 1}@example.invalid`,
-              },
-        citizenNote: "Fascicolo dimostrativo: nessun dato reale.",
-        internalNotes: "DEMO: eventi e tempi sono simulati, non misure del pilota.",
-        assigneeId: reviewed ? "demo-operator" : null,
-        createdAt,
-        updatedAt: reviewCompletedAt ?? reviewStartedAt ?? submittedAt ?? createdAt,
-        submittedAt,
-        reviewStartedAt,
-        reviewCompletedAt,
-        expiresAt,
-        firstSubmissionComplete: submittedAt ? complete : null,
-      });
-      await tx.insert(members).values(household.map((member) => ({ ...member, caseId: id })));
-      if (documentRows.length) await tx.insert(documents).values(documentRows);
-      if (["ready", "closed"].includes(status) && reviewCompletedAt && selected.length)
-        await tx.insert(checklistReviews).values(
-          selected.map((item) => ({
-            caseId: id,
-            itemId: item.id,
-            decision: "verified" as const,
-            note: "Verifica dimostrativa: documento ESEMPIO.",
-            operatorId: "demo-operator",
-            reviewedAt: reviewCompletedAt,
-          })),
+    const attemptedFiles: string[] = [];
+    try {
+      for (const [itemPosition, item] of selected.entries()) {
+        const documentId = `demo-doc-${position + 1}-${itemPosition + 1}`;
+        const docBytes = await examplePdf(position + 1, item.title, item.memberName);
+        const storageKey = `${id}/${documentId}.pdf`;
+        attemptedFiles.push(storageKey);
+        await writeFile(join(options.uploadsDir, storageKey), docBytes, { mode: 0o600 });
+        const analysis: DocumentAnalysis = {
+          engine: "heuristic",
+          detectedRequirementId: item.requirementId,
+          detectedLabel: item.title,
+          confidence: 0.8,
+          ownerName: item.memberName,
+          referenceYear: [
+            "income",
+            "account_balance",
+            "account_average",
+            "property",
+            "mortgage",
+            "self_employed",
+            "foreign_income",
+            "foreign_assets",
+          ].includes(item.requirementId)
+            ? 2025
+            : null,
+          expiresOn:
+            item.requirementId === "identity"
+              ? position === 3
+                ? "2020-01-01"
+                : "2030-12-31"
+              : null,
+          legible: true,
+          pagesComplete: true,
+          findings: [],
+        };
+        documentRows.push({
+          id: documentId,
+          caseId: id,
+          fileName: `ESEMPIO-${item.requirementId}.pdf`,
+          mimeType: "application/pdf",
+          sizeBytes: docBytes.byteLength,
+          pages: 1,
+          storageKey,
+          sha256: createHash("sha256").update(docBytes).digest("hex"),
+          uploadedAt: new Date(
+            new Date(createdAt).getTime() + (itemPosition + 1) * 10_000,
+          ).toISOString(),
+          checklistItemId: item.id,
+          memberId: item.memberId,
+          status: "analyzed",
+          analysis,
+        });
+      }
+      const tokenHash = createHash("sha256").update(randomBytes(32)).digest("hex");
+      await db.transaction(async (tx) => {
+        const reference = await nextReference(
+          tx,
+          organizationId,
+          new Date(createdAt).getUTCFullYear(),
         );
-      await tx.insert(messages).values({
-        id: `demo-message-${position + 1}`,
-        caseId: id,
-        role: "system",
-        text: demoNotice[language],
-        originalText: null,
-        createdAt,
+        await tx.insert(cases).values({
+          id,
+          organizationId,
+          officeId: position % 2 === 0 ? "demo-office-centro" : "demo-office-loreto",
+          tokenHash,
+          reference,
+          language,
+          practiceId: "isee_ordinario",
+          status,
+          answers,
+          contact:
+            status === "intake"
+              ? null
+              : {
+                  firstName: "Persona",
+                  lastName: `Esempio ${position + 1}`,
+                  email: `persona${position + 1}@example.invalid`,
+                },
+          citizenNote: "Fascicolo dimostrativo: nessun dato reale.",
+          internalNotes: "DEMO: eventi e tempi sono simulati, non misure del pilota.",
+          assigneeId: reviewed ? "demo-operator" : null,
+          createdAt,
+          updatedAt: reviewCompletedAt ?? reviewStartedAt ?? submittedAt ?? createdAt,
+          submittedAt,
+          reviewStartedAt,
+          reviewCompletedAt,
+          expiresAt,
+          firstSubmissionComplete: submittedAt ? complete : null,
+        });
+        await tx.insert(members).values(household.map((member) => ({ ...member, caseId: id })));
+        if (documentRows.length) await tx.insert(documents).values(documentRows);
+        if (["ready", "closed"].includes(status) && reviewCompletedAt && selected.length)
+          await tx.insert(checklistReviews).values(
+            selected.map((item) => ({
+              caseId: id,
+              itemId: item.id,
+              decision: "verified" as const,
+              note: "Verifica dimostrativa: documento ESEMPIO.",
+              operatorId: "demo-operator",
+              reviewedAt: reviewCompletedAt,
+            })),
+          );
+        await tx.insert(messages).values({
+          id: `demo-message-${position + 1}`,
+          caseId: id,
+          role: "system",
+          text: demoNotice[language],
+          originalText: null,
+          createdAt,
+        });
+        const audit = [
+          {
+            id: `${id}-created`,
+            caseId: id,
+            organizationId,
+            actor: "citizen" as const,
+            actorId: null,
+            type: "case.created",
+            at: createdAt,
+            metadata: {},
+          },
+        ];
+        if (submittedAt)
+          audit.push({
+            id: `${id}-submitted`,
+            caseId: id,
+            organizationId,
+            actor: "citizen",
+            actorId: null,
+            type: "case.submitted",
+            at: submittedAt,
+            metadata: {},
+          });
+        await tx.insert(events).values(audit);
+        if (reviewStartedAt)
+          await tx.insert(events).values({
+            id: `${id}-review-start`,
+            caseId: id,
+            organizationId,
+            actor: "operator",
+            actorId: "demo-operator",
+            type: "review.started",
+            at: reviewStartedAt,
+            metadata: {},
+          });
+        if (reviewCompletedAt)
+          await tx.insert(events).values({
+            id: `${id}-review-complete`,
+            caseId: id,
+            organizationId,
+            actor: "operator",
+            actorId: "demo-operator",
+            type: "review.completed",
+            at: reviewCompletedAt,
+            metadata: {},
+          });
+        if (status === "needs_citizen" && reviewStartedAt) {
+          await tx.insert(messages).values({
+            id: `${id}-integration-message`,
+            caseId: id,
+            role: "operator",
+            text: demoIntegrationRequest[language],
+            originalText: language === "it" ? null : demoIntegrationRequest.it,
+            createdAt: reviewStartedAt,
+          });
+          await tx.insert(events).values({
+            id: `${id}-requested`,
+            caseId: id,
+            organizationId,
+            actor: "operator",
+            actorId: "demo-operator",
+            type: "citizen.requested",
+            at: reviewStartedAt,
+            metadata: { itemsCount: 1, heuristic: true },
+          });
+        }
       });
-      const audit = [
-        {
-          id: `${id}-created`,
-          caseId: id,
-          organizationId,
-          actor: "citizen" as const,
-          actorId: null,
-          type: "case.created",
-          at: createdAt,
-          metadata: {},
-        },
-      ];
-      if (submittedAt)
-        audit.push({
-          id: `${id}-submitted`,
-          caseId: id,
-          organizationId,
-          actor: "citizen",
-          actorId: null,
-          type: "case.submitted",
-          at: submittedAt,
-          metadata: {},
-        });
-      await tx.insert(events).values(audit);
-      if (reviewStartedAt)
-        await tx.insert(events).values({
-          id: `${id}-review-start`,
-          caseId: id,
-          organizationId,
-          actor: "operator",
-          actorId: "demo-operator",
-          type: "review.started",
-          at: reviewStartedAt,
-          metadata: {},
-        });
-      if (reviewCompletedAt)
-        await tx.insert(events).values({
-          id: `${id}-review-complete`,
-          caseId: id,
-          organizationId,
-          actor: "operator",
-          actorId: "demo-operator",
-          type: "review.completed",
-          at: reviewCompletedAt,
-          metadata: {},
-        });
-      if (status === "needs_citizen" && reviewStartedAt)
-        await tx.insert(events).values({
-          id: `${id}-requested`,
-          caseId: id,
-          organizationId,
-          actor: "operator",
-          actorId: "demo-operator",
-          type: "citizen.requested",
-          at: reviewStartedAt,
-          metadata: { items: 1 },
-        });
-    });
+    } catch (error) {
+      await Promise.all(
+        attemptedFiles.map((storageKey) =>
+          rm(join(options.uploadsDir, storageKey), { force: true }),
+        ),
+      );
+      throw error;
+    }
     created++;
   }
   return { created };
@@ -424,4 +463,20 @@ async function examplePdf(
     font,
   });
   return pdf.save();
+}
+
+function completeDemoAnswers(answers: Record<string, AnswerValue>, now: Date): void {
+  for (;;) {
+    const unanswered = getQuestions("isee_ordinario", answers, "it", now).filter(
+      (question) => !Object.hasOwn(answers, question.id),
+    );
+    if (!unanswered.length) return;
+    for (const question of unanswered) {
+      // The fictional household has no additional special situations. Other facts need an explicit fixture.
+      if (question.kind !== "yes_no") {
+        throw new Error(`Demo fixture is missing an explicit answer for ${question.id}`);
+      }
+      answers[question.id] = false;
+    }
+  }
 }
