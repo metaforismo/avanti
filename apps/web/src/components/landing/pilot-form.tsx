@@ -101,7 +101,7 @@ export function PilotForm() {
             <Input
               {...p}
               name="role"
-              placeholder="Responsabile di sede"
+              placeholder="es. Responsabile di sede…"
               autoComplete="organization-title"
             />
           )}
@@ -119,6 +119,8 @@ export function PilotForm() {
               type="email"
               autoComplete="email"
               inputMode="email"
+              spellCheck={false}
+              autoCapitalize="none"
               required
             />
           )}

@@ -49,6 +49,17 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      document.getElementById("console-menu-toggle")?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
   if (me.status === "loading" || (me.status === "error" && !me.data)) {
     return (
       <div className="grid min-h-dvh place-items-center text-ink-3">
@@ -71,16 +82,24 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
 
   return (
     <OperatorProvider value={operator}>
+      <a
+        href="#contenuto"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+      >
+        Vai al contenuto
+      </a>
       <div className="min-h-dvh bg-paper lg:grid lg:grid-cols-[15rem_1fr]">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
           <Link href="/console" className="rounded-sm">
             <Logo />
           </Link>
           <Button
+            id="console-menu-toggle"
             variant="ghost"
             size="icon"
             aria-label={menuOpen ? "Chiudi menu" : "Apri menu"}
             aria-expanded={menuOpen}
+            aria-controls="console-menu"
             onClick={() => setMenuOpen((v) => !v)}
           >
             {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -88,9 +107,12 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         </header>
 
         <aside
+          id="console-menu"
           className={cn(
-            "z-20 flex-col border-e border-line bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh",
-            menuOpen ? "fixed inset-x-0 top-14 bottom-0 flex animate-fade-in" : "hidden",
+            "z-20 flex-col overscroll-contain border-e border-line bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh",
+            menuOpen
+              ? "fixed inset-x-0 top-14 bottom-0 flex animate-fade-in overflow-y-auto"
+              : "hidden",
           )}
         >
           <div className="hidden h-16 items-center px-5 lg:flex">
@@ -131,7 +153,9 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
           <OperatorCard operator={operator} />
         </aside>
 
-        <div className="min-w-0">{children}</div>
+        <main id="contenuto" tabIndex={-1} className="min-w-0 outline-none">
+          {children}
+        </main>
       </div>
       <NewCaseDialog open={creating} onOpenChange={setCreating} />
     </OperatorProvider>

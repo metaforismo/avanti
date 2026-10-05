@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo } from "react";
+import type { Route } from "next";
 import type { Metrics } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -16,16 +18,39 @@ const RANGES = [
   { days: 90, label: "90 giorni" },
 ] as const;
 
-function isoDay(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
+// Calendar days in Italian time: toISOString() would drop "today" between 00:00 and 02:00.
+const romeDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" });
+const isoDay = (date: Date) => romeDay.format(date);
 
 const percent = (share: number | null) => (share === null ? "—" : `${Math.round(share * 100)}%`);
 
 export default function MetricsPage() {
+  return (
+    <Suspense>
+      <MetricsView />
+    </Suspense>
+  );
+}
+
+function MetricsView() {
   const operator = useOperator();
-  const [days, setDays] = useState<number>(30);
-  const [officeId, setOfficeId] = useState("");
+  const router = useRouter();
+  const params = useSearchParams();
+  // Filters live in the URL, like the queue: shareable and kept on reload.
+  const requestedDays = Number(params.get("giorni"));
+  const days = RANGES.some((r) => r.days === requestedDays) ? requestedDays : 30;
+  const officeId = params.get("sportello") ?? "";
+  const setParam = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    const search = next.toString();
+    router.replace((search ? `/console/metriche?${search}` : "/console/metriche") as Route, {
+      scroll: false,
+    });
+  };
+  const setDays = (value: number) => setParam("giorni", value === 30 ? "" : String(value));
+  const setOfficeId = (value: string) => setParam("sportello", value);
 
   const path = useMemo(() => {
     const to = new Date();

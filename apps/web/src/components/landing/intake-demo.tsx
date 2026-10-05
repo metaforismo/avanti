@@ -242,9 +242,9 @@ export function IntakeDemo() {
         className="relative rounded-xl bg-surface shadow-float ring-1 ring-line"
       >
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line px-5 py-4 sm:px-6">
-          <h3 className="font-display text-lg font-semibold tracking-[-0.01em]">
+          <p className="font-display text-lg font-semibold tracking-[-0.01em]">
             Fascicolo per l&apos;operatore
-          </h3>
+          </p>
           <span className="font-mono text-xs whitespace-nowrap text-ink-3">AV-2027-000318</span>
         </div>
         <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 px-5 py-4 text-[0.9375rem] sm:px-6">
@@ -299,6 +299,7 @@ export function IntakeDemo() {
             "flex items-center justify-between gap-3 rounded-b-xl bg-warn-wash px-5 py-3 text-sm text-warn transition-opacity duration-500 sm:px-6",
             done ? "opacity-100" : "opacity-0",
           )}
+          aria-hidden={!done}
         >
           <span>Manca 1 documento: già chiesto al cittadino, nella sua lingua.</span>
         </div>

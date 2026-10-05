@@ -15,18 +15,29 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(
     params.get("motivo") === "sessione" ? "La sessione è scaduta. Accedi di nuovo." : null,
   );
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    if (pending) return;
+    const form = event.currentTarget;
+    const data = new FormData(form);
     const parsed = LoginRequest.safeParse({
       email: data.get("email"),
       password: data.get("password"),
     });
     if (!parsed.success) {
-      setError("Inserisci email e password.");
+      const next: typeof fieldErrors = {};
+      for (const issue of parsed.error.issues) {
+        if (issue.path[0] === "email") next.email = "Scrivi un'email valida.";
+        if (issue.path[0] === "password") next.password = "Scrivi la password.";
+      }
+      setFieldErrors(next);
+      setError(null);
+      (form.elements.namedItem(next.email ? "email" : "password") as HTMLElement | null)?.focus();
       return;
     }
+    setFieldErrors({});
     setPending(true);
     setError(null);
     try {
@@ -41,7 +52,7 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="mt-8 grid gap-5">
-      <Field label="Email">
+      <Field label="Email" error={fieldErrors.email}>
         {(p) => (
           <Input
             {...p}
@@ -49,12 +60,14 @@ export function LoginForm() {
             type="email"
             autoComplete="username"
             inputMode="email"
+            spellCheck={false}
+            autoCapitalize="none"
             required
             autoFocus
           />
         )}
       </Field>
-      <Field label="Password">
+      <Field label="Password" error={fieldErrors.password}>
         {(p) => (
           <Input {...p} name="password" type="password" autoComplete="current-password" required />
         )}
