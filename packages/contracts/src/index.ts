@@ -292,6 +292,8 @@ export type Progress = z.infer<typeof Progress>;
 export const CitizenCase = z.object({
   id: Id,
   reference: z.string(),
+  /** Engine used for the most recent intake turn, when present. */
+  engine: z.enum(["ai", "heuristic"]).optional(),
   status: CaseStatus,
   step: CitizenStep,
   language: Language,
@@ -364,6 +366,10 @@ export type SubmitCaseRequest = z.infer<typeof SubmitCaseRequest>;
 /** Multipart fields alongside `file` for POST /api/c/:token/documents. */
 export const UploadDocumentFields = z.object({
   checklistItemId: Id.optional(),
+});
+
+export const ReassignDocumentRequest = z.object({
+  checklistItemId: Id.nullable(),
 });
 
 /* ------------------------------------------------------------------ */
