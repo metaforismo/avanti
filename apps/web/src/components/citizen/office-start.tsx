@@ -1,6 +1,7 @@
 "use client";
 
 import { MapPin, Phone, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import {
@@ -17,17 +18,10 @@ import { apiFetch, ApiRequestError } from "@/lib/api";
 import { recallCase, rememberCase } from "@/lib/citizen/local-cases";
 import { errorMessage, format, LANGUAGE_NAMES, messagesFor } from "@/lib/citizen/messages";
 import { cn } from "@/lib/cn";
+import { browserLanguage, directionOf, useDocumentLanguage } from "@/lib/citizen/document-language";
 import { ErrorScreen } from "./error-screen";
 
 type OfficeInfo = { office: Office; organization: OrganizationPublic };
-
-function browserLanguage(): Language {
-  for (const tag of navigator.languages ?? [navigator.language]) {
-    const base = tag.slice(0, 2).toLowerCase();
-    if ((LANGUAGES as readonly string[]).includes(base)) return base as Language;
-  }
-  return "it";
-}
 
 export function OfficeStart({ officeSlug }: { officeSlug: string }) {
   const router = useRouter();
@@ -64,7 +58,8 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
   }, [officeSlug]);
 
   const m = messagesFor(language);
-  const dir = RTL_LANGUAGES.includes(language) ? "rtl" : "ltr";
+  const dir = directionOf(language);
+  useDocumentLanguage(language);
 
   async function start(event: FormEvent) {
     event.preventDefault();
@@ -101,6 +96,8 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
     return (
       <ErrorScreen
         lang={language}
+        dir={dir}
+        retryLabel={m.common.retry}
         title={info === "missing" ? m.start.officeNotFound : m.errors.generic}
         body={info === "missing" ? m.start.officeNotFoundHint : m.errors.network}
         onRetry={info === "error" ? () => window.location.reload() : undefined}
@@ -127,7 +124,7 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
               <div className="h-3 w-28 animate-pulse rounded-xs bg-sunk" />
             </div>
           )}
-          <span className="flex items-center gap-1.5 text-xs text-ink-3" dir="ltr">
+          <span translate="no" className="flex items-center gap-1.5 text-xs text-ink-3" dir="ltr">
             <LogoMark className="size-5" />
             Avanti
           </span>
@@ -139,8 +136,8 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
           <section className="mb-8 animate-rise rounded-lg bg-stamp-wash p-5">
             <p className="font-semibold">{m.start.resumeHint}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => router.push(`/pratica/${resumeToken}`)}>
-                {m.start.resume}
+              <Button asChild>
+                <Link href={`/pratica/${resumeToken}`}>{m.start.resume}</Link>
               </Button>
               <Button variant="ghost" onClick={() => setResumeToken(null)}>
                 {m.start.startNew}

@@ -22,7 +22,7 @@ export function ActionErrorNotice({
       <button
         type="button"
         onClick={onDismiss}
-        className="-m-1 rounded-sm p-1 hover:bg-danger/10"
+        className="-m-2 grid size-10 shrink-0 place-items-center rounded-sm hover:bg-danger/10"
         aria-label={m.common.close}
       >
         <X className="size-4" aria-hidden />

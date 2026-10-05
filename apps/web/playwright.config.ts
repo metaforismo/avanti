@@ -9,6 +9,9 @@ export default defineConfig({
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
+  // The dev server compiles pages on first visit: allow for that instead of flaking.
+  expect: { timeout: 15_000 },
+  timeout: 90_000,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3400",
     channel: "chrome",

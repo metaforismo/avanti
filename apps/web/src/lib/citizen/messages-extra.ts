@@ -4,6 +4,9 @@ type M = Widen<CitizenMessages>;
 
 export const fr: M = {
   common: {
+    decrease: "Diminuer",
+    increase: "Augmenter",
+    skipToContent: "Aller au contenu",
     back: "Retour",
     continue: "Continuer",
     cancel: "Annuler",
@@ -59,6 +62,7 @@ export const fr: M = {
     tooShort: "Écris quelques mots de plus.",
   },
   interview: {
+    progressLabel: "Questions : {n} sur {total}",
     assistant: "Assistant automatique",
     known: "Ce que nous avons compris",
     why: "Pourquoi nous le demandons",
@@ -75,6 +79,9 @@ export const fr: M = {
     section: "Section",
   },
   members: {
+    birthYearInvalid: "Écris une année à 4 chiffres, par exemple 1985.",
+    birthYearPlaceholder: "ex. 1985",
+    removeUnnamed: "Retirer cette personne",
     title: "Personnes",
     add: "Ajouter une personne",
     firstName: "Prénom",
@@ -135,6 +142,7 @@ export const fr: M = {
     pages: "{n} pages",
   },
   review: {
+    showAll: "Tout afficher ({n})",
     missingList: "Ce qui manque",
     title: "Vérifie et envoie",
     lead: "Dernière étape. Le guichet reçoit ton dossier et te contacte s'il faut autre chose.",
@@ -158,6 +166,8 @@ export const fr: M = {
     editDocuments: "Modifier les documents",
   },
   done: {
+    share: "Partager",
+    copyFailed: "La copie a échoué : appuie longuement sur le lien ci-dessous pour le copier.",
     title: "C'est fait. Ton dossier est au guichet.",
     lead: "S'il faut autre chose, nous t'écrivons ici et te contactons. Tu peux rouvrir ce lien quand tu veux.",
     reference: "Code du dossier",
@@ -205,6 +215,9 @@ export const fr: M = {
 
 export const es: M = {
   common: {
+    decrease: "Disminuir",
+    increase: "Aumentar",
+    skipToContent: "Ir al contenido",
     back: "Atrás",
     continue: "Continuar",
     cancel: "Cancelar",
@@ -260,6 +273,7 @@ export const es: M = {
     tooShort: "Escribe algunas palabras más.",
   },
   interview: {
+    progressLabel: "Preguntas: {n} de {total}",
     assistant: "Asistente automático",
     known: "Lo que hemos entendido",
     why: "Por qué lo preguntamos",
@@ -276,6 +290,9 @@ export const es: M = {
     section: "Sección",
   },
   members: {
+    birthYearInvalid: "Escribe un año de 4 cifras, por ejemplo 1985.",
+    birthYearPlaceholder: "p. ej. 1985",
+    removeUnnamed: "Quitar a esta persona",
     title: "Personas",
     add: "Añadir una persona",
     firstName: "Nombre",
@@ -336,6 +353,7 @@ export const es: M = {
     pages: "{n} páginas",
   },
   review: {
+    showAll: "Mostrar todos ({n})",
     missingList: "Lo que falta",
     title: "Revisa y envía",
     lead: "Último paso. La oficina recibe tu expediente y te contacta si hace falta algo más.",
@@ -359,6 +377,8 @@ export const es: M = {
     editDocuments: "Cambiar documentos",
   },
   done: {
+    share: "Compartir",
+    copyFailed: "No se pudo copiar: mantén pulsado el enlace de abajo para copiarlo.",
     title: "Hecho. Tu expediente está en la oficina.",
     lead: "Si hace falta algo más, te escribimos aquí y te contactamos. Puedes volver a abrir este enlace cuando quieras.",
     reference: "Código del trámite",
@@ -406,6 +426,9 @@ export const es: M = {
 
 export const ro: M = {
   common: {
+    decrease: "Scade",
+    increase: "Crește",
+    skipToContent: "Mergi la conținut",
     back: "Înapoi",
     continue: "Continuă",
     cancel: "Anulează",
@@ -461,6 +484,7 @@ export const ro: M = {
     tooShort: "Scrie câteva cuvinte în plus.",
   },
   interview: {
+    progressLabel: "Întrebări: {n} din {total}",
     assistant: "Asistent automat",
     known: "Ce am înțeles",
     why: "De ce întrebăm",
@@ -477,6 +501,9 @@ export const ro: M = {
     section: "Secțiune",
   },
   members: {
+    birthYearInvalid: "Scrie un an din 4 cifre, de exemplu 1985.",
+    birthYearPlaceholder: "ex. 1985",
+    removeUnnamed: "Elimină această persoană",
     title: "Persoane",
     add: "Adaugă o persoană",
     firstName: "Prenume",
@@ -538,6 +565,7 @@ export const ro: M = {
     pages: "{n} pagini",
   },
   review: {
+    showAll: "Arată toate ({n})",
     missingList: "Ce lipsește",
     title: "Verifică și trimite",
     lead: "Ultimul pas. Ghișeul primește dosarul și te contactează dacă mai este nevoie de ceva.",
@@ -561,6 +589,8 @@ export const ro: M = {
     editDocuments: "Modifică documentele",
   },
   done: {
+    share: "Distribuie",
+    copyFailed: "Copierea nu a reușit: ține apăsat pe linkul de mai jos ca să îl copiezi.",
     title: "Gata. Dosarul tău este la ghișeu.",
     lead: "Dacă mai este nevoie de ceva, îți scriem aici și te contactăm. Poți redeschide acest link oricând.",
     reference: "Codul dosarului",
@@ -606,6 +636,9 @@ export const ro: M = {
 
 export const uk: M = {
   common: {
+    decrease: "Зменшити",
+    increase: "Збільшити",
+    skipToContent: "Перейти до вмісту",
     back: "Назад",
     continue: "Далі",
     cancel: "Скасувати",
@@ -661,6 +694,7 @@ export const uk: M = {
     tooShort: "Напиши трохи більше слів.",
   },
   interview: {
+    progressLabel: "Запитання: {n} з {total}",
     assistant: "Автоматичний помічник",
     known: "Що ми зрозуміли",
     why: "Чому ми питаємо",
@@ -677,6 +711,9 @@ export const uk: M = {
     section: "Розділ",
   },
   members: {
+    birthYearInvalid: "Напиши рік із 4 цифр, наприклад 1985.",
+    birthYearPlaceholder: "напр. 1985",
+    removeUnnamed: "Прибрати цю людину",
     title: "Люди",
     add: "Додати людину",
     firstName: "Ім'я",
@@ -736,6 +773,7 @@ export const uk: M = {
     pages: "{n} стор.",
   },
   review: {
+    showAll: "Показати всі ({n})",
     missingList: "Чого бракує",
     title: "Перевір і надішли",
     lead: "Останній крок. Віконце отримає твою справу й зв'яжеться з тобою, якщо ще щось знадобиться.",
@@ -759,6 +797,8 @@ export const uk: M = {
     editDocuments: "Змінити документи",
   },
   done: {
+    share: "Поділитися",
+    copyFailed: "Не вдалося скопіювати: натисни й утримуй посилання нижче, щоб скопіювати.",
     title: "Готово. Твоя справа у віконці.",
     lead: "Якщо щось знадобиться, ми напишемо тут і зв'яжемося з тобою. Це посилання можна відкрити будь-коли.",
     reference: "Код справи",
@@ -804,6 +844,9 @@ export const uk: M = {
 
 export const ar: M = {
   common: {
+    decrease: "إنقاص",
+    increase: "زيادة",
+    skipToContent: "انتقل إلى المحتوى",
     back: "رجوع",
     continue: "متابعة",
     cancel: "إلغاء",
@@ -858,6 +901,7 @@ export const ar: M = {
     tooShort: "اكتب كلمات أكثر قليلاً.",
   },
   interview: {
+    progressLabel: "الأسئلة: {n} من {total}",
     assistant: "المساعد الآلي",
     known: "ما فهمناه",
     why: "لماذا نسأل",
@@ -874,6 +918,9 @@ export const ar: M = {
     section: "القسم",
   },
   members: {
+    birthYearInvalid: "اكتب سنة من 4 أرقام، مثلاً 1985.",
+    birthYearPlaceholder: "مثلاً 1985",
+    removeUnnamed: "إزالة هذا الشخص",
     title: "الأشخاص",
     add: "أضف شخصاً",
     firstName: "الاسم",
@@ -933,6 +980,7 @@ export const ar: M = {
     pages: "{n} صفحات",
   },
   review: {
+    showAll: "عرض الكل ({n})",
     missingList: "ما الذي ينقص",
     title: "راجع وأرسل",
     lead: "الخطوة الأخيرة. يستلم المكتب ملفك ويتصل بك إن احتاج شيئاً آخر.",
@@ -956,6 +1004,8 @@ export const ar: M = {
     editDocuments: "تعديل المستندات",
   },
   done: {
+    share: "مشاركة",
+    copyFailed: "تعذّر النسخ: اضغط مطولاً على الرابط أدناه لنسخه.",
     title: "تم. ملفك الآن في المكتب.",
     lead: "إذا احتجنا شيئاً آخر سنكتب لك هنا ونتصل بك. يمكنك فتح هذا الرابط في أي وقت.",
     reference: "رمز الملف",
@@ -1001,6 +1051,9 @@ export const ar: M = {
 
 export const bn: M = {
   common: {
+    decrease: "কমান",
+    increase: "বাড়ান",
+    skipToContent: "মূল অংশে যান",
     back: "পেছনে",
     continue: "এগিয়ে যান",
     cancel: "বাতিল",
@@ -1056,6 +1109,7 @@ export const bn: M = {
     tooShort: "আরও কয়েকটি শব্দ লিখুন।",
   },
   interview: {
+    progressLabel: "প্রশ্ন: {total}টির মধ্যে {n}টি",
     assistant: "স্বয়ংক্রিয় সহকারী",
     known: "আমরা যা বুঝেছি",
     why: "কেন জিজ্ঞাসা করছি",
@@ -1072,6 +1126,9 @@ export const bn: M = {
     section: "অংশ",
   },
   members: {
+    birthYearInvalid: "৪ অঙ্কের সাল লিখুন, যেমন 1985।",
+    birthYearPlaceholder: "যেমন 1985",
+    removeUnnamed: "এই ব্যক্তিকে সরান",
     title: "ব্যক্তিরা",
     add: "একজন ব্যক্তি যোগ করুন",
     firstName: "নাম",
@@ -1131,6 +1188,7 @@ export const bn: M = {
     pages: "{n} পৃষ্ঠা",
   },
   review: {
+    showAll: "সব দেখুন ({n})",
     missingList: "যা বাকি আছে",
     title: "দেখে নিয়ে পাঠান",
     lead: "শেষ ধাপ। অফিস আপনার ফাইল পাবে এবং আর কিছু লাগলে যোগাযোগ করবে।",
@@ -1154,6 +1212,8 @@ export const bn: M = {
     editDocuments: "কাগজপত্র পরিবর্তন করুন",
   },
   done: {
+    share: "শেয়ার করুন",
+    copyFailed: "কপি হয়নি: কপি করতে নিচের লিংকে চেপে ধরে রাখুন।",
     title: "হয়ে গেছে। আপনার ফাইল এখন অফিসে।",
     lead: "আর কিছু লাগলে আমরা এখানে লিখব এবং যোগাযোগ করব। এই লিংকটি যেকোনো সময় আবার খুলতে পারেন।",
     reference: "আবেদনের কোড",

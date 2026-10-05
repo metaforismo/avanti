@@ -100,7 +100,10 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
-    scroll-padding-top: 5rem;
+    /* Sticky headers (citizen: header + steps + offline banner) and the fixed documents bar. */
+    scroll-padding-top: 9rem;
+    scroll-padding-bottom: 8rem;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -130,6 +133,15 @@
 
   p {
     text-wrap: pretty;
+  }
+
+  button,
+  a,
+  input,
+  label,
+  select,
+  textarea {
+    touch-action: manipulation;
   }
 
   button:not(:disabled),
@@ -179,5 +191,11 @@
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* A spinner is a status, not decoration: keep it turning (slowly) or loading looks frozen. */
+  .animate-spin {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
   }
 }

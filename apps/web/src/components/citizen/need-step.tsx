@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { ActionErrorNotice } from "./action-error";
 import { AssistantMessage, lastMessage } from "./assistant-message";
 import type { StepProps } from "./citizen-app";
+import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import { QuestionCard } from "./question-card";
 
 const MIN_LENGTH = 3;
@@ -44,7 +45,11 @@ export function NeedStep({ api, data, m }: StepProps) {
   return (
     <div className="grid gap-6">
       <div>
-        <h1 className="font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em]">
+        <h1
+          id={STEP_TITLE_ID}
+          tabIndex={-1}
+          className="font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em] outline-none"
+        >
           <label htmlFor={textareaId}>{m.need.title}</label>
         </h1>
         <p className="mt-2 text-lg text-ink-2">{m.need.hint}</p>
@@ -132,6 +137,7 @@ export function NeedStep({ api, data, m }: StepProps) {
 
 function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
   const [practices, setPractices] = useState<PracticeSummary[] | "error" | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,7 +147,7 @@ function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
     return () => {
       cancelled = true;
     };
-  }, [data.language]);
+  }, [data.language, attempt]);
 
   if (practices === null) {
     return (
@@ -151,7 +157,24 @@ function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
     );
   }
   if (practices === "error") {
-    return <p className="py-4 text-danger">{m.errors.generic}</p>;
+    return (
+      <div
+        role="alert"
+        className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-danger-wash px-4 py-3 text-danger"
+      >
+        <span className="flex-1">{m.errors.network}</span>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            setPractices(null);
+            setAttempt((n) => n + 1);
+          }}
+        >
+          {m.common.retry}
+        </Button>
+      </div>
+    );
   }
 
   const order = { available: 0, beta: 1, coming_soon: 2 } as const;

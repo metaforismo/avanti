@@ -19,3 +19,6 @@ export function resolveView(view: View | null, data: Pick<CitizenCase, "step">):
     return data.step === "documents" || data.step === "review" ? "review" : serverView;
   return ORDER.indexOf(view) <= ORDER.indexOf(serverView) ? view : serverView;
 }
+
+/** Id of each step's <h1>, focused after navigation so screen readers announce the new step. */
+export const STEP_TITLE_ID = "step-title";

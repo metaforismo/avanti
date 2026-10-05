@@ -18,7 +18,7 @@ test("an operator logs in, opens a dossier and sees what to check", async ({ pag
 
   await page.getByRole("tab", { name: /Pronte/ }).click();
   await page.locator('a[href^="/console/pratiche/"]').first().click();
-  await expect(page.getByRole("heading", { name: "Documenti" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
   await expect(page.getByText("Cronologia")).toBeVisible();
 });
 
