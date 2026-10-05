@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@avanti/api": "workspace:*",
     "@avanti/contracts": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^1.52.0",
@@ -20,8 +21,8 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tailwind-merge": "^3.3.0",
-    "zod": "^4.6.5",
-    "@avanti/api": "workspace:*"
+    "uqr": "^0.1.3",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

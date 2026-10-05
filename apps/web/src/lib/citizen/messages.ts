@@ -1,0 +1,467 @@
+import type { ChecklistStatus, ErrorCode, Language, MemberRole } from "@avanti/contracts";
+import { ar, bn, es, fr, ro, uk } from "./messages-extra";
+
+/**
+ * Interface strings for the citizen flow. Catalog content (questions, checklist items) comes
+ * already localized from the API; these cover only the chrome around it.
+ * Italian is the source; every other language must define every key (enforced by the type).
+ */
+const it = {
+  common: {
+    back: "Indietro",
+    continue: "Continua",
+    cancel: "Annulla",
+    retry: "Riprova",
+    close: "Chiudi",
+    edit: "Modifica",
+    remove: "Elimina",
+    loading: "Caricamento…",
+    optional: "facoltativo",
+    yes: "Sì",
+    no: "No",
+    save: "Salva",
+    language: "Lingua",
+  },
+  start: {
+    title: "Prepariamo insieme la tua pratica",
+    lead: "Rispondi a poche domande e carica i documenti dal telefono. Quando arrivi allo sportello è già tutto pronto.",
+    chooseLanguage: "In che lingua preferisci?",
+    privacy:
+      "Le tue risposte e i tuoi documenti servono solo a preparare la pratica e vengono inviati a {org}.",
+    privacyLink: "Leggi l'informativa",
+    consent: "Ho letto l'informativa e voglio iniziare",
+    consentRequired: "Per iniziare devi accettare l'informativa.",
+    cta: "Inizia",
+    resume: "Riprendi la pratica iniziata",
+    resumeHint: "Hai già iniziato una pratica su questo telefono.",
+    startNew: "Inizia una nuova pratica",
+    officeNotFound: "Questo sportello non esiste o il link non è corretto.",
+    officeNotFoundHint: "Controlla il QR code o chiedi allo sportello un nuovo link.",
+    noAccount: "Non serve registrarsi.",
+    time: "Circa 10 minuti, puoi interrompere e riprendere quando vuoi.",
+    aiNotice:
+      "Ti guida un assistente automatico basato su intelligenza artificiale. Un operatore del CAF controlla tutto prima di fare la pratica.",
+  },
+  need: {
+    title: "Cosa devi fare?",
+    hint: "Scrivilo con parole tue, come lo diresti allo sportello. Puoi aggiungere dettagli sulla tua famiglia.",
+    placeholder: "Per esempio: devo fare l'ISEE per l'asilo di mia figlia",
+    examplesLabel: "Oppure tocca un esempio",
+    examples: [
+      "Devo fare l'ISEE",
+      "Devo fare il 730",
+      "Devo rinnovare il permesso di soggiorno",
+      "Devo chiedere l'assegno unico",
+    ],
+    send: "Continua",
+    pick: "Preferisco scegliere da un elenco",
+    pickTitle: "Scegli la pratica",
+    available: "Disponibile",
+    beta: "In prova",
+    comingSoon: "Presto disponibile",
+    minutes: "circa {n} minuti",
+    tooShort: "Scrivi qualche parola in più.",
+  },
+  interview: {
+    assistant: "Assistente automatico",
+    known: "Abbiamo capito",
+    why: "Perché te lo chiediamo",
+    skip: "Salta",
+    yourAnswers: "Le tue risposte",
+    noAnswers: "Ancora nessuna risposta.",
+    writeInstead: "Scrivi a parole tue",
+    writePlaceholder: "Scrivi qui…",
+    send: "Invia",
+    selectAtLeastOne: "Scegli almeno una risposta.",
+    required: "Questa risposta serve per continuare.",
+    numberInvalid: "Scrivi un numero valido.",
+    thinking: "Sto leggendo…",
+    section: "Sezione",
+  },
+  members: {
+    title: "Persone",
+    add: "Aggiungi una persona",
+    firstName: "Nome",
+    lastName: "Cognome",
+    birthYear: "Anno di nascita",
+    role: "Chi è per te",
+    you: "Tu",
+    confirm: "Conferma il nucleo",
+    empty: "Aggiungi almeno te stesso.",
+    roles: {
+      richiedente: "Io",
+      coniuge: "Coniuge o partner",
+      figlio: "Figlio o figlia",
+      genitore: "Genitore",
+      altro: "Altra persona",
+    } satisfies Record<MemberRole, string>,
+  },
+  docs: {
+    preview: "Anteprima",
+    household: "Per tutta la famiglia",
+    title: "I documenti da preparare",
+    lead: "Fotografa o carica ogni documento. Li controlliamo subito e ti diciamo se manca qualcosa.",
+    progress: "{done} di {total} pronti",
+    upload: "Carica",
+    addPage: "Aggiungi pagina",
+    takePhoto: "Scatta una foto",
+    chooseFile: "Scegli un file",
+    howToGet: "Dove lo trovo",
+    optional: "Se ce l'hai",
+    forMember: "di {name}",
+    checking: "Sto controllando il documento…",
+    uploading: "Caricamento in corso…",
+    uploadAny: "Carica un altro documento",
+    uploadAnyHint: "Non sai a quale voce appartiene? Caricalo qui, lo abbiniamo noi.",
+    unmatched: "Documenti da abbinare",
+    unmatchedHint: "Non siamo sicuri di cosa siano. Scegli tu a quale voce appartengono.",
+    assignTo: "Abbina a",
+    notAssigned: "Nessuna voce",
+    removeConfirm: "Eliminare questo documento?",
+    removed: "Documento eliminato",
+    tooLarge:
+      "Il file è troppo grande. Il massimo è 4 MB: prova a fotografare la pagina invece del PDF.",
+    unsupported: "Questo tipo di file non è supportato. Usa una foto (JPG, PNG) o un PDF.",
+    compressFailed: "Non riesco a ridurre questa foto. Prova a fotografare di nuovo.",
+    allDone: "Tutti i documenti obbligatori sono pronti.",
+    missing: "Ne mancano {n}. Puoi inviare lo stesso: lo sportello te li chiederà.",
+    toReview: "Vai al riepilogo",
+    groupOther: "Altri documenti",
+    operatorNote: "Nota dello sportello",
+    status: {
+      missing: "Da caricare",
+      uploaded: "Caricato",
+      issue: "Da controllare",
+      verified: "Verificato",
+      rejected: "Da rifare",
+      waived: "Non serve",
+    } satisfies Record<ChecklistStatus, string>,
+    pages: "{n} pagine",
+  },
+  review: {
+    missingList: "Cosa manca",
+    title: "Controlla e invia",
+    lead: "Ultimo passo. Lo sportello riceve il fascicolo e ti contatta se serve altro.",
+    practice: "Pratica",
+    household: "Nucleo",
+    documents: "Documenti",
+    contact: "I tuoi contatti",
+    contactHint: "Servono allo sportello per richiamarti. Almeno uno tra telefono ed email.",
+    firstName: "Nome",
+    lastName: "Cognome",
+    phone: "Telefono",
+    email: "Email",
+    note: "Vuoi dire qualcosa allo sportello?",
+    confirm: "Confermo che le informazioni sono vere e voglio inviarle a {org}.",
+    submit: "Invia allo sportello",
+    contactRequired: "Scrivi almeno un telefono o un'email.",
+    fieldRequired: "Campo obbligatorio.",
+    emailInvalid: "Controlla l'email.",
+    confirmRequired: "Devi confermare per inviare.",
+    editAnswers: "Modifica risposte",
+    editDocuments: "Modifica documenti",
+  },
+  done: {
+    title: "Fatto. La pratica è allo sportello.",
+    lead: "Se serve altro ti scriviamo qui e ti contattiamo. Puoi riaprire questo link quando vuoi.",
+    reference: "Codice pratica",
+    bring: "Allo sportello porta un documento d'identità.",
+    save: "Salva questo link: è il tuo accesso personale alla pratica.",
+    copyLink: "Copia il link",
+    copied: "Link copiato",
+    ready: "La pratica è stata verificata dallo sportello.",
+    inReview: "Un operatore sta controllando la pratica.",
+    closed: "La pratica è chiusa.",
+  },
+  request: {
+    title: "Lo sportello ti chiede",
+    lead: "Completa queste voci e la pratica torna allo sportello.",
+    resend: "Ho completato, invia di nuovo",
+  },
+  steps: {
+    need: "Esigenza",
+    interview: "Domande",
+    documents: "Documenti",
+    review: "Invio",
+    submitted: "Inviata",
+  },
+  status: {
+    progress: "Completato al {n}%",
+    expires: "Il link scade il {date}",
+    help: "Hai bisogno di aiuto?",
+    call: "Chiama lo sportello",
+    hours: "Orari",
+  },
+  errors: {
+    expiredTitle: "Questo link è scaduto",
+    expiredBody:
+      "Per sicurezza i link durano un tempo limitato. Chiedi allo sportello di mandartene uno nuovo.",
+    notFoundTitle: "Link non valido",
+    notFoundBody:
+      "Controlla di aver copiato tutto il link, oppure chiedi allo sportello di inviarlo di nuovo.",
+    generic: "Qualcosa non ha funzionato. Riprova tra poco.",
+    network: "Connessione assente. Controlla la rete e riprova.",
+    rateLimited: "Troppi tentativi in poco tempo. Aspetta un minuto e riprova.",
+    offline: "Sei offline. Le modifiche verranno salvate quando torna la connessione.",
+  },
+};
+
+export type CitizenMessages = typeof it;
+
+type Widen<T> = T extends string
+  ? string
+  : T extends readonly string[]
+    ? readonly string[]
+    : { [K in keyof T]: Widen<T[K]> };
+
+const en: Widen<CitizenMessages> = {
+  common: {
+    back: "Back",
+    continue: "Continue",
+    cancel: "Cancel",
+    retry: "Try again",
+    close: "Close",
+    edit: "Edit",
+    remove: "Delete",
+    loading: "Loading…",
+    optional: "optional",
+    yes: "Yes",
+    no: "No",
+    save: "Save",
+    language: "Language",
+  },
+  start: {
+    title: "Let's prepare your application together",
+    lead: "Answer a few questions and upload your documents from your phone. When you get to the office, everything is ready.",
+    chooseLanguage: "Which language do you prefer?",
+    privacy:
+      "Your answers and documents are only used to prepare your application and are sent to {org}.",
+    privacyLink: "Read the privacy notice",
+    consent: "I have read the privacy notice and want to start",
+    consentRequired: "You need to accept the privacy notice to start.",
+    cta: "Start",
+    resume: "Continue where you left off",
+    resumeHint: "You already started an application on this phone.",
+    startNew: "Start a new application",
+    officeNotFound: "This office doesn't exist or the link is wrong.",
+    officeNotFoundHint: "Check the QR code or ask the office for a new link.",
+    noAccount: "No sign-up needed.",
+    time: "About 10 minutes. You can stop and come back whenever you like.",
+    aiNotice:
+      "You'll be guided by an automated assistant that uses artificial intelligence. A CAF operator checks everything before handling your application.",
+  },
+  need: {
+    title: "What do you need to do?",
+    hint: "Write it in your own words, as you would say it at the office. You can add details about your family.",
+    placeholder: "For example: I need the ISEE for my daughter's nursery",
+    examplesLabel: "Or tap an example",
+    examples: [
+      "I need to do the ISEE",
+      "I need to do the 730 tax return",
+      "I need to renew my residence permit",
+      "I want to apply for the Assegno unico",
+    ],
+    send: "Continue",
+    pick: "I'd rather choose from a list",
+    pickTitle: "Choose the service",
+    available: "Available",
+    beta: "Trial",
+    comingSoon: "Coming soon",
+    minutes: "about {n} minutes",
+    tooShort: "Please write a few more words.",
+  },
+  interview: {
+    assistant: "Automated assistant",
+    known: "What we understood",
+    why: "Why we ask",
+    skip: "Skip",
+    yourAnswers: "Your answers",
+    noAnswers: "No answers yet.",
+    writeInstead: "Write it in your own words",
+    writePlaceholder: "Write here…",
+    send: "Send",
+    selectAtLeastOne: "Choose at least one answer.",
+    required: "We need this answer to continue.",
+    numberInvalid: "Please enter a valid number.",
+    thinking: "Reading…",
+    section: "Section",
+  },
+  members: {
+    title: "People",
+    add: "Add a person",
+    firstName: "First name",
+    lastName: "Last name",
+    birthYear: "Year of birth",
+    role: "Who they are to you",
+    you: "You",
+    confirm: "Confirm household",
+    empty: "Add at least yourself.",
+    roles: {
+      richiedente: "Me",
+      coniuge: "Spouse or partner",
+      figlio: "Son or daughter",
+      genitore: "Parent",
+      altro: "Someone else",
+    },
+  },
+  docs: {
+    preview: "Preview",
+    household: "For the whole household",
+    title: "Documents to prepare",
+    lead: "Take a photo of each document or upload it. We check it right away and tell you if anything is missing.",
+    progress: "{done} of {total} ready",
+    upload: "Upload",
+    addPage: "Add page",
+    takePhoto: "Take a photo",
+    chooseFile: "Choose a file",
+    howToGet: "Where to find it",
+    optional: "If you have it",
+    forMember: "for {name}",
+    checking: "Checking the document…",
+    uploading: "Uploading…",
+    uploadAny: "Upload another document",
+    uploadAnyHint: "Not sure where it belongs? Upload it here and we'll sort it.",
+    unmatched: "Documents to sort",
+    unmatchedHint: "We're not sure what these are. Choose where each one belongs.",
+    assignTo: "Belongs to",
+    notAssigned: "Nothing",
+    removeConfirm: "Delete this document?",
+    removed: "Document deleted",
+    tooLarge:
+      "The file is too large. The limit is 4 MB: try taking a photo of the page instead of the PDF.",
+    unsupported: "This file type isn't supported. Use a photo (JPG, PNG) or a PDF.",
+    compressFailed: "We couldn't shrink this photo. Please take it again.",
+    allDone: "All required documents are ready.",
+    missing: "{n} still missing. You can send anyway: the office will ask you for them.",
+    toReview: "Go to summary",
+    groupOther: "Other documents",
+    operatorNote: "Note from the office",
+    status: {
+      missing: "To upload",
+      uploaded: "Uploaded",
+      issue: "Needs a look",
+      verified: "Verified",
+      rejected: "Redo",
+      waived: "Not needed",
+    },
+    pages: "{n} pages",
+  },
+  review: {
+    missingList: "What's missing",
+    title: "Check and send",
+    lead: "Last step. The office receives your file and contacts you if anything else is needed.",
+    practice: "Service",
+    household: "Household",
+    documents: "Documents",
+    contact: "Your contact details",
+    contactHint: "The office needs them to call you back. At least a phone number or an email.",
+    firstName: "First name",
+    lastName: "Last name",
+    phone: "Phone",
+    email: "Email",
+    note: "Anything you want to tell the office?",
+    confirm: "I confirm the information is true and I want to send it to {org}.",
+    submit: "Send to the office",
+    contactRequired: "Add at least a phone number or an email.",
+    fieldRequired: "Required field.",
+    emailInvalid: "Check the email address.",
+    confirmRequired: "You need to confirm to send.",
+    editAnswers: "Edit answers",
+    editDocuments: "Edit documents",
+  },
+  done: {
+    title: "Done. Your file is at the office.",
+    lead: "If anything else is needed we'll write to you here and contact you. You can open this link again at any time.",
+    reference: "Reference code",
+    bring: "Bring an identity document to the office.",
+    save: "Save this link: it's your personal access to the application.",
+    copyLink: "Copy link",
+    copied: "Link copied",
+    ready: "The office has checked your file.",
+    inReview: "An operator is reviewing your file.",
+    closed: "This application is closed.",
+  },
+  request: {
+    title: "The office is asking for",
+    lead: "Complete these items and your file goes back to the office.",
+    resend: "Done, send it again",
+  },
+  steps: {
+    need: "Need",
+    interview: "Questions",
+    documents: "Documents",
+    review: "Send",
+    submitted: "Sent",
+  },
+  status: {
+    progress: "{n}% complete",
+    expires: "This link expires on {date}",
+    help: "Need help?",
+    call: "Call the office",
+    hours: "Opening hours",
+  },
+  errors: {
+    expiredTitle: "This link has expired",
+    expiredBody:
+      "For your security, links only last a limited time. Ask the office to send you a new one.",
+    notFoundTitle: "Invalid link",
+    notFoundBody: "Check that you copied the whole link, or ask the office to send it again.",
+    generic: "Something went wrong. Please try again shortly.",
+    network: "No connection. Check your network and try again.",
+    rateLimited: "Too many attempts. Wait a minute and try again.",
+    offline: "You're offline. Changes will be saved when the connection is back.",
+  },
+};
+
+export const MESSAGES: Record<Language, Widen<CitizenMessages>> = {
+  it,
+  en,
+  fr,
+  es,
+  ro,
+  uk,
+  ar,
+  bn,
+};
+export type { Widen };
+
+export function messagesFor(language: Language) {
+  return MESSAGES[language] ?? it;
+}
+
+/** Replace `{name}` placeholders. Missing values are left visible so they get noticed. */
+export function format(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
+    key in values ? String(values[key]) : match,
+  );
+}
+
+export function errorMessage(m: Widen<CitizenMessages>, code: ErrorCode | "network") {
+  switch (code) {
+    case "link_expired":
+      return m.errors.expiredBody;
+    case "not_found":
+      return m.errors.notFoundBody;
+    case "rate_limited":
+      return m.errors.rateLimited;
+    case "file_too_large":
+      return m.docs.tooLarge;
+    case "unsupported_file":
+      return m.docs.unsupported;
+    case "network":
+      return m.errors.network;
+    default:
+      return m.errors.generic;
+  }
+}
+
+export const LANGUAGE_NAMES: Record<Language, { native: string; italian: string }> = {
+  it: { native: "Italiano", italian: "Italiano" },
+  en: { native: "English", italian: "Inglese" },
+  fr: { native: "Français", italian: "Francese" },
+  es: { native: "Español", italian: "Spagnolo" },
+  ro: { native: "Română", italian: "Rumeno" },
+  uk: { native: "Українська", italian: "Ucraino" },
+  ar: { native: "العربية", italian: "Arabo" },
+  bn: { native: "বাংলা", italian: "Bengalese" },
+};
