@@ -59,7 +59,8 @@ precedente. Download: attachment, nosniff; storage key e URL Blob mai esposti.
 
 Cookie `avanti_session`, HttpOnly, SameSite=Lax, Secure in produzione, path `/api`, durata
 scorrevole 8 ore. Solo hash del token salvato. Origin deve coincidere con l’origine della richiesta o con `PUBLIC_APP_URL` per
-login/logout e modifiche operatore. Se manca, è accettato soltanto
+login/logout e modifiche operatore. Se Next normalizza il nome host dell’URL, si usa
+anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è accettato soltanto
 `Sec-Fetch-Site: same-origin`; un Origin presente e diverso resta rifiutato.
 
 | Metodo | Percorso                                 | Input                        | Risposta                                              |

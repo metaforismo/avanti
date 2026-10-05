@@ -67,6 +67,11 @@ pnpm check
 pnpm build
 ```
 
+Se il watcher nel sandbox macOS restituisce `EMFILE`, lo smoke locale può usare
+`WATCHPACK_POLLING=1000 pnpm dev --env-mode=loose -- --port=3417`.
+La modalità `loose` passa l’impostazione di polling al processo Next; la porta diversa
+consente di mantenere avviato l’altro worktree.
+
 Il seed crea **CAF Demo Milano**, sedi `demo-milano-centro` e
 `demo-milano-loreto`, dieci fascicoli e PDF chiaramente marcati ESEMPIO. Le
 metriche demo sono sintetiche, non risultati del pilota. Credenziali locali:

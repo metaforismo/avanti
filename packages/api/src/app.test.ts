@@ -731,6 +731,33 @@ describe("authentication and tenant isolation", () => {
     },
   );
 
+  it("accepts the incoming Host when Next normalizes the request URL to localhost", async () => {
+    const response = await app.request("http://localhost:3417/api/auth/login", {
+      method: "POST",
+      headers: {
+        Host: "127.0.0.1:3417",
+        Origin: "http://127.0.0.1:3417",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: "a@example.test", password }),
+    });
+    expect(response.status).toBe(200);
+    Operator.parse(await response.json());
+    await error(
+      await app.request("http://localhost:3417/api/auth/login", {
+        method: "POST",
+        headers: {
+          Host: "127.0.0.1:3417",
+          Origin: "https://foreign.example",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: "a@example.test", password }),
+      }),
+      403,
+      "forbidden",
+    );
+  });
+
   it("uses Sec-Fetch-Site only when Origin is missing", async () => {
     const auth = { email: "a@example.test", password };
     const response = await app.request("/api/auth/login", {
