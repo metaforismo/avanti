@@ -192,14 +192,14 @@ export function IntakeDemo() {
         ))}
       </div>
 
-      <figure className="bg-surface shadow-raised ring-line rounded-xl p-5 ring-1 sm:p-6">
-        <figcaption className="text-ink-3 mb-3 flex items-center justify-between text-sm">
+      <figure className="rounded-xl bg-surface p-5 shadow-raised ring-1 ring-line sm:p-6">
+        <figcaption className="mb-3 flex items-center justify-between text-sm text-ink-3">
           <span>Il cittadino scrive, a modo suo</span>
           {done && !reduced && (
             <button
               type="button"
               onClick={replay}
-              className="text-ink-3 animate-fade-in hover:text-ink -m-1.5 inline-flex items-center gap-1 rounded-sm p-1.5"
+              className="-m-1.5 inline-flex animate-fade-in items-center gap-1 rounded-sm p-1.5 text-ink-3 hover:text-ink"
             >
               <RotateCcw className="size-3.5" aria-hidden />
               Rivedi
@@ -210,7 +210,7 @@ export function IntakeDemo() {
           key={sample.lang}
           lang={sample.lang}
           dir={sample.dir}
-          className="animate-fade-in text-ink text-[1.1875rem] leading-[1.7] sm:text-xl"
+          className="animate-fade-in text-[1.1875rem] leading-[1.7] text-ink sm:text-xl"
         >
           {sample.segments.map((segment, i) =>
             typeof segment === "string" ? (
@@ -239,13 +239,13 @@ export function IntakeDemo() {
 
       <section
         aria-label="Fascicolo per l'operatore"
-        className="bg-surface shadow-float ring-line relative rounded-xl ring-1"
+        className="relative rounded-xl bg-surface shadow-float ring-1 ring-line"
       >
-        <div className="border-line flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line px-5 py-4 sm:px-6">
           <h3 className="font-display text-lg font-semibold tracking-[-0.01em]">
             Fascicolo per l&apos;operatore
           </h3>
-          <span className="text-ink-3 font-mono text-xs whitespace-nowrap">AV-2027-000318</span>
+          <span className="font-mono text-xs whitespace-nowrap text-ink-3">AV-2027-000318</span>
         </div>
         <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 px-5 py-4 text-[0.9375rem] sm:px-6">
           {FACTS.map((fact, i) => (
@@ -255,7 +255,7 @@ export function IntakeDemo() {
                 <span
                   aria-hidden
                   className={cn(
-                    "bg-sunk absolute inset-y-1 left-0 w-28 rounded-xs transition-opacity duration-200",
+                    "absolute inset-y-1 left-0 w-28 rounded-xs bg-sunk transition-opacity duration-200",
                     shown > i ? "opacity-0" : "opacity-100",
                   )}
                 />
@@ -273,7 +273,7 @@ export function IntakeDemo() {
         </dl>
         <ul
           className={cn(
-            "border-line grid gap-2 border-t border-dashed px-5 py-4 text-[0.9375rem] transition-opacity duration-500 sm:px-6",
+            "grid gap-2 border-t border-dashed border-line px-5 py-4 text-[0.9375rem] transition-opacity duration-500 sm:px-6",
             done ? "opacity-100" : "opacity-0",
           )}
           aria-hidden={!done}
@@ -281,14 +281,14 @@ export function IntakeDemo() {
           {CHECKLIST.map((item) => (
             <li key={item.label} className="flex items-start gap-2.5">
               {item.state === "ok" ? (
-                <Check className="text-ok mt-0.5 size-4 shrink-0" aria-label="Presente" />
+                <Check className="mt-0.5 size-4 shrink-0 text-ok" aria-label="Presente" />
               ) : (
                 <AlertTriangle
-                  className="text-warn mt-0.5 size-4 shrink-0"
+                  className="mt-0.5 size-4 shrink-0 text-warn"
                   aria-label="Da completare"
                 />
               )}
-              <span className={item.state === "warn" ? "text-ink font-semibold" : "text-ink-2"}>
+              <span className={item.state === "warn" ? "font-semibold text-ink" : "text-ink-2"}>
                 {item.label}
               </span>
             </li>
@@ -296,7 +296,7 @@ export function IntakeDemo() {
         </ul>
         <div
           className={cn(
-            "bg-warn-wash text-warn flex items-center justify-between gap-3 rounded-b-xl px-5 py-3 text-sm transition-opacity duration-500 sm:px-6",
+            "flex items-center justify-between gap-3 rounded-b-xl bg-warn-wash px-5 py-3 text-sm text-warn transition-opacity duration-500 sm:px-6",
             done ? "opacity-100" : "opacity-0",
           )}
         >

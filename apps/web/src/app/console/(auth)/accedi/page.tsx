@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Accesso operatori", robots: { index:
 export default function LoginPage() {
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,32rem)]">
-      <section className="bg-ink hidden flex-col justify-between p-12 text-white lg:flex">
+      <section className="hidden flex-col justify-between bg-ink p-12 text-white lg:flex">
         <Link href="/" className="w-fit rounded-sm [&_span]:text-white">
           <Logo />
         </Link>
@@ -31,7 +31,7 @@ export default function LoginPage() {
           <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">
             Accedi alla console
           </h1>
-          <p className="text-ink-2 mt-2">
+          <p className="mt-2 text-ink-2">
             Usa le credenziali che ti ha dato il responsabile del tuo CAF.
           </p>
           <Suspense>

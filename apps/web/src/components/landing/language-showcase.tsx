@@ -111,7 +111,7 @@ export function LanguageShowcase() {
             className={cn(
               "rounded-sm px-3 py-2 text-left text-base transition-colors duration-150 lg:py-2.5",
               i === active
-                ? "bg-surface text-ink shadow-raised ring-line font-semibold ring-1"
+                ? "bg-surface font-semibold text-ink shadow-raised ring-1 ring-line"
                 : "text-ink-2 hover:text-ink",
             )}
           >
@@ -130,25 +130,25 @@ export function LanguageShowcase() {
           key={current.lang}
           lang={current.lang}
           dir={current.dir}
-          className="animate-rise bg-surface shadow-raised ring-line rounded-xl p-6 ring-1"
+          className="animate-rise rounded-xl bg-surface p-6 shadow-raised ring-1 ring-line"
         >
-          <p className="text-ink-3 mb-4 text-sm" dir="ltr" lang="it">
+          <p className="mb-4 text-sm text-ink-3" dir="ltr" lang="it">
             Cosa vede il cittadino
           </p>
           <p className="font-display text-2xl font-semibold tracking-[-0.01em]">{current.q}</p>
-          <p className="text-ink-2 mt-2">{current.help}</p>
+          <p className="mt-2 text-ink-2">{current.help}</p>
           <div className="mt-5 grid gap-2">
             {current.options.map((option) => (
               <span
                 key={option}
-                className="text-ink ring-line-strong rounded-md px-4 py-3 ring-1 ring-inset"
+                className="rounded-md px-4 py-3 text-ink ring-1 ring-line-strong ring-inset"
               >
                 {option}
               </span>
             ))}
           </div>
         </div>
-        <div aria-hidden className="text-ink-3 hidden items-center md:flex">
+        <div aria-hidden className="hidden items-center text-ink-3 md:flex">
           <svg
             viewBox="0 0 24 24"
             className="size-6"
@@ -159,19 +159,19 @@ export function LanguageShowcase() {
             <path d="M5 12h14m-5-5 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <div className="bg-folder/60 ring-folder rounded-xl p-6 ring-1">
-          <p className="text-ink-3 mb-4 text-sm">Cosa legge l&apos;operatore</p>
+        <div className="rounded-xl bg-folder/60 p-6 ring-1 ring-folder">
+          <p className="mb-4 text-sm text-ink-3">Cosa legge l&apos;operatore</p>
           <dl className="grid gap-3">
             <div>
-              <dt className="text-ink-3 text-sm">Domanda</dt>
+              <dt className="text-sm text-ink-3">Domanda</dt>
               <dd className="font-semibold">Composizione del nucleo familiare</dd>
             </div>
             <div>
-              <dt className="text-ink-3 text-sm">Risposta</dt>
+              <dt className="text-sm text-ink-3">Risposta</dt>
               <dd className="font-semibold">3 persone: richiedente, coniuge, figlia</dd>
             </div>
             <div>
-              <dt className="text-ink-3 text-sm">Lingua del cittadino</dt>
+              <dt className="text-sm text-ink-3">Lingua del cittadino</dt>
               <dd className="font-semibold" lang="it">
                 {current.lang === "it" ? "Italiano" : `${current.itName}, tradotto in italiano`}
               </dd>

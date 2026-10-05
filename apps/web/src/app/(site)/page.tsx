@@ -107,14 +107,14 @@ export default function HomePage() {
       {/* Hero */}
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pt-10 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-16 lg:pb-28">
         <div className="flex flex-col justify-center">
-          <p className="bg-surface text-ink-2 ring-line mb-6 inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-sm ring-1">
-            <span className="bg-ok size-1.5 rounded-full" aria-hidden />
+          <p className="mb-6 inline-flex w-fit items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-sm text-ink-2 ring-1 ring-line">
+            <span className="size-1.5 rounded-full bg-ok" aria-hidden />
             Pilota ISEE con i CAF, gennaio 2027
           </p>
           <h1 className="font-display text-[clamp(2.75rem,7vw,5.25rem)] leading-[0.95] font-bold tracking-[-0.035em] [font-stretch:88%]">
             Il fascicolo arriva pronto.
           </h1>
-          <p className="text-ink-2 mt-6 max-w-[34rem] text-lg leading-relaxed sm:text-xl">
+          <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-ink-2 sm:text-xl">
             Avanti è il front office AI per CAF e patronati. Ascolta il cittadino nella sua lingua,
             prepara la checklist, controlla i documenti. Allo sportello resta il lavoro che conta.
           </p>
@@ -131,7 +131,7 @@ export default function HomePage() {
       </section>
 
       {/* Desk questions */}
-      <section aria-labelledby="sportello-title" className="border-line bg-surface border-y">
+      <section aria-labelledby="sportello-title" className="border-y border-line bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
           <div className="max-w-2xl">
             <h2
@@ -140,21 +140,21 @@ export default function HomePage() {
             >
               Prima di aprire la pratica, lo sportello fa domande. Sempre le stesse.
             </h2>
-            <p className="text-ink-2 mt-5 text-lg">
+            <p className="mt-5 text-lg text-ink-2">
               Capire cosa serve, chiedere i documenti, scoprire cosa manca, richiamare. Avanti fa
               questa parte prima che il cittadino si sieda.
             </p>
           </div>
-          <dl className="divide-line border-line mt-14 divide-y border-y">
+          <dl className="mt-14 divide-y divide-line border-y border-line">
             {DESK_QUESTIONS.map((item) => (
               <div
                 key={item.asked}
                 className="grid gap-2 py-7 md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10"
               >
-                <dt className="font-display text-ink text-xl font-semibold tracking-[-0.01em] sm:text-2xl">
+                <dt className="font-display text-xl font-semibold tracking-[-0.01em] text-ink sm:text-2xl">
                   {item.asked}
                 </dt>
-                <dd className="text-ink-2 max-w-xl text-[1.0625rem] leading-relaxed">
+                <dd className="max-w-xl text-[1.0625rem] leading-relaxed text-ink-2">
                   {item.answer}
                 </dd>
               </div>
@@ -171,7 +171,7 @@ export default function HomePage() {
       >
         <h2
           id="come-title"
-          className="font-display max-w-2xl text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+          className="max-w-2xl font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
         >
           Dal «devo fare l&apos;ISEE» al fascicolo, in quattro passaggi.
         </h2>
@@ -179,17 +179,17 @@ export default function HomePage() {
           {STEPS.map((step, i) => (
             <li key={step.title} className="relative">
               <div className="flex items-center gap-3">
-                <span className="bg-stamp font-display tabular grid size-9 place-items-center rounded-full text-base font-bold text-white">
+                <span className="tabular grid size-9 place-items-center rounded-full bg-stamp font-display text-base font-bold text-white">
                   {i + 1}
                 </span>
                 {i < STEPS.length - 1 && (
-                  <span aria-hidden className="bg-line-strong hidden h-px flex-1 lg:block" />
+                  <span aria-hidden className="hidden h-px flex-1 bg-line-strong lg:block" />
                 )}
               </div>
-              <h3 className="font-display mt-5 text-2xl font-semibold tracking-[-0.015em]">
+              <h3 className="mt-5 font-display text-2xl font-semibold tracking-[-0.015em]">
                 {step.title}
               </h3>
-              <p className="text-ink-2 mt-2 leading-relaxed">{step.body}</p>
+              <p className="mt-2 leading-relaxed text-ink-2">{step.body}</p>
             </li>
           ))}
         </ol>
@@ -229,7 +229,7 @@ export default function HomePage() {
                 },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex gap-3.5 text-white/90">
-                  <Icon className="text-marker mt-0.5 size-5 shrink-0" aria-hidden />
+                  <Icon className="mt-0.5 size-5 shrink-0 text-marker" aria-hidden />
                   {text}
                 </li>
               ))}
@@ -252,7 +252,7 @@ export default function HomePage() {
           >
             Ognuno risponde nella sua lingua. Lo sportello legge in italiano.
           </h2>
-          <p className="text-ink-2 mt-5 text-lg">
+          <p className="mt-5 text-lg text-ink-2">
             Per chi è arrivato da poco, la parte difficile non è la pratica: è capire cosa chiedono.
             Avanti spiega con parole semplici e lascia in italiano i nomi che si troveranno scritti
             sui documenti.
@@ -267,7 +267,7 @@ export default function HomePage() {
       <section
         id="pratiche"
         aria-labelledby="pratiche-title"
-        className="border-line bg-surface border-y"
+        className="border-y border-line bg-surface"
       >
         <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
           <div>
@@ -277,27 +277,27 @@ export default function HomePage() {
             >
               Si parte dall&apos;ISEE. Il resto segue il calendario dei CAF.
             </h2>
-            <p className="text-ink-2 mt-5 text-lg">
+            <p className="mt-5 text-lg text-ink-2">
               Gennaio è il mese più pesante per l&apos;ISEE, aprile apre la campagna 730. Ogni
               pratica arriva quando è verificata con chi la fa ogni giorno.
             </p>
           </div>
-          <ol className="border-line-strong relative grid gap-0 border-s ps-8">
+          <ol className="relative grid gap-0 border-s border-line-strong ps-8">
             {PRACTICES.map((p) => (
               <li key={p.name} className="relative pb-8 last:pb-0">
                 <span
                   aria-hidden
                   className={
                     p.live
-                      ? "bg-stamp ring-stamp-wash absolute top-1.5 -left-[2.4rem] size-3.5 rounded-full ring-4"
-                      : "bg-surface ring-line-strong absolute top-1.5 -left-[2.3rem] size-3 rounded-full ring-2"
+                      ? "absolute top-1.5 -left-[2.4rem] size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
+                      : "absolute top-1.5 -left-[2.3rem] size-3 rounded-full bg-surface ring-2 ring-line-strong"
                   }
                 />
-                <p className="text-ink-3 tabular text-sm">{p.when}</p>
-                <h3 className="font-display mt-0.5 text-xl font-semibold tracking-[-0.01em]">
+                <p className="tabular text-sm text-ink-3">{p.when}</p>
+                <h3 className="mt-0.5 font-display text-xl font-semibold tracking-[-0.01em]">
                   {p.name}
                 </h3>
-                <p className={p.live ? "text-stamp mt-1 font-semibold" : "text-ink-2 mt-1"}>
+                <p className={p.live ? "mt-1 font-semibold text-stamp" : "mt-1 text-ink-2"}>
                   {p.status}
                 </p>
               </li>
@@ -313,7 +313,7 @@ export default function HomePage() {
       >
         <h2
           id="limiti-title"
-          className="font-display max-w-2xl text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+          className="max-w-2xl font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
         >
           Cosa Avanti non fa, di proposito.
         </h2>
@@ -323,17 +323,17 @@ export default function HomePage() {
               <h3 className="font-display text-xl font-semibold tracking-[-0.01em]">
                 {item.title}
               </h3>
-              <p className="text-ink-2 mt-2 leading-relaxed">{item.body}</p>
+              <p className="mt-2 leading-relaxed text-ink-2">{item.body}</p>
             </div>
           ))}
         </div>
-        <div className="bg-folder/55 mt-14 flex flex-col gap-5 rounded-xl p-6 sm:flex-row sm:items-start sm:p-8">
-          <ShieldCheck className="text-stamp size-7 shrink-0" aria-hidden />
+        <div className="mt-14 flex flex-col gap-5 rounded-xl bg-folder/55 p-6 sm:flex-row sm:items-start sm:p-8">
+          <ShieldCheck className="size-7 shrink-0 text-stamp" aria-hidden />
           <div>
             <h3 className="font-display text-xl font-semibold tracking-[-0.01em]">
               Documenti di persone vere, trattati di conseguenza
             </h3>
-            <p className="text-ink-2 mt-2 max-w-3xl leading-relaxed">
+            <p className="mt-2 max-w-3xl leading-relaxed text-ink-2">
               Il CAF resta titolare dei dati. Il cittadino accede con un link personale che scade,
               senza password da ricordare. Ogni apertura del fascicolo è registrata, i documenti si
               cancellano alla fine del periodo di conservazione e l&apos;AI riceve solo ciò che
@@ -347,7 +347,7 @@ export default function HomePage() {
       <section
         id="pilota"
         aria-labelledby="pilota-title"
-        className="border-line bg-sunk/60 border-t"
+        className="border-t border-line bg-sunk/60"
       >
         <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:py-28">
           <div>
@@ -357,19 +357,19 @@ export default function HomePage() {
             >
               Cerchiamo tre sportelli per il picco ISEE di gennaio.
             </h2>
-            <p className="text-ink-2 mt-5 text-lg">
+            <p className="mt-5 text-lg text-ink-2">
               Installazione e formazione tra novembre e dicembre, uso vero a gennaio. Gratis fino al
               31 marzo 2027.
             </p>
             <h3 className="mt-10 font-semibold">In cambio vi chiediamo</h3>
-            <ul className="text-ink-2 mt-3 grid gap-3">
+            <ul className="mt-3 grid gap-3 text-ink-2">
               {[
                 "Una settimana di misure prima di iniziare, per avere un punto di partenza onesto",
                 "Mezz'ora a settimana per dirci cosa non funziona",
                 "Il permesso di raccontare i risultati, anche se non sono quelli sperati",
               ].map((text) => (
                 <li key={text} className="flex gap-3">
-                  <Check className="text-ok mt-1 size-4 shrink-0" aria-hidden />
+                  <Check className="mt-1 size-4 shrink-0 text-ok" aria-hidden />
                   {text}
                 </li>
               ))}
@@ -390,14 +390,14 @@ export default function HomePage() {
         >
           Domande dei CAF
         </h2>
-        <div className="divide-line border-line mt-10 divide-y border-y">
+        <div className="mt-10 divide-y divide-line border-y border-line">
           {FAQ.map((item) => (
             <details key={item.q} className="group py-1">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-sm py-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">
                 {item.q}
                 <span
                   aria-hidden
-                  className="text-ink-3 ring-line-strong grid size-7 shrink-0 place-items-center rounded-full ring-1 transition-transform duration-200 ease-(--ease-out) group-open:rotate-45"
+                  className="grid size-7 shrink-0 place-items-center rounded-full text-ink-3 ring-1 ring-line-strong transition-transform duration-200 ease-(--ease-out) group-open:rotate-45"
                 >
                   <svg
                     viewBox="0 0 12 12"
@@ -410,7 +410,7 @@ export default function HomePage() {
                   </svg>
                 </span>
               </summary>
-              <p className="text-ink-2 pb-5 leading-relaxed">{item.a}</p>
+              <p className="pb-5 leading-relaxed text-ink-2">{item.a}</p>
             </details>
           ))}
         </div>
@@ -429,28 +429,28 @@ function DossierPreview() {
     { label: "Targa del veicolo", state: "ok", note: "Dichiarata dal cittadino" },
   ] as const;
   return (
-    <figure className="bg-paper text-ink shadow-float self-center rounded-xl ring-1 ring-white/10">
-      <div className="border-line flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6">
+    <figure className="self-center rounded-xl bg-paper text-ink shadow-float ring-1 ring-white/10">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
         <div>
           <p className="font-display text-lg font-semibold tracking-[-0.01em]">
             ISEE ordinario 2027
           </p>
-          <p className="text-ink-3 text-sm">Mario Rossi, nucleo di 3 persone</p>
+          <p className="text-sm text-ink-3">Mario Rossi, nucleo di 3 persone</p>
         </div>
-        <span className="bg-warn-wash text-warn rounded-full px-2.5 py-1 text-sm font-semibold">
+        <span className="rounded-full bg-warn-wash px-2.5 py-1 text-sm font-semibold text-warn">
           12 di 13 documenti
         </span>
       </div>
-      <ul className="divide-line divide-y">
+      <ul className="divide-y divide-line">
         {rows.map((row) => (
           <li key={row.label} className="flex items-center gap-3 px-5 py-3.5 sm:px-6">
             <span
               className={
                 row.state === "ok"
-                  ? "bg-ok-wash text-ok grid size-6 shrink-0 place-items-center rounded-full"
+                  ? "grid size-6 shrink-0 place-items-center rounded-full bg-ok-wash text-ok"
                   : row.state === "warn"
-                    ? "bg-warn-wash text-warn grid size-6 shrink-0 place-items-center rounded-full"
-                    : "bg-danger-wash text-danger grid size-6 shrink-0 place-items-center rounded-full"
+                    ? "grid size-6 shrink-0 place-items-center rounded-full bg-warn-wash text-warn"
+                    : "grid size-6 shrink-0 place-items-center rounded-full bg-danger-wash text-danger"
               }
               aria-label={
                 row.state === "ok" ? "Presente" : row.state === "warn" ? "Avviso" : "Mancante"
@@ -464,12 +464,12 @@ function DossierPreview() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate font-semibold">{row.label}</span>
-              <span className="text-ink-3 block text-sm">{row.note}</span>
+              <span className="block text-sm text-ink-3">{row.note}</span>
             </span>
           </li>
         ))}
       </ul>
-      <figcaption className="border-line bg-sunk text-ink-3 rounded-b-xl border-t px-5 py-3 text-sm sm:px-6">
+      <figcaption className="rounded-b-xl border-t border-line bg-sunk px-5 py-3 text-sm text-ink-3 sm:px-6">
         Esempio con dati inventati
       </figcaption>
     </figure>

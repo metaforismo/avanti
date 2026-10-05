@@ -74,11 +74,11 @@ export function PilotForm() {
     return (
       <div
         role="status"
-        className="animate-rise bg-surface shadow-raised ring-line rounded-xl p-8 ring-1"
+        className="animate-rise rounded-xl bg-surface p-8 shadow-raised ring-1 ring-line"
       >
-        <CheckCircle2 className="text-ok size-8" aria-hidden />
-        <h3 className="font-display mt-4 text-2xl font-semibold">Richiesta ricevuta</h3>
-        <p className="text-ink-2 mt-2 max-w-md">
+        <CheckCircle2 className="size-8 text-ok" aria-hidden />
+        <h3 className="mt-4 font-display text-2xl font-semibold">Richiesta ricevuta</h3>
+        <p className="mt-2 max-w-md text-ink-2">
           Ti ricontattiamo per fissare una chiamata di mezz’ora e capire se il pilota fa per il tuo
           sportello.
         </p>
@@ -90,7 +90,7 @@ export function PilotForm() {
     <form
       noValidate
       onSubmit={onSubmit}
-      className="bg-surface shadow-raised ring-line grid gap-5 rounded-xl p-6 ring-1 sm:p-8"
+      className="grid gap-5 rounded-xl bg-surface p-6 shadow-raised ring-1 ring-line sm:p-8"
     >
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Nome e cognome" error={errors.name}>
@@ -152,31 +152,31 @@ export function PilotForm() {
       </div>
 
       <div className="grid gap-1.5">
-        <label className="text-ink-2 flex items-start gap-3 text-sm">
+        <label className="flex items-start gap-3 text-sm text-ink-2">
           <input
             type="checkbox"
             name="privacyAccepted"
             aria-invalid={errors.privacyAccepted ? true : undefined}
             aria-describedby={errors.privacyAccepted ? "privacy-error" : undefined}
-            className="accent-stamp mt-0.5 size-5 shrink-0"
+            className="mt-0.5 size-5 shrink-0 accent-stamp"
           />
           <span>
             Acconsento a essere ricontattato per il programma pilota, come descritto nell&apos;
-            <Link href="/privacy" className="text-stamp font-semibold underline underline-offset-2">
+            <Link href="/privacy" className="font-semibold text-stamp underline underline-offset-2">
               informativa privacy
             </Link>
             .
           </span>
         </label>
         {errors.privacyAccepted && (
-          <p id="privacy-error" role="alert" className="text-danger text-sm font-medium">
+          <p id="privacy-error" role="alert" className="text-sm font-medium text-danger">
             {errors.privacyAccepted}
           </p>
         )}
       </div>
 
       {formError && (
-        <p role="alert" className="bg-danger-wash text-danger rounded-md px-4 py-3 text-sm">
+        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
           {formError}
         </p>
       )}
@@ -185,7 +185,7 @@ export function PilotForm() {
         <Button type="submit" size="lg" loading={status === "sending"}>
           Candida il tuo sportello
         </Button>
-        <p className="text-ink-3 text-sm">Nessun impegno: prima ci parliamo.</p>
+        <p className="text-sm text-ink-3">Nessun impegno: prima ci parliamo.</p>
       </div>
     </form>
   );

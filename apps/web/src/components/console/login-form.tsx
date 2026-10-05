@@ -68,7 +68,7 @@ export function LoginForm() {
       {error && (
         <p
           role="alert"
-          className="animate-fade-in bg-danger-wash text-danger rounded-md px-4 py-3 text-sm"
+          className="animate-fade-in rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
         >
           {error}
         </p>
@@ -76,7 +76,7 @@ export function LoginForm() {
       <Button type="submit" size="lg" loading={pending}>
         Accedi
       </Button>
-      <p className="text-ink-3 text-sm">
+      <p className="text-sm text-ink-3">
         Password dimenticata? Chiedi al responsabile del tuo CAF di reimpostarla.
       </p>
     </form>

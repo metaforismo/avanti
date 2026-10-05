@@ -37,7 +37,7 @@ export default function PrivacyPage() {
       <h1 className="font-display text-[clamp(2.25rem,5vw,3.5rem)] leading-none font-bold tracking-[-0.03em] [font-stretch:90%]">
         Informativa privacy
       </h1>
-      <p className="text-ink-2 mt-5 text-lg">
+      <p className="mt-5 text-lg text-ink-2">
         In breve: i dati servono a preparare la tua pratica e restano sotto il controllo del CAF che
         hai scelto.
       </p>
@@ -48,14 +48,14 @@ export default function PrivacyPage() {
               {section.title}
             </h2>
             {section.body.map((p) => (
-              <p key={p} className="text-ink-2 mt-3 leading-relaxed">
+              <p key={p} className="mt-3 leading-relaxed text-ink-2">
                 {p}
               </p>
             ))}
           </section>
         ))}
       </div>
-      <p className="bg-warn-wash text-warn mt-14 rounded-md px-4 py-3 text-sm">
+      <p className="mt-14 rounded-md bg-warn-wash px-4 py-3 text-sm text-warn">
         Versione preliminare per il programma pilota, in revisione legale prima del lancio.
       </p>
     </article>

@@ -52,7 +52,7 @@ export function SiteHeader() {
               <li key={item.href}>
                 <a
                   href={item.href}
-                  className="text-ink-2 hover:text-ink rounded-sm px-3 py-2 text-[0.9375rem] transition-colors"
+                  className="rounded-sm px-3 py-2 text-[0.9375rem] text-ink-2 transition-colors hover:text-ink"
                 >
                   {item.label}
                 </a>
@@ -84,7 +84,7 @@ export function SiteHeader() {
         <nav
           id="mobile-nav"
           aria-label="Sezioni"
-          className="animate-fade-in border-line border-t lg:hidden"
+          className="animate-fade-in border-t border-line lg:hidden"
         >
           <ul className="mx-auto grid max-w-6xl gap-1 px-4 py-3 sm:px-6">
             {NAV.map((item) => (
@@ -92,13 +92,13 @@ export function SiteHeader() {
                 <a
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="text-ink block rounded-sm px-2 py-3 text-base"
+                  className="block rounded-sm px-2 py-3 text-base text-ink"
                 >
                   {item.label}
                 </a>
               </li>
             ))}
-            <li className="border-line mt-2 flex gap-2 border-t pt-3 sm:hidden">
+            <li className="mt-2 flex gap-2 border-t border-line pt-3 sm:hidden">
               <Button asChild variant="secondary" className="flex-1">
                 <Link href="/console/accedi">Accedi</Link>
               </Button>

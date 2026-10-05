@@ -6,7 +6,7 @@ export default function SiteLayout({ children }: LayoutProps<"/">) {
     <>
       <a
         href="#contenuto"
-        className="focus:bg-ink sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:px-4 focus:py-2 focus:text-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
       >
         Vai al contenuto
       </a>

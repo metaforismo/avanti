@@ -46,19 +46,19 @@ export function Field({
     <div className={cn("grid gap-1.5", className)}>
       <label
         htmlFor={id}
-        className="text-ink flex items-baseline justify-between gap-2 text-sm font-semibold"
+        className="flex items-baseline justify-between gap-2 text-sm font-semibold text-ink"
       >
         {label}
-        {optional && <span className="text-ink-3 text-xs font-normal">{optional}</span>}
+        {optional && <span className="text-xs font-normal text-ink-3">{optional}</span>}
       </label>
       {children({ id, "aria-describedby": describedBy, "aria-invalid": error ? true : undefined })}
       {hint && !error && (
-        <p id={hintId} className="text-ink-3 text-sm">
+        <p id={hintId} className="text-sm text-ink-3">
           {hint}
         </p>
       )}
       {error && (
-        <p id={errorId} className="animate-fade-in text-danger text-sm font-medium" role="alert">
+        <p id={errorId} className="animate-fade-in text-sm font-medium text-danger" role="alert">
           {error}
         </p>
       )}

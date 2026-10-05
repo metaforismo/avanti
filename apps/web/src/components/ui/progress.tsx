@@ -19,7 +19,7 @@ export function ProgressBar({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={clamped}
-      className={cn("bg-sunk h-1.5 overflow-hidden rounded-full", className)}
+      className={cn("h-1.5 overflow-hidden rounded-full bg-sunk", className)}
     >
       <div
         className={cn(
