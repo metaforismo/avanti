@@ -108,18 +108,42 @@ export function DossierView({ caseId }: { caseId: string }) {
   const base = `/api/cases/${encodeURIComponent(data.id)}`;
   const assignedToMe = data.assignee?.id === operator.id;
 
+  // Opening a case is read-only. Review starts with the first real action, so the measured
+  // review time counts work, not glances at the queue.
+  const ensureInReview = async () => {
+    if (data.status === "submitted") {
+      await apiFetch(base, { method: "PATCH", body: { status: "in_review" } });
+    }
+  };
+
   const actions: DossierActions = {
     pending,
     openDocument: setViewing,
     review: (itemId, input) =>
-      mutate(`review:${itemId}`, () =>
-        apiFetch(`${base}/checklist/${encodeURIComponent(itemId)}/review`, {
+      mutate(`review:${itemId}`, async () => {
+        await ensureInReview();
+        return apiFetch(`${base}/checklist/${encodeURIComponent(itemId)}/review`, {
           method: "POST",
           body: input,
-        }),
-      ),
+        });
+      }),
     update: (input, key = "update") =>
-      mutate(key, () => apiFetch(`${base}`, { method: "PATCH", body: input })),
+      mutate(key, async () => {
+        const needsReview =
+          input.status === "ready" || input.status === "needs_citizen" || input.assigneeId;
+        if (needsReview) await ensureInReview();
+        return apiFetch(base, { method: "PATCH", body: input });
+      }),
+  };
+
+  const openRequest = async () => {
+    if (data.status === "submitted") {
+      const ok = await mutate("update", () =>
+        apiFetch(base, { method: "PATCH", body: { status: "in_review" } }),
+      );
+      if (!ok) return;
+    }
+    setRequesting(true);
   };
 
   const setStatus = (next: CaseStatus) => actions.update({ status: next });
@@ -164,7 +188,7 @@ export function DossierView({ caseId }: { caseId: string }) {
             </Button>
           )}
           {data.status !== "closed" && data.status !== "intake" && (
-            <Button variant="secondary" onClick={() => setRequesting(true)}>
+            <Button variant="secondary" onClick={() => void openRequest()}>
               <Send className="size-4" aria-hidden />
               Chiedi integrazione
             </Button>
