@@ -1,4 +1,8 @@
-pnpm-lock.yaml
-**/drizzle/meta
-.next
 node_modules
+.pnpm-store
+.next
+.turbo
+.data
+pnpm-lock.yaml
+packages/api/assets/fonts
+packages/db/migrations/meta

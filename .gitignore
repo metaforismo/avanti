@@ -20,3 +20,6 @@ uploads
 playwright-report
 test-results
 .vercel
+
+# Project-local dependency cache
+.pnpm-store
