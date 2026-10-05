@@ -1,4 +1,5 @@
 import type { AnswerValue, CitizenCase, IntakeTurn, Language, PracticeId } from "@avanti/contracts";
+import { MemberRole } from "@avanti/contracts";
 import {
   CLASSIFICATION_THRESHOLD,
   applyAnswer,
@@ -77,8 +78,8 @@ export function applyTurn(
     }
     if (practiceId)
       answers = applyProposedAnswers(practiceId, answers, proposal, current.language, now);
-    if (proposal.answers.household_roles)
-      answers.household_roles = proposal.answers.household_roles;
+    const roles = MemberRole.array().max(20).safeParse(proposal.answers.household_roles);
+    if (roles.success) answers.household_roles = roles.data;
     return { practiceId, answers };
   }
   if (!practiceId) throw new ApiFailure("bad_request", 400, "Scegli prima la pratica.");

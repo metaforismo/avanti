@@ -24,3 +24,20 @@ it("22: classification uses the exported threshold", () => {
     ).practiceId,
   ).toBe("isee_ordinario");
 });
+it("33: AI household role suggestions must match the contract", () => {
+  const current = { practiceId: "isee_ordinario", answers: {}, language: "it" } as CaseRow;
+  const proposal = {
+    practiceId: "isee_ordinario" as const,
+    confidence: 1,
+    answers: { household_roles: ["unsupported-role"] },
+    reply: "",
+    engine: "ai" as const,
+  };
+  const result = applyTurn(
+    current,
+    { type: "text", text: "ISEE" },
+    proposal,
+    new Date("2027-01-01Z"),
+  );
+  expect(result.answers.household_roles).toBeUndefined();
+});
