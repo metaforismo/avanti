@@ -4,6 +4,7 @@ import {
   offices,
   settings,
   documents,
+  storageDeletions,
   messages,
   checklistReviews,
   nextReference,
@@ -22,7 +23,9 @@ import {
 } from "@avanti/contracts";
 import { calendarYear, getQuestions } from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
-import { PDFDocument } from "pdf-lib";
+import { pdfPages } from "./pdf-pages";
+import { retryStorageDeletions } from "./storage-cleanup";
+import { safeError } from "./logging";
 import {
   newToken,
   hashToken,
@@ -32,7 +35,7 @@ import {
   sanitizeName,
   sniffMime,
 } from "./security";
-import { citizenView, audit, persistMembers, type CaseRow } from "./dossier";
+import { citizenView, audit, type CaseRow } from "./dossier";
 import { automaticAssistanceNotice } from "./disclosure";
 import { body, parse, mutableCitizen, type App, type Services, type ApiContext } from "./context";
 
@@ -98,14 +101,7 @@ async function touchCase(db: Database, row: CaseRow, now: Date) {
   if (!updated) throw notFound();
   return updated;
 }
-async function download(
-  c: ApiContext,
-  s: Services,
-  row: CaseRow,
-  id: string,
-  actor: "citizen" | "operator",
-  actorId: string | null = null,
-) {
+async function download(c: ApiContext, s: Services, row: CaseRow, id: string) {
   const [document] = await s.db
     .select()
     .from(documents)
@@ -113,31 +109,26 @@ async function download(
     .limit(1);
   if (!document) throw notFound();
   const bytes = await s.storage.get(document.storageKey);
-  await audit(s.db, row, actor, "document.downloaded", s.clock(), actorId);
+  const previewTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+  const disposition =
+    c.req.query("download") === "1" || !previewTypes.has(document.mimeType)
+      ? "attachment"
+      : "inline";
+  const name = sanitizeName(document.fileName, document.mimeType);
+  const encodedName = encodeURIComponent(name).replace(
+    /['()*]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
   c.header("Content-Type", document.mimeType);
   c.header(
     "Content-Disposition",
-    `attachment; filename="documento"; filename*=UTF-8''${encodeURIComponent(document.fileName).replace(/'/g, "%27")}`,
+    `${disposition}; filename="${sanitizeName("documento", document.mimeType)}"; filename*=UTF-8''${encodedName}`,
   );
   c.header("X-Content-Type-Options", "nosniff");
+  c.header("Content-Security-Policy", "sandbox");
   return c.body(Buffer.from(bytes));
 }
 export { download };
-
-async function pdfPages(bytes: Uint8Array, mime: string): Promise<number | null> {
-  if (mime !== "application/pdf") return null;
-  try {
-    const pages = (await PDFDocument.load(bytes)).getPageCount();
-    if (!pages) throw new Error("Empty PDF");
-    return pages;
-  } catch {
-    throw new ApiFailure(
-      "unsupported_file",
-      415,
-      "Il PDF non può essere letto. Carica una copia valida.",
-    );
-  }
-}
 
 function uploadChecklistItem(
   checklist: ChecklistItem[],
@@ -188,7 +179,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
             initial.language,
             initial.practiceId,
             initial.practiceId
-              ? getQuestions(initial.practiceId, initial.answers, initial.language, s.clock())
+              ? getQuestions(initial.practiceId, initial.answers, initial.language)
               : [],
             s.clock(),
           )
@@ -200,11 +191,15 @@ export function mountCitizenRoutes(app: App, s: Services) {
       const { practiceId, answers } = applyTurn(current, input, proposal, now);
       const [updated] = await tx
         .update(cases)
-        .set({ practiceId, answers, updatedAt: s.clock().toISOString() })
+        .set({
+          practiceId,
+          answers,
+          confirmedAnswers: confirmedAnswers(current, input, answers),
+          updatedAt: s.clock().toISOString(),
+        })
         .where(eq(cases.id, current.id))
         .returning();
       if (!updated) throw notFound();
-      await persistMembers(tx, updated);
       await audit(
         tx,
         updated,
@@ -235,7 +230,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
     });
     return c.json({
       ...(await citizenView(s.db, row, s.clock())),
-      engine: proposal?.engine ?? "heuristic",
+      ...(proposal ? { engine: proposal.engine } : {}),
     });
   });
   app.put("/c/:token/language", async (c) => {
@@ -276,9 +271,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
       throw new ApiFailure("unsupported_file", 415, "Carica un PDF o un'immagine supportata.");
     const pages = await pdfPages(bytes, mime);
     const view = await citizenView(s.db, initial, s.clock());
+    assertDocumentLimit(view.documents.length);
     if (fields.checklistItemId && !view.checklist.some((i) => i.id === fields.checklistItemId))
       throw new ApiFailure("bad_request", 400, "Voce della checklist non valida.");
-    const fileName = sanitizeName(file.name);
+    const fileName = sanitizeName(file.name, mime);
     const analysis = await s.ai.analyze(bytes, mime, fileName, [
       ...new Set(view.checklist.map((i) => i.requirementId)),
     ]);
@@ -288,6 +284,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
       const row = await s.db.transaction(async (tx) => {
         const current = await lockCase(tx, initial, s.clock());
         const fresh = await citizenView(tx, current, s.clock());
+        assertDocumentLimit(fresh.documents.length);
         const item = uploadChecklistItem(
           fresh.checklist,
           fields.checklistItemId,
@@ -314,12 +311,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           status: "analyzed",
           analysis,
         });
-        const [updated] = await tx
-          .update(cases)
-          .set({ updatedAt: s.clock().toISOString() })
-          .where(eq(cases.id, current.id))
-          .returning();
-        if (!updated) throw notFound();
+        const updated = await touchCase(tx, current, s.clock());
         await audit(tx, current, "citizen", "document.uploaded", s.clock(), null, {
           bytes: bytes.length,
           heuristic: analysis.engine === "heuristic",
@@ -328,7 +320,32 @@ export function mountCitizenRoutes(app: App, s: Services) {
       });
       return c.json(await citizenView(s.db, row, s.clock()), 201);
     } catch (error) {
-      await s.storage.delete(key);
+      try {
+        await s.storage.delete(key);
+      } catch (cleanupError) {
+        await s.db
+          .insert(storageDeletions)
+          .values({
+            id,
+            caseId: initial.id,
+            storageKey: key,
+            createdAt: s.clock().toISOString(),
+            nextAttemptAt: s.clock().toISOString(),
+          })
+          .onConflictDoNothing()
+          .catch(() => {
+            (s.errorLogger ?? console.error)({
+              requestId: c.get("requestId"),
+              ...safeError(cleanupError),
+            });
+          });
+        (s.storageLogger ?? console.error)({
+          op: "upload.rollback",
+          caseId: initial.id,
+          documentId: id,
+          errorName: safeError(cleanupError).name,
+        });
+      }
       throw error;
     }
   });
@@ -365,7 +382,6 @@ export function mountCitizenRoutes(app: App, s: Services) {
     return c.json(await citizenView(s.db, row, s.clock()));
   });
   app.delete("/c/:token/documents/:id", async (c) => {
-    let key: string | null = null;
     const row = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, c.get("citizen"), s.clock());
       const [deleted] = await tx
@@ -373,7 +389,13 @@ export function mountCitizenRoutes(app: App, s: Services) {
         .where(and(eq(documents.id, c.req.param("id")), eq(documents.caseId, current.id)))
         .returning();
       if (!deleted) throw notFound();
-      key = deleted.storageKey;
+      await tx.insert(storageDeletions).values({
+        id: deleted.id,
+        caseId: current.id,
+        storageKey: deleted.storageKey,
+        createdAt: s.clock().toISOString(),
+        nextAttemptAt: s.clock().toISOString(),
+      });
       if (deleted.checklistItemId)
         await tx
           .delete(checklistReviews)
@@ -387,17 +409,17 @@ export function mountCitizenRoutes(app: App, s: Services) {
       await audit(tx, touched, "citizen", "document.deleted", s.clock());
       return touched;
     });
-    if (key) await s.storage.delete(key);
+    await retryStorageDeletions(s, c.req.param("id"));
     return c.json(await citizenView(s.db, row, s.clock()));
   });
   app.get("/c/:token/documents/:id/file", (c) =>
-    download(c, s, c.get("citizen"), c.req.param("id"), "citizen"),
+    download(c, s, c.get("citizen"), c.req.param("id")),
   );
   app.post("/c/:token/submit", async (c) => {
     const input = await body(c, SubmitCaseRequest);
     const row = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, c.get("citizen"), s.clock());
-      const view = await citizenView(tx, current, s.clock());
+      const view = await citizenView(tx, current, s.clock(), current.language, true);
       if (!current.practiceId || view.nextQuestion)
         throw new ApiFailure("conflict", 409, "Completa le domande prima di inviare il fascicolo.");
       const [updated] = await tx
@@ -422,4 +444,25 @@ export function mountCitizenRoutes(app: App, s: Services) {
     });
     return c.json(await citizenView(s.db, row, s.clock()));
   });
+}
+
+function confirmedAnswers(
+  current: CaseRow,
+  input: IntakeTurn,
+  answers: CaseRow["answers"],
+): string[] {
+  const confirmed = current.confirmedAnswers.filter((id) => Object.hasOwn(answers, id));
+  if ((input.type === "answer" || input.type === "skip") && !confirmed.includes(input.questionId))
+    confirmed.push(input.questionId);
+  if (input.type === "choose_practice" && input.practiceId !== current.practiceId) return [];
+  return confirmed;
+}
+export const MAX_CASE_DOCUMENTS = 60;
+function assertDocumentLimit(count: number) {
+  if (count >= MAX_CASE_DOCUMENTS)
+    throw new ApiFailure(
+      "conflict",
+      409,
+      "Hai raggiunto il limite di 60 documenti. Elimina quelli non necessari.",
+    );
 }

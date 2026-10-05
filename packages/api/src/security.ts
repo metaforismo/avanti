@@ -44,13 +44,23 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const derived = await derive(password, salt);
   return timingSafeEqual(derived, Buffer.from(hex, "hex"));
 }
-export function sanitizeName(name: string): string {
-  return (
+export function sanitizeName(name: string, mime?: string): string {
+  const extensions: Record<string, string> = {
+    "application/pdf": "pdf",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/heic": "heic",
+  };
+  const extension = mime ? extensions[mime] : undefined;
+  const sanitized =
     name
       .normalize("NFKC")
+      .replace(/\p{Cf}/gu, "")
       .replace(/[\u0000-\u001f\u007f/\\:"<>|?*]/g, "_")
-      .slice(0, 150) || "documento"
-  );
+      .slice(0, 150) || "documento";
+  if (!extension) return sanitized;
+  return `${sanitized.replace(/(?:\.[^.]+)+$/, "") || "documento"}.${extension}`;
 }
 export function sniffMime(bytes: Uint8Array): string | null {
   const b = Buffer.from(bytes);
