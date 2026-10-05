@@ -26,6 +26,18 @@ pnpm dev            # http://localhost:3400
 
 Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria in locale.
 
+## Percorsi dell'app
+
+| Percorso                 | Per chi   | Cosa fa                                                       |
+| ------------------------ | --------- | ------------------------------------------------------------- |
+| `/`                      | CAF       | Landing e candidatura al pilota                               |
+| `/s/[sportello]`         | Cittadino | Ingresso dal QR dello sportello: lingua, informativa, avvio   |
+| `/pratica/[token]`       | Cittadino | Esigenza, domande, documenti, invio (link personale)          |
+| `/console`               | Operatore | Coda pratiche con filtri                                      |
+| `/console/pratiche/[id]` | Operatore | Fascicolo: problemi, verifica documenti, integrazioni, export |
+| `/console/metriche`      | Operatore | Tempi e completezza misurati                                  |
+| `/console/sportelli`     | Operatore | Link e QR degli sportelli, cartello A4 da stampare            |
+
 ## Struttura
 
 | Percorso             | Cosa contiene                                            |
@@ -49,6 +61,8 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 ## Documentazione
 
 - [Architettura](docs/ARCHITECTURE.md)
+- [Design e UX](docs/DESIGN.md)
+- [Ricerca: mercato, competitor, normativa](docs/research/README.md)
 - [Istruzioni per agenti e contributori](AGENTS.md)
 
 ## Licenza
