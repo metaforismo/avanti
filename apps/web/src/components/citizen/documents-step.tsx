@@ -23,6 +23,7 @@ import { cn } from "@/lib/cn";
 import { DONE_STATUSES } from "@/lib/citizen/view";
 import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
+import { PhotoTips } from "./photo-tips";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 
 type M = Widen<CitizenMessages>;
@@ -89,6 +90,8 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
       )}
 
       <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
+
+      <PhotoTips m={m} defaultOpen={data.documents.length === 0} />
 
       {sections.map((section) => (
         <section
