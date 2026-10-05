@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   CaseDossier,
@@ -22,12 +22,14 @@ import {
   cases,
   createDatabase,
   documents,
+  storageDeletions,
   events,
   leads,
   offices,
   operators,
   organizations,
   sessions,
+  rateLimits,
   settings,
   type Database,
 } from "@avanti/db";
@@ -366,7 +368,7 @@ describe("citizen to operator integration", () => {
       "conflict",
     );
     const cookie = await login();
-    const opened = await request(`/api/cases/${view.id}`, "GET", undefined, cookie);
+    const opened = await request(`/api/cases/${view.id}`, "PATCH", { status: "in_review" }, cookie);
     expect(opened.status).toBe(200);
     let dossier = CaseDossier.parse(await opened.json());
     expect(dossier.status).toBe("in_review");
@@ -395,7 +397,7 @@ describe("citizen to operator integration", () => {
     expect(CaseDossier.parse(await integration.json()).status).toBe("needs_citizen");
     const citizen = CitizenCase.parse(await (await request(`/api/c/${intake.token}`)).json());
     const operatorMessage = citizen.messages.find((message) => message.role === "operator");
-    expect(operatorMessage?.originalText).toBe(italianMessage);
+    expect(operatorMessage?.originalText).toContain(italianMessage);
     expect(operatorMessage?.text).not.toBe(italianMessage);
     expect(operatorMessage?.text).toMatch(/[\u0980-\u09ff]/);
     const jsonExport = await request(
@@ -548,7 +550,7 @@ describe("uploads and case boundaries", () => {
     expect(stored?.sha256).toBe(createHash("sha256").update(bytes).digest("hex"));
     const downloaded = await request(`/api/c/${intake.token}/documents/${document.id}/file`);
     expect(downloaded.status).toBe(200);
-    expect(downloaded.headers.get("content-disposition")).toContain("attachment;");
+    expect(downloaded.headers.get("content-disposition")).toContain("inline;");
     expect(downloaded.headers.get("content-disposition")).not.toMatch(/[\r\n]/);
     expect(downloaded.headers.get("x-content-type-options")).toBe("nosniff");
     expect(new Uint8Array(await downloaded.arrayBuffer())).toEqual(bytes);
@@ -634,6 +636,8 @@ describe("authentication and tenant isolation", () => {
       clock: () => new Date(instant),
       publicUrl: origin,
       production: true,
+      rateLimitSecret: "test-only-rate-secret",
+      clientAddress: () => "127.0.0.1",
     });
     const response = await request("/api/auth/login", "POST", {
       email: "a@example.test",
@@ -651,7 +655,9 @@ describe("authentication and tenant isolation", () => {
       .from(sessions)
       .where(eq(sessions.tokenHash, hashToken(token)));
     instant = new Date(instant.getTime() + 60 * 60 * 1000);
-    expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(200);
+    expect((await request("/api/cases", "POST", { officeId: "office-a" }, cookie)).status).toBe(
+      201,
+    );
     const [after] = await db
       .select()
       .from(sessions)
@@ -836,7 +842,7 @@ describe("authentication and tenant isolation", () => {
       "unauthorized",
     );
     expect(absent.error.message).toBe(wrong.error.message);
-    for (let attempt = 2; attempt < 10; attempt++) {
+    for (let attempt = 1; attempt < 10; attempt++) {
       await error(
         await request("/api/auth/login", "POST", { email: "a@example.test", password: "wrong" }),
         401,
@@ -951,4 +957,375 @@ describe("authentication and tenant isolation", () => {
       "bad_request",
     );
   });
+});
+
+describe("second backend review", () => {
+  it("4: reading a submitted dossier leaves queue timestamp and history unchanged", async () => {
+    const intake = await start();
+    await db.update(cases).set({ status: "submitted" }).where(eq(cases.id, intake.case.id));
+    const cookie = await login();
+    const before = await db.select().from(events).where(eq(events.caseId, intake.case.id));
+    const sessionsBefore = await db.select().from(sessions);
+    instant = new Date(instant.getTime() + 1000);
+    const view = CaseDossier.parse(
+      await (await request(`/api/cases/${intake.case.id}`, "GET", undefined, cookie)).json(),
+    );
+    expect(view.status).toBe("submitted");
+    expect(view.updatedAt).toBe(initialInstant);
+    expect(await db.select().from(events).where(eq(events.caseId, intake.case.id))).toEqual(before);
+    expect(await db.select().from(sessions)).toEqual(sessionsBefore);
+  });
+  it.each(["intake", "submitted", "in_review", "needs_citizen", "ready"] as const)(
+    "8,24: closes %s and reopens with explicit timeline events",
+    async (status) => {
+      const intake = await start();
+      await db.update(cases).set({ status }).where(eq(cases.id, intake.case.id));
+      const cookie = await login();
+      const closed = await request(
+        `/api/cases/${intake.case.id}`,
+        "PATCH",
+        { status: "closed" },
+        cookie,
+      );
+      expect(closed.status).toBe(200);
+      expect(
+        CaseDossier.parse(await closed.json()).timeline.some((e) => e.type === "case.closed"),
+      ).toBe(true);
+      const reopened = await request(
+        `/api/cases/${intake.case.id}`,
+        "PATCH",
+        { status: "in_review", assigneeId: "operator-a" },
+        cookie,
+      );
+      expect(reopened.status).toBe(200);
+      const view = CaseDossier.parse(await reopened.json());
+      expect(view.timeline.find((e) => e.type === "case.reopened")?.actorName).toBe(
+        "Operatore Fittizio a",
+      );
+      expect(view.timeline.some((e) => e.type === "case.assigned")).toBe(true);
+    },
+  );
+  it("7,27,30,32,33: free text has readable inferred answers, roles and an acknowledgement", async () => {
+    const intake = await start();
+    const response = await request(`/api/c/${intake.token}/turn`, "POST", {
+      type: "text",
+      text: "ISEE vivo con mia madre sotto lo stesso tetto, mio padre non vive con noi, ho un conto Fineco e una macchina",
+    });
+    const view = CitizenCase.parse(await response.json());
+    expect(view.answered.find((a) => a.questionId === "household_count")).toMatchObject({
+      answer: "2",
+      editable: false,
+    });
+    expect(view.answers.household_roles).toEqual(["richiedente", "genitore"]);
+    expect(view.answers.nonresident_parent).toBe(true);
+    expect(view.messages.find((m) => m.role === "assistant")?.text).toContain("Fineco");
+    expect(view.messages.find((m) => m.role === "assistant")?.text).not.toBe(
+      view.nextQuestion?.prompt,
+    );
+    expect(view.findings.some((f) => f.code.startsWith("practice."))).toBe(false);
+    const explicit = CitizenCase.parse(
+      await (
+        await request(`/api/c/${intake.token}/turn`, "POST", {
+          type: "answer",
+          questionId: "household_count",
+          value: 2,
+        })
+      ).json(),
+    );
+    expect(explicit.engine).toBeUndefined();
+    expect(explicit.answered.find((a) => a.questionId === "household_count")?.editable).toBe(true);
+  });
+  it("9,11,28,29: request retains selected items, localized titles, contact and resubmission", async () => {
+    const intake = await start();
+    const view = await completeInterview(intake.token, intake.case);
+    const contact = { firstName: "Persona", lastName: "Esempio", email: "citizen@example.test" };
+    expect(
+      (await request(`/api/c/${intake.token}/submit`, "POST", { contact, confirmed: true })).status,
+    ).toBe(200);
+    const cookie = await login();
+    expect(
+      (await request(`/api/cases/${view.id}`, "PATCH", { status: "in_review" }, cookie)).status,
+    ).toBe(200);
+    const item = view.checklist[0]!;
+    const response = await request(
+      `/api/cases/${view.id}/requests`,
+      "POST",
+      { checklistItemIds: [item.id], message: "Carica una copia chiara" },
+      cookie,
+    );
+    expect(response.status).toBe(200);
+    const citizen = CitizenCase.parse(await (await request(`/api/c/${intake.token}`)).json());
+    expect(citizen.contact).toEqual(contact);
+    expect(citizen.checklist.find((i) => i.id === item.id)).toMatchObject({
+      status: "rejected",
+      note: "Carica una copia chiara",
+    });
+    expect(citizen.messages.find((m) => m.role === "operator")?.text).toContain(item.title);
+    expect(CaseDossier.parse(await response.json()).answers.some((a) => a.answer === "false")).toBe(
+      false,
+    );
+    const resubmitted = await request(`/api/c/${intake.token}/submit`, "POST", {
+      contact,
+      confirmed: true,
+    });
+    expect(resubmitted.status).toBe(200);
+    expect(CitizenCase.parse(await resubmitted.json()).status).toBe("submitted");
+  });
+  it("10: preview is sandboxed inline; download filename follows detected MIME", async () => {
+    const intake = await start();
+    const view = CitizenCase.parse(
+      await (await upload(intake.token, await examplePdf(), "report\u202Efdp.exe")).json(),
+    );
+    const doc = view.documents[0]!;
+    const preview = await request(`/api/c/${intake.token}/documents/${doc.id}/file`);
+    expect(preview.headers.get("content-disposition")).toContain("inline;");
+    expect(preview.headers.get("content-security-policy")).toBe("sandbox");
+    expect(doc.fileName).not.toContain("\u202E");
+    expect(doc.fileName).toMatch(/\.pdf$/);
+    const download = await request(`/api/c/${intake.token}/documents/${doc.id}/file?download=1`);
+    expect(download.headers.get("content-disposition")).toContain("attachment;");
+  });
+  it("11: newly created operator dossier includes the one-time link", async () => {
+    const cookie = await login();
+    const result = CreateCaseResponse.parse(
+      await (await request("/api/cases", "POST", { officeId: "office-a" }, cookie)).json(),
+    );
+    expect(result.case.citizenLink).toBe(result.citizenLink);
+    expect(
+      CaseDossier.parse(
+        await (await request(`/api/cases/${result.case.id}`, "GET", undefined, cookie)).json(),
+      ).citizenLink,
+    ).toBeNull();
+  });
+  it("17: active sessions cannot survive 12 hours", async () => {
+    const cookie = await login();
+    for (const hours of [7, 11]) {
+      instant = new Date(Date.parse(initialInstant) + hours * 3600000);
+      expect((await request("/api/cases", "POST", { officeId: "office-a" }, cookie)).status).toBe(
+        201,
+      );
+    }
+    instant = new Date(Date.parse(initialInstant) + 12 * 3600000);
+    expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(401);
+    expect(await db.select().from(sessions)).toHaveLength(1);
+    expect((await request("/api/cases", "POST", { officeId: "office-a" }, cookie)).status).toBe(
+      401,
+    );
+    expect(await db.select().from(sessions)).toHaveLength(0);
+  });
+  it("15: one email's failed attempts do not block a different local user", async () => {
+    for (let attempt = 0; attempt < 10; attempt++)
+      await request("/api/auth/login", "POST", { email: "a@example.test", password: "wrong" });
+    expect(
+      (await request("/api/auth/login", "POST", { email: "a@example.test", password: "wrong" }))
+        .status,
+    ).toBe(429);
+    expect(
+      (await request("/api/auth/login", "POST", { email: "b@example.test", password })).status,
+    ).toBe(200);
+  });
+});
+
+describe("storage and startup regressions", () => {
+  it("14: failed file deletion leaves a durable retry and makes the file inaccessible", async () => {
+    const storage = new MemoryStorage();
+    app = createApp({ db, storage, clock: () => new Date(instant), publicUrl: origin });
+    const intake = await start();
+    const document = CitizenCase.parse(
+      await (await upload(intake.token, await examplePdf(), "ESEMPIO.pdf")).json(),
+    ).documents[0]!;
+    const originalDelete = storage.delete.bind(storage);
+    storage.delete = async () => {
+      throw new Error("private storage error");
+    };
+    expect(
+      (await request(`/api/c/${intake.token}/documents/${document.id}`, "DELETE")).status,
+    ).toBe(200);
+    expect((await request(`/api/c/${intake.token}/documents/${document.id}/file`)).status).toBe(
+      404,
+    );
+    expect(await db.select().from(storageDeletions)).toHaveLength(1);
+    storage.delete = originalDelete;
+    instant = new Date(instant.getTime() + 61000);
+    await request(`/api/c/${intake.token}/language`, "PUT", { language: "en" });
+    expect(await db.select().from(storageDeletions)).toHaveLength(0);
+  });
+  it("16: production requires an explicit public origin", () => {
+    expect(() => createApp({ db, storage: new MemoryStorage(), production: true })).toThrow(
+      "PUBLIC_APP_URL",
+    );
+  });
+  it("19: the 61st document is refused before AI/storage", async () => {
+    const intake = await start();
+    await db.insert(documents).values(
+      Array.from({ length: 60 }, (_, i) => ({
+        id: `limit-${i}`,
+        caseId: intake.case.id,
+        fileName: "ESEMPIO.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 100,
+        storageKey: `unused-${i}`,
+        sha256: String(i),
+        uploadedAt: instant.toISOString(),
+        status: "analyzed" as const,
+      })),
+    );
+    expect((await upload(intake.token, await examplePdf(), "extra.pdf")).status).toBe(409);
+    expect(await db.select().from(documents)).toHaveLength(60);
+  });
+});
+it("5: listing 50 dossiers performs a bounded number of queries", async () => {
+  const intake = await start();
+  const [row] = await db.select().from(cases).where(eq(cases.id, intake.case.id));
+  if (!row) throw new Error("Missing case");
+  await db.insert(cases).values(
+    Array.from({ length: 49 }, (_, i) => ({
+      ...row,
+      id: `case-list-${i}`,
+      tokenHash: `list-hash-${i}`,
+      reference: `LIST-${i}`,
+    })),
+  );
+  const cookie = await login();
+  const select = vi.spyOn(db, "select");
+  const result = CaseListResponse.parse(
+    await (await request("/api/cases?limit=50", "GET", undefined, cookie)).json(),
+  );
+  expect(result.items).toHaveLength(50);
+  expect(select.mock.calls.length).toBeLessThanOrEqual(10);
+  select.mockRestore();
+});
+it("2,18: operator visual verification allows ready despite erroneous AI observations", async () => {
+  const intake = await start();
+  let view = await completeInterview(intake.token, intake.case);
+  const identity = view.checklist.find((i) => i.requirementId === "identity")!;
+  view = CitizenCase.parse(
+    await (await upload(intake.token, await examplePdf(), "identity.pdf", identity.id)).json(),
+  );
+  await db
+    .update(documents)
+    .set({
+      analysis: {
+        engine: "ai",
+        confidence: 1,
+        detectedRequirementId: "identity",
+        detectedLabel: null,
+        ownerName: "Different Owner",
+        referenceYear: null,
+        expiresOn: "2026-01-01",
+        legible: false,
+        pagesComplete: false,
+        findings: [],
+      },
+    })
+    .where(eq(documents.id, view.documents[0]!.id));
+  await request(`/api/c/${intake.token}/submit`, "POST", {
+    contact: { firstName: "Persona", lastName: "Esempio" },
+    confirmed: true,
+  });
+  const cookie = await login();
+  await request(`/api/cases/${view.id}`, "PATCH", { status: "in_review" }, cookie);
+  for (const item of view.checklist.filter((i) => i.required)) {
+    const decision = item.id === identity.id ? "verified" : "waived";
+    expect(
+      (
+        await request(
+          `/api/cases/${view.id}/checklist/${item.id}/review`,
+          "POST",
+          { decision, note: "Verifica di prova" },
+          cookie,
+        )
+      ).status,
+    ).toBe(200);
+  }
+  const response = await request(`/api/cases/${view.id}`, "PATCH", { status: "ready" }, cookie);
+  expect(response.status).toBe(200);
+  expect(
+    CaseDossier.parse(await response.json()).timeline.some((e) => e.type === "checklist.verified"),
+  ).toBe(true);
+});
+it("12: internal API failures emit a safe record and a safe Italian response", async () => {
+  const errorLogger = vi.fn();
+  const storage = new MemoryStorage();
+  app = createApp({ db, storage, errorLogger, clock: () => new Date(instant) });
+  const intake = await start();
+  const [document] = await db
+    .insert(documents)
+    .values({
+      id: "download-failure",
+      caseId: intake.case.id,
+      fileName: "ESEMPIO.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 1,
+      storageKey: "synthetic-download-failure",
+      sha256: "synthetic",
+      status: "analyzed",
+      uploadedAt: initialInstant,
+    })
+    .returning();
+  if (!document) throw new Error("Document fixture missing");
+  storage.get = async () => {
+    throw Object.assign(new Error("private-email@example.test"), {
+      code: "XX001",
+      detail: "private-content",
+    });
+  };
+  const response = await request(`/api/c/${intake.token}/documents/${document.id}/file`);
+  expect(response.status).toBe(500);
+  expect(JSON.stringify(await response.json())).not.toContain("private");
+  expect(errorLogger).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: "Error",
+      code: "XX001",
+      requestId: expect.any(String),
+      stack: expect.any(String),
+    }),
+  );
+  expect(JSON.stringify(errorLogger.mock.calls)).not.toContain("private");
+});
+it("17: mutation maintenance removes expired sessions and rate buckets", async () => {
+  await db.insert(sessions).values({
+    id: "expired",
+    operatorId: "operator-a",
+    tokenHash: "old",
+    createdAt: "2027-01-04T10:00:00Z",
+    expiresAt: "2027-01-06T10:00:00Z",
+  });
+  await db.insert(rateLimits).values({ key: "expired", count: 1, resetAt: "2027-01-04T10:00:00Z" });
+  await start();
+  expect(await db.select().from(sessions)).toEqual([]);
+  expect(await db.select().from(rateLimits)).toEqual([]);
+});
+it("14: upload cleanup failure preserves the original conflict and retains a retry", async () => {
+  const storage = new MemoryStorage();
+  app = createApp({
+    db,
+    storage,
+    clock: () => new Date(instant),
+    errorLogger: () => {},
+    storageLogger: () => {},
+  });
+  const intake = await start();
+  const originalPut = storage.put.bind(storage);
+  storage.put = async (key, bytes) => {
+    const storedKey = await originalPut(key, bytes);
+    await db.update(cases).set({ status: "submitted" }).where(eq(cases.id, intake.case.id));
+    return storedKey;
+  };
+  storage.delete = async () => {
+    throw new Error("private cleanup details");
+  };
+  const response = await upload(intake.token, await examplePdf(), "ESEMPIO.pdf");
+  expect(response.status).toBe(409);
+  expect(ApiError.parse(await response.json()).error.code).toBe("conflict");
+  expect(await db.select().from(documents)).toEqual([]);
+  expect(await db.select().from(storageDeletions)).toHaveLength(1);
+});
+it("25: unclassified cases share the core's headline", async () => {
+  const cookie = await login();
+  const response = CreateCaseResponse.parse(
+    await (await request("/api/cases", "POST", { officeId: "office-a" }, cookie)).json(),
+  );
+  const { dossierSummary } = await import("@avanti/core");
+  expect(response.case.headline).toBe(dossierSummary(null, {}, []).headline);
 });
