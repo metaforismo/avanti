@@ -2,6 +2,7 @@
 
 import { ChevronDown, MessageSquareText, Pencil, SendHorizontal } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
+import type { MemberRole } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { ProgressBar } from "@/components/ui/progress";
@@ -62,6 +63,11 @@ export function InterviewStep({ api, data, m }: StepProps) {
           m={m}
           initial={data.answers[question.id]}
           autoFocus={api.lastTurn !== null}
+          expectedRoles={
+            Array.isArray(data.answers.household_roles)
+              ? (data.answers.household_roles as MemberRole[])
+              : undefined
+          }
           expectedMembers={
             typeof data.answers.household_count === "number"
               ? data.answers.household_count
@@ -86,39 +92,50 @@ export function InterviewStep({ api, data, m }: StepProps) {
         {answered.length === 0 ? (
           <p className="px-4 pb-4 text-ink-3">{m.interview.noAnswers}</p>
         ) : (
-          <ul className="divide-y divide-line border-t border-line">
-            {answered.map((item) => (
-              <li key={item.questionId} className="flex items-start gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-ink-3">{item.question}</p>
-                  <p dir="auto" className="mt-0.5 font-semibold break-words">
-                    {item.answer}
-                  </p>
-                </div>
-                {item.editable && (
-                  <button
-                    type="button"
-                    disabled={api.pending !== null}
-                    onClick={() =>
-                      void api.turn(
-                        { type: "edit", questionId: item.questionId },
-                        `edit:${item.questionId}`,
-                      )
-                    }
-                    className="-me-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-sm px-3 text-sm font-semibold text-stamp hover:bg-stamp-wash disabled:opacity-50"
-                    aria-label={`${m.common.edit}: ${item.question}`}
-                  >
-                    {api.pending === `edit:${item.questionId}` ? (
-                      <Spinner className="size-4" />
-                    ) : (
-                      <Pencil className="size-3.5" aria-hidden />
-                    )}
-                    {m.common.edit}
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
+          <>
+            {answered.some((item) => !item.editable) && (
+              <p className="flex items-start gap-2 border-t border-line px-4 py-3 text-sm text-ink-2">
+                <span aria-hidden className="marker mt-0.5 shrink-0 font-semibold">
+                  Aa
+                </span>
+                {m.interview.inferred}
+              </p>
+            )}
+            <ul className="divide-y divide-line border-t border-line">
+              {answered.map((item) => (
+                <li key={item.questionId} className="flex items-start gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-ink-3">{item.question}</p>
+                    <p dir="auto" className="mt-0.5 font-semibold break-words">
+                      <span className={item.editable ? undefined : "marker"}>{item.answer}</span>
+                      {!item.editable && <span className="sr-only"> ({m.interview.inferred})</span>}
+                    </p>
+                  </div>
+                  {
+                    <button
+                      type="button"
+                      disabled={api.pending !== null}
+                      onClick={() =>
+                        void api.turn(
+                          { type: "edit", questionId: item.questionId },
+                          `edit:${item.questionId}`,
+                        )
+                      }
+                      className="-me-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-sm px-3 text-sm font-semibold text-stamp hover:bg-stamp-wash disabled:opacity-50"
+                      aria-label={`${m.common.edit}: ${item.question}`}
+                    >
+                      {api.pending === `edit:${item.questionId}` ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <Pencil className="size-3.5" aria-hidden />
+                      )}
+                      {m.common.edit}
+                    </button>
+                  }
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </details>
     </div>

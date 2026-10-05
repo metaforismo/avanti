@@ -45,8 +45,9 @@ export function CitizenHeader({
   onNavigate: (view: View | null) => void;
 }) {
   const online = useOnline();
+  // Index of the furthest step the citizen may open: review becomes reachable with documents.
   const reached =
-    data.step === "documents" || data.step === "review" ? 2 : data.step === "interview" ? 1 : 0;
+    data.step === "documents" || data.step === "review" ? 2 : data.step === "interview" ? 0 : -1;
   const activeIndex = view === "need" ? -1 : STEPS.findIndex((s) => s.view === view);
   const switching = api.pending === "language";
 

@@ -66,6 +66,7 @@ const it = {
     tooShort: "Scrivi qualche parola in più.",
   },
   interview: {
+    inferred: "Dedotto da quello che hai scritto: controlla",
     progressLabel: "Domande: {n} di {total}",
     assistant: "Assistente automatico",
     known: "Abbiamo capito",
@@ -291,6 +292,7 @@ const en: Widen<CitizenMessages> = {
     tooShort: "Please write a few more words.",
   },
   interview: {
+    inferred: "Taken from what you wrote: please check",
     progressLabel: "Questions: {n} of {total}",
     assistant: "Automated assistant",
     known: "What we understood",

@@ -62,6 +62,7 @@ export const fr: M = {
     tooShort: "Écris quelques mots de plus.",
   },
   interview: {
+    inferred: "Déduit de ce que tu as écrit : vérifie",
     progressLabel: "Questions : {n} sur {total}",
     assistant: "Assistant automatique",
     known: "Ce que nous avons compris",
@@ -278,6 +279,7 @@ export const es: M = {
     tooShort: "Escribe algunas palabras más.",
   },
   interview: {
+    inferred: "Deducido de lo que escribiste: compruébalo",
     progressLabel: "Preguntas: {n} de {total}",
     assistant: "Asistente automático",
     known: "Lo que hemos entendido",
@@ -494,6 +496,7 @@ export const ro: M = {
     tooShort: "Scrie câteva cuvinte în plus.",
   },
   interview: {
+    inferred: "Dedus din ce ai scris: verifică",
     progressLabel: "Întrebări: {n} din {total}",
     assistant: "Asistent automat",
     known: "Ce am înțeles",
@@ -709,6 +712,7 @@ export const uk: M = {
     tooShort: "Напиши трохи більше слів.",
   },
   interview: {
+    inferred: "Взято з того, що ти написав(-ла): перевір",
     progressLabel: "Запитання: {n} з {total}",
     assistant: "Автоматичний помічник",
     known: "Що ми зрозуміли",
@@ -921,6 +925,7 @@ export const ar: M = {
     tooShort: "اكتب كلمات أكثر قليلاً.",
   },
   interview: {
+    inferred: "مستنتج مما كتبته: تحقّق منه",
     progressLabel: "الأسئلة: {n} من {total}",
     assistant: "المساعد الآلي",
     known: "ما فهمناه",
@@ -1134,6 +1139,7 @@ export const bn: M = {
     tooShort: "আরও কয়েকটি শব্দ লিখুন।",
   },
   interview: {
+    inferred: "আপনার লেখা থেকে ধরা হয়েছে: দেখে নিন",
     progressLabel: "প্রশ্ন: {total}টির মধ্যে {n}টি",
     assistant: "স্বয়ংক্রিয় সহকারী",
     known: "আমরা যা বুঝেছি",
