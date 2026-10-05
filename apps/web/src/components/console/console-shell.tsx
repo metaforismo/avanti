@@ -1,0 +1,183 @@
+"use client";
+
+import { BarChart3, Inbox, LogOut, Menu, Plus, QrCode, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
+import type { Route } from "next";
+import type { Operator } from "@avanti/contracts";
+import { Logo } from "@/components/brand/logo";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { apiFetch } from "@/lib/api";
+import { OperatorProvider } from "@/lib/console/operator-context";
+import { useResource } from "@/lib/console/use-resource";
+import { cn } from "@/lib/cn";
+import { NewCaseDialog } from "./new-case-dialog";
+
+const NAV: { href: Route; label: string; icon: typeof Inbox; match: (path: string) => boolean }[] =
+  [
+    {
+      href: "/console",
+      label: "Pratiche",
+      icon: Inbox,
+      match: (p) => p === "/console" || p.startsWith("/console/pratiche"),
+    },
+    {
+      href: "/console/metriche",
+      label: "Metriche",
+      icon: BarChart3,
+      match: (p) => p.startsWith("/console/metriche"),
+    },
+    {
+      href: "/console/sportelli",
+      label: "Sportelli e QR",
+      icon: QrCode,
+      match: (p) => p.startsWith("/console/sportelli"),
+    },
+  ];
+
+export function ConsoleShell({ children }: { children: ReactNode }) {
+  const me = useResource<Operator>("/api/auth/me");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const pathname = usePathname();
+
+  // Close the mobile menu whenever navigation happens.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMenuOpen(false), 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
+
+  if (me.status === "loading" || (me.status === "error" && !me.data)) {
+    return (
+      <div className="grid min-h-dvh place-items-center text-ink-3">
+        {me.status === "loading" ? (
+          <Spinner label="Caricamento della console" className="size-6" />
+        ) : (
+          <div className="text-center">
+            <p className="text-lg font-semibold text-ink">Console non raggiungibile</p>
+            <p className="mt-1">{me.error?.message}</p>
+            <Button className="mt-5" onClick={() => void me.reload()}>
+              Riprova
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const operator = me.data!;
+
+  return (
+    <OperatorProvider value={operator}>
+      <div className="min-h-dvh bg-paper lg:grid lg:grid-cols-[15rem_1fr]">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
+          <Link href="/console" className="rounded-sm">
+            <Logo />
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={menuOpen ? "Chiudi menu" : "Apri menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </Button>
+        </header>
+
+        <aside
+          className={cn(
+            "z-20 flex-col border-e border-line bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh",
+            menuOpen ? "fixed inset-x-0 top-14 bottom-0 flex animate-fade-in" : "hidden",
+          )}
+        >
+          <div className="hidden h-16 items-center px-5 lg:flex">
+            <Link href="/console" className="rounded-sm">
+              <Logo />
+            </Link>
+          </div>
+          <div className="px-3 pt-3 lg:pt-1">
+            <Button className="w-full justify-start" onClick={() => setCreating(true)}>
+              <Plus className="size-4" aria-hidden />
+              Nuova pratica
+            </Button>
+          </div>
+          <nav aria-label="Console" className="mt-4 flex-1 px-3">
+            <ul className="grid gap-0.5">
+              {NAV.map(({ href, label, icon: Icon, match }) => {
+                const active = match(pathname);
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex h-10 items-center gap-3 rounded-sm px-3 text-[0.9375rem] transition-colors",
+                        active
+                          ? "bg-stamp-wash font-semibold text-stamp"
+                          : "text-ink-2 hover:bg-sunk hover:text-ink",
+                      )}
+                    >
+                      <Icon className="size-4.5" aria-hidden />
+                      {label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+          <OperatorCard operator={operator} />
+        </aside>
+
+        <div className="min-w-0">{children}</div>
+      </div>
+      <NewCaseDialog open={creating} onOpenChange={setCreating} />
+    </OperatorProvider>
+  );
+}
+
+function OperatorCard({ operator }: { operator: Operator }) {
+  const router = useRouter();
+  const [leaving, setLeaving] = useState(false);
+
+  async function logout() {
+    setLeaving(true);
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      // Leave even if the request failed: the session expires server-side anyway.
+      router.replace("/console/accedi");
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 border-t border-line p-4">
+      <span
+        aria-hidden
+        className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-display text-sm font-semibold text-white"
+      >
+        {operator.name
+          .split(/\s+/)
+          .map((part) => part[0])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{operator.name}</p>
+        <p className="truncate text-xs text-ink-3">{operator.organization.name}</p>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Esci"
+        onClick={() => void logout()}
+        loading={leaving}
+      >
+        <LogOut className="rtl-flip size-4" />
+      </Button>
+    </div>
+  );
+}

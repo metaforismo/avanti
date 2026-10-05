@@ -288,6 +288,25 @@ export const Progress = z.object({
 });
 export type Progress = z.infer<typeof Progress>;
 
+export const CitizenContact = z.object({
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().min(1).max(80),
+  phone: z.string().trim().max(30).optional(),
+  email: z.string().trim().email().max(200).optional(),
+});
+export type CitizenContact = z.infer<typeof CitizenContact>;
+
+/** A previous answer rendered for humans, in the case language. */
+export const AnsweredQuestion = z.object({
+  questionId: z.string(),
+  question: z.string(),
+  answer: z.string(),
+  section: z.string(),
+  /** False when the answer was inferred from free text and never confirmed. */
+  editable: z.boolean(),
+});
+export type AnsweredQuestion = z.infer<typeof AnsweredQuestion>;
+
 /** Everything the citizen sees. Never contains operator-only notes or other cases. */
 export const CitizenCase = z.object({
   id: Id,
@@ -301,10 +320,14 @@ export const CitizenCase = z.object({
   progress: Progress,
   nextQuestion: Question.nullable(),
   answers: z.record(z.string(), AnswerValue),
+  /** Same answers, readable and localized, in interview order. */
+  answered: z.array(AnsweredQuestion).default([]),
   household: z.array(Member),
   checklist: z.array(ChecklistItem),
   documents: z.array(DocumentSummary),
   messages: z.array(ChatMessage),
+  /** Contact details the citizen already gave, to prefill a resubmission. */
+  contact: CitizenContact.nullable().default(null),
   /** Blockers/warnings the citizen can act on. */
   findings: z.array(Finding),
   submittedAt: IsoDateTime.nullable(),
@@ -344,12 +367,7 @@ export type IntakeTurn = z.infer<typeof IntakeTurn>;
 
 export const UpdateLanguageRequest = z.object({ language: Language });
 
-export const CitizenContactRequest = z.object({
-  firstName: z.string().trim().min(1).max(80),
-  lastName: z.string().trim().min(1).max(80),
-  phone: z.string().trim().max(30).optional(),
-  email: z.string().trim().email().max(200).optional(),
-});
+export const CitizenContactRequest = CitizenContact;
 export type CitizenContactRequest = z.infer<typeof CitizenContactRequest>;
 
 export const SubmitCaseRequest = z.object({
@@ -532,13 +550,14 @@ export const Metrics = z.object({
   casesStarted: z.number().int(),
   casesSubmitted: z.number().int(),
   casesReady: z.number().int(),
-  /** % of submitted dossiers with zero blockers at first submission. Null when no data. */
-  completeAtFirstSubmission: z.number().nullable(),
+  /** Share (0–1) of submitted dossiers with zero blockers at first submission. Null when no data. */
+  completeAtFirstSubmission: z.number().min(0).max(1).nullable(),
   avgCitizenMinutes: z.number().nullable(),
   avgReviewMinutes: z.number().nullable(),
   /** Baseline declared by the CAF in settings (manual prep minutes per case before Avanti). */
   baselineMinutesPerCase: z.number().nullable(),
-  needsCitizenRate: z.number().nullable(),
+  /** Share (0–1) of submitted dossiers sent back to the citizen at least once. */
+  needsCitizenRate: z.number().min(0).max(1).nullable(),
   byPractice: z.array(z.object({ practiceId: PracticeId, count: z.number().int() })),
   byLanguage: z.array(z.object({ language: Language, count: z.number().int() })),
   daily: z.array(
