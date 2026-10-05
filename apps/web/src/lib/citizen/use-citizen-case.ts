@@ -16,6 +16,9 @@ export type LoadState =
   | { kind: "error"; code: ErrorCode | "network" }
   | { kind: "ready"; data: CitizenCase };
 
+/** Server messages are only shown for validation errors, which the API localizes. */
+export type ActionError = { code: ErrorCode | "network"; serverMessage: string | null };
+
 export type PendingUpload = {
   id: string;
   fileName: string;
@@ -62,7 +65,7 @@ function uploadWithProgress(
 export function useCitizenCase(token: string) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [pending, setPending] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<ErrorCode | "network" | null>(null);
+  const [actionError, setActionError] = useState<ActionError | null>(null);
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
   const base = `/api/c/${encodeURIComponent(token)}`;
   const inFlight = useRef(0);
@@ -96,7 +99,7 @@ export function useCitizenCase(token: string) {
   }, [load]);
 
   const run = useCallback(
-    async <T,>(key: string, action: () => Promise<T>): Promise<T | undefined> => {
+    async <T>(key: string, action: () => Promise<T>): Promise<T | undefined> => {
       inFlight.current += 1;
       setPending(key);
       setActionError(null);
@@ -105,7 +108,12 @@ export function useCitizenCase(token: string) {
       } catch (error) {
         const code = errorCode(error);
         if (code === "link_expired" || code === "not_found") setState({ kind: "error", code });
-        else setActionError(code);
+        else
+          setActionError({
+            code,
+            serverMessage:
+              code === "bad_request" && error instanceof ApiRequestError ? error.message : null,
+          });
         return undefined;
       } finally {
         inFlight.current -= 1;
@@ -121,7 +129,7 @@ export function useCitizenCase(token: string) {
   }, []);
 
   const turn = useCallback(
-    (input: IntakeTurn, key = input.type) =>
+    (input: IntakeTurn, key: string = input.type) =>
       run(key, () => apiFetch<CitizenCase>(`${base}/turn`, { method: "POST", body: input })).then(
         apply,
       ),

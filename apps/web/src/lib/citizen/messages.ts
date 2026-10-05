@@ -39,6 +39,8 @@ const it = {
     officeNotFoundHint: "Controlla il QR code o chiedi allo sportello un nuovo link.",
     noAccount: "Non serve registrarsi.",
     time: "Circa 10 minuti, puoi interrompere e riprendere quando vuoi.",
+    aiNotice:
+      "Ti guida un assistente automatico basato su intelligenza artificiale. Un operatore del CAF controlla tutto prima di fare la pratica.",
   },
   need: {
     title: "Cosa devi fare?",
@@ -61,6 +63,7 @@ const it = {
     tooShort: "Scrivi qualche parola in più.",
   },
   interview: {
+    assistant: "Assistente automatico",
     known: "Abbiamo capito",
     why: "Perché te lo chiediamo",
     skip: "Salta",
@@ -94,6 +97,8 @@ const it = {
     } satisfies Record<MemberRole, string>,
   },
   docs: {
+    preview: "Anteprima",
+    household: "Per tutta la famiglia",
     title: "I documenti da preparare",
     lead: "Fotografa o carica ogni documento. Li controlliamo subito e ti diciamo se manca qualcosa.",
     progress: "{done} di {total} pronti",
@@ -114,7 +119,8 @@ const it = {
     notAssigned: "Nessuna voce",
     removeConfirm: "Eliminare questo documento?",
     removed: "Documento eliminato",
-    tooLarge: "Il file è troppo grande. Il massimo è 4 MB: prova a fotografare la pagina invece del PDF.",
+    tooLarge:
+      "Il file è troppo grande. Il massimo è 4 MB: prova a fotografare la pagina invece del PDF.",
     unsupported: "Questo tipo di file non è supportato. Usa una foto (JPG, PNG) o un PDF.",
     compressFailed: "Non riesco a ridurre questa foto. Prova a fotografare di nuovo.",
     allDone: "Tutti i documenti obbligatori sono pronti.",
@@ -133,6 +139,7 @@ const it = {
     pages: "{n} pagine",
   },
   review: {
+    missingList: "Cosa manca",
     title: "Controlla e invia",
     lead: "Ultimo passo. Lo sportello riceve il fascicolo e ti contatta se serve altro.",
     practice: "Pratica",
@@ -187,9 +194,11 @@ const it = {
   },
   errors: {
     expiredTitle: "Questo link è scaduto",
-    expiredBody: "Per sicurezza i link durano un tempo limitato. Chiedi allo sportello di mandartene uno nuovo.",
+    expiredBody:
+      "Per sicurezza i link durano un tempo limitato. Chiedi allo sportello di mandartene uno nuovo.",
     notFoundTitle: "Link non valido",
-    notFoundBody: "Controlla di aver copiato tutto il link, oppure chiedi allo sportello di inviarlo di nuovo.",
+    notFoundBody:
+      "Controlla di aver copiato tutto il link, oppure chiedi allo sportello di inviarlo di nuovo.",
     generic: "Qualcosa non ha funzionato. Riprova tra poco.",
     network: "Connessione assente. Controlla la rete e riprova.",
     rateLimited: "Troppi tentativi in poco tempo. Aspetta un minuto e riprova.",
@@ -238,6 +247,8 @@ const en: Widen<CitizenMessages> = {
     officeNotFoundHint: "Check the QR code or ask the office for a new link.",
     noAccount: "No sign-up needed.",
     time: "About 10 minutes. You can stop and come back whenever you like.",
+    aiNotice:
+      "You'll be guided by an automated assistant that uses artificial intelligence. A CAF operator checks everything before handling your application.",
   },
   need: {
     title: "What do you need to do?",
@@ -260,6 +271,7 @@ const en: Widen<CitizenMessages> = {
     tooShort: "Please write a few more words.",
   },
   interview: {
+    assistant: "Automated assistant",
     known: "What we understood",
     why: "Why we ask",
     skip: "Skip",
@@ -293,6 +305,8 @@ const en: Widen<CitizenMessages> = {
     },
   },
   docs: {
+    preview: "Preview",
+    household: "For the whole household",
     title: "Documents to prepare",
     lead: "Take a photo of each document or upload it. We check it right away and tell you if anything is missing.",
     progress: "{done} of {total} ready",
@@ -313,7 +327,8 @@ const en: Widen<CitizenMessages> = {
     notAssigned: "Nothing",
     removeConfirm: "Delete this document?",
     removed: "Document deleted",
-    tooLarge: "The file is too large. The limit is 4 MB: try taking a photo of the page instead of the PDF.",
+    tooLarge:
+      "The file is too large. The limit is 4 MB: try taking a photo of the page instead of the PDF.",
     unsupported: "This file type isn't supported. Use a photo (JPG, PNG) or a PDF.",
     compressFailed: "We couldn't shrink this photo. Please take it again.",
     allDone: "All required documents are ready.",
@@ -332,6 +347,7 @@ const en: Widen<CitizenMessages> = {
     pages: "{n} pages",
   },
   review: {
+    missingList: "What's missing",
     title: "Check and send",
     lead: "Last step. The office receives your file and contacts you if anything else is needed.",
     practice: "Service",
@@ -386,7 +402,8 @@ const en: Widen<CitizenMessages> = {
   },
   errors: {
     expiredTitle: "This link has expired",
-    expiredBody: "For your security, links only last a limited time. Ask the office to send you a new one.",
+    expiredBody:
+      "For your security, links only last a limited time. Ask the office to send you a new one.",
     notFoundTitle: "Invalid link",
     notFoundBody: "Check that you copied the whole link, or ask the office to send it again.",
     generic: "Something went wrong. Please try again shortly.",
@@ -396,7 +413,16 @@ const en: Widen<CitizenMessages> = {
   },
 };
 
-export const MESSAGES: Record<Language, Widen<CitizenMessages>> = { it, en, fr, es, ro, uk, ar, bn };
+export const MESSAGES: Record<Language, Widen<CitizenMessages>> = {
+  it,
+  en,
+  fr,
+  es,
+  ro,
+  uk,
+  ar,
+  bn,
+};
 export type { Widen };
 
 export function messagesFor(language: Language) {

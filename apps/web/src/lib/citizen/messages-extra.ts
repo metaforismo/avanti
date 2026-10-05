@@ -35,6 +35,8 @@ export const fr: M = {
     officeNotFoundHint: "Vérifie le QR code ou demande un nouveau lien au guichet.",
     noAccount: "Pas besoin de créer un compte.",
     time: "Environ 10 minutes. Tu peux t'arrêter et reprendre quand tu veux.",
+    aiNotice:
+      "Tu es guidé par un assistant automatique qui utilise l'intelligence artificielle. Un agent du CAF vérifie tout avant de traiter ton dossier.",
   },
   need: {
     title: "Qu'est-ce que tu dois faire ?",
@@ -57,6 +59,7 @@ export const fr: M = {
     tooShort: "Écris quelques mots de plus.",
   },
   interview: {
+    assistant: "Assistant automatique",
     known: "Ce que nous avons compris",
     why: "Pourquoi nous le demandons",
     skip: "Passer",
@@ -90,6 +93,8 @@ export const fr: M = {
     },
   },
   docs: {
+    preview: "Aperçu",
+    household: "Pour tout le foyer",
     title: "Les documents à préparer",
     lead: "Prends en photo ou envoie chaque document. Nous le vérifions tout de suite et te disons s'il manque quelque chose.",
     progress: "{done} sur {total} prêts",
@@ -110,7 +115,8 @@ export const fr: M = {
     notAssigned: "Aucun",
     removeConfirm: "Supprimer ce document ?",
     removed: "Document supprimé",
-    tooLarge: "Le fichier est trop lourd. Maximum 4 Mo : essaie de prendre la page en photo au lieu du PDF.",
+    tooLarge:
+      "Le fichier est trop lourd. Maximum 4 Mo : essaie de prendre la page en photo au lieu du PDF.",
     unsupported: "Ce type de fichier n'est pas accepté. Utilise une photo (JPG, PNG) ou un PDF.",
     compressFailed: "Impossible de réduire cette photo. Reprends-la.",
     allDone: "Tous les documents obligatoires sont prêts.",
@@ -129,6 +135,7 @@ export const fr: M = {
     pages: "{n} pages",
   },
   review: {
+    missingList: "Ce qui manque",
     title: "Vérifie et envoie",
     lead: "Dernière étape. Le guichet reçoit ton dossier et te contacte s'il faut autre chose.",
     practice: "Démarche",
@@ -183,7 +190,8 @@ export const fr: M = {
   },
   errors: {
     expiredTitle: "Ce lien a expiré",
-    expiredBody: "Pour ta sécurité, les liens durent un temps limité. Demande un nouveau lien au guichet.",
+    expiredBody:
+      "Pour ta sécurité, les liens durent un temps limité. Demande un nouveau lien au guichet.",
     notFoundTitle: "Lien non valide",
     notFoundBody: "Vérifie que tu as copié tout le lien, ou demande au guichet de le renvoyer.",
     generic: "Quelque chose n'a pas marché. Réessaie dans un instant.",
@@ -226,6 +234,8 @@ export const es: M = {
     officeNotFoundHint: "Revisa el código QR o pide un enlace nuevo en la oficina.",
     noAccount: "No hace falta registrarse.",
     time: "Unos 10 minutos. Puedes parar y seguir cuando quieras.",
+    aiNotice:
+      "Te guía un asistente automático basado en inteligencia artificial. Un operador del CAF lo revisa todo antes de hacer el trámite.",
   },
   need: {
     title: "¿Qué necesitas hacer?",
@@ -248,6 +258,7 @@ export const es: M = {
     tooShort: "Escribe algunas palabras más.",
   },
   interview: {
+    assistant: "Asistente automático",
     known: "Lo que hemos entendido",
     why: "Por qué lo preguntamos",
     skip: "Saltar",
@@ -281,6 +292,8 @@ export const es: M = {
     },
   },
   docs: {
+    preview: "Vista previa",
+    household: "Para todo el hogar",
     title: "Los documentos que hay que preparar",
     lead: "Haz una foto o sube cada documento. Lo revisamos enseguida y te decimos si falta algo.",
     progress: "{done} de {total} listos",
@@ -301,7 +314,8 @@ export const es: M = {
     notAssigned: "Ninguno",
     removeConfirm: "¿Eliminar este documento?",
     removed: "Documento eliminado",
-    tooLarge: "El archivo es demasiado grande. El máximo es 4 MB: prueba a hacer una foto de la página en vez del PDF.",
+    tooLarge:
+      "El archivo es demasiado grande. El máximo es 4 MB: prueba a hacer una foto de la página en vez del PDF.",
     unsupported: "Este tipo de archivo no se admite. Usa una foto (JPG, PNG) o un PDF.",
     compressFailed: "No podemos reducir esta foto. Hazla de nuevo.",
     allDone: "Todos los documentos obligatorios están listos.",
@@ -320,6 +334,7 @@ export const es: M = {
     pages: "{n} páginas",
   },
   review: {
+    missingList: "Lo que falta",
     title: "Revisa y envía",
     lead: "Último paso. La oficina recibe tu expediente y te contacta si hace falta algo más.",
     practice: "Trámite",
@@ -374,9 +389,11 @@ export const es: M = {
   },
   errors: {
     expiredTitle: "Este enlace ha caducado",
-    expiredBody: "Por seguridad, los enlaces duran un tiempo limitado. Pide uno nuevo en la oficina.",
+    expiredBody:
+      "Por seguridad, los enlaces duran un tiempo limitado. Pide uno nuevo en la oficina.",
     notFoundTitle: "Enlace no válido",
-    notFoundBody: "Comprueba que has copiado todo el enlace o pide a la oficina que lo envíe de nuevo.",
+    notFoundBody:
+      "Comprueba que has copiado todo el enlace o pide a la oficina que lo envíe de nuevo.",
     generic: "Algo no ha funcionado. Inténtalo de nuevo en un momento.",
     network: "Sin conexión. Revisa la red e inténtalo de nuevo.",
     rateLimited: "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
@@ -417,6 +434,8 @@ export const ro: M = {
     officeNotFoundHint: "Verifică codul QR sau cere un link nou la ghișeu.",
     noAccount: "Nu trebuie să te înregistrezi.",
     time: "Aproximativ 10 minute. Poți să te oprești și să continui când vrei.",
+    aiNotice:
+      "Te ghidează un asistent automat bazat pe inteligență artificială. Un operator CAF verifică totul înainte de a se ocupa de dosar.",
   },
   need: {
     title: "Ce trebuie să faci?",
@@ -439,6 +458,7 @@ export const ro: M = {
     tooShort: "Scrie câteva cuvinte în plus.",
   },
   interview: {
+    assistant: "Asistent automat",
     known: "Ce am înțeles",
     why: "De ce întrebăm",
     skip: "Sari peste",
@@ -472,6 +492,8 @@ export const ro: M = {
     },
   },
   docs: {
+    preview: "Previzualizare",
+    household: "Pentru toată familia",
     title: "Documentele de pregătit",
     lead: "Fotografiază sau încarcă fiecare document. Îl verificăm imediat și îți spunem dacă lipsește ceva.",
     progress: "{done} din {total} gata",
@@ -492,8 +514,10 @@ export const ro: M = {
     notAssigned: "Niciunul",
     removeConfirm: "Ștergi acest document?",
     removed: "Document șters",
-    tooLarge: "Fișierul este prea mare. Maximum 4 MB: încearcă să fotografiezi pagina în loc de PDF.",
-    unsupported: "Acest tip de fișier nu este acceptat. Folosește o fotografie (JPG, PNG) sau un PDF.",
+    tooLarge:
+      "Fișierul este prea mare. Maximum 4 MB: încearcă să fotografiezi pagina în loc de PDF.",
+    unsupported:
+      "Acest tip de fișier nu este acceptat. Folosește o fotografie (JPG, PNG) sau un PDF.",
     compressFailed: "Nu putem micșora această fotografie. Fă-o din nou.",
     allDone: "Toate documentele obligatorii sunt gata.",
     missing: "Mai lipsesc {n}. Poți trimite oricum: ghișeul ți le va cere.",
@@ -511,6 +535,7 @@ export const ro: M = {
     pages: "{n} pagini",
   },
   review: {
+    missingList: "Ce lipsește",
     title: "Verifică și trimite",
     lead: "Ultimul pas. Ghișeul primește dosarul și te contactează dacă mai este nevoie de ceva.",
     practice: "Procedura",
@@ -608,6 +633,8 @@ export const uk: M = {
     officeNotFoundHint: "Перевір QR-код або попроси нове посилання у віконці.",
     noAccount: "Реєстрація не потрібна.",
     time: "Приблизно 10 хвилин. Можна зупинитися й продовжити будь-коли.",
+    aiNotice:
+      "Тебе супроводжує автоматичний помічник на основі штучного інтелекту. Працівник CAF усе перевіряє, перш ніж оформлювати справу.",
   },
   need: {
     title: "Що тобі потрібно зробити?",
@@ -630,6 +657,7 @@ export const uk: M = {
     tooShort: "Напиши трохи більше слів.",
   },
   interview: {
+    assistant: "Автоматичний помічник",
     known: "Що ми зрозуміли",
     why: "Чому ми питаємо",
     skip: "Пропустити",
@@ -663,6 +691,8 @@ export const uk: M = {
     },
   },
   docs: {
+    preview: "Перегляд",
+    household: "Для всієї сім'ї",
     title: "Документи, які треба підготувати",
     lead: "Сфотографуй або завантаж кожен документ. Ми одразу перевіримо його й скажемо, якщо чогось бракує.",
     progress: "Готово {done} з {total}",
@@ -702,6 +732,7 @@ export const uk: M = {
     pages: "{n} стор.",
   },
   review: {
+    missingList: "Чого бракує",
     title: "Перевір і надішли",
     lead: "Останній крок. Віконце отримає твою справу й зв'яжеться з тобою, якщо ще щось знадобиться.",
     practice: "Послуга",
@@ -798,6 +829,8 @@ export const ar: M = {
     officeNotFoundHint: "تحقق من رمز QR أو اطلب رابطاً جديداً من المكتب.",
     noAccount: "لا حاجة للتسجيل.",
     time: "حوالي 10 دقائق. يمكنك التوقف والمتابعة متى شئت.",
+    aiNotice:
+      "يرشدك مساعد آلي يعمل بالذكاء الاصطناعي. يراجع موظف الـ CAF كل شيء قبل إنجاز معاملتك.",
   },
   need: {
     title: "ماذا تحتاج أن تفعل؟",
@@ -820,6 +853,7 @@ export const ar: M = {
     tooShort: "اكتب كلمات أكثر قليلاً.",
   },
   interview: {
+    assistant: "المساعد الآلي",
     known: "ما فهمناه",
     why: "لماذا نسأل",
     skip: "تخطَّ",
@@ -853,6 +887,8 @@ export const ar: M = {
     },
   },
   docs: {
+    preview: "معاينة",
+    household: "لكل أفراد الأسرة",
     title: "المستندات المطلوبة",
     lead: "صوّر كل مستند أو ارفعه. نتحقق منه فوراً ونخبرك إن كان شيء ناقصاً.",
     progress: "{done} من {total} جاهزة",
@@ -892,6 +928,7 @@ export const ar: M = {
     pages: "{n} صفحات",
   },
   review: {
+    missingList: "ما الذي ينقص",
     title: "راجع وأرسل",
     lead: "الخطوة الأخيرة. يستلم المكتب ملفك ويتصل بك إن احتاج شيئاً آخر.",
     practice: "الخدمة",
@@ -989,6 +1026,8 @@ export const bn: M = {
     officeNotFoundHint: "QR কোডটি দেখুন অথবা অফিস থেকে নতুন লিংক চান।",
     noAccount: "নিবন্ধনের প্রয়োজন নেই।",
     time: "প্রায় ১০ মিনিট। যখন খুশি থামতে ও আবার শুরু করতে পারবেন।",
+    aiNotice:
+      "একটি কৃত্রিম বুদ্ধিমত্তা-ভিত্তিক স্বয়ংক্রিয় সহকারী আপনাকে পথ দেখাবে। আবেদন করার আগে CAF-এর একজন কর্মী সবকিছু যাচাই করবেন।",
   },
   need: {
     title: "আপনার কী করতে হবে?",
@@ -1011,6 +1050,7 @@ export const bn: M = {
     tooShort: "আরও কয়েকটি শব্দ লিখুন।",
   },
   interview: {
+    assistant: "স্বয়ংক্রিয় সহকারী",
     known: "আমরা যা বুঝেছি",
     why: "কেন জিজ্ঞাসা করছি",
     skip: "বাদ দিন",
@@ -1044,6 +1084,8 @@ export const bn: M = {
     },
   },
   docs: {
+    preview: "প্রিভিউ",
+    household: "পুরো পরিবারের জন্য",
     title: "যে কাগজপত্র প্রস্তুত করতে হবে",
     lead: "প্রতিটি কাগজের ছবি তুলুন বা আপলোড করুন। আমরা সঙ্গে সঙ্গে দেখে নেব এবং কিছু বাকি থাকলে জানাব।",
     progress: "{total}টির মধ্যে {done}টি প্রস্তুত",
@@ -1083,6 +1125,7 @@ export const bn: M = {
     pages: "{n} পৃষ্ঠা",
   },
   review: {
+    missingList: "যা বাকি আছে",
     title: "দেখে নিয়ে পাঠান",
     lead: "শেষ ধাপ। অফিস আপনার ফাইল পাবে এবং আর কিছু লাগলে যোগাযোগ করবে।",
     practice: "সেবা",

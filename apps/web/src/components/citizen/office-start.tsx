@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Phone } from "lucide-react";
+import { MapPin, Phone, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import {
@@ -45,7 +45,9 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
       .then((data) => !cancelled && setInfo(data))
       .catch((error) => {
         if (cancelled) return;
-        setInfo(error instanceof ApiRequestError && error.code === "not_found" ? "missing" : "error");
+        setInfo(
+          error instanceof ApiRequestError && error.code === "not_found" ? "missing" : "error",
+        );
       });
     return () => {
       cancelled = true;
@@ -83,7 +85,14 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
     } catch (error) {
       setStarting(false);
       setStartError(
-        errorMessage(m, error instanceof ApiRequestError ? (error.status === 0 ? "network" : error.code) : "internal"),
+        errorMessage(
+          m,
+          error instanceof ApiRequestError
+            ? error.status === 0
+              ? "network"
+              : error.code
+            : "internal",
+        ),
       );
     }
   }
@@ -107,7 +116,9 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
         <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-4">
           {info ? (
             <div className="min-w-0 flex-1">
-              <p className="truncate font-display text-lg leading-tight font-semibold">{info.organization.name}</p>
+              <p className="truncate font-display text-lg leading-tight font-semibold">
+                {info.organization.name}
+              </p>
               <p className="truncate text-sm text-ink-3">{info.office.name}</p>
             </div>
           ) : (
@@ -128,7 +139,9 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
           <section className="mb-8 animate-rise rounded-lg bg-stamp-wash p-5">
             <p className="font-semibold">{m.start.resumeHint}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => router.push(`/pratica/${resumeToken}`)}>{m.start.resume}</Button>
+              <Button onClick={() => router.push(`/pratica/${resumeToken}`)}>
+                {m.start.resume}
+              </Button>
               <Button variant="ghost" onClick={() => setResumeToken(null)}>
                 {m.start.startNew}
               </Button>
@@ -183,9 +196,18 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
           </fieldset>
 
           <div className="grid gap-3">
+            <p className="flex gap-3 rounded-md bg-folder/60 p-4 text-ink-2">
+              <Sparkles className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
+              {m.start.aiNotice}
+            </p>
             <p className="text-ink-2">
               {format(m.start.privacy, { org: orgName })}{" "}
-              <a href="/privacy" target="_blank" rel="noopener" className="font-semibold text-stamp underline underline-offset-2">
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener"
+                className="font-semibold text-stamp underline underline-offset-2"
+              >
                 {m.start.privacyLink}
               </a>
             </p>
@@ -231,7 +253,10 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
               </span>
             </span>
             {info.office.phone && (
-              <a href={`tel:${info.office.phone.replace(/\s+/g, "")}`} className="flex items-center gap-2 hover:text-ink">
+              <a
+                href={`tel:${info.office.phone.replace(/\s+/g, "")}`}
+                className="flex items-center gap-2 hover:text-ink"
+              >
                 <Phone className="size-4 shrink-0 text-ink-3" aria-hidden />
                 <span dir="ltr">{info.office.phone}</span>
               </a>

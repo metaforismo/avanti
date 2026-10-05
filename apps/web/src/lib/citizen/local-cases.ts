@@ -23,7 +23,8 @@ export function forgetCaseToken(token: string) {
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
-      if (k?.startsWith("avanti:case:") && localStorage.getItem(k) === token) localStorage.removeItem(k);
+      if (k?.startsWith("avanti:case:") && localStorage.getItem(k) === token)
+        localStorage.removeItem(k);
     }
   } catch {}
 }
