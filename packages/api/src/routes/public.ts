@@ -9,9 +9,7 @@ import { officeView, organizationView } from "../views";
 export function mountPublicRoutes(app: App, services: Services) {
   app.get("/health", (context) => context.json({ status: "ok" }));
   app.get("/practices", (context) =>
-    context.json(
-      listPractices(parse(Language, context.req.query("lang") ?? "it"), services.clock()),
-    ),
+    context.json(listPractices(parse(Language, context.req.query("lang") ?? "it"))),
   );
   app.get("/offices/:slug", async (context) => {
     const [office] = await services.db

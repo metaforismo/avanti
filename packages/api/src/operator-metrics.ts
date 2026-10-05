@@ -1,3 +1,4 @@
+import { calendarDate } from "@avanti/core";
 import { LANGUAGES, PRACTICE_IDS, type Metrics } from "@avanti/contracts";
 import { minutes, type CaseRow } from "./dossier";
 import { ApiFailure } from "./security";
@@ -10,12 +11,13 @@ export interface MetricEvent {
 }
 
 export function metricsRange(from: string, to: string) {
-  const start = new Date(`${from}T00:00:00Z`);
-  const end = new Date(`${to}T00:00:00Z`);
   if (!validDate(from) || !validDate(to) || from > to) {
     throw new ApiFailure("bad_request", 400, "Intervallo di date non valido.");
   }
-  end.setUTCDate(end.getUTCDate() + 1);
+  const nextDay = new Date(`${to}T00:00:00Z`);
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+  const start = romeMidnight(from);
+  const end = romeMidnight(nextDay.toISOString().slice(0, 10));
   if (end.getTime() - start.getTime() > 366 * 86400000) {
     throw new ApiFailure("bad_request", 400, "Scegli un intervallo di massimo un anno.");
   }
@@ -48,7 +50,11 @@ export function calculateMetrics(
   const submitted = rows.filter((row) => inRange(row.submittedAt));
   const requested = new Set(
     events
-      .filter((event) => event.type === "citizen.requested" && Date.parse(event.at) < end.getTime())
+      .filter(
+        (event) =>
+          ["citizen.requested", "case.requested"].includes(event.type) &&
+          Date.parse(event.at) < end.getTime(),
+      )
       .map((event) => event.caseId),
   );
   const completions = new Map<string, MetricEvent>();
@@ -68,14 +74,17 @@ export function calculateMetrics(
     return [minutes(row.reviewStartedAt, completion.at)];
   });
   const daily: Metrics["daily"] = [];
-  for (let day = new Date(start); day < end; day.setUTCDate(day.getUTCDate() + 1)) {
+  for (
+    let day = new Date(`${from}T00:00:00Z`);
+    day.toISOString().slice(0, 10) <= to;
+    day.setUTCDate(day.getUTCDate() + 1)
+  ) {
     const date = day.toISOString().slice(0, 10);
     daily.push({
       date,
-      started: started.filter((row) => new Date(row.createdAt).toISOString().slice(0, 10) === date)
-        .length,
+      started: started.filter((row) => calendarDate(new Date(row.createdAt)) === date).length,
       submitted: submitted.filter(
-        (row) => row.submittedAt && new Date(row.submittedAt).toISOString().slice(0, 10) === date,
+        (row) => row.submittedAt && calendarDate(new Date(row.submittedAt)) === date,
       ).length,
     });
   }
@@ -86,14 +95,13 @@ export function calculateMetrics(
     casesSubmitted: submitted.length,
     casesReady: completions.size,
     completeAtFirstSubmission: submitted.length
-      ? (100 * submitted.filter((row) => row.firstSubmissionComplete === true).length) /
-        submitted.length
+      ? submitted.filter((row) => row.firstSubmissionComplete === true).length / submitted.length
       : null,
     avgCitizenMinutes: average(submitted.map((row) => minutes(row.createdAt, row.submittedAt))),
     avgReviewMinutes: average(reviewDurations),
     baselineMinutesPerCase,
     needsCitizenRate: submitted.length
-      ? (100 * submitted.filter((row) => requested.has(row.id)).length) / submitted.length
+      ? submitted.filter((row) => requested.has(row.id)).length / submitted.length
       : null,
     byPractice: PRACTICE_IDS.map((practiceId) => ({
       practiceId,
@@ -105,4 +113,19 @@ export function calculateMetrics(
     })).filter((group) => group.count > 0),
     daily,
   };
+}
+
+function romeMidnight(date: string): Date {
+  const utc = Date.parse(`${date}T00:00:00Z`);
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Rome",
+    hour: "2-digit",
+    hourCycle: "h23",
+  });
+  let instant = utc;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const offset = Number(formatter.format(new Date(instant))) % 24;
+    instant -= offset * 3600000;
+  }
+  return new Date(instant);
 }
