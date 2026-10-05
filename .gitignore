@@ -1,0 +1,22 @@
+node_modules
+.turbo
+.next
+out
+dist
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# Local data (PGlite database, uploaded documents). Never commit citizen data.
+.data
+uploads
+
+.env
+.env*.local
+!.env.example
+
+.DS_Store
+*.log
+playwright-report
+test-results
+.vercel
