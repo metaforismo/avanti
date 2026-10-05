@@ -107,6 +107,9 @@ describe("review regressions", () => {
     const result = extractFacts("ISEE vivo con mia madre, mio padre non vive con noi", "it");
     expect(result.answers.household_roles).toEqual(["richiedente", "genitore"]);
     expect(result.answers.nonresident_parent).toBe(true);
+    const explicit = extractFacts("ISEE siamo 3, vivo con mia madre", "it");
+    expect(explicit.answers.household_roles).toEqual(["richiedente", "genitore"]);
+    expect(explicit.answers.household_count).toBe(3);
   });
   it("34: missing documents identify the person", () => {
     const result = evaluate([item], []);

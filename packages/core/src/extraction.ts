@@ -263,38 +263,37 @@ export function extractFacts(
     /(?:siamo|we are|nous sommes|somos|suntem|нас|نحن)\s+(\d{1,2}|[\p{L}]+)/u.exec(normalized);
   const statedCount = explicitHousehold ? numericWord(explicitHousehold[1] ?? "") : undefined;
   if (statedCount && statedCount <= 20) answers.household_count = statedCount;
-  else {
-    const livingWith =
-      /(?:vivo con|abito con|live with|living with|vis avec|vivo con|locuiesc cu|живу з|اعيش مع|থাকি)/u.exec(
-        normalized,
+  const livingWith =
+    /(?:vivo con|abito con|live with|living with|vis avec|vivo con|locuiesc cu|живу з|اعيش مع|থাকি)/u.exec(
+      normalized,
+    );
+  if (livingWith) {
+    const householdClause =
+      normalized
+        .slice(livingWith.index)
+        .split(/[.;]|(?:mio padre|my father|mon pere|mi padre).{0,10}(?:non|not|ne |no )/u)[0] ??
+      "";
+    const relations = [
+      /(?:madre|mamma|mother|mere|mama|мама|والدت|امي|মা)/u,
+      /(?:padre|papa|father|pere|tata|батько|والد|ابي|বাবা)/u,
+      /(?:moglie|marito|wife|husband|epouse|epoux|esposa|esposo|sot(?:ie|ul)?|дружина|чоловік|زوج|স্ত্রী|স্বামী)/u,
+    ];
+    const roles = relations.flatMap((expression, index) => {
+      const bounded = new RegExp(
+        `(?<![\\p{L}\\p{M}])(?:${expression.source})(?![\\p{L}\\p{M}])`,
+        "u",
       );
-    if (livingWith) {
-      const householdClause =
-        normalized
-          .slice(livingWith.index)
-          .split(/[.;]|(?:mio padre|my father|mon pere|mi padre).{0,10}(?:non|not|ne |no )/u)[0] ??
-        "";
-      const relations = [
-        /(?:madre|mamma|mother|mere|mama|мама|والدت|امي|মা)/u,
-        /(?:padre|papa|father|pere|tata|батько|والد|ابي|বাবা)/u,
-        /(?:moglie|marito|wife|husband|epouse|epoux|esposa|esposo|sot(?:ie|ul)?|дружина|чоловік|زوج|স্ত্রী|স্বামী)/u,
-      ];
-      const roles = relations.flatMap((expression, index) => {
-        const bounded = new RegExp(
-          `(?<![\\p{L}\\p{M}])(?:${expression.source})(?![\\p{L}\\p{M}])`,
-          "u",
-        );
-        if (!hasPositive(householdClause, bounded)) return [];
-        return [index === 2 ? "coniuge" : "genitore"];
-      });
-      const known = roles.length;
-      if (known) answers.household_roles = ["richiedente", ...roles];
-      if (
-        known > 0 &&
-        !/figli|children|enfants|hijos|copii|діт|اطفال|সন্তান/u.test(householdClause)
-      )
-        answers.household_count = 1 + known;
-    }
+      if (!hasPositive(householdClause, bounded)) return [];
+      return [index === 2 ? "coniuge" : "genitore"];
+    });
+    const known = roles.length;
+    if (known) answers.household_roles = ["richiedente", ...roles];
+    if (
+      answers.household_count === undefined &&
+      known > 0 &&
+      !/figli|children|enfants|hijos|copii|діт|اطفال|সন্তান/u.test(householdClause)
+    )
+      answers.household_count = 1 + known;
   }
   if (typeof answers.household_count === "number") facts.householdCount = answers.household_count;
   facts.nonresidentParent =
