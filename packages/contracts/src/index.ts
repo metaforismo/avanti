@@ -550,13 +550,14 @@ export const Metrics = z.object({
   casesStarted: z.number().int(),
   casesSubmitted: z.number().int(),
   casesReady: z.number().int(),
-  /** % of submitted dossiers with zero blockers at first submission. Null when no data. */
-  completeAtFirstSubmission: z.number().nullable(),
+  /** Share (0–1) of submitted dossiers with zero blockers at first submission. Null when no data. */
+  completeAtFirstSubmission: z.number().min(0).max(1).nullable(),
   avgCitizenMinutes: z.number().nullable(),
   avgReviewMinutes: z.number().nullable(),
   /** Baseline declared by the CAF in settings (manual prep minutes per case before Avanti). */
   baselineMinutesPerCase: z.number().nullable(),
-  needsCitizenRate: z.number().nullable(),
+  /** Share (0–1) of submitted dossiers sent back to the citizen at least once. */
+  needsCitizenRate: z.number().min(0).max(1).nullable(),
   byPractice: z.array(z.object({ practiceId: PracticeId, count: z.number().int() })),
   byLanguage: z.array(z.object({ language: Language, count: z.number().int() })),
   daily: z.array(
