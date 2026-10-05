@@ -174,6 +174,8 @@ const it = {
     closed: "La pratica è chiusa.",
   },
   request: {
+    untranslated:
+      "Lo sportello ha scritto in italiano: la traduzione automatica non era disponibile.",
     title: "Lo sportello ti chiede",
     lead: "Completa queste voci e la pratica torna allo sportello.",
     resend: "Ho completato, invia di nuovo",
@@ -382,6 +384,7 @@ const en: Widen<CitizenMessages> = {
     closed: "This application is closed.",
   },
   request: {
+    untranslated: "The office wrote in Italian: automatic translation was not available.",
     title: "The office is asking for",
     lead: "Complete these items and your file goes back to the office.",
     resend: "Done, send it again",

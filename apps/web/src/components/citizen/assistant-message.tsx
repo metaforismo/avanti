@@ -23,7 +23,7 @@ export function AssistantMessage({
         <Sparkles className="size-3.5" aria-hidden />
         {label}
       </p>
-      <p className="text-[1.0625rem] leading-relaxed whitespace-pre-line text-ink">
+      <p dir="auto" className="text-[1.0625rem] leading-relaxed whitespace-pre-line text-ink">
         {message.text}
       </p>
     </div>
