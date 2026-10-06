@@ -64,6 +64,8 @@ export const fr: M = {
   interview: {
     inferred: "Déduit de ce que tu as écrit : vérifie",
     progressLabel: "Questions : {n} sur {total}",
+    remainingOne: "Dernière question",
+    remainingMany: "Encore environ {n} questions",
     assistant: "Assistant automatique",
     known: "Ce que nous avons compris",
     why: "Pourquoi nous le demandons",
@@ -284,6 +286,8 @@ export const es: M = {
   interview: {
     inferred: "Deducido de lo que escribiste: compruébalo",
     progressLabel: "Preguntas: {n} de {total}",
+    remainingOne: "Última pregunta",
+    remainingMany: "Quedan unas {n} preguntas",
     assistant: "Asistente automático",
     known: "Lo que hemos entendido",
     why: "Por qué lo preguntamos",
@@ -504,6 +508,8 @@ export const ro: M = {
   interview: {
     inferred: "Dedus din ce ai scris: verifică",
     progressLabel: "Întrebări: {n} din {total}",
+    remainingOne: "Ultima întrebare",
+    remainingMany: "Întrebări rămase: aproximativ {n}",
     assistant: "Asistent automat",
     known: "Ce am înțeles",
     why: "De ce întrebăm",
@@ -723,6 +729,8 @@ export const uk: M = {
   interview: {
     inferred: "Взято з того, що ти написав(-ла): перевір",
     progressLabel: "Запитання: {n} з {total}",
+    remainingOne: "Останнє запитання",
+    remainingMany: "Залишилося запитань: приблизно {n}",
     assistant: "Автоматичний помічник",
     known: "Що ми зрозуміли",
     why: "Чому ми питаємо",
@@ -939,6 +947,8 @@ export const ar: M = {
   interview: {
     inferred: "مستنتج مما كتبته: تحقّق منه",
     progressLabel: "الأسئلة: {n} من {total}",
+    remainingOne: "السؤال الأخير",
+    remainingMany: "الأسئلة المتبقية: {n} تقريبًا",
     assistant: "المساعد الآلي",
     known: "ما فهمناه",
     why: "لماذا نسأل",
@@ -1156,6 +1166,8 @@ export const bn: M = {
   interview: {
     inferred: "আপনার লেখা থেকে ধরা হয়েছে: দেখে নিন",
     progressLabel: "প্রশ্ন: {total}টির মধ্যে {n}টি",
+    remainingOne: "শেষ প্রশ্ন",
+    remainingMany: "আর প্রায় {n}টি প্রশ্ন বাকি",
     assistant: "স্বয়ংক্রিয় সহকারী",
     known: "আমরা যা বুঝেছি",
     why: "কেন জিজ্ঞাসা করছি",
