@@ -176,9 +176,17 @@ Minuti cittadino: creazione → primo invio; revisione: prima apertura → pront
 trascorsi, includono pause/attesa, non misurano minuti di attività continua. Non usare questi
 intervalli come prova di risparmio di lavoro senza un protocollo di misurazione nel pilota.
 
-Rate limit persistente su hash IP+categoria: login 10, leads 5, intake 30, upload 30, turn
-120 richieste/minuto; 429 `rate_limited`, Retry-After. IP da x-forwarded-for soltanto dietro
-proxy fidato (`VERCEL=1` o `TRUST_PROXY=1`); locale usa bucket condiviso. Non abilitare TRUST_PROXY
+Rate limit persistente su HMAC di identità/categoria/finestra. Capability come identità
+principale per turni (20/minuto, 120/ora) e upload (30/minuto, 120/ora); tetti IP
+rispettivamente 200/minuto e 2.000/ora, 400/minuto e 4.000/ora. Nuove pratiche pubbliche:
+40/minuto e 60/ora per IP. Login/password: 10/minuto per email, 100/minuto per IP;
+password anche per operatore. Export: 20/minuto per operatore, 200 per IP; integrazioni:
+30/minuto per operatore, 300 per IP. Lead: 5/minuto per IP. Finestre fisse dalla prima
+richiesta; la guardia al minuto consente il burst senza attendere una ricarica continua.
+429 `rate_limited` con `Retry-After` in secondi e messaggio localizzato per la pratica
+(o lingua validata di intake); upload simultanei 4/pratica/istanza, `Retry-After:5`.
+IP solo da trasporto/proxy fidato; Vercel usa x-real-ip, altri proxy ultimo hop di
+x-forwarded-for. In locale senza IP restano capability/email. Non abilitare TRUST_PROXY
 su server direttamente accessibile che accetta header arbitrari.
 
 Provider AI/Blob/Postgres remoto non provati dalla suite locale. I modelli DSU/730 2027
@@ -190,7 +198,8 @@ richiedono aggiornamento normativo prepilota; beta non sostituisce la revisione 
 sessione operatore richiesta. Il job elimina sessioni e bucket scaduti e ritenta le
 cancellazioni storage; risponde `{ok:true}`, oppure `{ok:true,skipped:true}` entro il
 cooldown di un minuto. Un segreto assente o errato dà 401. Compatibile con Vercel Cron;
-va configurato nello scheduler del deploy. Nessun purge globale durante i POST utente.
+è pianificato ogni minuto in `apps/web/vercel.json`, con Vercel Pro e `CRON_SECRET`
+in Production. Le Preview non hanno cron automatico; dettagli in [DEPLOY](DEPLOY.md). Nessun purge globale durante i POST utente.
 
 ## Amministrazione dei CAF pilota
 

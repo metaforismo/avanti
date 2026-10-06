@@ -5,22 +5,37 @@ import { LoginRequest } from "@avanti/contracts";
 import type { MiddlewareHandler } from "hono";
 import type { ApiContext, ApiEnv, Services } from "../context";
 import { ApiFailure } from "../security";
+import { limitLanguage, limitMessage } from "./limit-message";
 
-const publicLimits = new Map([
-  ["/api/auth/login", { category: "login", limit: 10 }],
-  ["/api/auth/password", { category: "login", limit: 10 }],
-  ["/api/intake", { category: "intake", limit: 30 }],
-  ["/api/leads", { category: "leads", limit: 5 }],
-]);
-function policy(path: string, method: string) {
-  if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path))
-    return { category: "export", limit: 20 };
+interface WindowLimit {
+  limit: number;
+  seconds: number;
+}
+interface Policy {
+  category: string;
+  primary: readonly WindowLimit[];
+  ip: readonly WindowLimit[];
+}
+const minute = (limit: number): WindowLimit => ({ limit, seconds: 60 });
+const hour = (limit: number): WindowLimit => ({ limit, seconds: 3600 });
+export const RATE_POLICIES = {
+  login: { category: "login", primary: [minute(10)], ip: [minute(100)] },
+  intake: { category: "intake", primary: [], ip: [minute(40), hour(60)] },
+  turn: { category: "turn", primary: [minute(20), hour(120)], ip: [minute(200), hour(2000)] },
+  upload: { category: "upload", primary: [minute(30), hour(120)], ip: [minute(400), hour(4000)] },
+  leads: { category: "leads", primary: [], ip: [minute(5)] },
+  export: { category: "export", primary: [minute(20)], ip: [minute(200)] },
+  translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
+} satisfies Record<string, Policy>;
+function policy(path: string, method: string): Policy | null {
+  if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
   if (method !== "POST") return null;
-  if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return { category: "translate", limit: 30 };
-  const publicPolicy = publicLimits.get(path);
-  if (publicPolicy) return publicPolicy;
-  if (/^\/api\/c\/[^/]+\/turn$/.test(path)) return { category: "turn", limit: 120 };
-  if (/^\/api\/c\/[^/]+\/documents$/.test(path)) return { category: "upload", limit: 30 };
+  if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return RATE_POLICIES.translate;
+  if (["/api/auth/login", "/api/auth/password"].includes(path)) return RATE_POLICIES.login;
+  if (path === "/api/intake") return RATE_POLICIES.intake;
+  if (path === "/api/leads") return RATE_POLICIES.leads;
+  if (/^\/api\/c\/[^/]+\/turn$/.test(path)) return RATE_POLICIES.turn;
+  if (/^\/api\/c\/[^/]+\/documents$/.test(path)) return RATE_POLICIES.upload;
   return null;
 }
 export function proxyAddress(headers: Headers, vercel: boolean): string | null {
@@ -51,7 +66,6 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
         throw new ApiFailure("bad_request", 400, "Richiesta non valida.");
 
       if (context.get("operator")) identities.push(`operator:${context.get("operator").id}`);
-      if (address) identities.push(`ip:${address}`);
       const capability = /^\/api\/c\/([^/]+)/.exec(context.req.path)?.[1];
       if (capability) identities.push(`capability:${capability}`);
       if (context.req.path === "/api/auth/password") {
@@ -67,20 +81,26 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
         if (!parsed.success) throw new ApiFailure("bad_request", 400, "Controlla i dati inseriti.");
         identities.push(`email:${parsed.data.email}`);
       }
-      for (const identity of identities) {
+      // A busy or abusive capability must exhaust its own quota before charging the shared Wi-Fi.
+      const buckets = identities.flatMap((identity) =>
+        rule.primary.map((window) => ({ identity, window })),
+      );
+      if (address)
+        buckets.push(...rule.ip.map((window) => ({ identity: `ip:${address}`, window })));
+      for (const { identity, window } of buckets) {
         const result = await consumeRateLimit(
           services.db,
-          rateKey(secret, rule.category, identity),
+          rateKey(secret, `${rule.category}:${window.seconds}`, identity),
           services.clock(),
-          rule.limit,
-          60,
+          window.limit,
+          window.seconds,
         );
         if (!result.allowed) {
           context.header("Retry-After", String(result.retryAfterSeconds));
           throw new ApiFailure(
             "rate_limited",
             429,
-            "Troppe richieste. Attendi un minuto e riprova.",
+            limitMessage(await limitLanguage(context, services), result.retryAfterSeconds),
           );
         }
       }

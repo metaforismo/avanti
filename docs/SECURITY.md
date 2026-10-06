@@ -21,10 +21,10 @@ Misure, comandi, integrazione web e limiti in
 | Entropia/confronto capability                                                        | Nessun difetto rilevato nell'entropia | 32 byte da randomBytes, solo SHA-256 persistito; confronto timingSafeEqual dell'hash dopo lookup indicizzato. Il lookup/HTTP complessivo non è a tempo costante                                                                               | `pilot-security.test.ts`: 500 token da 32 byte, scadenza; `middleware/auth.ts` e `security.ts`: controllo esplicito; non è una prova statistica del CSPRNG  |
 | Origin assente su mutazioni cittadino/pubbliche; Host aggiunge origini in produzione | Alta                                  | Middleware globale prima del body, inclusi multipart; solo PUBLIC_APP_URL in produzione. Nessun CORS abilitato                                                                                                                                | `pilot-security.test.ts`: matrice mutazioni, multipart, Origin mancante/esterno, Host/URL estranei; `app.test.ts`: fallback Sec-Fetch-Site e origini locali |
 | Upload riconosciuto solo dalla firma                                                 | Alta                                  | Tipo dichiarato coerente col tipo rilevato, rifiuto PDF con JavaScript/allegati/azioni attive anche negli object stream, massimo 300 pagine. Dimensioni PNG/JPEG/WebP/HEIC entro 40 megapixel e 16.384 pixel per asse; WebP animati rifiutati | `pilot-upload.test.ts`: PDF compressi/allegati, MIME, immagini; `pdf-pages.test.ts`: validi, invalidi, timeout/OOM                                          |
-| Limite body dipendente da Content-Length; quota solo in numero file                  | Media                                 | Contatore sullo stream reale, 4 MiB/file, envelope 128 KiB, 60 documenti e 120 MiB/pratica verificati sotto lock; quattro upload simultanei per istanza                                                                                       | `pilot-upload.test.ts`: multipart oltre limite, Content-Length falsato, quota byte e quinto upload; `app.test.ts`: dimensione file e 61esimo documento      |
+| Limite body dipendente da Content-Length; quota solo in numero file                  | Media                                 | Contatore sullo stream reale, 4 MiB/file, envelope 128 KiB, 60 documenti e 120 MiB/pratica verificati sotto lock; quattro upload simultanei per pratica nella singola istanza                                                                 | `pilot-upload.test.ts`: multipart oltre limite, Content-Length falsato, quota byte e quinto upload; `app.test.ts`: dimensione file e 61esimo documento      |
 | Storage traversal e symlink                                                          | Alta per symlink locali               | Chiavi con segmenti ammessi, confine canonicalizzato, rifiuto symlink, O_NOFOLLOW, file 0600. Nessun nome originale usato come percorso                                                                                                       | `storage.test.ts`: traversal, symlink directory/file, permessi; `pilot-upload.test.ts`: nomi                                                                |
 | PDF/file inline sullo stesso origin                                                  | Media                                 | Attachment sempre, nosniff, CSP sandbox/default-src none, nessun URL firmato/Blob nel DTO; API no-store/no-referrer e CSP restrittiva anche sugli errori                                                                                      | `pilot-security.test.ts`: file/header/log; `app.test.ts`: filename e audit download/export; revisione `dossier.ts` per DTO                                  |
-| Quote assenti su export e traduzioni operatore                                       | Media                                 | Export JSON/PDF 20/minuto e integrazioni 30/minuto per operatore e IP fidato. Restano quote su login/password/intake/lead/turn/upload                                                                                                         | `pilot-security.test.ts`: quote e proxy mancante; `middleware/rate-limit.test.ts`, `app.test.ts`: proxy fidato/socket e spoofing                            |
+| Quote assenti su export e traduzioni operatore                                       | Media                                 | Export JSON/PDF 20/minuto per operatore e 200/IP; integrazioni 30/minuto per operatore e 300/IP. Restano quote su login/password/intake/lead/turn/upload                                                                                      | `pilot-security.test.ts`: quote e proxy mancante; `middleware/rate-limit.test.ts`, `app.test.ts`: proxy fidato/socket e spoofing                            |
 | Isolamento CAF                                                                       | Nessun accesso estraneo trovato       | Predicate tenant su risorse, relazioni e filtri; 404 uniforme prima di storage/AI. Lo slug sportello è intenzionalmente pubblico e contiene solo campi pubblici                                                                               | `pilot-security.test.ts`: matrice pratiche, note, revisioni, documenti/file, operatori/reset, sportelli, metriche, export; test DB sui FK tenant            |
 | AI nel percorso upload; lavoro perso all'arresto                                     | Media                                 | Processing persistito, after() e recupero cron; fallback esplicito. Lease storage prima del put, rimosso nel commit documento; cleanup/backoff durevoli                                                                                       | `pilot-upload.test.ts`: risposta prima dell'AI, restart, documento eliminato, put ambiguo recuperato; `blob-storage.test.ts`: deadline/late success         |
 | Health sempre OK e shutdown senza drain applicativo                                  | Media                                 | Probe DB/storage con 503 sicuro, coalescenza 10 secondi; closeRuntimeDatabase drena richieste e background registrati                                                                                                                         | `pilot-reliability.test.ts`: outage/coalescenza e commit/rollback con DB persistente; `runtime.test.ts`: singleton e chiusura idempotente                   |
@@ -72,6 +72,38 @@ Il reverse proxy deve oscurare i segmenti capability nei log delle richieste e i
 `Referrer-Policy: no-referrer` sulle pagine cittadino. Analytics, replay di sessione e
 tracker non devono raccogliere quelle pagine. Non incollare link veri in ticket o chat.
 La policy del proxy/browser fa parte del deployment e non è provata dai soli test Hono.
+
+## Sala d'attesa e manutenzione pianificata
+
+L'IP non identifica il cittadino: 40 persone possono condividere il Wi-Fi del CAF.
+Capability per pratica: turni 20/minuto + 120/ora, upload 30/minuto + 120/ora.
+IP fidato: turni 200/minuto + 2.000/ora, upload 400/minuto + 4.000/ora; avvii pubblici
+40/minuto + 60/ora. Login/password conservano 10/minuto per email (password anche per
+operatore), con tetto IP 100/minuto per non bloccare l'ingresso di 10 operatori.
+I limiti identità precedono quelli IP; un abuso già fermato sulla capability non
+esaurisce il Wi-Fi. Le finestre fisse sono separate tramite HMAC categoria/durata;
+nessun token, email o IP in chiaro nei bucket. Messaggi 429 nelle otto lingue del
+cittadino e `Retry-After` in secondi; quota upload simultanei per pratica mantenuta,
+non globale. Prove in `waiting-room.test.ts` e `pilot-upload.test.ts`.
+
+Con Root Directory Vercel `apps/web`, la pianificazione è in
+[`apps/web/vercel.json`](../apps/web/vercel.json): `* * * * *`, ogni minuto.
+`CRON_SECRET` separato per ambiente, almeno 32 byte casuali, autentica il Bearer con
+confronto costante; assente/errato dà 401. Il cron recupera processing >2 minuti a
+lotti di 4, retention a lotti di 25 e cancellazioni storage persistite/backoff;
+il cooldown è per istanza, non un lock distribuito. Verificare run concorrenti e
+restart prima del pilota; l'analisi può essere duplicata fra istanze.
+Richiede Pro; Hobby non consente questa frequenza. Cron automatico solo Production:
+lo staging deve essere un progetto separato con risorse fittizie isolate.
+[Configurazione](https://vercel.com/docs/project-configuration/vercel-json),
+[piani](https://vercel.com/docs/cron-jobs/usage-and-pricing),
+[autenticazione](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
+
+Procedura completa, regione UE, costi/backup, migrazioni prima della build, seed
+vietato, provisioning admin, HSTS e prove Postgres reali in [DEPLOY.md](DEPLOY.md).
+`pnpm db:check` è read-only e non ripara: richiede Postgres, journal completo e
+indici validi. Il controllo è prerequisito del rilascio, non prova di conformità o
+backup funzionante. Nessuna credenziale o dato reale negli artefatti di verifica.
 
 ## GDPR: ruoli, base e informativa
 
