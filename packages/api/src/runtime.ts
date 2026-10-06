@@ -10,3 +10,13 @@ export function lazyRuntime<T>(initialize: () => Promise<T>) {
     return pending;
   };
 }
+
+/**
+ * Like `lazyRuntime`, but one per process. Next.js evaluates this package once per bundle
+ * (route handlers, server pages) and again on every hot reload, while PGlite allows a single
+ * open instance per data directory.
+ */
+export function processSingleton<T>(key: symbol, initialize: () => Promise<T>) {
+  const store = globalThis as Record<symbol, (() => Promise<T>) | undefined>;
+  return (store[key] ??= lazyRuntime(initialize));
+}
