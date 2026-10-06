@@ -218,6 +218,8 @@ export const fr: M = {
     notFoundTitle: "Lien non valide",
     notFoundBody: "Vérifie que tu as copié tout le lien, ou demande au guichet de le renvoyer.",
     generic: "Quelque chose n'a pas marché. Réessaie dans un instant.",
+    practiceUnavailable:
+      "Avanti ne peut pas encore préparer ce dossier. Choisis-en un autre ou demande au guichet.",
     network: "Pas de connexion. Vérifie le réseau et réessaie.",
     rateLimited: "Trop de tentatives. Attends une minute et réessaie.",
     offline: "Tu es hors ligne. Les modifications seront enregistrées au retour de la connexion.",
@@ -440,6 +442,8 @@ export const es: M = {
     notFoundBody:
       "Comprueba que has copiado todo el enlace o pide a la oficina que lo envíe de nuevo.",
     generic: "Algo no ha funcionado. Inténtalo de nuevo en un momento.",
+    practiceUnavailable:
+      "Avanti aún no puede preparar este trámite. Elige otro o pregunta en la ventanilla.",
     network: "Sin conexión. Revisa la red e inténtalo de nuevo.",
     rateLimited: "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
     offline: "Estás sin conexión. Los cambios se guardarán cuando vuelva la conexión.",
@@ -661,6 +665,8 @@ export const ro: M = {
     notFoundTitle: "Link nevalid",
     notFoundBody: "Verifică dacă ai copiat tot linkul sau cere ghișeului să îl trimită din nou.",
     generic: "Ceva nu a funcționat. Încearcă din nou peste puțin timp.",
+    practiceUnavailable:
+      "Avanti nu poate pregăti încă acest dosar. Alege altul sau întreabă la ghișeu.",
     network: "Fără conexiune. Verifică rețeaua și încearcă din nou.",
     rateLimited: "Prea multe încercări. Așteaptă un minut și încearcă din nou.",
     offline: "Ești offline. Modificările se salvează când revine conexiunea.",
@@ -880,6 +886,8 @@ export const uk: M = {
     notFoundTitle: "Недійсне посилання",
     notFoundBody: "Перевір, чи скопійовано посилання повністю, або попроси надіслати його ще раз.",
     generic: "Щось пішло не так. Спробуй ще раз трохи пізніше.",
+    practiceUnavailable:
+      "Avanti ще не може підготувати цю справу. Обери іншу або запитай у віконці.",
     network: "Немає з'єднання. Перевір мережу й спробуй ще раз.",
     rateLimited: "Забагато спроб. Зачекай хвилину й спробуй ще раз.",
     offline: "Ти офлайн. Зміни збережуться, коли з'явиться з'єднання.",
@@ -1098,6 +1106,7 @@ export const ar: M = {
     notFoundTitle: "رابط غير صالح",
     notFoundBody: "تأكد أنك نسخت الرابط كاملاً، أو اطلب من المكتب إرساله مرة أخرى.",
     generic: "حدث خطأ ما. حاول مرة أخرى بعد قليل.",
+    practiceUnavailable: "لا يمكن تحضير هذا الطلب مع Avanti بعد. اختر طلبًا آخر أو اسأل في الشباك.",
     network: "لا يوجد اتصال. تحقق من الشبكة وحاول مرة أخرى.",
     rateLimited: "محاولات كثيرة. انتظر دقيقة وحاول مرة أخرى.",
     offline: "أنت غير متصل. ستُحفظ التغييرات عند عودة الاتصال.",
@@ -1317,6 +1326,8 @@ export const bn: M = {
     notFoundTitle: "লিংকটি সঠিক নয়",
     notFoundBody: "পুরো লিংকটি কপি করেছেন কিনা দেখুন, অথবা অফিসকে আবার পাঠাতে বলুন।",
     generic: "কিছু একটা সমস্যা হয়েছে। একটু পরে আবার চেষ্টা করুন।",
+    practiceUnavailable:
+      "Avanti এখনও এই কাজটি প্রস্তুত করতে পারে না। অন্য একটি বেছে নিন বা কাউন্টারে জিজ্ঞাসা করুন।",
     network: "ইন্টারনেট সংযোগ নেই। নেটওয়ার্ক দেখে আবার চেষ্টা করুন।",
     rateLimited: "অনেকবার চেষ্টা হয়েছে। এক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।",
     offline: "আপনি অফলাইনে আছেন। সংযোগ ফিরলে পরিবর্তনগুলো সংরক্ষিত হবে।",

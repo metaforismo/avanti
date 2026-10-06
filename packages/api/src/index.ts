@@ -12,6 +12,11 @@ import { lazyRuntime, processSingleton } from "./runtime";
 import { safeError } from "./logging";
 const database = processSingleton(Symbol.for("avanti.database"), () => createDatabase());
 
+/** Call after draining requests in a Node host, or during teardown of a shared-runtime test. */
+export function closeRuntimeDatabase() {
+  return database.close((resource) => resource.close());
+}
+
 async function initialize() {
   if (process.env.VERCEL && !process.env.DATABASE_URL)
     throw new Error("DATABASE_URL required on Vercel");

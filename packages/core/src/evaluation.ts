@@ -176,14 +176,34 @@ const messages = {
     "আলাদা থাকা বাবা বা মাকে CAF যাচাই করবে। তাঁকে অন্তর্ভুক্ত করা পরিস্থিতির ওপর নির্ভর করে।",
   ],
   "practice.university_review": [
-    "Per l’università occorre una verifica specifica del nucleo e dell’autonomia. L’ISEE ordinario da solo può non bastare.",
-    "For university, the CAF must check family and independence rules. Ordinary ISEE may not be enough.",
-    "Pour l’université, le CAF doit vérifier le foyer et l’autonomie. L’ISEE ordinaire peut ne pas suffire.",
-    "Para la universidad, el CAF debe revisar familia y autonomía. El ISEE ordinario puede no bastar.",
-    "Pentru universitate, CAF verifică familia și autonomia. ISEE obișnuit poate să nu fie suficient.",
-    "Для університету CAF має перевірити склад сім’ї та самостійність. Звичайного ISEE може бути недостатньо.",
-    "للجامعة، يتحقق CAF من الأسرة والاستقلال. قد لا يكفي ISEE العادي.",
-    "বিশ্ববিদ্যালয়ের জন্য CAF পরিবার ও স্বনির্ভরতার নিয়ম যাচাই করবে। সাধারণ ISEE যথেষ্ট নাও হতে পারে।",
+    "Per prestazioni universitarie il CAF completa il quadro C MB.2 e verifica genitori non conviventi, autonomia dello studente e dottorato (possibile nucleo ristretto). Il solo ISEE ordinario non sostituisce l’ISEE Università.",
+    "For university support, the CAF completes MB.2 section C and checks parents living elsewhere, student independence and PhD rules (a smaller household may apply). Ordinary ISEE alone does not replace university ISEE.",
+    "Pour les aides universitaires, le CAF complète le cadre C MB.2 et vérifie les parents non cohabitants, l’autonomie et le doctorat (foyer restreint possible). L’ISEE ordinaire seul ne remplace pas l’ISEE Université.",
+    "Para ayudas universitarias, el CAF completa el cuadro C MB.2 y revisa progenitores no convivientes, autonomía y doctorado (posible núcleo reducido). El ISEE ordinario solo no sustituye al ISEE Universidad.",
+    "Pentru sprijin universitar, CAF completează cadrul C MB.2 și verifică părinții care locuiesc separat, autonomia și doctoratul (posibil nucleu restrâns). ISEE obișnuit singur nu înlocuiește ISEE Universitate.",
+    "Для університетської допомоги CAF заповнює розділ C MB.2 і перевіряє батьків, які живуть окремо, самостійність і докторантуру (можлива менша сім’я). Звичайний ISEE не замінює університетський.",
+    "للدعم الجامعي، يكمل CAF القسم C من MB.2 ويتحقق من الوالدين غير المقيمين والاستقلال والدكتوراه (قد تُعتمد أسرة أصغر). ISEE العادي وحده لا يحل محل ISEE الجامعي.",
+    "বিশ্ববিদ্যালয়ের সহায়তার জন্য CAF MB.2-এর C অংশ পূরণ করবে এবং আলাদা থাকা বাবা-মা, স্বনির্ভরতা ও ডক্টরেটের নিয়ম (ছোট পরিবার সম্ভব) যাচাই করবে। সাধারণ ISEE একা বিশ্ববিদ্যালয়ের ISEE-এর বিকল্প নয়।",
+  ],
+  "practice.foreign_institution_review": [
+    "Il CAF verifica dove è detenuto il rapporto finanziario e se occorrono documenti per patrimoni esteri. Il nome della banca o del wallet non prova il paese né il tipo di rapporto.",
+    "The CAF checks where the financial account is held and whether foreign asset documents are needed. A bank or wallet name does not prove the country or account type.",
+    "Le CAF vérifie le pays du compte et les documents pour les biens à l’étranger. Le nom de la banque ou du portefeuille ne prouve ni le pays ni le type de compte.",
+    "El CAF revisa el país de la cuenta y los documentos de bienes en el extranjero. El nombre del banco o monedero no prueba el país ni el tipo de cuenta.",
+    "CAF verifică țara contului și documentele pentru bunuri din străinătate. Numele băncii sau portofelului nu dovedește țara ori tipul contului.",
+    "CAF перевіряє країну рахунку та документи для закордонних активів. Назва банку чи гаманця не визначає країну або тип рахунку.",
+    "يتحقق CAF من بلد الحساب ومستندات الأصول في الخارج. اسم البنك أو المحفظة لا يثبت البلد أو نوع الحساب.",
+    "CAF হিসাবের দেশ ও বিদেশি সম্পদের নথি যাচাই করবে। ব্যাংক বা ওয়ালেটের নাম দেশ বা হিসাবের ধরন প্রমাণ করে না।",
+  ],
+  "practice.mortgage_review": [
+    "È stato indicato un mutuo sulla casa. Il CAF verifica proprietà, acquisto/costruzione e capitale residuo al 31 dicembre 2025; il racconto non conferma il residuo a quella data.",
+    "A home mortgage was mentioned. The CAF checks ownership, purchase/building purpose and outstanding principal on 31 December 2025; the story does not confirm the balance on that date.",
+    "Un prêt immobilier a été mentionné. Le CAF vérifie la propriété, l’achat/construction et le capital restant au 31 décembre 2025 ; le récit ne confirme pas le solde à cette date.",
+    "Se ha indicado una hipoteca. El CAF verifica propiedad, compra/construcción y capital pendiente al 31 de diciembre de 2025; el relato no confirma el saldo de esa fecha.",
+    "A fost indicat un credit ipotecar. CAF verifică proprietatea, achiziția/construcția și capitalul restant la 31 decembrie 2025; relatarea nu confirmă soldul de atunci.",
+    "Згадано іпотеку. CAF перевіряє власність, придбання/будівництво та залишок основної суми на 31 грудня 2025 року; розповідь не підтверджує залишок на цю дату.",
+    "ذُكر رهن على المنزل. يتحقق CAF من الملكية والشراء أو البناء وأصل الدين المتبقي في 31 ديسمبر 2025؛ القصة لا تؤكد الرصيد في ذلك التاريخ.",
+    "বাড়ির ঋণের কথা বলা হয়েছে। CAF মালিকানা, কেনা/নির্মাণ ও ৩১ ডিসেম্বর ২০২৫-এর বাকি মূলধন যাচাই করবে; বর্ণনা সেই তারিখের বকেয়া নিশ্চিত করে না।",
   ],
   "practice.full_dsu": [
     "Questa situazione può richiedere la DSU integrale. Il CAF verifica i moduli necessari.",
@@ -401,6 +421,9 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
     if (answers.household_exceptions === true) finding("practice.household_review", "warning");
     if (answers.nonresident_parent === true) finding("practice.parent_review", "warning");
     if (answers.university === true) finding("practice.university_review", "warning");
+    if (answers.foreign_institution_review === true)
+      finding("practice.foreign_institution_review", "warning");
+    if (answers.mortgage_review === true) finding("practice.mortgage_review", "warning");
     if (
       answers.disability === true ||
       answers.university === true ||

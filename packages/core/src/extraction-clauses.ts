@@ -1,6 +1,7 @@
-import type { Language } from "@avanti/contracts";
+import { LANGUAGES, type Language } from "@avanti/contracts";
 import {
   BANKS,
+  NUMBER_WORDS,
   CONJUNCTIONS,
   KIN_TERMS,
   ACCOUNT_TERMS,
@@ -48,32 +49,51 @@ export function termsPattern(terms: string[], flags = "u"): RegExp {
 export function fragmentsPattern(fragments: string[]): RegExp {
   return boundedPattern(fragments.map(normalize).join("|"));
 }
+function compileClauses(language: Language) {
+  const parents = alternatives([...KIN_TERMS[language].madre, ...KIN_TERMS[language].padre]);
+  const possessives = alternatives(language === "ar" ? [] : POSSESSIVE_TERMS[language]);
+  const starts = fragmentsPattern([
+    ...CLAUSE_START_PATTERNS[language],
+    ...LIVING_CLAUSE_START_PATTERNS[language],
+  ]);
+  const prefix = NEGATION_PREFIX_TERMS[language];
+  return {
+    separator: new RegExp(
+      `([.,;:!?،؛।\\n]+)|${language === "it" ? "(?<!\\bc\\s)" : ""}${termsPattern(CONJUNCTIONS[language]).source}`,
+      "gu",
+    ),
+    starts: new RegExp(starts.source, "gu"),
+    negationPrefix: prefix.length ? new RegExp(`${termsPattern(prefix).source}$`, "u") : null,
+    childContext: fragmentsPattern(CHILD_CONTEXT_PATTERNS[language]),
+    subject: boundedPattern(`(?:(?:${possessives})\\s+)?(?:${parents})`, "gu"),
+    negative: fragmentsPattern(NEGATION_PATTERNS[language]),
+    residence: fragmentsPattern([...WITH_US_PATTERNS[language], ...ELSEWHERE_PATTERNS[language]]),
+  };
+}
+const clausePatterns = Object.fromEntries(
+  LANGUAGES.map((language) => [language, compileClauses(language)]),
+) as Record<Language, ReturnType<typeof compileClauses>>;
+const attachedConjunction = new RegExp(
+  `(?<![\\p{L}\\p{M}])و(?=${alternatives([
+    ...Object.values(KIN_TERMS.ar).flat(),
+    ...ACCOUNT_TERMS.ar,
+    ...VEHICLE_TERMS.ar,
+    ...BANKS,
+    "لدي",
+    "عندي",
+    "ليس",
+    "لا",
+    "أنا",
+    "انا",
+    ...Object.keys(NUMBER_WORDS),
+  ])})`,
+  "gu",
+);
 export type Clause = { text: string; coordinated: boolean };
 export function splitClauses(text: string, language: Language): Clause[] {
   let prepared = text;
-  if (language === "ar") {
-    const attachedWords = [
-      ...Object.values(KIN_TERMS.ar).flat(),
-      ...ACCOUNT_TERMS.ar,
-      ...VEHICLE_TERMS.ar,
-      ...BANKS,
-      "لدي",
-      "عندي",
-      "ليس",
-      "لا",
-      "أنا",
-      "انا",
-    ];
-    const attachedConjunction = new RegExp(
-      `(?<![\\p{L}\\p{M}])و(?=${alternatives(attachedWords)})`,
-      "gu",
-    );
-    prepared = prepared.replace(attachedConjunction, "و ");
-  }
-  const separator = new RegExp(
-    `([.,;:!?،؛।\\n]+)|${termsPattern(CONJUNCTIONS[language]).source}`,
-    "gu",
-  );
+  if (language === "ar") prepared = prepared.replace(attachedConjunction, "و ");
+  const { separator, starts, negationPrefix } = clausePatterns[language];
   const clauses: Clause[] = [];
   let start = 0;
   let coordinated = false;
@@ -86,23 +106,13 @@ export function splitClauses(text: string, language: Language): Clause[] {
   const last = prepared.slice(start).trim();
   if (last) clauses.push({ text: last, coordinated });
   return clauses.flatMap((clause) => {
-    const starts = fragmentsPattern([
-      ...CLAUSE_START_PATTERNS[language],
-      ...LIVING_CLAUSE_START_PATTERNS[language],
-    ]);
-    const matches = new RegExp(starts.source, "gu");
     const statements: Clause[] = [];
     let offset = 0;
     let coordinated = clause.coordinated;
-    for (const match of clause.text.matchAll(matches)) {
+    for (const match of clause.text.matchAll(starts)) {
       if (match.index === 0) continue;
       const prefix = clause.text.slice(offset, match.index).trim();
-      const negationPrefix = NEGATION_PREFIX_TERMS[language];
-      if (
-        negationPrefix.length &&
-        new RegExp(`${termsPattern(negationPrefix).source}$`, "u").test(prefix)
-      )
-        continue;
+      if (negationPrefix?.test(prefix)) continue;
       if (prefix) statements.push({ text: prefix, coordinated });
       offset = match.index;
       coordinated = false;
@@ -113,16 +123,9 @@ export function splitClauses(text: string, language: Language): Clause[] {
 }
 
 function splitNegatedParents(clause: Clause, language: Language): Clause[] {
-  if (fragmentsPattern(CHILD_CONTEXT_PATTERNS[language]).test(clause.text)) return [clause];
-  const parents = alternatives([...KIN_TERMS[language].madre, ...KIN_TERMS[language].padre]);
-  const possessives = alternatives(language === "ar" ? [] : POSSESSIVE_TERMS[language]);
-  const subject = boundedPattern(`(?:(?:${possessives})\\s+)?(?:${parents})`, "gu");
+  const { childContext, subject, negative, residence } = clausePatterns[language];
+  if (childContext.test(clause.text)) return [clause];
   const subjects = Array.from(clause.text.matchAll(subject));
-  const negative = fragmentsPattern(NEGATION_PATTERNS[language]);
-  const residence = fragmentsPattern([
-    ...WITH_US_PATTERNS[language],
-    ...ELSEWHERE_PATTERNS[language],
-  ]);
   const parts: Clause[] = [];
   let start = 0;
   for (let index = 0; index < subjects.length; index++) {

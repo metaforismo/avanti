@@ -359,6 +359,12 @@ export const IntakeTurn = z.discriminatedUnion("type", [
 ]);
 export type IntakeTurn = z.infer<typeof IntakeTurn>;
 
+export const IntakeTurnResponse = CitizenCase.extend({
+  /** Unavailable classification for this turn only; no practice was started for it. */
+  unavailablePractice: PracticeId.nullable(),
+});
+export type IntakeTurnResponse = z.infer<typeof IntakeTurnResponse>;
+
 export const UpdateLanguageRequest = z.object({ language: Language });
 
 export const CitizenContactRequest = CitizenContact;
@@ -665,6 +671,7 @@ export type PilotLeadRequest = z.infer<typeof PilotLeadRequest>;
 
 export const ErrorCode = z.enum([
   "bad_request",
+  "practice_unavailable",
   "unauthorized",
   "forbidden",
   "not_found",
@@ -681,7 +688,7 @@ export type ErrorCode = z.infer<typeof ErrorCode>;
 export const ApiError = z.object({
   error: z.object({
     code: ErrorCode,
-    /** Italian, safe to show to the end user. Never contains internals. */
+    /** Safe to show; domain errors may use the citizen language. Never contains internals. */
     message: z.string(),
     /** Field-level validation issues, keyed by dotted path. */
     fields: z.record(z.string(), z.string()).optional(),

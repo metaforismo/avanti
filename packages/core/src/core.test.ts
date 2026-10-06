@@ -176,7 +176,10 @@ describe("heuristic classification and fact extraction", () => {
       practiceId: null,
       confidence: 0.45,
     });
-    expect(extractFacts("ISEE per università", "it").practiceId).toBe("isee_universitario");
+    expect(extractFacts("ISEE per università", "it")).toMatchObject({
+      practiceId: "isee_ordinario",
+      answers: { university: true },
+    });
     expect(extractFacts("Non devo fare il 730 ma ISEE", "it").practiceId).toBe("isee_ordinario");
   });
 });
@@ -235,7 +238,7 @@ describe("interview validation and edits", () => {
       disability_members: [buildHousehold(answersWithMembers())[0]!.id],
       housing: "rent",
     };
-    const changed = applyAnswer("isee_ordinario", answers, "household_count", 1, "it", now);
+    const changed = applyAnswer("isee_ordinario", answers, "household_count", 3, "it", now);
     expect(changed.members).toBeUndefined();
     expect(changed.account_owner_0).toBeUndefined();
     expect(changed.disability_members).toBeUndefined();

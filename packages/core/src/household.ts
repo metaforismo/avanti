@@ -1,4 +1,4 @@
-import { MemberInput, type AnswerValue, type Member } from "@avanti/contracts";
+import { MemberRole, MemberInput, type AnswerValue, type Member } from "@avanti/contracts";
 
 export function normalizedName(name: string): string {
   return name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("it-IT");
@@ -16,4 +16,16 @@ export function buildHousehold(answers: Record<string, AnswerValue>): Member[] {
     occurrence.set(key, count + 1);
     return [{ ...member, id: member.id ?? `m_${key}_${count}` }];
   });
+}
+
+export function knownHouseholdRoles(answers: Record<string, AnswerValue>): MemberRole[] {
+  const members = MemberInput.array().min(1).safeParse(answers.members);
+  if (members.success) return members.data.map((member) => member.role);
+  const roles = MemberRole.array().max(20).safeParse(answers.household_roles);
+  return roles.success ? roles.data : [];
+}
+
+export function householdMinimum(answers: Record<string, AnswerValue>): number {
+  const roles = knownHouseholdRoles(answers);
+  return Math.max(1, roles.length + (roles.length && !roles.includes("richiedente") ? 1 : 0));
 }

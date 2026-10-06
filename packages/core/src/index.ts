@@ -23,3 +23,6 @@ export { requirements, type RequirementId } from "./requirements";
 export { calendarDate, calendarYear } from "./calendar";
 
 export { readableAnswer, answeredQuestions } from "./answers";
+
+export { t } from "./i18n";
+export { HOUSEHOLD_RELATIONS } from "./extraction-lexicons";

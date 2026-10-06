@@ -13,6 +13,7 @@ import {
 import {
   StartIntakeRequest,
   IntakeTurn,
+  IntakeTurnResponse,
   UpdateLanguageRequest,
   UploadDocumentFields,
   ReassignDocumentRequest,
@@ -50,7 +51,7 @@ export async function createCase(
   actor: "citizen" | "operator" = "citizen",
   actorId: string | null = null,
 ) {
-  assertStartable(input.practiceId, now);
+  assertStartable(input.practiceId);
   const token = newToken();
   const [config] = await db
     .select()
@@ -200,11 +201,11 @@ export function mountCitizenRoutes(app: App, s: Services) {
             s.clock(),
           )
         : null;
-    const row = await s.db.transaction(async (tx) => {
+    const result = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, initial, s.clock());
       const now = s.clock();
       if (proposal) assertProposalCurrent(initial, current);
-      const { practiceId, answers } = applyTurn(current, input, proposal, now);
+      const { practiceId, answers, unavailablePractice } = applyTurn(current, input, proposal, now);
       const [updated] = await tx
         .update(cases)
         .set({
@@ -240,16 +241,26 @@ export function mountCitizenRoutes(app: App, s: Services) {
           id: crypto.randomUUID(),
           caseId: current.id,
           role: "assistant",
-          text: assistantReply(view, proposal, current.answers, input.text, current.practiceId),
+          text: assistantReply(
+            view,
+            proposal,
+            current.answers,
+            input.text,
+            current.practiceId,
+            unavailablePractice,
+          ),
           createdAt: s.clock().toISOString(),
         });
       }
-      return updated;
+      return { row: updated, unavailablePractice };
     });
-    return c.json({
-      ...(await citizenView(s.db, row, s.clock())),
-      ...(proposal ? { engine: proposal.engine } : {}),
-    });
+    return c.json(
+      IntakeTurnResponse.parse({
+        ...(await citizenView(s.db, result.row, s.clock())),
+        unavailablePractice: result.unavailablePractice,
+        ...(proposal ? { engine: proposal.engine } : {}),
+      }),
+    );
   });
   app.put("/c/:token/language", async (c) => {
     const input = await body(c, UpdateLanguageRequest);

@@ -1,14 +1,37 @@
 export function lazyRuntime<T>(initialize: () => Promise<T>) {
   let pending: Promise<T> | undefined;
-  return () => {
+  let shutdown: Promise<void> | undefined;
+  const get = () => {
+    if (shutdown) return Promise.reject(new Error("Runtime is closed"));
     if (!pending) {
-      pending = initialize().catch((error) => {
-        pending = undefined;
-        throw error;
-      });
+      // Turn synchronous setup errors into the same retryable failure as async errors.
+      pending = Promise.resolve()
+        .then(initialize)
+        .catch((error) => {
+          pending = undefined;
+          throw error;
+        });
     }
     return pending;
   };
+  get.close = (dispose: (value: T) => Promise<void>): Promise<void> => {
+    if (!shutdown) {
+      const starting = pending;
+      shutdown = (async () => {
+        if (!starting) return;
+        let value: T;
+        try {
+          value = await starting;
+        } catch {
+          // Failed initialization owns its cleanup; no resource was returned.
+          return;
+        }
+        await dispose(value);
+      })();
+    }
+    return shutdown;
+  };
+  return get;
 }
 
 /**
@@ -17,6 +40,6 @@ export function lazyRuntime<T>(initialize: () => Promise<T>) {
  * open instance per data directory.
  */
 export function processSingleton<T>(key: symbol, initialize: () => Promise<T>) {
-  const store = globalThis as Record<symbol, (() => Promise<T>) | undefined>;
+  const store = globalThis as Record<symbol, ReturnType<typeof lazyRuntime<T>> | undefined>;
   return (store[key] ??= lazyRuntime(initialize));
 }

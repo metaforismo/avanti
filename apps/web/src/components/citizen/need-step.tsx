@@ -20,6 +20,17 @@ export function NeedStep({ api, data, m }: StepProps) {
   const [text, setText] = useState("");
   const [tooShort, setTooShort] = useState(false);
   const [showList, setShowList] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  // A story about a practice Avanti can't prepare yet opens the list of the ones it can.
+  const [seenUnavailable, setSeenUnavailable] = useState(api.unavailablePractice);
+  if (api.unavailablePractice !== seenUnavailable) {
+    setSeenUnavailable(api.unavailablePractice);
+    if (api.unavailablePractice) setShowList(true);
+  }
+  useEffect(() => {
+    if (api.unavailablePractice)
+      listRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [api.unavailablePractice]);
   const textareaId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sending = api.pending === "text";
@@ -116,7 +127,7 @@ export function NeedStep({ api, data, m }: StepProps) {
         </div>
       </section>
 
-      <div className="border-t border-line pt-5">
+      <div ref={listRef} className="scroll-mt-28 border-t border-line pt-5">
         <button
           type="button"
           aria-expanded={showList}

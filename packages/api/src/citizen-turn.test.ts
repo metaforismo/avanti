@@ -76,3 +76,28 @@ it("B4: acknowledgement describes only this turn, naturally and with relations",
     ),
   ).toContain("Vivi con tua madre");
 });
+
+it("university AI classification uses the shared collection while explicit choice remains unavailable", () => {
+  const current = { practiceId: null, answers: {}, language: "en" } as CaseRow;
+  const now = new Date("2027-01-01T00:00:00Z");
+  const result = applyTurn(
+    current,
+    { type: "text", text: "ISEE university fees" },
+    {
+      practiceId: "isee_universitario",
+      confidence: 1,
+      answers: {},
+      reply: "",
+      engine: "ai",
+    },
+    now,
+  );
+  expect(result).toMatchObject({
+    practiceId: "isee_ordinario",
+    answers: { university: true },
+    unavailablePractice: null,
+  });
+  expect(() =>
+    applyTurn(current, { type: "choose_practice", practiceId: "isee_universitario" }, null, now),
+  ).toThrow(expect.objectContaining({ code: "practice_unavailable" }));
+});
