@@ -5,7 +5,7 @@ import { Spinner } from "./spinner";
 
 const variants = {
   primary:
-    "bg-stamp text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-stamp-hover active:bg-stamp-hover",
+    "bg-stamp text-on-stamp shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-stamp-hover active:bg-stamp-hover",
   secondary: "bg-surface text-ink ring-1 ring-line-strong ring-inset hover:bg-sunk",
   ghost: "text-ink-2 hover:bg-sunk hover:text-ink",
   danger: "bg-surface text-danger ring-1 ring-danger/30 ring-inset hover:bg-danger-wash",

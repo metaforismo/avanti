@@ -64,7 +64,7 @@ export default function HelpPage() {
             ["Chiudi", "Segna come pronta, scarica PDF o JSON per il gestionale, archivia."],
           ].map(([title, body], i) => (
             <li key={title} className="flex gap-4">
-              <span className="tabular grid size-8 shrink-0 place-items-center rounded-full bg-stamp font-display font-bold text-white">
+              <span className="tabular grid size-8 shrink-0 place-items-center rounded-full bg-stamp font-display font-bold text-on-stamp">
                 {i + 1}
               </span>
               <div>

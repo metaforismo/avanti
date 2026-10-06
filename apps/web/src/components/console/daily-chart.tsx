@@ -6,8 +6,8 @@ import { cn } from "@/lib/cn";
 
 // Validated pair (light surface): passes lightness, chroma, CVD and contrast checks.
 const SERIES = [
-  { key: "started", label: "Avviate", color: "#b86e00" },
-  { key: "submitted", label: "Inviate", color: "#2440b3" },
+  { key: "started", label: "Avviate", color: "var(--chart-started)" },
+  { key: "submitted", label: "Inviate", color: "var(--chart-submitted)" },
 ] as const;
 
 const WIDTH = 720;
@@ -191,7 +191,7 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
           {hovered && hover !== null && (
             <div
               className={cn(
-                "pointer-events-none absolute top-0 rounded-md bg-ink px-3 py-2 text-sm text-white shadow-float",
+                "pointer-events-none absolute top-0 rounded-md bg-contrast px-3 py-2 text-sm text-on-contrast shadow-float",
                 hover > daily.length / 2 ? "-translate-x-[calc(100%+12px)]" : "translate-x-3",
               )}
               style={{ left: `${(x(hover) / WIDTH) * 100}%` }}

@@ -49,6 +49,12 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
   const [creating, setCreating] = useState(false);
   const pathname = usePathname();
 
+  // Scope for the console's dark theme (see globals.css): citizen pages stay light.
+  useEffect(() => {
+    document.documentElement.classList.add("console");
+    return () => document.documentElement.classList.remove("console");
+  }, []);
+
   // Close the mobile menu whenever navigation happens.
   useEffect(() => {
     const timer = window.setTimeout(() => setMenuOpen(false), 0);
@@ -90,7 +96,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     <OperatorProvider value={operator}>
       <a
         href="#contenuto"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-contrast focus:px-4 focus:py-2 focus:text-on-contrast"
       >
         Vai al contenuto
       </a>
@@ -186,7 +192,7 @@ function OperatorCard({ operator }: { operator: Operator }) {
     <div className="flex items-center gap-3 border-t border-line p-4">
       <span
         aria-hidden
-        className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-display text-sm font-semibold text-white"
+        className="grid size-9 shrink-0 place-items-center rounded-full bg-contrast font-display text-sm font-semibold text-on-contrast"
       >
         {operator.name
           .split(/\s+/)

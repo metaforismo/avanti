@@ -122,7 +122,7 @@ function Queue() {
               className={cn(
                 "flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm transition-colors",
                 active
-                  ? "bg-ink font-semibold text-white"
+                  ? "bg-contrast font-semibold text-on-contrast"
                   : "text-ink-2 hover:bg-sunk hover:text-ink",
               )}
             >
@@ -132,9 +132,9 @@ function Queue() {
                   className={cn(
                     "tabular min-w-5 rounded-full px-1.5 text-center text-xs",
                     active
-                      ? "bg-white/20"
+                      ? "bg-on-contrast/20"
                       : key === "submitted" && count > 0
-                        ? "bg-stamp text-white"
+                        ? "bg-stamp text-on-stamp"
                         : "bg-sunk",
                   )}
                 >
