@@ -104,12 +104,9 @@
   --color-on-stamp: var(--on-stamp);
   --color-scrim: var(--scrim);
 
-  --font-sans: var(--font-body), "Noto Sans Bengali", "Noto Sans Arabic", system-ui, sans-serif;
-  /* Script fonts first: their unicode-range leaves Latin to Bricolage, whose generated
-     fallback face would otherwise draw Arabic headings in Arial. */
-  --font-display:
-    "Noto Sans Bengali", "Noto Sans Arabic", var(--font-display-face), var(--font-body), system-ui,
-    sans-serif;
+  /* Latin only: Bengali and Arabic fonts are switched on by :lang() in the base layer. */
+  --font-sans: var(--font-body), system-ui, sans-serif;
+  --font-display: var(--font-display-face), var(--font-body), system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
 
   --radius-xs: 4px;
@@ -155,6 +152,17 @@
     scroll-padding-top: 9rem;
     scroll-padding-bottom: 8rem;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Script fonts only where the text is in that language. Google's CSS for them also ships a
+     Latin face, so listing them globally would draw Latin headings in Noto and download them
+     on every page; and the generated fallback faces (local Arial, every code point) must come
+     after them or they swallow Arabic. Headings: see .font-display:lang() below. */
+  :lang(bn) {
+    font-family: "Noto Sans Bengali", var(--font-body), system-ui, sans-serif;
+  }
+  :lang(ar) {
+    font-family: "Noto Sans Arabic", var(--font-body), system-ui, sans-serif;
   }
 
   body {
@@ -249,5 +257,18 @@
   .animate-spin {
     animation-duration: 1.6s !important;
     animation-iteration-count: infinite !important;
+  }
+}
+
+/* @theme inline copies the stack into .font-display, so the script variants are rules here,
+   more specific than the utility. */
+@layer utilities {
+  .font-display:lang(bn) {
+    font-family:
+      "Noto Sans Bengali", var(--font-display-face), var(--font-body), system-ui, sans-serif;
+  }
+  .font-display:lang(ar) {
+    font-family:
+      "Noto Sans Arabic", var(--font-display-face), var(--font-body), system-ui, sans-serif;
   }
 }

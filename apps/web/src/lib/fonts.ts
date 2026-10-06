@@ -30,10 +30,9 @@ export const code = Atkinson_Hyperlegible_Mono({
   adjustFontFallback: false,
 });
 
-// Script fonts are not preloaded: unicode-range means they download only when a page
-// actually renders Bengali or Arabic text. globals.css names them literally: their variables
-// also carry a generated fallback face (local Arial, every code point) that would draw
-// Arabic before Noto Sans Arabic is reached.
+// Script fonts are not preloaded and globals.css applies them only under :lang(bn) / :lang(ar),
+// by their literal names: their variables also carry a generated fallback face (local Arial,
+// every code point) that would draw Arabic before Noto Sans Arabic is reached.
 export const bengali = Noto_Sans_Bengali({
   subsets: ["bengali"],
   variable: "--font-bengali",
