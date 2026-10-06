@@ -40,6 +40,11 @@ export function SiteFooter() {
           <h2 className="text-sm font-semibold text-ink">Informazioni</h2>
           <ul className="mt-3 grid gap-2 text-ink-2">
             <li>
+              <Link className="hover:text-ink" href="/sicurezza">
+                Sicurezza e dati
+              </Link>
+            </li>
+            <li>
               <Link className="hover:text-ink" href="/privacy">
                 Privacy
               </Link>
