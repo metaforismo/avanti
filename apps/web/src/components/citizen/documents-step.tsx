@@ -16,6 +16,7 @@ import {
 import { useId, useRef, useState } from "react";
 import type { ChecklistItem, CitizenCase, DocumentSummary, Finding } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/field";
 import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
@@ -514,6 +515,7 @@ function DocumentRow({
   const selectId = useId();
   const confirmId = `${selectId}-confirm`;
   const trashRef = useRef<HTMLButtonElement>(null);
+  const [previewing, setPreviewing] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   const openConfirm = () => {
@@ -529,24 +531,33 @@ function DocumentRow({
   const findings = (doc.analysis?.findings ?? []).filter((f) => f.severity !== "ok");
   const isImage = doc.mimeType.startsWith("image/") && doc.mimeType !== "image/heic";
   const fileUrl = `/api/c/${encodeURIComponent(token)}/documents/${doc.id}/file`;
+  const thumbClass =
+    "grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-sunk ring-1 ring-line";
 
   return (
     <li className="rounded-md bg-paper p-3 ring-1 ring-line">
       <div className="flex items-center gap-3">
-        <a
-          href={fileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-sunk ring-1 ring-line"
-          aria-label={`${m.docs.preview}: ${doc.fileName}`}
-        >
-          {isImage ? (
-            // eslint-disable-next-line @next/next/no-img-element -- private, token-scoped file: no optimizer
+        {/* Files are served as downloads: photos open here, other files are saved. */}
+        {isImage ? (
+          <button
+            type="button"
+            onClick={() => setPreviewing(true)}
+            className={thumbClass}
+            aria-label={`${m.docs.preview}: ${doc.fileName}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- private, token-scoped file: no optimizer */}
             <img src={fileUrl} alt="" loading="lazy" className="size-full object-cover" />
-          ) : (
+          </button>
+        ) : (
+          <a
+            href={fileUrl}
+            download={doc.fileName}
+            className={thumbClass}
+            aria-label={`${m.docs.preview}: ${doc.fileName}`}
+          >
             <FileText className="size-5 text-ink-3" aria-hidden />
-          )}
-        </a>
+          </a>
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold" dir="auto">
             {doc.analysis?.detectedLabel ?? doc.fileName}
@@ -625,6 +636,21 @@ function DocumentRow({
           </Select>
           {reassigning && <Spinner className="size-4 text-stamp" />}
         </div>
+      )}
+      {isImage && (
+        <Dialog
+          open={previewing}
+          onOpenChange={setPreviewing}
+          title={doc.analysis?.detectedLabel ?? doc.fileName}
+          closeLabel={m.common.close}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- private, token-scoped file: no optimizer */}
+          <img
+            src={fileUrl}
+            alt={doc.analysis?.detectedLabel ?? doc.fileName}
+            className="max-h-[70dvh] w-full rounded-md bg-sunk object-contain"
+          />
+        </Dialog>
       )}
     </li>
   );

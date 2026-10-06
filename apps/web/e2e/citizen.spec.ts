@@ -86,6 +86,12 @@ test("a citizen goes from the office QR to a submitted dossier", async ({ page }
     ),
   });
   await expect(page.getByText(/1 di \d+ pronti/)).toBeVisible();
+  // Files are served as downloads: the photo opens in a preview instead.
+  await page.getByRole("button", { name: /Anteprima: documento\.png/ }).click();
+  const preview = page.getByRole("dialog");
+  await expect(preview.getByRole("img")).toBeVisible();
+  await preview.getByRole("button", { name: "Chiudi" }).click();
+  await expect(preview).toBeHidden();
 
   await page.getByRole("button", { name: "Vai al riepilogo" }).click();
   await expect(page.getByRole("heading", { name: "Controlla e invia" })).toBeVisible();
