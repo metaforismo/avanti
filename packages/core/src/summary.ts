@@ -93,6 +93,7 @@ const timelineLabels: Record<string, string> = {
   "case.ready": "Fascicolo pronto per il gestionale",
   "case.closed": "Fascicolo chiuso",
   "case.exported": "Fascicolo esportato",
+  "dsu_sheet.viewed": "Prospetto DSU consultato",
 };
 export function timelineLabel(type: string): string {
   return timelineLabels[type] ?? "Attività registrata sul fascicolo";

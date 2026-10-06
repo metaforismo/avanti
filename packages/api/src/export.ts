@@ -288,6 +288,41 @@ export async function exportPdf(dossier: CaseDossier): Promise<Uint8Array> {
     printer.section("Note interne dell'operatore");
     printer.paragraph(dossier.internalNotes);
   }
+  if (dossier.dsuSheet) {
+    printer.section("Prospetto DSU");
+    const sheet = dossier.dsuSheet;
+    printer.paragraph(
+      `Modello ${sheet.modelYear} - preparazione ${sheet.declarationYear} - redditi e patrimoni ${sheet.referenceYear}`,
+      9,
+      mutedColor,
+    );
+    for (const note of sheet.notes) printer.paragraph(note, 9, mutedColor);
+    for (const section of sheet.sections) {
+      const member =
+        section.memberName ?? (section.instanceId ? "Titolarità da verificare" : "Nucleo");
+      printer.section(
+        `${section.module} / ${section.quadro} - ${section.title} - ${member}${section.instanceId ? ` - ${section.instanceId}` : ""}`,
+      );
+      for (const row of section.rows) {
+        printer.paragraph(`${row.label}: ${row.value ?? "Da completare"}`);
+        const source = row.source;
+        const document =
+          source.kind === "document"
+            ? dossier.documents.find((d) => d.id === source.documentId)
+            : null;
+        const sourceLabel =
+          source.kind === "answer"
+            ? `Risposta del cittadino: ${source.questionId}`
+            : source.kind === "document"
+              ? `Documento: ${document?.fileName ?? source.documentId} [${source.documentId}]; voce: ${source.checklistItemId}`
+              : source.kind === "caf"
+                ? "A cura del CAF"
+                : `Dato mancante${source.checklistItemId ? `; voce: ${source.checklistItemId}` : ""}`;
+        printer.paragraph(`Fonte: ${sourceLabel}`, 8, mutedColor);
+        if (row.note) printer.paragraph(row.note, 8, mutedColor);
+      }
+    }
+  }
   printer.finish();
   return pdf.save();
 }

@@ -20,6 +20,7 @@ import {
 import {
   buildHousehold,
   buildChecklist,
+  buildDsuSheet,
   evaluateDossier,
   nextQuestion,
   getPractice,
@@ -269,6 +270,13 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
     answers: view.answered.map(({ editable: _editable, ...answer }) => answer),
     checklist: view.checklist,
     documents: view.documents,
+    dsuSheet: buildDsuSheet(
+      row.practiceId,
+      row.answers,
+      view.household,
+      view.checklist,
+      view.documents,
+    ),
     findings: view.findings,
     messages: view.messages,
     timeline: timeline.map((e) => ({
