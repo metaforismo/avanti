@@ -13,12 +13,15 @@ import type { ContactDraft, StepProps } from "./citizen-app";
 type Errors = Partial<Record<"firstName" | "lastName" | "contact" | "email" | "confirmed", string>>;
 
 const MAX_SHOWN = 6;
+// Folding the list must save real space: "show all" for one or two hidden items is just a click.
+const FOLD_AFTER = MAX_SHOWN + 2;
 
 export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
   const [errors, setErrors] = useState<Errors>({});
   const [showAllMissing, setShowAllMissing] = useState(false);
   const missing = data.checklist.filter((item) => item.required && !DONE_STATUSES.has(item.status));
-  const shownMissing = showAllMissing ? missing : missing.slice(0, MAX_SHOWN);
+  const folded = !showAllMissing && missing.length > FOLD_AFTER;
+  const shownMissing = folded ? missing.slice(0, MAX_SHOWN) : missing;
 
   // Typed values live in the parent: going back to edit answers must not erase them.
   const values: Required<Omit<ContactDraft, "phone" | "email">> &
@@ -123,7 +126,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
                 </span>
               </li>
             ))}
-            {!showAllMissing && missing.length > MAX_SHOWN && (
+            {folded && (
               <li>
                 <button
                   type="button"
@@ -142,7 +145,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
       <form onSubmit={onSubmit} noValidate className="grid gap-5">
         <fieldset className="grid gap-4">
           <legend className="font-display text-xl font-semibold">{m.review.contact}</legend>
-          <p className="-mt-2 text-ink-2">{m.review.contactHint}</p>
+          <p className="mt-1 text-ink-2">{m.review.contactHint}</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={m.review.firstName} error={errors.firstName}>
               {(p) => <Input {...p} {...field("firstName")} autoComplete="given-name" />}
