@@ -77,7 +77,10 @@ export function ConversationSection({ dossier }: { dossier: CaseDossier }) {
               </p>
               {message.originalText && message.originalText !== message.text && (
                 <p className="mt-2 border-t border-line pt-2 text-sm text-ink-3">
-                  Originale: <span className="whitespace-pre-line">{message.originalText}</span>
+                  Originale:{" "}
+                  <span lang={dossier.language} dir="auto" className="whitespace-pre-line">
+                    {message.originalText}
+                  </span>
                 </p>
               )}
             </li>

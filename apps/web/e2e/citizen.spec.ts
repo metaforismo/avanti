@@ -160,23 +160,31 @@ test("a story about a practice Avanti can't prepare yet offers the others", asyn
   await expect(page.getByRole("button", { name: /ISEE ordinario/ })).toBeEnabled();
 });
 
-test("Arabic and Bengali are drawn with their own fonts", async ({ browser }) => {
-  for (const [locale, family] of [
-    ["ar", "Noto Sans Arabic"],
-    ["bn", "Noto Sans Bengali"],
+test("each script is drawn with its own font", async ({ browser, browserName }) => {
+  test.skip(browserName !== "chromium", "asks Chrome which font actually rendered the text");
+  // A generated fallback face once drew Arabic in Arial, and listing the script fonts
+  // globally drew Latin headings in Noto Sans Bengali.
+  for (const [locale, heading, body] of [
+    ["it", /Bricolage Grotesque/, /Atkinson Hyperlegible Next/],
+    ["ar", /Noto Sans Arabic/, /Noto Sans Arabic/],
+    ["bn", /Noto Sans Bengali/, /Noto Sans Bengali/],
   ] as const) {
     const context = await browser.newContext({ locale });
     const page = await context.newPage();
     await page.goto("/s/demo-milano-centro");
     await expect(page.locator("html")).toHaveAttribute("lang", locale);
-    // A generated fallback face covering every code point once drew Arabic in Arial.
-    const loaded = await page.evaluate(async () => {
-      await document.fonts.ready;
-      return [...document.fonts]
-        .filter((face) => face.status === "loaded")
-        .map((face) => face.family.replace(/["']/g, ""));
-    });
-    expect(loaded).toContain(family);
+    await page.evaluate(() => document.fonts.ready);
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("DOM.enable");
+    await cdp.send("CSS.enable");
+    const { root } = await cdp.send("DOM.getDocument");
+    const fontOf = async (selector: string) => {
+      const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: root.nodeId, selector });
+      const { fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId });
+      return fonts.map((font) => font.familyName).join(", ");
+    };
+    await expect.poll(() => fontOf("h1"), { message: `${locale} heading` }).toMatch(heading);
+    await expect.poll(() => fontOf("main p"), { message: `${locale} body` }).toMatch(body);
     await context.close();
   }
 });
