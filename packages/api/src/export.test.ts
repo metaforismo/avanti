@@ -114,6 +114,15 @@ describe("PDF dossier", () => {
       expect(text).toContain("A cura del CAF");
       expect(text).toContain("Dato mancante");
       expect(text).toContain("Data di nascita: Da completare");
+      expect(text).toContain("Rapporti finanziari: Nessuno");
+      const sharedNote = dossier.dsuSheet!.sections.find(
+        (section) => section.quadro === "FC3",
+      )!.note!;
+      expect(sharedNote).toBeTruthy();
+      // Paragraphs can wrap in the PDF; check the first line and the next field's order.
+      const noteStart = text.indexOf("Nessun immobile attribuito");
+      expect(noteStart).toBeGreaterThan(-1);
+      expect(noteStart).toBeLessThan(text.indexOf("Tipo di patrimonio: Da completare"));
       expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(1);
       const proofDir = process.env.AVANTI_PDF_PROOF_DIR;
       if (proofDir) {

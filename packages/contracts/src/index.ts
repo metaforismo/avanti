@@ -500,6 +500,7 @@ export const DsuSection = z.object({
   memberName: z.string().nullable(),
   /** Numbered intake instance, never an official financial/property identifier. */
   instanceId: Id.nullable(),
+  note: z.string().optional(),
   rows: z.array(DsuRow),
 });
 export type DsuSection = z.infer<typeof DsuSection>;

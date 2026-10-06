@@ -303,6 +303,7 @@ export async function exportPdf(dossier: CaseDossier): Promise<Uint8Array> {
       printer.section(
         `${section.module} / ${section.quadro} - ${section.title} - ${member}${section.instanceId ? ` - ${section.instanceId}` : ""}`,
       );
+      if (section.note) printer.paragraph(section.note, 9, mutedColor);
       for (const row of section.rows) {
         printer.paragraph(`${row.label}: ${row.value ?? "Da completare"}`);
         const source = row.source;

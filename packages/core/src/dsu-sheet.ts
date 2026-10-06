@@ -8,6 +8,7 @@ import type {
   PracticeId,
 } from "@avanti/contracts";
 import { boundedCount, catalog, type Answers } from "./catalog";
+import type { RequirementId } from "./requirements";
 
 export function formatDsuDate(value: string): string | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -54,6 +55,16 @@ const answer = (label: string, value: string, questionId: string, note?: string)
   source: { kind: "answer", questionId },
   ...(note ? { note } : {}),
 });
+const exclusionQuestions: Partial<Record<RequirementId, string>> = {
+  business: "self_employed",
+  disability: "disability",
+  exempt_income: "exempt_income",
+  foreign_income: "foreign_income",
+  foreign_assets: "foreign_assets",
+  maintenance: "maintenance",
+  excluded_savings: "excluded_savings",
+  property: "properties_count",
+};
 
 export function buildDsuSheet(
   practiceId: PracticeId | null,
@@ -77,6 +88,10 @@ export function buildDsuSheet(
     member: Member | null = null,
     instanceId: string | null = null,
   ) {
+    const notes = rows.flatMap((row) => (row.note ? [row.note] : []));
+    const sharedNotes = [...new Set(notes)].filter(
+      (note) => notes.filter((candidate) => candidate === note).length > 1,
+    );
     sections.push({
       module:
         quadro === "A" || quadro === "B"
@@ -91,15 +106,29 @@ export function buildDsuSheet(
       memberId: member?.id ?? null,
       memberName: member ? name(member) : null,
       instanceId,
-      rows,
+      ...(sharedNotes.length ? { note: sharedNotes.join(" ") } : {}),
+      rows: rows.map((row) => {
+        if (!row.note || !sharedNotes.includes(row.note)) return row;
+        const { note: _note, ...field } = row;
+        return field;
+      }),
     });
+  }
+  function excluded(label: string, questionId: string): DsuRow | null {
+    const value = answers[questionId];
+    return (questionId.endsWith("_count") ? value === 0 : value === false)
+      ? answer(label, "Nessuno", questionId)
+      : null;
   }
   function fromDocument(
     label: string,
-    requirementId: string,
+    requirementId: RequirementId,
     member: Member | null = null,
     key?: string,
+    exclusionQuestionId = exclusionQuestions[requirementId],
   ): DsuRow {
+    const absence = exclusionQuestionId ? excluded(label, exclusionQuestionId) : null;
+    if (absence) return absence;
     const item = checklist.find(
       (i) =>
         i.requirementId === requirementId &&
@@ -121,16 +150,14 @@ export function buildDsuSheet(
           label,
           value: null,
           source: { kind: "document", documentId: document.id, checklistItemId: item.id },
-          note: "Documento verificato dall'operatore; leggere il campo. Valore non estratto.",
         }
       : {
           label,
           value: null,
           source: { kind: "missing", ...(item ? { checklistItemId: item.id } : {}) },
-          note:
-            item && item.status !== "missing"
-              ? "Documento da verificare o non utilizzabile; nessun valore estratto."
-              : "Dato non raccolto; acquisire o confermare con il dichiarante.",
+          ...(item && item.status !== "missing"
+            ? { note: "Verificare il documento prima di usare il dato." }
+            : {}),
         };
   }
   function flag(label: string, questionId: string, note: string): DsuRow {
@@ -305,6 +332,7 @@ export function buildDsuSheet(
             "mortgage",
             owner,
             key,
+            `property_mortgage_${index}`,
           ),
           caf(
             "Casa di abitazione",
@@ -401,16 +429,10 @@ export function buildDsuSheet(
       "FC2",
       [
         ...(answers.accounts_count === 0
-          ? [
-              answer(
-                "Nessun rapporto finanziario nel nucleo (supporto Avanti)",
-                "Sì",
-                "accounts_count",
-                "Conteggio dichiarato per il nucleo; il CAF verifica la casella per componente.",
-              ),
-            ]
+          ? [answer("Rapporti finanziari", "Nessuno", "accounts_count")]
           : []),
-        ...(!sections.some((s) => s.quadro === "FC2" && s.memberId === member.id)
+        ...(answers.accounts_count !== 0 &&
+        !sections.some((s) => s.quadro === "FC2" && s.memberId === member.id)
           ? [
               missing(
                 "Identificativo rapporto",
@@ -441,19 +463,21 @@ export function buildDsuSheet(
       section(
         "FC3",
         [
-          ...[
-            "Tipo di patrimonio",
-            "Situato nel Comune o Stato estero",
-            "Quota posseduta (%)",
-            "Valore ai fini IMU/IVIE della quota posseduta",
-            "Quota capitale residua del mutuo della quota posseduta",
-            "Casa di abitazione",
-          ].map((label) =>
-            missing(
-              label,
-              "Nessun immobile attribuito al componente; non equivale ad assenza dichiarata.",
-            ),
-          ),
+          ...(answers.properties_count === 0
+            ? [answer("Immobili e terreni", "Nessuno", "properties_count")]
+            : [
+                "Tipo di patrimonio",
+                "Situato nel Comune o Stato estero",
+                "Quota posseduta (%)",
+                "Valore ai fini IMU/IVIE della quota posseduta",
+                "Quota capitale residua del mutuo della quota posseduta",
+                "Casa di abitazione",
+              ].map((label) =>
+                missing(
+                  label,
+                  "Nessun immobile attribuito al componente; non equivale ad assenza dichiarata.",
+                ),
+              )),
         ],
         member,
       );
@@ -480,8 +504,14 @@ export function buildDsuSheet(
         ...[
           "Redditi da lavoro o pensione tassati esclusivamente all'estero",
           "Reddito lordo dei residenti AIRE nel paese di residenza",
-          "Redditi fondiari esteri non locati soggetti a IVIE",
         ].map((label) => fromDocument(label, "foreign_income", member)),
+        excluded("Redditi fondiari esteri non locati soggetti a IVIE", "foreign_assets") ??
+          excluded("Redditi fondiari esteri non locati soggetti a IVIE", "properties_count") ??
+          fromDocument(
+            "Redditi fondiari esteri non locati soggetti a IVIE",
+            "foreign_income",
+            member,
+          ),
       ],
       member,
     );
@@ -499,29 +529,33 @@ export function buildDsuSheet(
     if (!sections.some((s) => s.quadro === "FC6" && s.memberId === member.id))
       section(
         "FC6",
-        [
-          missing(
-            "Tipo",
-            "Nessun mezzo attribuito a questo componente; non equivale a una dichiarazione di assenza.",
-          ),
-          missing("Targa veicolo o estremi registrazione"),
-        ],
+        answers.vehicles_count === 0
+          ? [answer("Autoveicoli e altri beni durevoli", "Nessuno", "vehicles_count")]
+          : [
+              missing(
+                "Tipo",
+                "Nessun mezzo attribuito a questo componente; non equivale a una dichiarazione di assenza.",
+              ),
+              missing("Targa veicolo o estremi registrazione"),
+            ],
         member,
       );
     section(
       "FC7",
-      [
-        ...[
-          "Disabilità media, grave o non autosufficienza",
-          "Ente certificatore",
-          "Numero documento",
-          "Data della certificazione",
-        ].map((label) => fromDocument(label, "disability", member)),
-        caf(
-          "Prestazioni socio-sanitarie in ambiente residenziale",
-          "Non raccolto; se pertinente serve anche MB.3. FC7 appartiene al modello integrale.",
-        ),
-      ],
+      answers.disability === false
+        ? [answer("Disabilità e non autosufficienza", "Nessuno", "disability")]
+        : [
+            ...[
+              "Disabilità media, grave o non autosufficienza",
+              "Ente certificatore",
+              "Numero documento",
+              "Data della certificazione",
+            ].map((label) => fromDocument(label, "disability", member)),
+            caf(
+              "Prestazioni socio-sanitarie in ambiente residenziale",
+              "Non raccolto; se pertinente serve anche MB.3. FC7 appartiene al modello integrale.",
+            ),
+          ],
       member,
     );
     section(
@@ -544,24 +578,25 @@ export function buildDsuSheet(
     );
   }
   assets(null);
-  if (answers.excluded_savings === true || answers.foreign_assets === true)
-    section("FC2", [
-      ...(answers.excluded_savings === true
-        ? [
-            fromDocument(
-              "Titoli di Stato, buoni e libretti postali (supporto Avanti)",
-              "excluded_savings",
-            ),
-            caf(
-              "Applicazione esclusione fino a 50.000 euro per nucleo",
-              "Ripartizione da verificare con il CAF, senza sottrazioni automatiche.",
-            ),
-          ]
-        : []),
-      ...(answers.foreign_assets === true
-        ? [fromDocument("Patrimoni esteri non attribuiti (supporto Avanti)", "foreign_assets")]
-        : []),
-    ]);
+  section("FC2", [
+    ...(typeof answers.excluded_savings === "boolean" || boundedCount(answers.accounts_count) > 0
+      ? [
+          fromDocument(
+            "Titoli di Stato, buoni e libretti postali (supporto Avanti)",
+            "excluded_savings",
+          ),
+          ...(answers.excluded_savings === true
+            ? [
+                caf(
+                  "Applicazione esclusione fino a 50.000 euro per nucleo",
+                  "Ripartizione da verificare con il CAF, senza sottrazioni automatiche.",
+                ),
+              ]
+            : []),
+        ]
+      : []),
+    fromDocument("Patrimoni esteri (supporto Avanti)", "foreign_assets"),
+  ]);
   const order: DsuSection["quadro"][] = [
     "A",
     "B",
@@ -597,7 +632,8 @@ export function buildDsuSheet(
       "Prospetto preparatorio, non DSU ufficiale. Modello verificato 2026; modello 2027 non verificato. Ricontrollare prima del pilota.",
       `Redditi e giacenza media: ${referenceYear}; patrimoni: ${formatDsuDate(`${referenceYear}-12-31`)}. Nucleo, casa e veicoli: alla presentazione.`,
       "Valori documentali non estratti. Date: gg/mm/aaaa; importi: due decimali con virgola, senza calcoli ISEE o arrotondamenti fiscali automatici.",
-      "Le risposte sono dichiarazioni da confermare. Sezioni senza componente: titolarità o co-intestazione da verificare, senza duplicare beni o attribuire quote.",
+      "Nessuno: voce esclusa dal cittadino nell'intervista, da confermare al CAF. Dati mancanti: acquisire; documenti verificati: leggere il campo.",
+      "Le risposte sono dichiarazioni da confermare. Beni senza componente: verificare titolarità e co-intestazione, senza duplicare beni o attribuire quote.",
       "La Mini contiene A/B e FC1-FC6. FC7 e FC8 sono integrazioni; C/D/E, nucleo ristretto, FC9 e ISEE corrente richiedono percorsi specifici del CAF.",
     ],
     sections,

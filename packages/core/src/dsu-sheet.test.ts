@@ -61,6 +61,201 @@ function fixture() {
 }
 
 describe("DSU preparatory sheet", () => {
+  it.each([
+    ["exempt_income", "FC4", 3],
+    ["foreign_income", "FC4", 3],
+    ["self_employed", "FC2", 1],
+    ["self_employed", "FC4", 1],
+    ["maintenance", "FC5", 3],
+    ["disability", "FC7", 1],
+    ["foreign_assets", "FC2", 1],
+    ["excluded_savings", "FC2", 1],
+  ] as const)(
+    "uses an explicit No to %s for %s, without treating Yes or an unanswered question as absence",
+    (questionId, quadro, count) => {
+      for (const value of [false, true, undefined, "false", 0]) {
+        const input: Answers = {};
+        if (value !== undefined) input[questionId] = value;
+        // The savings question is asked only after at least one account is declared.
+        if (questionId === "excluded_savings") input.accounts_count = 1;
+        const sheet = DsuSheet.parse(buildDsuSheet("isee_ordinario", input, [applicant], [], []));
+        const rows = sheet.sections
+          .filter((section) => section.quadro === quadro)
+          .flatMap((section) => section.rows);
+        const absent = rows.filter(
+          (row) => row.source.kind === "answer" && row.source.questionId === questionId,
+        );
+        expect(absent).toHaveLength(value === false ? count : 0);
+        expect(absent.every((row) => row.value === "Nessuno")).toBe(true);
+        expect(rows.filter((row) => row.source.kind === "missing").length).toBeGreaterThanOrEqual(
+          value === false ? 0 : count,
+        );
+      }
+    },
+  );
+
+  it.each(["accounts_count", "properties_count", "vehicles_count"] as const)(
+    "distinguishes zero %s from an unasked question and a positive count with no owner",
+    (questionId) => {
+      const quadro = { accounts_count: "FC2", properties_count: "FC3", vehicles_count: "FC6" }[
+        questionId
+      ];
+      for (const value of [0, 1, undefined, "0", false]) {
+        const input: Answers = {};
+        if (value !== undefined) input[questionId] = value;
+        const sheet = DsuSheet.parse(buildDsuSheet("isee_ordinario", input, members, [], []));
+        for (const member of members) {
+          const rows = sheet.sections
+            .filter((section) => section.quadro === quadro && section.memberId === member.id)
+            .flatMap((section) => section.rows);
+          if (value === 0) {
+            expect(
+              rows.filter((row) => row.source.kind === "missing").map((row) => row.label),
+            ).toEqual(
+              questionId === "accounts_count"
+                ? ["Partecipazioni e patrimonio netto d'impresa"]
+                : [],
+            );
+            expect(rows.find((row) => row.value === "Nessuno")?.source).toEqual({
+              kind: "answer",
+              questionId,
+            });
+          } else {
+            expect(rows.some((row) => row.source.kind === "missing")).toBe(true);
+            expect(rows.some((row) => row.value === "Nessuno")).toBe(false);
+          }
+        }
+      }
+    },
+  );
+
+  it("uses the mortgage answer for its own property without zeroing another property's debt", () => {
+    const input = { ...answers, property_mortgage_0: false, property_mortgage_1: true };
+    const sheet = buildDsuSheet("isee_ordinario", input, members, [], [])!;
+    const mortgage = (instance: string) =>
+      sheet.sections
+        .find((section) => section.instanceId === instance)
+        ?.rows.find((row) => row.label.startsWith("Quota capitale"));
+    expect(mortgage("property_0")).toMatchObject({
+      value: "Nessuno",
+      source: { kind: "answer", questionId: "property_mortgage_0" },
+    });
+    expect(mortgage("property_1")).toMatchObject({ value: null, source: { kind: "missing" } });
+  });
+
+  it("prioritizes explicit exclusions over stale selections or documents, without excluding unrelated fields", () => {
+    const { checklist, documents } = fixture();
+    const input = {
+      ...answers,
+      exempt_income: false,
+      disability: false,
+      foreign_assets: false,
+      foreign_income: true,
+    };
+    const sheet = buildDsuSheet("isee_ordinario", input, members, checklist, documents)!;
+    const spouseIncome = sheet.sections.find(
+      (section) => section.quadro === "FC4" && section.memberId === spouse.id,
+    )!;
+    expect(spouseIncome.rows.find((row) => row.label.startsWith("Redditi esenti"))).toMatchObject({
+      value: "Nessuno",
+      source: { kind: "answer", questionId: "exempt_income" },
+    });
+    expect(
+      spouseIncome.rows.find((row) => row.label.startsWith("Redditi fondiari esteri")),
+    ).toMatchObject({ value: "Nessuno", source: { kind: "answer", questionId: "foreign_assets" } });
+    expect(
+      spouseIncome.rows.find((row) => row.label.startsWith("Redditi da lavoro"))?.source.kind,
+    ).toBe("missing");
+    expect(
+      sheet.sections
+        .find((section) => section.instanceId === "property_0")
+        ?.rows.find((row) => row.label === "Tipo di patrimonio")?.source.kind,
+    ).toBe("document");
+    expect(
+      sheet.sections.find((section) => section.quadro === "FC7" && section.memberId === child.id)
+        ?.rows,
+    ).toEqual([
+      {
+        label: "Disabilità e non autosufficienza",
+        value: "Nessuno",
+        source: { kind: "answer", questionId: "disability" },
+      },
+    ]);
+  });
+
+  it.each([
+    "exempt_income",
+    "foreign_income",
+    "self_employed",
+    "maintenance",
+    "disability",
+  ] as const)(
+    "retains verified documents for Yes to %s and leaves unselected members missing",
+    (questionId) => {
+      const input: Answers = { [questionId]: true, [`${questionId}_members`]: [applicant.id] };
+      const checklist = buildChecklist("isee_ordinario", input, [applicant, spouse], "it");
+      const requirementId = questionId === "self_employed" ? "business" : questionId;
+      const item = checklist.find((item) => item.requirementId === requirementId)!;
+      item.status = "verified";
+      item.documentIds = ["doc-selected"];
+      const documents: DocumentSummary[] = [
+        {
+          id: "doc-selected",
+          fileName: "ESEMPIO.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 1,
+          pages: 1,
+          uploadedAt: "2027-01-01T00:00:00Z",
+          checklistItemId: item.id,
+          memberId: applicant.id,
+          status: "analyzed",
+          analysis: null,
+        },
+      ];
+      const sheet = buildDsuSheet(
+        "isee_ordinario",
+        input,
+        [applicant, spouse],
+        checklist,
+        documents,
+      )!;
+      expect(
+        sheet.sections
+          .filter((section) => section.memberId === applicant.id)
+          .flatMap((section) => section.rows)
+          .some(
+            (row) =>
+              row.source.kind === "document" &&
+              row.source.documentId === "doc-selected" &&
+              row.value === null,
+          ),
+      ).toBe(true);
+      expect(
+        sheet.sections
+          .filter((section) => section.memberId === spouse.id)
+          .flatMap((section) => section.rows)
+          .some((row) => row.value === "Nessuno"),
+      ).toBe(false);
+    },
+  );
+
+  it("moves repeated notes to the section and keeps general provenance instructions on the sheet", () => {
+    const sheet = DsuSheet.parse(buildDsuSheet("isee_ordinario", {}, [applicant], [], []));
+    const property = sheet.sections.find((section) => section.quadro === "FC3")!;
+    expect(property.note).toContain("Nessun immobile attribuito");
+    expect(property.rows.every((row) => row.note === undefined)).toBe(true);
+    for (const section of sheet.sections) {
+      const rowNotes = section.rows.flatMap((row) => (row.note ? [row.note] : []));
+      expect(new Set(rowNotes).size).toBe(rowNotes.length);
+    }
+    expect(
+      sheet.sections
+        .flatMap((section) => section.rows)
+        .some((row) => row.note?.includes("Dato non raccolto; acquisire")),
+    ).toBe(false);
+    expect(sheet.notes.some((note) => note.includes("Dati mancanti: acquisire"))).toBe(true);
+  });
+
   it("orders the declarant first and each component's quadri, keeping joint assets unallocated exactly once", () => {
     const { checklist, documents } = fixture();
     const before = JSON.stringify({ answers, members, checklist, documents });

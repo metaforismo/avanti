@@ -132,30 +132,30 @@ Fonte: Mini pp. 3–4 / integrale pp. 6–7, istruzioni parte 2 FC2. Rapporti an
 nell'anno, carte, quote e dati esteri vanno verificati. Avanti ha istanze numerate
 `account_<n>` con un intestatario o `joint`, non l'elenco di tutte le quote.
 
-| Campo nel modello                                 | Compila                     | Avanti oggi / prospetto                                                                   |
-| ------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
-| Nessun/almeno un rapporto finanziario             | D                           | `accounts_count` è conteggio globale; zero annotato come supporto, non casella per membro |
-| Tipo rapporto, sez. I                             | P/D                         | `account_type_<n>` raggruppa depositi/investimenti/altro: non determina 01/03/09; `caf`   |
-| Identificativo rapporto, sez. I                   | P/D                         | `account_balance`, documento non estratto                                                 |
-| CF operatore finanziario, sez. I                  | P/D                         | `account_balance`; `account_bank_<n>` è solo nome dell'istituto                           |
-| Saldo al 31 dicembre                              | P/D                         | `account_balance`, nessun valore estratto                                                 |
-| Giacenza media annua                              | P/D                         | `account_average` per depositi, nessun valore estratto                                    |
-| Data inizio se aperto nell'anno                   | P/D                         | `account_balance`, non estratta                                                           |
-| Data fine se chiuso nell'anno                     | P/D                         | `account_balance`, non estratta                                                           |
-| Totale saldo A                                    | CAF su dati D/P             | No somma; `caf`                                                                           |
-| Totale giacenza B                                 | CAF su dati D/P             | No somma; `caf`                                                                           |
-| Differenza A-B                                    | CAF su dati D/P             | No calcolo; `caf`                                                                         |
-| Incremento patrimonio almeno pari a B-A (casella) | D                           | No; promemoria `caf`                                                                      |
-| Incremento patrimonio immobiliare C               | D                           | No importo; `caf`                                                                         |
-| Incremento patrimonio mobiliare D                 | D                           | No importo; `caf`                                                                         |
-| Totale C+D                                        | CAF su dati D               | No calcolo; `caf`                                                                         |
-| Tipo rapporto, sez. II                            | P/D                         | Categoria `investment` insufficiente per 02/05/06/07 e altri codici; `caf`                |
-| Identificativo rapporto, sez. II                  | P/D                         | Documento `investment`                                                                    |
-| CF operatore finanziario, sez. II                 | P/D                         | Documento `investment`                                                                    |
-| Valore, sez. II                                   | P/D                         | Documento `investment`                                                                    |
-| Data inizio, sez. II                              | P/D                         | Documento `investment`                                                                    |
-| Data fine, sez. II                                | P/D                         | Documento `investment`                                                                    |
-| Altre forme: partecipazioni/patrimonio d'impresa  | D (alcune non precompilate) | Documento `business` per membri selezionati, classificazione/valore CAF                   |
+| Campo nel modello                                 | Compila                     | Avanti oggi / prospetto                                                                 |
+| ------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------- |
+| Nessun/almeno un rapporto finanziario             | D                           | `accounts_count = 0`: riga `Nessuno` per componente, dichiarazione da confermare al CAF |
+| Tipo rapporto, sez. I                             | P/D                         | `account_type_<n>` raggruppa depositi/investimenti/altro: non determina 01/03/09; `caf` |
+| Identificativo rapporto, sez. I                   | P/D                         | `account_balance`, documento non estratto                                               |
+| CF operatore finanziario, sez. I                  | P/D                         | `account_balance`; `account_bank_<n>` è solo nome dell'istituto                         |
+| Saldo al 31 dicembre                              | P/D                         | `account_balance`, nessun valore estratto                                               |
+| Giacenza media annua                              | P/D                         | `account_average` per depositi, nessun valore estratto                                  |
+| Data inizio se aperto nell'anno                   | P/D                         | `account_balance`, non estratta                                                         |
+| Data fine se chiuso nell'anno                     | P/D                         | `account_balance`, non estratta                                                         |
+| Totale saldo A                                    | CAF su dati D/P             | No somma; `caf`                                                                         |
+| Totale giacenza B                                 | CAF su dati D/P             | No somma; `caf`                                                                         |
+| Differenza A-B                                    | CAF su dati D/P             | No calcolo; `caf`                                                                       |
+| Incremento patrimonio almeno pari a B-A (casella) | D                           | No; promemoria `caf`                                                                    |
+| Incremento patrimonio immobiliare C               | D                           | No importo; `caf`                                                                       |
+| Incremento patrimonio mobiliare D                 | D                           | No importo; `caf`                                                                       |
+| Totale C+D                                        | CAF su dati D               | No calcolo; `caf`                                                                       |
+| Tipo rapporto, sez. II                            | P/D                         | Categoria `investment` insufficiente per 02/05/06/07 e altri codici; `caf`              |
+| Identificativo rapporto, sez. II                  | P/D                         | Documento `investment`                                                                  |
+| CF operatore finanziario, sez. II                 | P/D                         | Documento `investment`                                                                  |
+| Valore, sez. II                                   | P/D                         | Documento `investment`                                                                  |
+| Data inizio, sez. II                              | P/D                         | Documento `investment`                                                                  |
+| Data fine, sez. II                                | P/D                         | Documento `investment`                                                                  |
+| Altre forme: partecipazioni/patrimonio d'impresa  | D (alcune non precompilate) | Documento `business` per membri selezionati, classificazione/valore CAF                 |
 
 I gruppi sono supporto Avanti, non codici del modello. `other` non identifica una
 sezione DSU: il CAF deve classificare il rapporto e richiedere anche la giacenza
