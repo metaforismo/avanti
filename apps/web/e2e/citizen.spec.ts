@@ -87,3 +87,66 @@ test("an unknown office says the QR is wrong", async ({ page }) => {
     page.getByText("Questo sportello non esiste o il link non è corretto."),
   ).toBeVisible();
 });
+
+test("the documents step fits a 320px phone", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.goto("/s/demo-milano-centro");
+  // Reach the documents step through the API: the interview itself is covered above.
+  const token = await page.evaluate(async () => {
+    const json = { "content-type": "application/json" };
+    const started = await fetch("/api/intake", {
+      method: "POST",
+      headers: json,
+      body: JSON.stringify({
+        officeSlug: "demo-milano-centro",
+        language: "it",
+        privacyAccepted: true,
+      }),
+    });
+    const { token } = (await started.json()) as { token: string };
+    const turn = (body: object) =>
+      fetch(`/api/c/${token}/turn`, { method: "POST", headers: json, body: JSON.stringify(body) });
+    await turn({
+      type: "text",
+      text: "Devo fare l'ISEE, vivo con mia moglie e ho un conto Fineco",
+    });
+    for (let step = 0; step < 40; step++) {
+      const view = await (await fetch(`/api/c/${token}`)).json();
+      const question = view.nextQuestion;
+      if (!question) break;
+      const value =
+        question.kind === "members"
+          ? [
+              { role: "richiedente", firstName: "Marco" },
+              { role: "coniuge", firstName: "Giulia" },
+            ]
+          : question.kind === "yes_no"
+            ? false
+            : question.kind === "number"
+              ? Math.max(question.min ?? 0, 1)
+              : question.options?.length
+                ? question.options[0].value
+                : "Esempio";
+      await turn({ type: "answer", questionId: question.id, value });
+    }
+    return token;
+  });
+
+  await page.goto(`/pratica/${token}`);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "I documenti da preparare" }),
+  ).toBeVisible();
+  const overflowing = await page.evaluate(() => {
+    const main = document.querySelector("main")!;
+    const limit =
+      main.getBoundingClientRect().right - parseFloat(getComputedStyle(main).paddingRight);
+    return (
+      Array.from(main.querySelectorAll("*"))
+        // The bottom action bar is fixed and spans the screen on purpose.
+        .filter((element) => !element.closest(".fixed"))
+        .filter((element) => element.getBoundingClientRect().right > limit + 1)
+        .map((element) => `${element.tagName} ${element.textContent?.slice(0, 40)}`)
+    );
+  });
+  expect(overflowing).toEqual([]);
+});

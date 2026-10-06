@@ -270,8 +270,9 @@ function ChecklistCard({
         done && "bg-surface/70",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      {/* On narrow phones the badge drops below the title instead of squeezing it. */}
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="min-w-0 grow basis-52">
           <h3 className="text-lg leading-snug font-semibold">{item.title}</h3>
           {!item.required && <p className="mt-0.5 text-sm text-ink-3">{m.docs.optional}</p>}
         </div>
@@ -374,7 +375,8 @@ function UploadButtons({
   };
 
   return (
-    <div className={cn("flex gap-2", className)}>
+    // Two equal buttons side by side; they stack when a language makes the labels too long.
+    <div className={cn("flex flex-wrap gap-2", className)}>
       <input
         ref={cameraRef}
         type="file"
@@ -405,7 +407,7 @@ function UploadButtons({
       <Button
         type="button"
         variant="secondary"
-        className="hidden flex-1 text-stamp pointer-coarse:inline-flex"
+        className="hidden min-w-40 flex-1 text-stamp pointer-coarse:inline-flex"
         onClick={() => cameraRef.current?.click()}
       >
         <Camera className="size-4" aria-hidden />
@@ -414,7 +416,7 @@ function UploadButtons({
       <Button
         type="button"
         variant="secondary"
-        className="text-stamp pointer-coarse:flex-1 pointer-coarse:text-ink"
+        className="text-stamp pointer-coarse:min-w-40 pointer-coarse:flex-1 pointer-coarse:text-ink"
         onClick={() => fileRef.current?.click()}
       >
         <FileUp className="size-4" aria-hidden />

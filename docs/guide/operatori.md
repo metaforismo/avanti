@@ -81,7 +81,9 @@ e un avviso.
 
 ### Chiudere
 
-- _Segna come pronta_ quando tutto è verificato.
+- _Segna come pronta_ quando tutto è verificato. Se mancano documenti obbligatori o ci sono
+  problemi bloccanti, Avanti chiede conferma e propone prima _Chiedi integrazione_: finché manca
+  qualcosa è quello il pulsante principale.
 - _Altro_ → _Scarica fascicolo PDF_ o _Scarica dati JSON_ per il gestionale.
 - _Altro_ → _Chiudi e archivia_ chiede conferma; una pratica chiusa si può riaprire.
 
