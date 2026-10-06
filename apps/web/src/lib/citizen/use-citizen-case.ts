@@ -80,6 +80,8 @@ export function useCitizenCase(token: string) {
   const base = `/api/c/${encodeURIComponent(token)}`;
   const inFlight = useRef(0);
   const uploadSlots = useRef(createLimiter(PARALLEL_UPLOADS));
+  // The original files, so a failed upload can be retried without picking the photo again.
+  const uploadFiles = useRef(new Map<string, { file: File; checklistItemId: string | null }>());
 
   const load = useCallback(async () => {
     try {
@@ -202,6 +204,7 @@ export function useCitizenCase(token: string) {
   const upload = useCallback(
     async (file: File, checklistItemId: string | null) => {
       const id = crypto.randomUUID();
+      uploadFiles.current.set(id, { file, checklistItemId });
       const patch = (update: Partial<PendingUpload>) =>
         setUploads((list) => list.map((u) => (u.id === id ? { ...u, ...update } : u)));
       setUploads((list) => [
@@ -226,6 +229,7 @@ export function useCitizenCase(token: string) {
             patch({ progress: p }),
           );
           setUploads((list) => list.filter((u) => u.id !== id));
+          uploadFiles.current.delete(id);
           apply(data);
         } catch (error) {
           const code = errorCode(error);
@@ -239,9 +243,18 @@ export function useCitizenCase(token: string) {
     [apply, base],
   );
 
-  const dismissUpload = useCallback(
-    (id: string) => setUploads((list) => list.filter((u) => u.id !== id)),
-    [],
+  const dismissUpload = useCallback((id: string) => {
+    uploadFiles.current.delete(id);
+    setUploads((list) => list.filter((u) => u.id !== id));
+  }, []);
+
+  const retryUpload = useCallback(
+    (id: string) => {
+      const original = uploadFiles.current.get(id);
+      dismissUpload(id);
+      if (original) void upload(original.file, original.checklistItemId);
+    },
+    [dismissUpload, upload],
   );
 
   return {
@@ -259,6 +272,7 @@ export function useCitizenCase(token: string) {
     removeDocument,
     submit,
     upload,
+    retryUpload,
     dismissUpload,
   };
 }
