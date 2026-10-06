@@ -105,6 +105,9 @@ const it = {
     } satisfies Record<MemberRole, string>,
   },
   docs: {
+    resumeTitle: "Non hai tutto adesso?",
+    resumeBody:
+      "Puoi chiudere: quello che hai caricato resta salvato. Riapri questo link quando hai gli altri documenti.",
     photoTipsTitle: "Come fare una buona foto",
     photoTip1: "Appoggia il documento su un tavolo scuro, ben illuminato.",
     photoTip2: "Inquadra tutti e quattro gli angoli, senza dita sopra.",
@@ -331,6 +334,9 @@ const en: Widen<CitizenMessages> = {
     },
   },
   docs: {
+    resumeTitle: "Don't have everything right now?",
+    resumeBody:
+      "You can close this page: what you uploaded stays saved. Open this link again when you have the other documents.",
     photoTipsTitle: "How to take a good photo",
     photoTip1: "Lay the document on a dark table, in good light.",
     photoTip2: "Get all four corners in the frame, with no fingers on it.",

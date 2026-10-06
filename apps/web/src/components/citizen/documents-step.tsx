@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  Bookmark,
   Camera,
   Check,
   ChevronDown,
@@ -24,6 +25,7 @@ import { DONE_STATUSES } from "@/lib/citizen/view";
 import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
 import { PhotoTips } from "./photo-tips";
+import { SaveLinkActions } from "./save-link";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 
 type M = Widen<CitizenMessages>;
@@ -145,6 +147,20 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
         />
         <UploadButtons api={api} m={m} checklistItemId={null} className="mt-4" />
       </section>
+
+      {missingRequired > 0 && (
+        <section
+          aria-labelledby="resume-later"
+          className="rounded-lg bg-surface p-4 ring-1 ring-line"
+        >
+          <h2 id="resume-later" className="flex items-center gap-2 font-semibold">
+            <Bookmark className="size-5 shrink-0 text-stamp" aria-hidden />
+            {m.docs.resumeTitle}
+          </h2>
+          <p className="mt-1 mb-3 text-ink-2">{m.docs.resumeBody}</p>
+          <SaveLinkActions m={m} title={data.reference} />
+        </section>
+      )}
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface shadow-[0_-8px_24px_-16px_rgb(20_27_45/0.25)]">
         <div className="mx-auto flex max-w-xl flex-col gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

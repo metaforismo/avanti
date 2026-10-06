@@ -101,6 +101,9 @@ export const fr: M = {
     },
   },
   docs: {
+    resumeTitle: "Tu n'as pas tout maintenant ?",
+    resumeBody:
+      "Tu peux fermer : ce que tu as envoyé reste enregistré. Rouvre ce lien quand tu as les autres documents.",
     photoTipsTitle: "Comment faire une bonne photo",
     photoTip1: "Pose le document sur une table sombre, bien éclairée.",
     photoTip2: "Cadre bien les quatre coins, sans doigts dessus.",
@@ -318,6 +321,9 @@ export const es: M = {
     },
   },
   docs: {
+    resumeTitle: "¿No lo tienes todo ahora?",
+    resumeBody:
+      "Puedes cerrar: lo que has subido queda guardado. Vuelve a abrir este enlace cuando tengas los demás documentos.",
     photoTipsTitle: "Cómo hacer una buena foto",
     photoTip1: "Apoya el documento sobre una mesa oscura, con buena luz.",
     photoTip2: "Encuadra las cuatro esquinas, sin dedos encima.",
@@ -535,6 +541,9 @@ export const ro: M = {
     },
   },
   docs: {
+    resumeTitle: "Nu ai totul acum?",
+    resumeBody:
+      "Poți închide: ce ai încărcat rămâne salvat. Redeschide acest link când ai celelalte documente.",
     photoTipsTitle: "Cum faci o fotografie bună",
     photoTip1: "Pune documentul pe o masă închisă la culoare, cu lumină bună.",
     photoTip2: "Prinde în cadru toate cele patru colțuri, fără degete pe el.",
@@ -751,6 +760,9 @@ export const uk: M = {
     },
   },
   docs: {
+    resumeTitle: "Не маєш усього зараз?",
+    resumeBody:
+      "Можеш закрити: завантажене збережеться. Відкрий це посилання знову, коли матимеш інші документи.",
     photoTipsTitle: "Як зробити гарне фото",
     photoTip1: "Поклади документ на темний стіл при хорошому освітленні.",
     photoTip2: "Захопи в кадр усі чотири кути, без пальців на документі.",
@@ -964,6 +976,9 @@ export const ar: M = {
     },
   },
   docs: {
+    resumeTitle: "ليس لديك كل شيء الآن؟",
+    resumeBody:
+      "يمكنك الإغلاق: ما رفعته يبقى محفوظاً. افتح هذا الرابط مرة أخرى عندما تكون لديك المستندات الأخرى.",
     photoTipsTitle: "كيف تلتقط صورة جيدة",
     photoTip1: "ضع المستند على طاولة داكنة وفي إضاءة جيدة.",
     photoTip2: "اجعل الزوايا الأربع داخل الصورة، دون أصابع فوقها.",
@@ -1178,6 +1193,9 @@ export const bn: M = {
     },
   },
   docs: {
+    resumeTitle: "এখন সব কাগজ নেই?",
+    resumeBody:
+      "আপনি বন্ধ করতে পারেন: যা আপলোড করেছেন তা সংরক্ষিত থাকবে। বাকি কাগজ পেলে এই লিংকটি আবার খুলুন।",
     photoTipsTitle: "ভালো ছবি কীভাবে তুলবেন",
     photoTip1: "ভালো আলোয় একটি গাঢ় রঙের টেবিলে কাগজটি রাখুন।",
     photoTip2: "চারটি কোণই ছবিতে রাখুন, আঙুল যেন না থাকে।",

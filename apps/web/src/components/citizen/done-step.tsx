@@ -1,13 +1,9 @@
 "use client";
 
-import { Check, Copy, IdCard, MapPin, Phone, Share2 } from "lucide-react";
-import { useSyncExternalStore } from "react";
-import { Button } from "@/components/ui/button";
-import { CopyButton } from "@/components/ui/copy-button";
+import { Check, Copy, IdCard, MapPin, Phone } from "lucide-react";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import type { StepProps } from "./citizen-app";
-
-const noSubscribe = () => () => {};
+import { SaveLinkActions } from "./save-link";
 
 export function DoneStep({ data, m }: StepProps) {
   const statusLine =
@@ -18,25 +14,6 @@ export function DoneStep({ data, m }: StepProps) {
         : data.status === "closed"
           ? m.done.closed
           : null;
-
-  const link = useSyncExternalStore(
-    noSubscribe,
-    () => window.location.href,
-    () => "",
-  );
-  const canShare = useSyncExternalStore(
-    noSubscribe,
-    () => typeof navigator.share === "function",
-    () => false,
-  );
-
-  async function share() {
-    try {
-      await navigator.share({ title: data.reference, url: link });
-    } catch {
-      // Cancelled by the user or unsupported target: nothing to report.
-    }
-  }
 
   return (
     <div className="grid gap-8 pt-4">
@@ -81,17 +58,8 @@ export function DoneStep({ data, m }: StepProps) {
             <Copy className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
             <span>{m.done.save}</span>
           </span>
-          <div className="ms-8 flex flex-wrap items-start gap-2">
-            <CopyButton
-              value={link}
-              labels={{ copy: m.done.copyLink, copied: m.done.copied, failed: m.done.copyFailed }}
-            />
-            {canShare && (
-              <Button variant="secondary" onClick={() => void share()}>
-                <Share2 className="size-4" aria-hidden />
-                {m.done.share}
-              </Button>
-            )}
+          <div className="ms-8">
+            <SaveLinkActions m={m} title={data.reference} />
           </div>
         </li>
       </ul>
