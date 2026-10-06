@@ -223,6 +223,8 @@ const it = {
     notFoundBody:
       "Controlla di aver copiato tutto il link, oppure chiedi allo sportello di inviarlo di nuovo.",
     generic: "Qualcosa non ha funzionato. Riprova tra poco.",
+    practiceUnavailable:
+      "Questa pratica non si può ancora preparare con Avanti. Scegline un'altra o chiedi allo sportello.",
     network: "Connessione assente. Controlla la rete e riprova.",
     rateLimited: "Troppi tentativi in poco tempo. Aspetta un minuto e riprova.",
     offline: "Sei offline. Le modifiche verranno salvate quando torna la connessione.",
@@ -452,6 +454,8 @@ const en: Widen<CitizenMessages> = {
     notFoundTitle: "Invalid link",
     notFoundBody: "Check that you copied the whole link, or ask the office to send it again.",
     generic: "Something went wrong. Please try again shortly.",
+    practiceUnavailable:
+      "Avanti can't prepare this yet. Choose another service or ask at the desk.",
     network: "No connection. Check your network and try again.",
     rateLimited: "Too many attempts. Wait a minute and try again.",
     offline: "You're offline. Changes will be saved when the connection is back.",
@@ -495,6 +499,8 @@ export function errorMessage(m: Widen<CitizenMessages>, code: ErrorCode | "netwo
       return m.docs.unsupported;
     case "network":
       return m.errors.network;
+    case "practice_unavailable":
+      return m.errors.practiceUnavailable;
     default:
       return m.errors.generic;
   }

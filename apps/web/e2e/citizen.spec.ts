@@ -28,6 +28,18 @@ async function finishInterview(page: Page, token: string) {
   throw new Error("Interview did not finish");
 }
 
+/** Opens a case at the demo office, optionally with a first story, without the UI. */
+async function startCase(page: Page, story?: string) {
+  const started = await page.request.post("/api/intake", {
+    data: { officeSlug: "demo-milano-centro", language: "it", privacyAccepted: true },
+  });
+  const { token } = (await started.json()) as { token: string };
+  if (story) {
+    await page.request.post(`/api/c/${token}/turn`, { data: { type: "text", text: story } });
+  }
+  return token;
+}
+
 test("a citizen goes from the office QR to a submitted dossier", async ({ page }) => {
   await page.goto("/s/demo-milano-centro");
   await expect(page.getByRole("banner").getByText("CAF Demo Milano")).toBeVisible();
@@ -90,47 +102,8 @@ test("an unknown office says the QR is wrong", async ({ page }) => {
 
 test("the documents step fits a 320px phone", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
-  await page.goto("/s/demo-milano-centro");
-  // Reach the documents step through the API: the interview itself is covered above.
-  const token = await page.evaluate(async () => {
-    const json = { "content-type": "application/json" };
-    const started = await fetch("/api/intake", {
-      method: "POST",
-      headers: json,
-      body: JSON.stringify({
-        officeSlug: "demo-milano-centro",
-        language: "it",
-        privacyAccepted: true,
-      }),
-    });
-    const { token } = (await started.json()) as { token: string };
-    const turn = (body: object) =>
-      fetch(`/api/c/${token}/turn`, { method: "POST", headers: json, body: JSON.stringify(body) });
-    await turn({
-      type: "text",
-      text: "Devo fare l'ISEE, vivo con mia moglie e ho un conto Fineco",
-    });
-    for (let step = 0; step < 40; step++) {
-      const view = await (await fetch(`/api/c/${token}`)).json();
-      const question = view.nextQuestion;
-      if (!question) break;
-      const value =
-        question.kind === "members"
-          ? [
-              { role: "richiedente", firstName: "Marco" },
-              { role: "coniuge", firstName: "Giulia" },
-            ]
-          : question.kind === "yes_no"
-            ? false
-            : question.kind === "number"
-              ? Math.max(question.min ?? 0, 1)
-              : question.options?.length
-                ? question.options[0].value
-                : "Esempio";
-      await turn({ type: "answer", questionId: question.id, value });
-    }
-    return token;
-  });
+  const token = await startCase(page, "Devo fare l'ISEE, vivo con mia moglie e ho un conto Fineco");
+  await finishInterview(page, token);
 
   await page.goto(`/pratica/${token}`);
   await expect(
@@ -149,4 +122,20 @@ test("the documents step fits a 320px phone", async ({ page }) => {
     );
   });
   expect(overflowing).toEqual([]);
+});
+
+test("a story about a practice Avanti can't prepare yet offers the others", async ({ page }) => {
+  const token = await startCase(page);
+  await page.goto(`/pratica/${token}`);
+  await page
+    .getByLabel("Cosa devi fare?")
+    .fill("Devo fare la domanda di NASpI, ho perso il lavoro");
+  await page.getByRole("button", { name: "Continua" }).click();
+
+  await expect(page.getByText(/non si può ancora preparare con Avanti/)).toBeVisible();
+  // The list of practices opens by itself, and the citizen can pick one that works today.
+  await expect(
+    page.getByRole("button", { name: "Preferisco scegliere da un elenco" }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("button", { name: /ISEE ordinario/ })).toBeEnabled();
 });

@@ -5,6 +5,8 @@ import type {
   CitizenCase,
   ErrorCode,
   IntakeTurn,
+  IntakeTurnResponse,
+  PracticeId,
   Language,
   SubmitCaseRequest,
 } from "@avanti/contracts";
@@ -69,6 +71,8 @@ export function useCitizenCase(token: string) {
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
   // Assistant replies only answer free text; after a tapped answer they would be stale.
   const [lastTurn, setLastTurn] = useState<IntakeTurn["type"] | null>(null);
+  // The story pointed to a practice Avanti can't prepare yet: the need step offers the list.
+  const [unavailablePractice, setUnavailablePractice] = useState<PracticeId | null>(null);
   const base = `/api/c/${encodeURIComponent(token)}`;
   const inFlight = useRef(0);
 
@@ -132,12 +136,15 @@ export function useCitizenCase(token: string) {
 
   const turn = useCallback(
     (input: IntakeTurn, key: string = input.type) =>
-      run(key, () => apiFetch<CitizenCase>(`${base}/turn`, { method: "POST", body: input })).then(
-        (data) => {
-          if (data) setLastTurn(input.type);
-          return apply(data);
-        },
-      ),
+      run(key, () =>
+        apiFetch<IntakeTurnResponse>(`${base}/turn`, { method: "POST", body: input }),
+      ).then((data) => {
+        if (data) {
+          setLastTurn(input.type);
+          setUnavailablePractice(data.unavailablePractice ?? null);
+        }
+        return apply(data);
+      }),
     [apply, base, run],
   );
 
@@ -224,6 +231,7 @@ export function useCitizenCase(token: string) {
     clearActionError: () => setActionError(null),
     uploads,
     lastTurn,
+    unavailablePractice,
     reload: load,
     turn,
     setLanguage,
