@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Inbox, Search, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Inbox, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -34,6 +34,8 @@ function Queue() {
   const status = (params.get("stato") as CaseStatus | null) ?? "submitted";
   const practice = params.get("pratica") ?? "";
   const assignee = params.get("assegnatario") ?? "";
+  // Set by the dossier after a permanent deletion, which leaves nothing else to show.
+  const deleted = params.get("eliminata");
   const [search, setSearch] = useState(params.get("q") ?? "");
   const [debouncedSearch, setDebouncedSearch] = useState(search.trim());
   // One request per pause in typing, not per keystroke.
@@ -45,6 +47,7 @@ function Queue() {
 
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
+    next.delete("eliminata");
     if (value) next.set(key, value);
     else next.delete(key);
     router.replace(`/console?${next.toString()}` as Route, { scroll: false });
@@ -65,6 +68,7 @@ function Queue() {
     cursor: string | null;
   } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false);
 
   // Keep the queue fresh while an operator works on it.
   const { reload } = list;
@@ -90,6 +94,7 @@ function Queue() {
   async function loadMore() {
     if (!nextCursor) return;
     setLoadingMore(true);
+    setLoadMoreFailed(false);
     try {
       const page = await apiFetch<CaseListResponse>(
         `${query}&cursor=${encodeURIComponent(nextCursor)}`,
@@ -99,6 +104,8 @@ function Queue() {
         items: [...(appended?.items ?? []), ...page.items],
         cursor: page.nextCursor,
       });
+    } catch {
+      setLoadMoreFailed(true);
     } finally {
       setLoadingMore(false);
     }
@@ -107,6 +114,25 @@ function Queue() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
       <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Pratiche</h1>
+
+      <div role="status">
+        {deleted && (
+          <p className="mt-4 flex items-center gap-3 rounded-md bg-ok-wash py-2 ps-4 pe-2 text-ok">
+            <CheckCircle2 className="size-5 shrink-0" aria-hidden />
+            <span className="flex-1">
+              Fascicolo <span className="font-mono">{deleted}</span> eliminato definitivamente.
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Chiudi avviso"
+              onClick={() => setParam("eliminata", "")}
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+          </p>
+        )}
+      </div>
 
       <div role="group" aria-label="Stato" className="-mx-1 mt-5 flex gap-1 overflow-x-auto pb-1">
         {STATUS_ORDER.map((key) => {
@@ -236,7 +262,12 @@ function Queue() {
               ))}
             </ul>
             {nextCursor && (
-              <div className="mt-4 flex justify-center">
+              <div className="mt-4 grid justify-items-center gap-2">
+                {loadMoreFailed && (
+                  <p role="alert" className="text-sm text-danger">
+                    Non è stato possibile caricare altre pratiche. Riprova.
+                  </p>
+                )}
                 <Button variant="secondary" loading={loadingMore} onClick={() => void loadMore()}>
                   Mostra altre
                 </Button>

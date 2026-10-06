@@ -20,19 +20,24 @@ gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 - Nuova pratica con link, QR (anche a schermo intero), WhatsApp/SMS bilingue; cartello A4.
 - Tema scuro, pagina Aiuto, guida in `docs/guide/operatori.md`.
 
+**Amministrazione** (responsabile del CAF)
+
+- Operatori con password temporanea e cambio obbligatorio al primo accesso, reset,
+  disattivazione; sportelli; parametri (baseline, validità dei link, conservazione).
+- Cancellazione definitiva su richiesta dell'interessato e pulizia automatica a fine
+  conservazione.
+
 **Pratiche**: ISEE ordinario completo; assegno unico, 730 e permesso di soggiorno in beta; le
 altre elencate come "in arrivo" (vedi `docs/research/`).
 
-**Qualità**: test unitari (core, db, api, web), 7 test end-to-end Playwright, CI pronta
+**Qualità**: test unitari (core, db, api, web), test end-to-end Playwright con controlli di
+accessibilità axe, CI pronta
 (ferma per il billing dell'account GitHub), revisioni del backend documentate nelle PR.
 
 ## In corso
 
-- Quarto giro di correzioni del backend (`fix/backend-review-2`): ID stabili dei membri,
-  inferenze sul nucleo, estrazione in ucraino/rumeno/arabo, anteprima PDF, pulizia via cron.
-- Amministrazione per i piloti (`feat/admin-contracts` → backend): operatori con password
-  temporanee, sportelli, parametri (baseline, validità link, conservazione), cambio password,
-  cancellazione definitiva e conservazione automatica.
+- Comprensione del racconto libero nelle lingue meno coperte (bengalese, arabo, ucraino):
+  prove sulle frasi della demo pubblica, negazioni in inglese, conti e veicoli.
 
 ## Prima del pilota (ottobre–dicembre 2026)
 

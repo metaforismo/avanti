@@ -4,7 +4,7 @@ import { ArrowLeft, Check, ChevronDown, Download, FileJson, Send, UserCheck } fr
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Route } from "next";
 import type {
   CaseDossier,
@@ -22,6 +22,7 @@ import { CASE_STATUS, LANGUAGE_IT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { ChecklistSection } from "./checklist-section";
+import { DeleteCaseDialog } from "./delete-case-dialog";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
 import { FindingsSummary } from "./findings-summary";
@@ -42,6 +43,8 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const moreButton = useRef<HTMLButtonElement>(null);
   // The open document lives in the URL: shareable with a colleague, closed by the Back button.
   const router = useRouter();
   const pathname = usePathname();
@@ -201,7 +204,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           )}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <Button variant="secondary">
+              <Button ref={moreButton} variant="secondary">
                 Altro
                 <ChevronDown className="size-4" aria-hidden />
               </Button>
@@ -237,6 +240,14 @@ export function DossierView({ caseId }: { caseId: string }) {
                   <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
                     Lascia la pratica
                   </MenuItem>
+                )}
+                {operator.role === "admin" && (
+                  <>
+                    <DropdownMenu.Separator className="my-1 h-px bg-line" />
+                    <MenuItem onSelect={() => setConfirmDelete(true)}>
+                      <span className="text-danger">Elimina definitivamente…</span>
+                    </MenuItem>
+                  </>
                 )}
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
@@ -285,6 +296,7 @@ export function DossierView({ caseId }: { caseId: string }) {
       <Dialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
+        returnFocusTo={moreButton}
         title="Chiudere e archiviare la pratica?"
         description="Il cittadino non potrà più caricare documenti da questo link. Potrai riaprirla dal menu Altro."
       >
@@ -303,6 +315,12 @@ export function DossierView({ caseId }: { caseId: string }) {
           </Button>
         </div>
       </Dialog>
+      <DeleteCaseDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        dossier={data}
+        returnFocusTo={moreButton}
+      />
       <RequestDialog
         open={requesting}
         onOpenChange={setRequesting}

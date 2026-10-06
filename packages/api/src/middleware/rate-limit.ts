@@ -8,6 +8,7 @@ import { ApiFailure } from "../security";
 
 const publicLimits = new Map([
   ["/api/auth/login", { category: "login", limit: 10 }],
+  ["/api/auth/password", { category: "login", limit: 10 }],
   ["/api/intake", { category: "intake", limit: 30 }],
   ["/api/leads", { category: "leads", limit: 5 }],
 ]);
@@ -38,6 +39,8 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
   const secret = services.rateLimitSecret ?? randomBytes(32).toString("hex");
   return async (context, next) => {
     const rule = policy(context.req.path, context.req.method);
+    // Password attempts use the authenticated email, never a client-supplied identity.
+    if (context.req.path === "/api/auth/password" && !context.get("operator")) return next();
     if (rule) {
       const identities: string[] = [];
       const address = remoteAddress(context, services);
@@ -47,7 +50,9 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       if (address) identities.push(`ip:${address}`);
       const capability = /^\/api\/c\/([^/]+)/.exec(context.req.path)?.[1];
       if (capability) identities.push(`capability:${capability}`);
-      if (rule.category === "login") {
+      if (context.req.path === "/api/auth/password") {
+        identities.push(`email:${context.get("operator").email}`);
+      } else if (rule.category === "login") {
         let raw: unknown;
         try {
           raw = await context.req.json();

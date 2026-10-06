@@ -104,10 +104,11 @@ Il seed crea **CAF Demo Milano**, sedi `demo-milano-centro` e
 `demo-milano-loreto`, dieci fascicoli e PDF chiaramente marcati ESEMPIO. Le
 metriche demo sono sintetiche, non risultati del pilota. Credenziali locali:
 
-| Ruolo     | Email                         | Password          |
-| --------- | ----------------------------- | ----------------- |
-| Admin     | `admin@demo.avanti.local`     | `DemoAvanti2027!` |
-| Operatore | `operatore@demo.avanti.local` | `DemoAvanti2027!` |
+| Ruolo       | Email                           | Password          |
+| ----------- | ------------------------------- | ----------------- |
+| Admin       | `admin@demo.avanti.local`       | `DemoAvanti2027!` |
+| Operatore   | `operatore@demo.avanti.local`   | `DemoAvanti2027!` |
+| Disattivato | `disattivato@demo.avanti.local` | accesso negato    |
 
 La password è identica soltanto nei dati demo. Seed rifiutato con
 `NODE_ENV=production`; non distribuire queste credenziali in ambienti reali. I link
@@ -137,8 +138,8 @@ I proxy devono fornire l’header fidato; gli header client non sono usati quand
 
 Il cookie è una sessione opaca casuale salvata come hash; non necessita di un segreto
 di firma condiviso. I parametri per organizzazione sono in `settings`: baseline
-manuale, durata link 60 giorni, retention 180 giorni. La retention configurata non
-esegue da sola un purge: procedura e prove di cancellazione sono prerequisiti del pilota.
+manuale, durata link 60 giorni, retention 180 giorni. Il job cron applica la retention a lotti di 25 fascicoli; procedura, scheduler e prove
+di cancellazione nel deployment sono prerequisiti del pilota.
 
 Migrazioni SQL versionate in `packages/db/migrations`, generate con `pnpm db:generate`.
 Applicate idempotentemente all'avvio in sviluppo/test. In produzione eseguire
@@ -165,7 +166,7 @@ un fascicolo e non trasmette alcuna pratica agli enti.
 
 Le sessioni si rinnovano anche durante la consultazione e scadono comunque dopo 12 ore.
 La manutenzione è separata dalle richieste utente: `GET /api/cron/maintenance`, con
-`Authorization: Bearer <CRON_SECRET>`, elimina sessioni e bucket scaduti e ritenta le
+`Authorization: Bearer <CRON_SECRET>`, elimina sessioni e bucket scaduti, cancella i fascicoli oltre retention e ritenta le
 cancellazioni dei file. Configurare Vercel Cron (o un scheduler Node) almeno ogni ora.
 `CRON_SECRET` deve essere casuale e riservato; senza segreto l’endpoint rifiuta ogni chiamata.
 La manutenzione limita i tentativi a uno al minuto anche dopo un errore. Le cancellazioni

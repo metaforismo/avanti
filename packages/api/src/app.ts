@@ -4,7 +4,11 @@ import { UPLOAD_LIMITS } from "@avanti/contracts";
 import { GatewayIntelligence } from "./ai";
 import type { ApiEnv, ApiOptions, Services } from "./context";
 import { ApiFailure } from "./security";
-import { authenticateCitizen, authenticateOperator } from "./middleware/auth";
+import {
+  authenticateCitizen,
+  authenticateOperator,
+  restrictTemporaryPassword,
+} from "./middleware/auth";
 import { registerErrors } from "./middleware/errors";
 import { requireOrigin } from "./middleware/origin";
 import { rateLimit } from "./middleware/rate-limit";
@@ -13,6 +17,7 @@ import { requestMetadata } from "./middleware/request";
 import { mountAuthRoutes } from "./routes/auth";
 import { mountPublicRoutes } from "./routes/public";
 import { mountCitizenRoutes } from "./citizen";
+import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
 
 export function createApp(options: ApiOptions) {
@@ -49,18 +54,37 @@ export function createApp(options: ApiOptions) {
   );
   registerErrors(app, options.errorLogger);
   mountMaintenance(app, services);
-  app.use("*", rateLimit(services));
+  app.use("*", restrictTemporaryPassword(services));
+  const limited = rateLimit(services);
+  app.use("*", limited);
   app.use("/auth/*", requireOrigin(services));
   const authenticated = authenticateOperator(services);
-  for (const path of ["/auth/me", "/auth/logout", "/cases/*", "/metrics"]) {
+  for (const path of [
+    "/auth/me",
+    "/auth/logout",
+    "/auth/password",
+    "/cases/*",
+    "/metrics",
+    "/settings",
+    "/operators/*",
+  ]) {
     if (!path.startsWith("/auth/")) app.use(path, requireOrigin(services));
     app.use(path, authenticated);
   }
+  app.use("/auth/password", limited);
+  // The slug lookup stays public; only office mutations use operator authentication.
+  app.use("/offices/*", async (context, next) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(context.req.method)) return next();
+    return requireOrigin(services)(context, async () => {
+      await authenticated(context, next);
+    });
+  });
   const citizen = authenticateCitizen(services);
   app.use("/c/:token/*", citizen);
   mountPublicRoutes(app, services);
   mountAuthRoutes(app, services);
   mountCitizenRoutes(app, services);
   mountOperatorRoutes(app, services);
+  mountAdministrationRoutes(app, services);
   return app;
 }

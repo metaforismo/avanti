@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { lte, or, sql } from "drizzle-orm";
 import { clearExpiredRateLimits, sessions } from "@avanti/db";
 import type { App, Services } from "../context";
+import { purgeRetainedCases } from "../case-erasure";
 import { retryStorageDeletions } from "../storage-cleanup";
 import { ApiFailure } from "../security";
 
@@ -28,7 +29,8 @@ export function mountMaintenance(app: App, s: Services) {
         ),
       );
     await clearExpiredRateLimits(s.db, now);
+    const deletedCases = await purgeRetainedCases(s, now);
     await retryStorageDeletions(s);
-    return c.json({ ok: true });
+    return c.json({ ok: true, deletedCases });
   });
 }

@@ -17,8 +17,10 @@ Avanti non invia nulla a INPS o all'Agenzia delle Entrate e non decide al posto 
 
 - **Stampa il cartello**: _Sportelli e QR_ → _Stampa il cartello_. Un A4 con il QR e il titolo
   in otto lingue, da mettere in sala d'attesa.
-- **Accesso**: entri da `/console/accedi` con l'email e la password che ti ha dato il
-  responsabile. La sessione scade dopo alcune ore di inattività.
+- **Accesso**: entri da `/console/accedi` con l'email e la password temporanea che ti ha dato
+  il responsabile. Al primo accesso scegli la tua (almeno 12 caratteri; una frase è più facile
+  da ricordare). Puoi cambiarla quando vuoi cliccando sul tuo nome in basso a sinistra. La
+  sessione scade dopo alcune ore di inattività.
 
 ## Creare una pratica per un cittadino
 
@@ -82,6 +84,22 @@ e un avviso.
 - _Segna come pronta_ quando tutto è verificato.
 - _Altro_ → _Scarica fascicolo PDF_ o _Scarica dati JSON_ per il gestionale.
 - _Altro_ → _Chiudi e archivia_ chiede conferma; una pratica chiusa si può riaprire.
+
+## Per il responsabile (amministratori)
+
+_Impostazioni_ compare solo agli amministratori.
+
+- **Operatori**: _Aggiungi operatore_ crea l'accesso e mostra una password temporanea, una
+  volta sola. Comunicala di persona o per telefono, non per email. _Nuova password_ ne genera
+  un'altra se qualcuno l'ha dimenticata; _Disattiva_ blocca subito l'accesso senza perdere la
+  cronologia delle sue azioni.
+- **Sportelli**: nome, indirizzo e orari che il cittadino vede all'inizio e sul cartello. Ogni
+  sportello ha il suo link e il suo QR in _Sportelli e QR_.
+- **Parametri**: minuti per pratica prima di Avanti (la baseline per le metriche), validità dei
+  link per i cittadini e per quanti giorni Avanti conserva i fascicoli chiusi o scaduti.
+- **Cancellazione definitiva**: dal fascicolo, _Altro_ → _Elimina definitivamente…_, scrivendo
+  il codice della pratica per conferma. Serve per le richieste di cancellazione degli
+  interessati: verifica prima gli obblighi di conservazione del CAF. Non si può annullare.
 
 ## Metriche
 

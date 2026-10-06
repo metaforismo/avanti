@@ -86,13 +86,52 @@ const phrases: Record<Language, Phrases> = {
     prefix: "বুঝেছি",
     alone: "আপনি একা থাকেন",
     household: "আপনার পরিবারে {n} জন আছেন",
-    relatives: ["আপনার মা", "আপনার বাবা", "আপনার স্বামী বা স্ত্রী"],
-    with: "আপনি {who}-এর সঙ্গে থাকেন",
+    relatives: ["আপনার মায়ের", "আপনার বাবার", "আপনার স্বামী বা স্ত্রীর"],
+    with: "আপনি {who} সঙ্গে থাকেন",
     accounts: ["আপনার একটি হিসাব আছে", "আপনার {n}টি হিসাব আছে"],
     properties: ["আপনার একটি সম্পত্তি আছে", "আপনার {n}টি সম্পত্তি আছে"],
     vehicles: ["আপনার একটি গাড়ি আছে", "আপনার {n}টি গাড়ি আছে"],
   },
 };
+
+type Composition = {
+  separator: string;
+  conjunction: string;
+  stop: string;
+  sharedPrefix: string | null;
+};
+const composition: Record<Language, Composition> = {
+  it: { separator: ", ", conjunction: " e ", stop: ".", sharedPrefix: "hai " },
+  en: { separator: ", ", conjunction: " and ", stop: ".", sharedPrefix: "you have " },
+  fr: { separator: ", ", conjunction: " et ", stop: ".", sharedPrefix: "vous avez " },
+  es: { separator: ", ", conjunction: " y ", stop: ".", sharedPrefix: "tienes " },
+  ro: { separator: ", ", conjunction: " și ", stop: ".", sharedPrefix: "ai " },
+  uk: { separator: ", ", conjunction: " і ", stop: ".", sharedPrefix: "у вас " },
+  ar: { separator: "، ", conjunction: " و", stop: ".", sharedPrefix: "لديك " },
+  bn: { separator: ", ", conjunction: " এবং ", stop: "।", sharedPrefix: null },
+};
+function joinFacts(facts: string[], language: Language, compact = false): string {
+  const { separator, conjunction, sharedPrefix } = composition[language];
+  const clauses = facts.map((fact, index) =>
+    compact &&
+    sharedPrefix &&
+    index > 0 &&
+    fact.startsWith(sharedPrefix) &&
+    facts[index - 1]?.startsWith(sharedPrefix)
+      ? fact.slice(sharedPrefix.length)
+      : fact,
+  );
+  return clauses.length < 2
+    ? (clauses[0] ?? "")
+    : `${clauses.slice(0, -1).join(separator)}${conjunction}${clauses.at(-1)}`;
+}
+
+function accountBanks(sentence: string, banks: string[], language: Language): string {
+  if (!banks.length) return sentence;
+  const names = joinFacts(banks, language);
+  if (language === "bn") return sentence.replace("হিসাব", `${names} হিসাব`);
+  return `${sentence}${language === "en" ? " with " : " "}${names}`;
+}
 
 export function turnAcknowledgement(
   view: Pick<CitizenCase, "language" | "practice" | "answers">,
@@ -111,19 +150,19 @@ export function turnAcknowledgement(
     ),
   );
   const facts: string[] = [];
-  if (
+  const practiceName =
     view.practice &&
     (previousPractice === null ||
       (previousPractice === undefined && Object.keys(previous).length === 0))
-  )
-    facts.push(view.practice.name);
+      ? view.practice.name
+      : null;
   const relations = changes.household_relations;
   if (Array.isArray(relations) && relations.length) {
     const names = relations.flatMap((relation) => {
       const index = ["madre", "padre", "coniuge"].indexOf(String(relation));
       return index >= 0 ? [words.relatives[index]!] : [];
     });
-    if (names.length) facts.push(words.with.replace("{who}", names.join(", ")));
+    if (names.length) facts.push(words.with.replace("{who}", joinFacts(names, view.language)));
   } else if (typeof changes.household_count === "number") {
     facts.push(
       changes.household_count === 1
@@ -142,7 +181,7 @@ export function turnAcknowledgement(
         const banks = Object.entries(changes)
           .filter(([id, value]) => /^account_bank_\d+$/.test(id) && typeof value === "string")
           .map(([, value]) => String(value));
-        if (banks.length) facts.push(`${templates[0]} ${banks.join(", ")}`);
+        if (banks.length) facts.push(accountBanks(templates[0], banks, view.language));
       }
       continue;
     }
@@ -151,9 +190,13 @@ export function turnAcknowledgement(
       const banks = Object.entries(changes)
         .filter(([id, value]) => /^account_bank_\d+$/.test(id) && typeof value === "string")
         .map(([, value]) => String(value));
-      if (banks.length) sentence += ` ${banks.join(", ")}`;
+      sentence = accountBanks(sentence, banks, view.language);
     }
     facts.push(sentence);
   }
-  return facts.length ? `${words.prefix}: ${facts.join(". ")}.` : null;
+  const sentence = joinFacts(facts, view.language, true);
+  const stop = composition[view.language].stop;
+  if (practiceName)
+    return `${words.prefix}: ${practiceName}${stop}${sentence ? ` ${sentence[0]!.toLocaleUpperCase(view.language)}${sentence.slice(1)}${stop}` : ""}`;
+  return sentence ? `${words.prefix}: ${sentence}${stop}` : null;
 }

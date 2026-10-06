@@ -105,8 +105,7 @@ export function applyAnswer(
         data.every(
           (member) => member.birthYear === undefined || member.birthYear <= calendarYear(now),
         ) &&
-        new Set(data.map((member, index) => member.id ?? identities[index])).size === data.length &&
-        (typeof answers.household_count !== "number" || data.length === answers.household_count);
+        new Set(data.map((member, index) => member.id ?? identities[index])).size === data.length;
       value = data;
       break;
     }
@@ -120,6 +119,10 @@ export function applyAnswer(
       ? editAnswer(practiceId, answers, questionId)
       : answers),
     [questionId]: value,
+    // The declared count only suggests rows; the confirmed list is authoritative.
+    ...(definition.kind === "members" && Array.isArray(value)
+      ? { household_count: value.length }
+      : {}),
   };
 }
 

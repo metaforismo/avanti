@@ -22,3 +22,6 @@ export const UPLOAD_LIMITS = {
   maxBytes: 4 * 1024 * 1024,
   mimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"],
 } as const;
+
+/** Minimum length for operator passwords chosen by people (temporary ones are generated). */
+export const PASSWORD_MIN_LENGTH = 12;
