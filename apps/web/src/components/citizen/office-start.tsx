@@ -15,11 +15,18 @@ import { cn } from "@/lib/cn";
 import { browserLanguage, directionOf, useDocumentLanguage } from "@/lib/citizen/document-language";
 import { ErrorScreen } from "./error-screen";
 
-type OfficeInfo = { office: Office; organization: OrganizationPublic };
+export type OfficeInfo = { office: Office; organization: OrganizationPublic };
 
-export function OfficeStart({ officeSlug }: { officeSlug: string }) {
+export function OfficeStart({
+  officeSlug,
+  initial,
+}: {
+  officeSlug: string;
+  /** Loaded with the page when possible; otherwise fetched here. */
+  initial: OfficeInfo | "missing" | null;
+}) {
   const router = useRouter();
-  const [info, setInfo] = useState<OfficeInfo | "missing" | "error" | null>(null);
+  const [info, setInfo] = useState<OfficeInfo | "missing" | "error" | null>(initial);
   const [language, setLanguage] = useState<Language>("it");
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
@@ -28,6 +35,7 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
   const [resumeToken, setResumeToken] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initial) return;
     let cancelled = false;
     apiFetch<OfficeInfo>(`/api/offices/${encodeURIComponent(officeSlug)}`)
       .then((data) => !cancelled && setInfo(data))
@@ -40,7 +48,7 @@ export function OfficeStart({ officeSlug }: { officeSlug: string }) {
     return () => {
       cancelled = true;
     };
-  }, [officeSlug]);
+  }, [officeSlug, initial]);
 
   // Client-only values (browser language, local storage) are read after hydration.
   useEffect(() => {
