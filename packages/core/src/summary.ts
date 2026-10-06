@@ -66,6 +66,7 @@ export function dossierSummary(
 const timelineLabels: Record<string, string> = {
   "privacy.accepted": "Presa visione dell’informativa registrata",
   "case.link_created": "Link cittadino creato dall'operatore",
+  "case.link_regenerated": "Link cittadino rigenerato dall'operatore",
   "answer.updated": "Risposte aggiornate dal cittadino",
   "answer.edited": "Risposta precedente modificata",
   "language.updated": "Lingua aggiornata",

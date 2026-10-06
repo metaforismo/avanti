@@ -4,6 +4,7 @@ import { getCookie, setCookie } from "hono/cookie";
 import type { MiddlewareHandler } from "hono";
 import type { ApiContext, ApiEnv, Services } from "../context";
 import { ApiFailure, hashToken, notFound, tokenMatches } from "../security";
+import { currentCitizenLink } from "../citizen-link";
 
 export const ABSOLUTE_SESSION_SECONDS = 12 * 60 * 60;
 export const SESSION_SECONDS = 30 * 60;
@@ -89,6 +90,8 @@ export function authenticateCitizen(services: Services): MiddlewareHandler<ApiEn
     }
     context.set("citizen", row);
     await next();
+    // Reads and response assembly can overlap a rotation after initial authentication.
+    if (context.res.ok) await currentCitizenLink(services.db, row, services.clock());
   };
 }
 

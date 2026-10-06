@@ -43,6 +43,7 @@ import {
 } from "./security";
 import { citizenView, audit, type CaseRow } from "./dossier";
 import { automaticAssistanceNotice } from "./disclosure";
+import { currentCitizenLink } from "./citizen-link";
 import { body, parse, mutableCitizen, type App, type Services, type ApiContext } from "./context";
 
 export { assertStartable } from "./citizen-turn";
@@ -91,10 +92,7 @@ export async function createCase(
   return { token, row };
 }
 async function lockCase(db: Database, row: CaseRow, now: Date) {
-  const [fresh] = await db.select().from(cases).where(eq(cases.id, row.id)).for("update");
-  if (!fresh) throw notFound();
-  if (Date.parse(fresh.expiresAt) <= now.getTime())
-    throw new ApiFailure("link_expired", 410, "Il link è scaduto. Contatta lo sportello.");
+  const fresh = await currentCitizenLink(db, row, now, true);
   mutableCitizen(fresh);
   return fresh;
 }
@@ -115,6 +113,7 @@ async function download(c: ApiContext, s: Services, row: CaseRow, id: string) {
     .limit(1);
   if (!document) throw notFound();
   const bytes = await s.storage.get(document.storageKey);
+  if (!c.get("operator")) await currentCitizenLink(s.db, row, s.clock());
   const disposition = "attachment";
   const name = sanitizeName(document.fileName, document.mimeType);
   const encodedName = encodeURIComponent(name).replace(

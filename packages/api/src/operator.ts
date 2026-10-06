@@ -19,6 +19,7 @@ import {
   CaseStatus,
   Id,
   DsuSheetResponse,
+  RegenerateLinkResponse,
 } from "@avanti/contracts";
 import { body, parse, type App, type Services } from "./context";
 import {
@@ -32,7 +33,7 @@ import {
   type CaseRow,
 } from "./dossier";
 import { createCase, download } from "./citizen";
-import { ApiFailure, notFound } from "./security";
+import { ApiFailure, hashToken, newToken, notFound } from "./security";
 import { exportPdf } from "./export";
 import { scheduleDocumentRecovery } from "./document-analysis";
 import { calculateMetrics, metricsRange } from "./operator-metrics";
@@ -146,6 +147,59 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const view = await dossierView(s.db, row, s.clock());
     scheduleDocumentRecovery(s, row.id);
     return c.json(view);
+  });
+  app.post("/cases/:id/link", async (c) => {
+    const id = parse(Id, c.req.param("id"));
+    const operator = c.get("operator");
+    const token = newToken();
+    const row = await s.db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(cases)
+        .where(and(eq(cases.id, id), eq(cases.organizationId, operator.organizationId)))
+        .for("update");
+      if (!current) {
+        const [deleted] = await tx
+          .select({ id: events.id })
+          .from(events)
+          .where(
+            and(eq(events.deletedCaseId, id), eq(events.organizationId, operator.organizationId)),
+          )
+          .limit(1);
+        if (deleted)
+          throw new ApiFailure(
+            "conflict",
+            409,
+            "La pratica è cancellata: non puoi rigenerare il link.",
+          );
+        throw notFound();
+      }
+      if (current.status === "closed")
+        throw new ApiFailure("conflict", 409, "La pratica è chiusa: non puoi rigenerare il link.");
+      const [config] = await tx
+        .select()
+        .from(settings)
+        .where(eq(settings.organizationId, operator.organizationId));
+      const now = s.clock();
+      const [updated] = await tx
+        .update(cases)
+        .set({
+          tokenHash: hashToken(token),
+          expiresAt: new Date(now.getTime() + (config?.linkDays ?? 60) * 86400000).toISOString(),
+          updatedAt: now.toISOString(),
+        })
+        .where(eq(cases.id, current.id))
+        .returning();
+      if (!updated) throw notFound();
+      await audit(tx, updated, "operator", "case.link_regenerated", now, operator.id);
+      return updated;
+    });
+    return c.json(
+      RegenerateLinkResponse.parse({
+        url: `${s.publicUrl.replace(/\/$/, "")}/pratica/${token}`,
+        expiresAt: iso(row.expiresAt),
+      }),
+    );
   });
   app.get("/cases/:id/dsu-sheet", async (c) => {
     const operator = c.get("operator");

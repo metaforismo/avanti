@@ -27,11 +27,13 @@ export const RATE_POLICIES = {
   upload: { category: "upload", primary: [minute(30), hour(120)], ip: [minute(400), hour(4000)] },
   leads: { category: "leads", primary: [], ip: [minute(5)] },
   export: { category: "export", primary: [minute(20)], ip: [minute(200)] },
+  link: { category: "link", primary: [minute(20)], ip: [minute(200)] },
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
   if (method !== "POST") return null;
+  if (/^\/api\/cases\/[^/]+\/link$/.test(path)) return RATE_POLICIES.link;
   if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return RATE_POLICIES.translate;
   if (["/api/auth/login", "/api/auth/password"].includes(path)) return RATE_POLICIES.login;
   if (path === "/api/intake") return RATE_POLICIES.intake;
@@ -61,7 +63,10 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
     const rule = policy(context.req.path, context.req.method);
     // Password attempts use the authenticated email, never a client-supplied identity.
     if (context.req.path === "/api/auth/password" && !context.get("operator")) return next();
-    if (rule && (!["export", "translate"].includes(rule.category) || context.get("operator"))) {
+    if (
+      rule &&
+      (!["export", "link", "translate"].includes(rule.category) || context.get("operator"))
+    ) {
       const identities: string[] = [];
       const address = remoteAddress(context, services);
       if (services.production && !address)

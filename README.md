@@ -183,6 +183,7 @@ per quell'identità non consumano il budget del Wi-Fi.
 | Upload                  | 120/ora e 30/minuto per capability; 4 simultanei per pratica/istanza | 4.000/ora, burst 400/minuto    |
 | Login/cambio password   | 10/minuto per email; cambio anche per operatore                      | 100/minuto                     |
 | Export operatore        | 20/minuto per operatore                                              | 200/minuto                     |
+| Rigenerazione link      | 20/minuto per operatore, bucket distinto dagli export                | 200/minuto                     |
 | Traduzioni/integrazioni | 30/minuto per operatore                                              | 300/minuto                     |
 | Candidature CAF         | —                                                                    | 5/minuto                       |
 
