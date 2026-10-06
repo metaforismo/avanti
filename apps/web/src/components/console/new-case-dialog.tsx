@@ -1,6 +1,5 @@
 "use client";
 
-import { MessageCircle, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import type { CreateCaseResponse, Language, PracticeId, PracticeSummary } from "@avanti/contracts";
@@ -8,30 +7,10 @@ import { LANGUAGES } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
-import { CopyButton } from "@/components/ui/copy-button";
-import { FullscreenQr } from "@/components/ui/fullscreen-qr";
-import { QrCode } from "@/components/ui/qr-code";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { LANGUAGE_IT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
-
-/** Invitation text: Italian always, plus the citizen's language so they understand the link. */
-const INVITE: Record<Language, string> = {
-  it: "Per preparare la tua pratica al CAF apri questo link dal telefono:",
-  en: "To prepare your application at the CAF, open this link on your phone:",
-  fr: "Pour préparer ton dossier au CAF, ouvre ce lien sur ton téléphone :",
-  es: "Para preparar tu trámite en el CAF, abre este enlace en el móvil:",
-  ro: "Ca să îți pregătești dosarul la CAF, deschide acest link pe telefon:",
-  uk: "Щоб підготувати свою справу в CAF, відкрий це посилання на телефоні:",
-  ar: "لتحضير ملفك في الـ CAF، افتح هذا الرابط على هاتفك:",
-  bn: "CAF-এ আপনার আবেদন প্রস্তুত করতে ফোনে এই লিংকটি খুলুন:",
-};
-
-function inviteMessage(language: Language, link: string) {
-  const lines = [INVITE.it];
-  if (language !== "it") lines.push(INVITE[language]);
-  return `${lines.join("\n")}\n${link}`;
-}
+import { ShareCitizenLink } from "./share-citizen-link";
 
 export function NewCaseDialog({
   open,
@@ -205,60 +184,14 @@ function Created({
   language: Language;
   onDone: () => void;
 }) {
-  const link = response.citizenLink;
-  const message = inviteMessage(language, link);
-  const digits = phone?.replace(/[^\d+]/g, "").replace(/^\+/, "");
-  // Italian mobile numbers are often typed without the country code.
-  const waNumber = digits
-    ? digits.length === 10 && digits.startsWith("3")
-      ? `39${digits}`
-      : digits
-    : "";
-
   return (
     <div className="grid gap-5">
-      <div className="grid gap-4 rounded-lg bg-sunk p-4 sm:grid-cols-[8rem_1fr] sm:items-center">
-        <QrCode
-          value={link}
-          label="QR code del link per il cittadino"
-          className="w-32 rounded-sm bg-white p-1 [&_svg]:size-full"
-        />
-        <div className="min-w-0">
-          <p className="text-sm text-ink-3">Pratica {response.case.reference}</p>
-          <p className="mt-1 font-mono text-xs break-all text-ink-2" translate="no">
-            {link}
-          </p>
-          <div className="mt-3">
-            <FullscreenQr
-              value={link}
-              title="Inquadra con la fotocamera del telefono"
-              caption="Si apre la tua pratica: scegli la lingua e rispondi alle domande."
-            />
-          </div>
-          <p className="mt-2 text-sm text-ink-3">
-            Il link è personale: non condividerlo con altri.
-          </p>
-        </div>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <CopyButton value={link} showValueOnFailure={false} className="w-full" />
-        <Button variant="secondary" asChild>
-          <a
-            href={`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <MessageCircle className="size-4" />
-            WhatsApp
-          </a>
-        </Button>
-        <Button variant="secondary" asChild>
-          <a href={`sms:${phone ?? ""}?&body=${encodeURIComponent(message)}`}>
-            <Smartphone className="size-4" />
-            SMS
-          </a>
-        </Button>
-      </div>
+      <ShareCitizenLink
+        link={response.citizenLink}
+        reference={response.case.reference}
+        language={language}
+        phone={phone}
+      />
       <Button size="lg" asChild>
         <Link href={`/console/pratiche/${response.case.id}`} onClick={onDone}>
           Apri il fascicolo
