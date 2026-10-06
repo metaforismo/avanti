@@ -44,6 +44,8 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmReady, setConfirmReady] = useState(false);
+  const readyButton = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
   // The open document lives in the URL: shareable with a colleague, closed by the Back button.
   const router = useRouter();
@@ -110,6 +112,15 @@ export function DossierView({ caseId }: { caseId: string }) {
   const status = CASE_STATUS[data.status];
   const base = `/api/cases/${encodeURIComponent(data.id)}`;
   const assignedToMe = data.assignee?.id === operator.id;
+  // What still stands between this case and the official practice. While anything is open,
+  // asking the citizen is the natural next step and "ready" needs a second thought.
+  const missingCount = data.checklist.filter(
+    (item) => item.required && item.status === "missing",
+  ).length;
+  const blockerCount = data.findings.filter(
+    (finding) => finding.severity === "blocker" && finding.code !== "checklist.missing",
+  ).length;
+  const openIssues = missingCount + blockerCount;
 
   // Opening a case is read-only. Review starts with the first real action, so the measured
   // review time counts work, not glances at the queue.
@@ -191,13 +202,21 @@ export function DossierView({ caseId }: { caseId: string }) {
             </Button>
           )}
           {data.status !== "closed" && data.status !== "intake" && (
-            <Button variant="secondary" onClick={() => void openRequest()}>
+            <Button
+              variant={openIssues > 0 ? "primary" : "secondary"}
+              onClick={() => void openRequest()}
+            >
               <Send className="size-4" aria-hidden />
               Chiedi integrazione
             </Button>
           )}
           {(data.status === "in_review" || data.status === "submitted") && (
-            <Button loading={pending === "update"} onClick={() => void setStatus("ready")}>
+            <Button
+              ref={readyButton}
+              variant={openIssues > 0 ? "secondary" : "primary"}
+              loading={pending === "update" && !confirmReady}
+              onClick={() => (openIssues > 0 ? setConfirmReady(true) : void setStatus("ready"))}
+            >
               <Check className="size-4" aria-hidden />
               Segna come pronta
             </Button>
@@ -312,6 +331,45 @@ export function DossierView({ caseId }: { caseId: string }) {
             }}
           >
             Chiudi e archivia
+          </Button>
+        </div>
+      </Dialog>
+      <Dialog
+        open={confirmReady}
+        onOpenChange={setConfirmReady}
+        returnFocusTo={readyButton}
+        title="Segnare come pronta anche se manca qualcosa?"
+        description={`${[
+          missingCount > 0 &&
+            (missingCount === 1
+              ? "Manca 1 documento obbligatorio"
+              : `Mancano ${missingCount} documenti obbligatori`),
+          blockerCount > 0 &&
+            (blockerCount === 1
+              ? "c'è 1 problema bloccante"
+              : `ci sono ${blockerCount} problemi bloccanti`),
+        ]
+          .filter(Boolean)
+          .join(" e ")}. Se la segni come pronta, al cittadino non arriva nessuna richiesta.`}
+      >
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setConfirmReady(false);
+              void openRequest();
+            }}
+          >
+            <Send className="size-4" aria-hidden />
+            Chiedi integrazione
+          </Button>
+          <Button
+            loading={pending === "update"}
+            onClick={async () => {
+              if (await actions.update({ status: "ready" })) setConfirmReady(false);
+            }}
+          >
+            Segna comunque come pronta
           </Button>
         </div>
       </Dialog>
