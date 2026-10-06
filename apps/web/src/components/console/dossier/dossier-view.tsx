@@ -25,6 +25,7 @@ import { ChecklistSection } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
+import { DsuSheetSection } from "./dsu-sheet-section";
 import { FindingsSummary } from "./findings-summary";
 import { RequestDialog } from "./request-dialog";
 import { AnswersSection, ConversationSection } from "./secondary-sections";
@@ -310,6 +311,7 @@ export function DossierView({ caseId }: { caseId: string }) {
             </section>
           )}
           <ChecklistSection dossier={data} actions={actions} />
+          <DsuSheetSection dossier={data} actions={actions} />
           <AnswersSection dossier={data} />
           <ConversationSection dossier={data} />
         </div>

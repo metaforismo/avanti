@@ -466,6 +466,58 @@ export const DossierFact = z.object({
 });
 export type DossierFact = z.infer<typeof DossierFact>;
 
+/** Preparatory DSU values with field-level provenance; no document-value extraction in v1. */
+export const DsuSource = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("answer"), questionId: z.string().min(1).max(200) }),
+  z.object({ kind: z.literal("document"), documentId: Id, checklistItemId: Id }),
+  z.object({
+    kind: z.literal("missing"),
+    questionId: z.string().min(1).max(200).optional(),
+    checklistItemId: Id.optional(),
+  }),
+  z.object({ kind: z.literal("caf") }),
+]);
+export type DsuSource = z.infer<typeof DsuSource>;
+
+export const DsuRow = z
+  .object({
+    label: z.string().min(1),
+    value: z.string().nullable(),
+    source: DsuSource,
+    note: z.string().optional(),
+  })
+  .refine((row) => (row.source.kind === "answer" ? row.value !== null : row.value === null), {
+    message:
+      "Solo le risposte raccolte possono contenere un valore; i documenti non sono estratti.",
+  });
+export type DsuRow = z.infer<typeof DsuRow>;
+
+export const DsuSection = z.object({
+  module: z.enum(["MB.1", "FC.1", "FC.2", "FC.3"]),
+  quadro: z.enum(["A", "B", "FC1", "FC2", "FC3", "FC4", "FC5", "FC6", "FC7", "FC8"]),
+  title: z.string(),
+  memberId: Id.nullable(),
+  memberName: z.string().nullable(),
+  /** Numbered intake instance, never an official financial/property identifier. */
+  instanceId: Id.nullable(),
+  note: z.string().optional(),
+  rows: z.array(DsuRow),
+});
+export type DsuSection = z.infer<typeof DsuSection>;
+
+export const DsuSheet = z.object({
+  version: z.literal(1),
+  practiceId: z.literal("isee_ordinario"),
+  modelYear: z.literal(2026),
+  modelUrl: z.string().url(),
+  declarationYear: z.number().int(),
+  referenceYear: z.number().int(),
+  notes: z.array(z.string()),
+  sections: z.array(DsuSection),
+});
+export type DsuSheet = z.infer<typeof DsuSheet>;
+export const DsuSheetResponse = DsuSheet.nullable();
+
 /** Full dossier for operators. Everything is in Italian regardless of the citizen language. */
 export const CaseDossier = CaseListItem.extend({
   citizen: z.object({
@@ -488,6 +540,8 @@ export const CaseDossier = CaseListItem.extend({
   ),
   checklist: z.array(ChecklistItem),
   documents: z.array(DocumentSummary),
+  /** Preparatory DSU sheet; null for an unclassified or non-ordinary-ISEE case. */
+  dsuSheet: DsuSheetResponse.default(null),
   findings: z.array(Finding),
   messages: z.array(ChatMessage),
   timeline: z.array(TimelineEvent),

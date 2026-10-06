@@ -102,3 +102,21 @@ test("a CAF's first day shows how to get the first dossier", async ({ page }) =>
   await steps.getByRole("button", { name: "Crea una pratica di prova" }).click();
   await expect(page.getByRole("dialog", { name: "Nuova pratica" })).toBeVisible();
 });
+
+test("a ready case opens the DSU sheet, ready to copy into the CAF's software", async ({
+  page,
+}) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await page.getByRole("button", { name: /^Pronte/ }).click();
+  await page.waitForURL(/stato=ready/);
+  await page.locator('a[href^="/console/pratiche/"]').first().click();
+
+  const sheet = page.locator("details", { hasText: "Prospetto DSU" });
+  await expect(sheet.getByRole("region", { name: "Quadro A" }).first()).toBeVisible();
+  await sheet.getByRole("button", { name: "Da copiare" }).click();
+  await expect(sheet.getByRole("button", { name: /^Copia Nome$/ }).first()).toBeVisible();
+  await expect(sheet.getByText("Manca", { exact: true })).toHaveCount(0);
+});

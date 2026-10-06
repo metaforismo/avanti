@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { CaseDossier, Language } from "@avanti/contracts";
-import { PDFDocument } from "pdf-lib";
-import { describe, expect, it } from "vitest";
+import { PDFDocument, PDFPage } from "pdf-lib";
+import { describe, expect, it, vi } from "vitest";
+import { buildDsuSheet } from "@avanti/core";
 import { exportPdf } from "./export";
 
 function sample(language: Language, name: string): CaseDossier {
@@ -65,6 +66,7 @@ function sample(language: Language, name: string): CaseDossier {
         note: null,
       },
     ],
+    dsuSheet: null,
     documents: [
       {
         id: "example-doc",
@@ -90,6 +92,48 @@ function sample(language: Language, name: string): CaseDossier {
 }
 
 describe("PDF dossier", () => {
+  it("prints the DSU as the final section, including values and document/answer/CAF/missing provenance", async () => {
+    const dossier = sample("it", "Persona Esempio");
+    dossier.dsuSheet = buildDsuSheet(
+      "isee_ordinario",
+      { housing: "owned", accounts_count: 0 },
+      dossier.household,
+      dossier.checklist,
+      dossier.documents,
+    );
+    const draw = vi.spyOn(PDFPage.prototype, "drawText");
+    try {
+      const bytes = await exportPdf(dossier);
+      const text = draw.mock.calls.map(([value]) => value).join("\n");
+      expect(text.indexOf("Prospetto DSU")).toBeGreaterThan(
+        text.indexOf("Note interne dell'operatore"),
+      );
+      expect(text).toContain("Nome: Persona Esempio");
+      expect(text).toContain("Risposta del cittadino: members");
+      expect(text).toContain("Documento: ESEMPIO-Persona Esempio.pdf [example-doc]");
+      expect(text).toContain("A cura del CAF");
+      expect(text).toContain("Dato mancante");
+      expect(text).toContain("Data di nascita: Da completare");
+      expect(text).toContain("Rapporti finanziari: Nessuno");
+      const sharedNote = dossier.dsuSheet!.sections.find(
+        (section) => section.quadro === "FC3",
+      )!.note!;
+      expect(sharedNote).toBeTruthy();
+      // Paragraphs can wrap in the PDF; check the first line and the next field's order.
+      const noteStart = text.indexOf("Nessun immobile attribuito");
+      expect(noteStart).toBeGreaterThan(-1);
+      expect(noteStart).toBeLessThan(text.indexOf("Tipo di patrimonio: Da completare"));
+      expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(1);
+      const proofDir = process.env.AVANTI_PDF_PROOF_DIR;
+      if (proofDir) {
+        await mkdir(proofDir, { recursive: true });
+        await writeFile(join(proofDir, "dsu-sheet.pdf"), bytes);
+      }
+    } finally {
+      draw.mockRestore();
+    }
+  });
+
   const names: Array<[Language, string]> = [
     ["it", "Élisa D'Èsempio"],
     ["en", "Alex Example"],

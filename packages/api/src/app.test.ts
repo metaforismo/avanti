@@ -5,6 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import {
   ApiError,
   CaseDossier,
+  DsuSheetResponse,
   CaseListResponse,
   CitizenCase,
   CreateCaseResponse,
@@ -885,6 +886,7 @@ describe("authentication and tenant isolation", () => {
       [`/api/cases/${first.case.id}/documents/${document.id}/file`, "GET"],
       [`/api/cases/${first.case.id}/export?format=json`, "GET"],
       [`/api/cases/${first.case.id}/export?format=pdf`, "GET"],
+      [`/api/cases/${first.case.id}/dsu-sheet`, "GET"],
     ];
     for (const [path, method, body] of inaccessible)
       await error(await request(path, method, body, cookie), 404, "not_found");
@@ -1710,4 +1712,71 @@ it("pilot: an inactive session expires at exactly thirty minutes", async () => {
   const cookie = await login();
   instant = new Date(Date.parse(initialInstant) + 30 * 60000);
   expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(401);
+});
+
+it("DSU sheet requires an operator, preserves case timestamps and audits each access without personal data", async () => {
+  const intake = await start();
+  const view = await completeInterview(intake.token, intake.case);
+  const path = `/api/cases/${view.id}/dsu-sheet`;
+  await error(await request(path), 401, "unauthorized");
+  await error(
+    await request(path, "GET", undefined, `avanti_session=${intake.token}`),
+    401,
+    "unauthorized",
+  );
+  const cookie = await login();
+  const [before] = await db.select().from(cases).where(eq(cases.id, view.id));
+  const response = await request(path, "GET", undefined, cookie);
+  expect(response.status).toBe(200);
+  const sheet = DsuSheetResponse.parse(await response.json());
+  expect(sheet?.sections[0]?.rows.find((r) => r.label === "Nome")?.value).toBe("Persona");
+  expect(sheet?.sections.some((s) => s.quadro === "B")).toBe(true);
+  expect((await request(path, "GET", undefined, cookie)).status).toBe(200);
+  const dossier = CaseDossier.parse(
+    await (
+      await request(`/api/cases/${view.id}/export?format=json`, "GET", undefined, cookie)
+    ).json(),
+  );
+  expect(dossier.dsuSheet).toEqual(sheet);
+  const records = (await db.select().from(events).where(eq(events.caseId, view.id))).filter(
+    (e) => e.type === "dsu_sheet.viewed",
+  );
+  expect(records).toHaveLength(2);
+  expect(
+    records.every(
+      (e) =>
+        e.actorId === "operator-a" && e.actor === "operator" && JSON.stringify(e.metadata) === "{}",
+    ),
+  ).toBe(true);
+  const [after] = await db.select().from(cases).where(eq(cases.id, view.id));
+  expect(after?.updatedAt).toBe(before?.updatedAt);
+  expect(after?.status).toBe(before?.status);
+  expect(JSON.stringify(logs)).not.toContain("Persona");
+});
+
+it("DSU sheet is null for other or unclassified practices, with safe errors for invalid/unknown ids", async () => {
+  const cookie = await login();
+  const intake = await start();
+  await db.update(cases).set({ practiceId: "modello_730" }).where(eq(cases.id, intake.case.id));
+  expect(
+    await (
+      await request(`/api/cases/${intake.case.id}/dsu-sheet`, "GET", undefined, cookie)
+    ).json(),
+  ).toBeNull();
+  await db.update(cases).set({ practiceId: null }).where(eq(cases.id, intake.case.id));
+  expect(
+    await (
+      await request(`/api/cases/${intake.case.id}/dsu-sheet`, "GET", undefined, cookie)
+    ).json(),
+  ).toBeNull();
+  await error(
+    await request(`/api/cases/${"x".repeat(65)}/dsu-sheet`, "GET", undefined, cookie),
+    400,
+    "bad_request",
+  );
+  await error(
+    await request("/api/cases/unknown-id/dsu-sheet", "GET", undefined, cookie),
+    404,
+    "not_found",
+  );
 });

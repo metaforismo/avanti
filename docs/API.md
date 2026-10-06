@@ -141,6 +141,7 @@ anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è ac
 | GET    | `/cases`                                 | `CaseListQuery`              | `CaseListResponse`                                |
 | POST   | `/cases`                                 | `CreateCaseRequest`          | 201 `CreateCaseResponse`, link mostrato una volta |
 | GET    | `/cases/:id`                             | —                            | `CaseDossier`, senza transizione di stato         |
+| GET    | `/cases/:id/dsu-sheet`                   | `Id`                         | `DsuSheet` o `null`, audit `dsu_sheet.viewed`     |
 | PATCH  | `/cases/:id`                             | `UpdateCaseRequest`          | `CaseDossier`                                     |
 | POST   | `/cases/:id/checklist/:itemId/review`    | `ReviewChecklistItemRequest` | `CaseDossier`                                     |
 | POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`  | `CaseDossier`                                     |
@@ -152,6 +153,13 @@ Ogni accesso è filtrato per organizzazione della sessione. Sedi, assegnatari e 
 di altri tenant restituiscono 404. Operatore vede sempre italiano nei testi di dominio;
 le risposte libere e i messaggi del cittadino conservano l'originale per non alterare prove.
 Il dossier non ricostruisce il token cittadino (`citizenLink:null`).
+
+Il dossier e gli export JSON/PDF includono `dsuSheet`: solo ISEE ordinario, valori
+con fonte per campo e riferimenti al modello DSU 2026. Gli importi/date documentali
+non estratti sono `null`, con documento verificato da consultare; precompilati INPS/AdE
+a cura del CAF. Il PDF termina con «Prospetto DSU». La consultazione dedicata
+registra un audit senza metadata personali e non modifica stato o `updatedAt`.
+Inventario e limiti in [dsu-prospetto.md](research/dsu-prospetto.md).
 
 Lista ordinata per updatedAt e id decrescenti, cursore opaco base64url, limite default 50,
 max 100. Counts applica filtri della lista escluso lo stato selezionato. Il cursore non è

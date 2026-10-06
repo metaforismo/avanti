@@ -17,6 +17,8 @@ import {
   ExportFormat,
   MetricsQuery,
   CaseStatus,
+  Id,
+  DsuSheetResponse,
 } from "@avanti/contracts";
 import { body, parse, type App, type Services } from "./context";
 import {
@@ -144,6 +146,15 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const view = await dossierView(s.db, row, s.clock());
     scheduleDocumentRecovery(s, row.id);
     return c.json(view);
+  });
+  app.get("/cases/:id/dsu-sheet", async (c) => {
+    const operator = c.get("operator");
+    const id = parse(Id, c.req.param("id"));
+    const row = await caseById(s.db, id, operator.organizationId);
+    const dossier = await dossierView(s.db, row, s.clock());
+    const sheet = DsuSheetResponse.parse(dossier.dsuSheet);
+    await audit(s.db, row, "operator", "dsu_sheet.viewed", s.clock(), operator.id);
+    return c.json(sheet);
   });
   app.patch("/cases/:id", async (c) => {
     const input = await body(c, UpdateCaseRequest);

@@ -1,0 +1,1236 @@
+{
+  "version": 1,
+  "practiceId": "isee_ordinario",
+  "modelYear": 2026,
+  "modelUrl": "https://www.lavoro.gov.it/strumenti-e-servizi/isee-dsu-2026",
+  "declarationYear": 2027,
+  "referenceYear": 2025,
+  "notes": [
+    "Prospetto preparatorio, non DSU ufficiale. Modello verificato 2026; modello 2027 non verificato. Ricontrollare prima del pilota.",
+    "Redditi e giacenza media: 2025; patrimoni: 31/12/2025. Nucleo, casa e veicoli: alla presentazione.",
+    "Valori documentali non estratti. Date: gg/mm/aaaa; importi: due decimali con virgola, senza calcoli ISEE o arrotondamenti fiscali automatici.",
+    "Nessuno: voce esclusa dal cittadino nell'intervista, da confermare al CAF. Dati mancanti: acquisire; documenti verificati: leggere il campo.",
+    "Le risposte sono dichiarazioni da confermare. Beni senza componente: verificare titolarità e co-intestazione, senza duplicare beni o attribuire quote.",
+    "La Mini contiene A/B e FC1-FC6. FC7 e FC8 sono integrazioni; C/D/E, nucleo ristretto, FC9 e ISEE corrente richiedono percorsi specifici del CAF."
+  ],
+  "sections": [
+    {
+      "module": "MB.1",
+      "quadro": "A",
+      "title": "Nucleo familiare",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Cognome",
+          "value": "Esempio 9",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          }
+        },
+        {
+          "label": "Nome",
+          "value": "Persona",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          }
+        },
+        {
+          "label": "Codice fiscale",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-2",
+            "checklistItemId": "tax_code:00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Data di nascita",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-1",
+            "checklistItemId": "identity:00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Comune o Stato estero di nascita",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-1",
+            "checklistItemId": "identity:00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Sesso",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-1",
+            "checklistItemId": "identity:00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Assenza di redditi, trattamenti e patrimoni del minore",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "L'assenza di redditi dichiarata nell'intervista non prova l'assenza di patrimoni; verificare anche l'età esatta."
+        }
+      ]
+    },
+    {
+      "module": "MB.1",
+      "quadro": "A",
+      "title": "Nucleo familiare",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Cognome",
+          "value": "Esempio 9",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          }
+        },
+        {
+          "label": "Nome",
+          "value": "Madre",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          }
+        },
+        {
+          "label": "Codice fiscale",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-5",
+            "checklistItemId": "tax_code:00000000-0000-4000-8000-000000000018"
+          }
+        },
+        {
+          "label": "Data di nascita",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-4",
+            "checklistItemId": "identity:00000000-0000-4000-8000-000000000018"
+          }
+        },
+        {
+          "label": "Comune o Stato estero di nascita",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-4",
+            "checklistItemId": "identity:00000000-0000-4000-8000-000000000018"
+          }
+        },
+        {
+          "label": "Sesso",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-4",
+            "checklistItemId": "identity:00000000-0000-4000-8000-000000000018"
+          }
+        },
+        {
+          "label": "Assenza di redditi, trattamenti e patrimoni del minore",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "L'assenza di redditi dichiarata nell'intervista non prova l'assenza di patrimoni; verificare anche l'età esatta."
+        }
+      ]
+    },
+    {
+      "module": "MB.1",
+      "quadro": "A",
+      "title": "Nucleo familiare",
+      "memberId": null,
+      "memberName": null,
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Attività di lavoro o impresa dei genitori per almeno sei mesi",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Informazione non raccolta."
+        },
+        {
+          "label": "Genitore solo con figli minorenni",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Composizione e condizioni legali da verificare."
+        },
+        {
+          "label": "Numero di figli, di cui conviventi",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Non ricavabile dal solo elenco dei conviventi."
+        },
+        {
+          "label": "Nucleo da verificare (supporto Avanti)",
+          "value": "No",
+          "source": {
+            "kind": "answer",
+            "questionId": "household_exceptions"
+          },
+          "note": "Non è una casella ufficiale: il CAF determina il nucleo legale."
+        }
+      ]
+    },
+    {
+      "module": "MB.1",
+      "quadro": "B",
+      "title": "Casa di abitazione",
+      "memberId": null,
+      "memberName": null,
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Via",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Numero civico",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "CAP",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Comune",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Provincia",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Casa di abitazione",
+          "value": "ALTRO (ES. COMODATO GRATUITO)",
+          "source": {
+            "kind": "answer",
+            "questionId": "housing"
+          }
+        },
+        {
+          "label": "Coniugi con diversa residenza: residenza familiare di riferimento",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Scelta del dichiarante/coniuge da confermare al CAF."
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC1",
+      "title": "Dati del componente",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Cognome",
+          "value": "Esempio 9",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          }
+        },
+        {
+          "label": "Nome",
+          "value": "Persona",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          }
+        },
+        {
+          "label": "Codice fiscale",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-2",
+            "checklistItemId": "tax_code:00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Relazione con il dichiarante",
+          "value": "D",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          },
+          "note": "Il richiedente è proposto come dichiarante; il CAF conferma il ruolo e il nucleo."
+        },
+        {
+          "label": "Cittadinanza",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-1",
+            "checklistItemId": "identity:00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Residenza diversa dal quadro B: via",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Numero civico",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "CAP",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Comune",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Provincia",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Telefono (facoltativo)",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "E-mail (facoltativa)",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Convivenza anagrafica",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Attività lavorativa",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Redditi o trattamenti presenti (supporto Avanti)",
+          "value": "Sì",
+          "source": {
+            "kind": "answer",
+            "questionId": "income_present_00000000-0000-4000-8000-000000000017"
+          },
+          "note": "Non è un importo FC4/FC8 e non prova l'assenza di patrimoni."
+        },
+        {
+          "label": "Anno di nascita (supporto Avanti)",
+          "value": "1985",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          },
+          "note": "Non compilare la data di nascita con il solo anno."
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC2",
+      "title": "Patrimonio mobiliare",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": "account_0",
+      "rows": [
+        {
+          "label": "Intestatario (supporto Avanti)",
+          "value": "Persona Esempio 9",
+          "source": {
+            "kind": "answer",
+            "questionId": "account_owner_0"
+          },
+          "note": "Verificare intestatari e quote sul documento."
+        },
+        {
+          "label": "Tipo rapporto",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "La scelta depositi/investimenti/altro non determina il codice DSU: Sez. I 01/03/09; Sez. II consultare le istruzioni."
+        },
+        {
+          "label": "Istituto (supporto Avanti)",
+          "value": "Fineco",
+          "source": {
+            "kind": "answer",
+            "questionId": "account_bank_0"
+          },
+          "note": "Il nome dell'istituto non è il suo codice fiscale."
+        },
+        {
+          "label": "Identificativo rapporto",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-7",
+            "checklistItemId": "account_balance:account_0_00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Codice fiscale dell'operatore finanziario",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-7",
+            "checklistItemId": "account_balance:account_0_00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Data inizio",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-7",
+            "checklistItemId": "account_balance:account_0_00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Data fine",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-7",
+            "checklistItemId": "account_balance:account_0_00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Saldo al 31 dicembre",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-7",
+            "checklistItemId": "account_balance:account_0_00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Giacenza media",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-8",
+            "checklistItemId": "account_average:account_0_00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Quota di titolarità (supporto Avanti)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Verificare quote e co-intestazioni; nessuna ripartizione automatica."
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC2",
+      "title": "Patrimonio mobiliare",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": null,
+      "note": "Da documenti e/o precompilato INPS/AdE; verificare rapporti chiusi, quote ed esclusioni. Condizione e importi non raccolti; verifica CAF.",
+      "rows": [
+        {
+          "label": "Totale saldo (A)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Totale giacenza (B)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Differenza (A-B)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Incremento patrimonio almeno pari alla differenza tra giacenza e saldo",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Incremento patrimonio immobiliare (C)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Incremento patrimonio mobiliare (D)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Totale (C+D)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Partecipazioni e patrimonio netto d'impresa",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "self_employed"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC3",
+      "title": "Patrimonio immobiliare",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Immobili e terreni",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "properties_count"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC4",
+      "title": "Redditi e trattamenti da dichiarare a fini ISEE",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Redditi assoggettati ad imposta sostitutiva o ritenuta a titolo d'imposta",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "exempt_income"
+          }
+        },
+        {
+          "label": "Redditi esenti da imposta (esclusi trattamenti INPS)",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "exempt_income"
+          }
+        },
+        {
+          "label": "Proventi agrari ai fini IRAP",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "self_employed"
+          }
+        },
+        {
+          "label": "Redditi fondiari di beni non locati soggetti a IMU",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "properties_count"
+          }
+        },
+        {
+          "label": "Trattamenti non IRPEF e non INPS, esclusi quelli per disabilità",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "exempt_income"
+          }
+        },
+        {
+          "label": "Redditi da lavoro o pensione tassati esclusivamente all'estero",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "foreign_income"
+          }
+        },
+        {
+          "label": "Reddito lordo dei residenti AIRE nel paese di residenza",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "foreign_income"
+          }
+        },
+        {
+          "label": "Redditi fondiari esteri non locati soggetti a IVIE",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "foreign_assets"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC5",
+      "title": "Assegni periodici per coniuge e figli",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Assegni percepiti per il mantenimento di figli",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "maintenance"
+          }
+        },
+        {
+          "label": "Assegni corrisposti al coniuge, compresi quelli per i figli, dopo separazione o scioglimento",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "maintenance"
+          }
+        },
+        {
+          "label": "Assegni corrisposti per figli conviventi con l'altro genitore",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "maintenance"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC6",
+      "title": "Autoveicoli e altri beni durevoli",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": "vehicle_0",
+      "rows": [
+        {
+          "label": "Intestatario (supporto Avanti)",
+          "value": "Persona Esempio 9",
+          "source": {
+            "kind": "answer",
+            "questionId": "vehicle_owner_0"
+          }
+        },
+        {
+          "label": "Tipo",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-9",
+            "checklistItemId": "vehicle:vehicle_0_00000000-0000-4000-8000-000000000017"
+          }
+        },
+        {
+          "label": "Targa veicolo o estremi registrazione",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-9",
+            "checklistItemId": "vehicle:vehicle_0_00000000-0000-4000-8000-000000000017"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.2",
+      "quadro": "FC7",
+      "title": "Disabilità e non autosufficienza",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Disabilità e non autosufficienza",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "disability"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.3",
+      "quadro": "FC8",
+      "title": "Redditi, trattamenti e spese da dichiarare solo in casi eccezionali",
+      "memberId": "00000000-0000-4000-8000-000000000017",
+      "memberName": "Persona Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Reddito complessivo ai fini IRPEF",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Acquisizione INPS/AdE a cura del CAF; eventuale esonero senza CU richiede valutazione FC8."
+        },
+        {
+          "label": "Redditi da lavoro dipendente, pensione e altri redditi",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Dati INPS/AdE, non ricavati dalla dichiarazione di presenza di redditi."
+        },
+        {
+          "label": "Trattamenti erogati da INPS e spese",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Acquisizione e verifica a cura del CAF; nessun collegamento agli archivi da Avanti."
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC1",
+      "title": "Dati del componente",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Cognome",
+          "value": "Esempio 9",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          }
+        },
+        {
+          "label": "Nome",
+          "value": "Madre",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          }
+        },
+        {
+          "label": "Codice fiscale",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-5",
+            "checklistItemId": "tax_code:00000000-0000-4000-8000-000000000018"
+          }
+        },
+        {
+          "label": "Relazione con il dichiarante",
+          "value": "P",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          },
+          "note": "Il richiedente è proposto come dichiarante; il CAF conferma il ruolo e il nucleo."
+        },
+        {
+          "label": "Cittadinanza",
+          "value": null,
+          "source": {
+            "kind": "document",
+            "documentId": "demo-doc-9-4",
+            "checklistItemId": "identity:00000000-0000-4000-8000-000000000018"
+          }
+        },
+        {
+          "label": "Residenza diversa dal quadro B: via",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Numero civico",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "CAP",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Comune",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Provincia",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Telefono (facoltativo)",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "E-mail (facoltativa)",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Convivenza anagrafica",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Attività lavorativa",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Redditi o trattamenti presenti (supporto Avanti)",
+          "value": "Sì",
+          "source": {
+            "kind": "answer",
+            "questionId": "income_present_00000000-0000-4000-8000-000000000018"
+          },
+          "note": "Non è un importo FC4/FC8 e non prova l'assenza di patrimoni."
+        },
+        {
+          "label": "Anno di nascita (supporto Avanti)",
+          "value": "1960",
+          "source": {
+            "kind": "answer",
+            "questionId": "members"
+          },
+          "note": "Non compilare la data di nascita con il solo anno."
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC2",
+      "title": "Patrimonio mobiliare",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "note": "Da documenti e/o precompilato INPS/AdE; verificare rapporti chiusi, quote ed esclusioni. Condizione e importi non raccolti; verifica CAF.",
+      "rows": [
+        {
+          "label": "Identificativo rapporto",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          },
+          "note": "Nessun rapporto attribuito al componente; verificare anche quelli cointestati o esteri."
+        },
+        {
+          "label": "Saldo al 31 dicembre",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Giacenza media",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Valore",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        },
+        {
+          "label": "Totale saldo (A)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Totale giacenza (B)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Differenza (A-B)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Incremento patrimonio almeno pari alla differenza tra giacenza e saldo",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Incremento patrimonio immobiliare (C)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Incremento patrimonio mobiliare (D)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Totale (C+D)",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          }
+        },
+        {
+          "label": "Partecipazioni e patrimonio netto d'impresa",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "self_employed"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC3",
+      "title": "Patrimonio immobiliare",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Immobili e terreni",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "properties_count"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC4",
+      "title": "Redditi e trattamenti da dichiarare a fini ISEE",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Redditi assoggettati ad imposta sostitutiva o ritenuta a titolo d'imposta",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "exempt_income"
+          }
+        },
+        {
+          "label": "Redditi esenti da imposta (esclusi trattamenti INPS)",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "exempt_income"
+          }
+        },
+        {
+          "label": "Proventi agrari ai fini IRAP",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "self_employed"
+          }
+        },
+        {
+          "label": "Redditi fondiari di beni non locati soggetti a IMU",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "properties_count"
+          }
+        },
+        {
+          "label": "Trattamenti non IRPEF e non INPS, esclusi quelli per disabilità",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "exempt_income"
+          }
+        },
+        {
+          "label": "Redditi da lavoro o pensione tassati esclusivamente all'estero",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "foreign_income"
+          }
+        },
+        {
+          "label": "Reddito lordo dei residenti AIRE nel paese di residenza",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "foreign_income"
+          }
+        },
+        {
+          "label": "Redditi fondiari esteri non locati soggetti a IVIE",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "foreign_assets"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC5",
+      "title": "Assegni periodici per coniuge e figli",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Assegni percepiti per il mantenimento di figli",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "maintenance"
+          }
+        },
+        {
+          "label": "Assegni corrisposti al coniuge, compresi quelli per i figli, dopo separazione o scioglimento",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "maintenance"
+          }
+        },
+        {
+          "label": "Assegni corrisposti per figli conviventi con l'altro genitore",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "maintenance"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC6",
+      "title": "Autoveicoli e altri beni durevoli",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Tipo",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          },
+          "note": "Nessun mezzo attribuito a questo componente; non equivale a una dichiarazione di assenza."
+        },
+        {
+          "label": "Targa veicolo o estremi registrazione",
+          "value": null,
+          "source": {
+            "kind": "missing"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.2",
+      "quadro": "FC7",
+      "title": "Disabilità e non autosufficienza",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Disabilità e non autosufficienza",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "disability"
+          }
+        }
+      ]
+    },
+    {
+      "module": "FC.3",
+      "quadro": "FC8",
+      "title": "Redditi, trattamenti e spese da dichiarare solo in casi eccezionali",
+      "memberId": "00000000-0000-4000-8000-000000000018",
+      "memberName": "Madre Esempio 9",
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Reddito complessivo ai fini IRPEF",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Acquisizione INPS/AdE a cura del CAF; eventuale esonero senza CU richiede valutazione FC8."
+        },
+        {
+          "label": "Redditi da lavoro dipendente, pensione e altri redditi",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Dati INPS/AdE, non ricavati dalla dichiarazione di presenza di redditi."
+        },
+        {
+          "label": "Trattamenti erogati da INPS e spese",
+          "value": null,
+          "source": {
+            "kind": "caf"
+          },
+          "note": "Acquisizione e verifica a cura del CAF; nessun collegamento agli archivi da Avanti."
+        }
+      ]
+    },
+    {
+      "module": "FC.1",
+      "quadro": "FC2",
+      "title": "Patrimonio mobiliare",
+      "memberId": null,
+      "memberName": null,
+      "instanceId": null,
+      "rows": [
+        {
+          "label": "Titoli di Stato, buoni e libretti postali (supporto Avanti)",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "excluded_savings"
+          }
+        },
+        {
+          "label": "Patrimoni esteri (supporto Avanti)",
+          "value": "Nessuno",
+          "source": {
+            "kind": "answer",
+            "questionId": "foreign_assets"
+          }
+        }
+      ]
+    }
+  ]
+}
