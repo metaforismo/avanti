@@ -329,6 +329,9 @@ function QueueRow({ item }: { item: CaseListItem }) {
         <span className="flex items-center gap-1.5 text-sm">
           {item.blockers > 0 && (
             <span
+              title={
+                item.blockers === 1 ? "1 problema bloccante" : `${item.blockers} problemi bloccanti`
+              }
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
                 TONE_CLASSES.danger,
@@ -341,6 +344,7 @@ function QueueRow({ item }: { item: CaseListItem }) {
           )}
           {item.warnings > 0 && (
             <span
+              title={item.warnings === 1 ? "1 avviso" : `${item.warnings} avvisi`}
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
                 TONE_CLASSES.warn,
