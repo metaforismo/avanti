@@ -9,7 +9,14 @@ gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 
 - Ingresso dal QR dello sportello o dal link inviato dal CAF; avviso di trasparenza AI.
 - Racconto libero, classificazione della pratica, intervista una domanda alla volta, nucleo
-  familiare, fatti dedotti dal testo evidenziati e modificabili.
+  familiare, fatti dedotti dal testo evidenziati e modificabili. Il racconto è capito anche senza
+  AI in tutte le 8 lingue (parentela informale, negazioni, numeri in lettere, conti, banche,
+  veicoli); le frasi della homepage sono un test di accettazione.
+- Nessun vicolo cieco: se il racconto riguarda una pratica non ancora disponibile, l'assistente lo
+  spiega e propone le altre; "ISEE per l'università" diventa ISEE ordinario con la richiesta
+  universitaria.
+- Avanzamento onesto ("ancora circa N domande"), layout verificato fino a 320px, registro
+  coerente per lingua (Lei in francese e ucraino).
 - Checklist per persona con "dove lo trovo", consigli per le foto, upload dal telefono con
   riduzione delle immagini e controllo automatico, ripresa in giorni diversi, invio e reinvio.
 
@@ -17,6 +24,8 @@ gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 
 - Coda con filtri, fascicolo con mancanti e problemi in cima, verifica voce per voce, visore
   documenti, richieste d'integrazione tradotte, note interne, export PDF/JSON, metriche misurate.
+- Finché manca qualcosa il pulsante principale è "Chiedi integrazione"; segnare pronta una
+  pratica incompleta chiede conferma.
 - Nuova pratica con link, QR (anche a schermo intero), WhatsApp/SMS bilingue; cartello A4.
 - Tema scuro, pagina Aiuto, guida in `docs/guide/operatori.md`.
 
@@ -30,14 +39,15 @@ gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 **Pratiche**: ISEE ordinario completo; assegno unico, 730 e permesso di soggiorno in beta; le
 altre elencate come "in arrivo" (vedi `docs/research/`).
 
-**Qualità**: test unitari (core, db, api, web), test end-to-end Playwright con controlli di
-accessibilità axe, CI pronta
-(ferma per il billing dell'account GitHub), revisioni del backend documentate nelle PR.
+**Qualità**: test unitari (core, db, api, web), test end-to-end Playwright (mobile e desktop) con controlli di
+accessibilità axe (WCAG 2.2 AA) su sito, cittadino in arabo e bengalese e console in tema chiaro
+e scuro; CI pronta (ferma per il billing dell'account GitHub); revisioni del backend documentate
+nelle PR.
 
 ## In corso
 
-- Comprensione del racconto libero nelle lingue meno coperte (bengalese, arabo, ucraino):
-  prove sulle frasi della demo pubblica, negazioni in inglese, conti e veicoli.
+- Testi del catalogo: descrizioni dei documenti senza ripetizioni, registro e vocabolario uniformi
+  tra domande e interfaccia in tutte le lingue (glossario per lingua).
 
 ## Prima del pilota (ottobre–dicembre 2026)
 
