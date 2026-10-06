@@ -1,4 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import type { Language } from "@avanti/contracts";
+import { LANGUAGES } from "@avanti/contracts/constants";
+import { messagesFor } from "../src/lib/citizen/messages";
 
 /** Answers the remaining interview through the API: the UI for each kind is covered elsewhere. */
 async function finishInterview(page: Page, token: string) {
@@ -29,9 +32,9 @@ async function finishInterview(page: Page, token: string) {
 }
 
 /** Opens a case at the demo office, optionally with a first story, without the UI. */
-async function startCase(page: Page, story?: string) {
+async function startCase(page: Page, story?: string, language: Language = "it") {
   const started = await page.request.post("/api/intake", {
-    data: { officeSlug: "demo-milano-centro", language: "it", privacyAccepted: true },
+    data: { officeSlug: "demo-milano-centro", language, privacyAccepted: true },
   });
   const { token } = (await started.json()) as { token: string };
   if (story) {
@@ -158,5 +161,36 @@ test("Arabic and Bengali are drawn with their own fonts", async ({ browser }) =>
     });
     expect(loaded).toContain(family);
     await context.close();
+  }
+});
+
+/** Elements that leave the main column, and buttons whose label doesn't fit them. */
+async function layoutProblems(page: Page) {
+  return page.evaluate(() => {
+    const main = document.querySelector("main")!;
+    const limit =
+      main.getBoundingClientRect().right - parseFloat(getComputedStyle(main).paddingRight);
+    const outside = Array.from(main.querySelectorAll("*"))
+      .filter((element) => !element.closest(".fixed"))
+      .filter((element) => element.getBoundingClientRect().right > limit + 1)
+      .map((element) => `outside: ${element.tagName} ${element.textContent?.slice(0, 40)}`);
+    const clipped = Array.from(document.querySelectorAll("button"))
+      .filter((button) => button.scrollWidth > button.clientWidth + 1)
+      .map((button) => `clipped: ${button.textContent?.slice(0, 40)}`);
+    return [...outside, ...clipped];
+  });
+}
+
+test("the review step fits a 320px phone in every language", async ({ page }) => {
+  test.slow();
+  await page.setViewportSize({ width: 320, height: 640 });
+  for (const language of LANGUAGES) {
+    const m = messagesFor(language);
+    const token = await startCase(page, "Devo fare l'ISEE, vivo con mia moglie", language);
+    await finishInterview(page, token);
+    await page.goto(`/pratica/${token}`);
+    await page.getByRole("button", { name: m.docs.toReview }).click();
+    await expect(page.getByRole("heading", { level: 1, name: m.review.title })).toBeVisible();
+    expect(await layoutProblems(page), language).toEqual([]);
   }
 });
