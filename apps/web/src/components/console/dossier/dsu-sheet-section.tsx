@@ -155,6 +155,7 @@ function SheetSection({
           )}
         </h3>
         {copyable && <CopyValue value={copyable} label={`il quadro ${section.quadro}`} wide />}
+        {section.note && <p className="basis-full text-sm text-ink-2">{section.note}</p>}
       </header>
       <dl className="divide-y divide-line">
         {section.rows.map((row, index) => (
