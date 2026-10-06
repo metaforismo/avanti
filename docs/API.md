@@ -25,16 +25,16 @@ Capability in `/c/:token`: 32 byte casuali base64url, solo SHA-256 in DB, scaden
 assistenza automatica/AI, verifica umana e possibilità di rivolgersi allo sportello.
 Il link è una credenziale: frontend/proxy devono oscurarlo dai log e applicare no-referrer.
 
-| Metodo | Percorso dopo `/c/:token` | Input                                    | Risposta                             |
-| ------ | ------------------------- | ---------------------------------------- | ------------------------------------ |
-| GET    | ``                        | —                                        | `CitizenCase`                        |
-| POST   | `/turn`                   | `IntakeTurn`                             | `CitizenCase` con `engine` opzionale |
-| PUT    | `/language`               | `UpdateLanguageRequest`                  | `CitizenCase`                        |
-| POST   | `/documents`              | multipart `file`, `UploadDocumentFields` | 201 `CitizenCase`                    |
-| PATCH  | `/documents/:id`          | `ReassignDocumentRequest`                | `CitizenCase`                        |
-| DELETE | `/documents/:id`          | —                                        | `CitizenCase`                        |
-| GET    | `/documents/:id/file`     | —                                        | allegato autorizzato                 |
-| POST   | `/submit`                 | `SubmitCaseRequest`                      | `CitizenCase` con stato submitted    |
+| Metodo | Percorso dopo `/c/:token` | Input                                    | Risposta                                    |
+| ------ | ------------------------- | ---------------------------------------- | ------------------------------------------- |
+| GET    | ``                        | —                                        | `CitizenCase`                               |
+| POST   | `/turn`                   | `IntakeTurn`                             | `IntakeTurnResponse` con `engine` opzionale |
+| PUT    | `/language`               | `UpdateLanguageRequest`                  | `CitizenCase`                               |
+| POST   | `/documents`              | multipart `file`, `UploadDocumentFields` | 201 `CitizenCase`                           |
+| PATCH  | `/documents/:id`          | `ReassignDocumentRequest`                | `CitizenCase`                               |
+| DELETE | `/documents/:id`          | —                                        | `CitizenCase`                               |
+| GET    | `/documents/:id/file`     | —                                        | allegato autorizzato                        |
+| POST   | `/submit`                 | `SubmitCaseRequest`                      | `CitizenCase` con stato submitted           |
 
 Intervista/upload modificabili in `intake` o `needs_citizen`. Invio richiede pratica e
 intervista terminata; può contenere documenti mancanti, esplicitamente segnalati. La prima
@@ -44,6 +44,72 @@ completezza è fotografata al primo invio e non riscritta da integrazioni succes
 pratica. answer valida tipi/opzioni/condizioni; edit rende prioritaria la domanda modificata e invalida dipendenze; skip ammesso solo
 per domande opzionali; choose_practice riparte con risposte vuote quando cambia pratica.
 AI SDK 7 propone, core convalida. Nessuna chiave/errore/timeout → euristica esplicita.
+
+### Classificazione non disponibile e ripresa del racconto
+
+`POST /c/:token/turn` restituisce `IntakeTurnResponse`: tutti i campi di `CitizenCase`
+più **`unavailablePractice: PracticeId | null`**, sempre presente. È un esito del singolo
+turno, non un campo persistente del fascicolo; GET, cambio lingua e upload restituiscono
+`CitizenCase`. Un client che usa `CitizenCase.parse` deve passare a `IntakeTurnResponse.parse`
+per leggere il nuovo campo (Zod elimina le chiavi estranee).
+
+Con testo libero e classificazione affidabile `coming_soon`, HTTP **200**, messaggio
+cittadino e risposta assistente salvati in `messages`, `unavailablePractice` valorizzato.
+La pratica non viene avviata né sostituisce una pratica già scelta, e le risposte precedenti
+restano conservate. Per mostrare alternative, caricare `GET /practices?lang=<language>`
+e filtrare `availability !== "coming_soon"`; inviare `{type:"choose_practice",practiceId}`.
+Il turno successivo restituisce `unavailablePractice:null` se non ha un nuovo esito indisponibile.
+La rilettura del fascicolo conserva la conversazione e permette una nuova scelta.
+
+Avvio `POST /intake` con `practiceId` indisponibile e turno `choose_practice`:
+HTTP **400**, `ApiError.error.code = "practice_unavailable"`. Il client può tradurre questo
+codice; il messaggio sicuro italiano usa lo stesso testo sotto. Nessun fascicolo viene
+creato per un avvio rifiutato, nessuna risposta/chat cambia per una scelta rifiutata.
+
+Testi della risposta assistente, deterministici anche con AI attiva, in `core/src/i18n.ts`
+(chiave `unavailablePractice`):
+
+| Lingua | Testo                                                                                                          |
+| ------ | -------------------------------------------------------------------------------------------------------------- |
+| it     | Questa pratica non si può ancora preparare con Avanti. Puoi sceglierne un’altra o chiedere allo sportello.     |
+| en     | Avanti cannot prepare this service yet. You can choose another service or ask your office.                     |
+| fr     | Avanti ne peut pas encore préparer ce dossier. Vous pouvez choisir un autre service ou contacter votre bureau. |
+| es     | Avanti aún no puede preparar este trámite. Puedes elegir otro o consultar en la oficina.                       |
+| ro     | Avanti nu poate pregăti încă acest dosar. Poți alege alt serviciu sau întreba la sediu.                        |
+| uk     | Avanti ще не може підготувати цю справу. Ви можете обрати іншу послугу або звернутися до офісу.                |
+| ar     | لا يمكن تحضير هذا الطلب مع Avanti بعد. يمكنك اختيار خدمة أخرى أو سؤال المكتب.                                  |
+| bn     | Avanti এখনও এই কাজের নথি প্রস্তুত করতে পারে না। অন্য সেবা বেছে নিতে পারেন বা অফিসে জিজ্ঞাসা করতে পারেন।        |
+
+Il racconto sull’ISEE universitario avvia la **raccolta** `isee_ordinario` con
+`answers.university:true`; la scelta esplicita del catalogo `isee_universitario` resta
+indisponibile. L’operatore riceve `practice.university_review` e `practice.full_dsu` nei
+`findings` del dossier: [fonte e limiti](research/isee-universita.md).
+
+### Minimo del nucleo e indizi da confermare
+
+La domanda `household_count` espone `min` pari al numero dei ruoli già proposti,
+richiedente incluso (default 1). Dopo la conferma, `answers.members` prevale sui ruoli
+estratti. Modificare l’elenco aggiorna conteggio e minimo; per ridurre il nucleo occorre
+prima correggere l’elenco. Una risposta intera positiva sotto `min` restituisce 400
+`bad_request` con spiegazione nella lingua cittadino, ad esempio «Hai detto che vivi
+con il tuo coniuge: siete almeno 2.»; formati, frazioni e limiti massimi usano la
+validazione ordinaria. L’errore non cambia le risposte salvate.
+
+`answers.household_roles` contiene i ruoli del contratto e `household_relations` le
+relazioni, in ordine senza richiedente: `madre`, `padre`, `coniuge`, `figlio`, `fratello`,
+`sorella`, `nonno`, `nonna`, `coinquilino`. Gli ultimi cinque hanno ruolo `altro`.
+Dopo la conferma dell’elenco i ruoli si riallineano ai membri e le relazioni proposte
+si svuotano, perché il contratto dei membri non conferma una parentela più precisa.
+
+Per Monobank, PrivatBank, BBVA, Banca Transilvania, BCR e bKash l’estrazione conserva
+`account_bank_<index>` e segnala `answers.foreign_institution_review:true`:
+`practice.foreign_institution_review` nel dossier **operatore**, senza dedurre il paese
+solo dal marchio. `foreign_assets:true` richiede un’indicazione esplicita di beni/conti
+all’estero. bKash non è precompilato come deposito: il tipo va confermato.
+«Mutuo sulla casa» propone `housing:"owned"`, `properties_count` almeno 1 e
+`mortgage_review:true`; `practice.mortgage_review` ricorda al CAF la verifica.
+`property_mortgage_<index>` resta da confermare perché la domanda riguarda il residuo
+al 31/12/2025, non il mutuo attuale.
 
 Upload massimo **4 MiB file**, richiesta multipart 4 MiB + 128 KiB (entro il limite Vercel
 4,5 MB). PDF leggibile dal parser o immagine riconosciuta da magic bytes, MIME dichiarato

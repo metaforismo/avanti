@@ -8,6 +8,8 @@ import {
   getPractice,
   getQuestions,
   skipQuestion,
+  t,
+  HOUSEHOLD_RELATIONS,
 } from "@avanti/core";
 import type { IntakeProposal } from "./ai";
 import type { CaseRow } from "./dossier";
@@ -15,9 +17,9 @@ import { turnAcknowledgement } from "./turn-acknowledgement";
 import { storeMemberIds } from "./household-ids";
 import { ApiFailure } from "./security";
 
-export function assertStartable(practiceId: PracticeId | undefined, now: Date) {
+export function assertStartable(practiceId: PracticeId | undefined) {
   if (practiceId && getPractice(practiceId, "it").availability === "coming_soon") {
-    throw new ApiFailure("bad_request", 400, "Questa pratica non è ancora disponibile.");
+    throw new ApiFailure("practice_unavailable", 400, t("it", "unavailablePractice"));
   }
 }
 
@@ -83,31 +85,50 @@ export function applyTurn(
 ) {
   let practiceId = current.practiceId;
   let answers = { ...current.answers };
+  const unavailablePractice: PracticeId | null = null;
   if (input.type === "choose_practice") {
-    assertStartable(input.practiceId, now);
+    assertStartable(input.practiceId);
     if (practiceId !== input.practiceId) answers = {};
-    return { practiceId: input.practiceId, answers };
+    return { practiceId: input.practiceId, answers, unavailablePractice };
   }
-  if (input.type === "text" && proposal) {
-    if (!practiceId && proposal.practiceId && proposal.confidence >= CLASSIFICATION_THRESHOLD) {
-      assertStartable(proposal.practiceId, now);
+  if (input.type === "text") {
+    if (!proposal) return { practiceId, answers, unavailablePractice };
+    if (proposal.practiceId === "isee_universitario")
+      proposal = {
+        ...proposal,
+        practiceId: "isee_ordinario",
+        answers: { ...proposal.answers, university: true },
+      };
+    if (
+      proposal.practiceId &&
+      proposal.confidence >= CLASSIFICATION_THRESHOLD &&
+      getPractice(proposal.practiceId, current.language).availability === "coming_soon"
+    )
+      return { practiceId, answers, unavailablePractice: proposal.practiceId };
+    if (!practiceId && proposal.practiceId && proposal.confidence >= CLASSIFICATION_THRESHOLD)
       practiceId = proposal.practiceId;
-    }
+    const roles = MemberRole.array().max(20).safeParse(proposal.answers.household_roles);
+    if (roles.success && !Array.isArray(answers.members)) answers.household_roles = roles.data;
     if (practiceId)
       answers = applyProposedAnswers(practiceId, answers, proposal, current.language, now);
-    const roles = MemberRole.array().max(20).safeParse(proposal.answers.household_roles);
-    if (roles.success) answers.household_roles = roles.data;
     const relations = proposal.answers.household_relations;
     if (
+      !Array.isArray(answers.members) &&
       Array.isArray(relations) &&
+      relations.length <= 20 &&
       relations.every(
-        (value) => typeof value === "string" && ["madre", "padre", "coniuge"].includes(value),
+        (value) =>
+          typeof value === "string" && HOUSEHOLD_RELATIONS.some((relation) => relation === value),
       )
     )
       answers.household_relations = relations;
-    if (proposal.answers.applicant_parent_nonresident === true)
-      answers.applicant_parent_nonresident = true;
-    return { practiceId, answers };
+    for (const fact of [
+      "applicant_parent_nonresident",
+      "foreign_institution_review",
+      "mortgage_review",
+    ] as const)
+      if (proposal.answers[fact] === true) answers[fact] = true;
+    return { practiceId, answers, unavailablePractice };
   }
   if (!practiceId) throw new ApiFailure("bad_request", 400, "Scegli prima la pratica.");
   switch (input.type) {
@@ -132,7 +153,7 @@ export function applyTurn(
       answers = skipQuestion(practiceId, answers, input.questionId, current.language);
       break;
   }
-  return { practiceId, answers };
+  return { practiceId, answers, unavailablePractice };
 }
 
 const choosePractice: Record<Language, string> = {
@@ -162,7 +183,9 @@ export function assistantReply(
   previous: Record<string, AnswerValue> = {},
   text = "",
   previousPractice?: PracticeId | null,
+  unavailablePractice: PracticeId | null = null,
 ) {
+  if (unavailablePractice) return t(view.language, "unavailablePractice");
   if (proposal) {
     const reply = turnAcknowledgement(view, proposal, previous, text, previousPractice);
     if (reply) return reply;

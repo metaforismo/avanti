@@ -249,7 +249,7 @@ describe("public API and validation", () => {
         privacyAccepted: true,
       }),
       400,
-      "bad_request",
+      "practice_unavailable",
     );
     await error(
       await request("/api/intake", "POST", { officeSlug: "wrong", privacyAccepted: true }),
@@ -1575,7 +1575,7 @@ it("B1: rollback tombstone logs insert error separately from storage error", asy
   transaction.mockRestore();
   insertion.mockRestore();
 });
-it("1: reducing the household through the real edit/count/member sequence preserves surviving IDs", async () => {
+it("1: reducing the household by editing members updates the minimum and preserves surviving IDs", async () => {
   const intake = await start();
   await request(`/api/c/${intake.token}/turn`, "POST", {
     type: "answer",
@@ -1599,23 +1599,40 @@ it("1: reducing the household through the real edit/count/member sequence preser
     type: "edit",
     questionId: "household_count",
   });
-  const count = CitizenCase.parse(
-    await (
-      await request(`/api/c/${intake.token}/turn`, "POST", {
-        type: "answer",
-        questionId: "household_count",
-        value: 2,
-      })
-    ).json(),
+  await error(
+    await request(`/api/c/${intake.token}/turn`, "POST", {
+      type: "answer",
+      questionId: "household_count",
+      value: 2,
+    }),
+    400,
+    "bad_request",
   );
-  expect(count.nextQuestion?.id).toBe("members");
+  await request(`/api/c/${intake.token}/turn`, "POST", { type: "edit", questionId: "members" });
   const response = await request(`/api/c/${intake.token}/turn`, "POST", {
     type: "answer",
     questionId: "members",
     value: [first.household[0], first.household[2]],
   });
   expect(response.status).toBe(200);
-  expect(CitizenCase.parse(await response.json()).household[1]?.id).toBe(first.household[2]?.id);
+  const edited = CitizenCase.parse(await response.json());
+  expect(edited.household[1]?.id).toBe(first.household[2]?.id);
+  expect(edited.answers.household_count).toBe(2);
+  await request(`/api/c/${intake.token}/turn`, "POST", {
+    type: "edit",
+    questionId: "household_count",
+  });
+  const count = CitizenCase.parse(await (await request(`/api/c/${intake.token}`)).json());
+  expect(count.nextQuestion).toMatchObject({ id: "household_count", min: 2 });
+  expect(
+    (
+      await request(`/api/c/${intake.token}/turn`, "POST", {
+        type: "answer",
+        questionId: "household_count",
+        value: 2,
+      })
+    ).status,
+  ).toBe(200);
 });
 it("13: repeated GET download and both export formats append access records", async () => {
   const intake = await start();
