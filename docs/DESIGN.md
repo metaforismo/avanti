@@ -46,7 +46,28 @@ servono (`unicode-range`).
 - Lingua cambiabile in ogni momento; arabo in RTL con icone direzionali specchiate.
 - Console: filtri nell'URL (condivisibili), coda che si aggiorna da sola, note interne salvate
   all'uscita dal campo, visore documenti navigabile con le frecce.
-- Cartello A4 stampabile per la sala d'attesa, con QR e titolo in otto lingue.
+- Cartello A4 stampabile per la sala d'attesa, con QR e titolo in otto lingue; QR a schermo
+  intero per chi è seduto allo sportello.
+- I fatti dedotti dal testo libero sono evidenziati e sempre modificabili.
+- Il cittadino sa che può interrompere: i documenti restano salvati e il link è a portata.
+- La revisione (e il suo cronometro) parte alla prima azione dell'operatore, non all'apertura.
+
+## Tema scuro
+
+Solo la console operatore segue l'impostazione scura del sistema: chi la usa tutto il giorno
+ne beneficia. Pagine del cittadino e landing restano chiare di proposito (documenti, foto e
+moduli si leggono meglio su carta). I colori si ridefiniscono tramite token semantici
+(`contrast`/`on-contrast`, `on-stamp`, `scrim`, `chart-*`) sotto `:root.console`: nessun
+componente conosce il tema. La coppia di colori del grafico è validata separatamente per lo
+sfondo chiaro e per quello scuro.
+
+## Prestazioni
+
+- Nessuna libreria di validazione nel browser: le costanti condivise arrivano da
+  `@avanti/contracts/constants` (senza zod); il server valida ogni richiesta con i contratti.
+- Font di scrittura non latina scaricati solo se la pagina li usa (`unicode-range`).
+- Niente `backdrop-filter` sulle barre fisse del flusso cittadino: costa sui telefoni economici.
+- Le barre di avanzamento animano `transform`, non la larghezza.
 
 ## Cosa non diciamo
 

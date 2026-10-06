@@ -47,7 +47,7 @@ export function DocumentViewer({
   return (
     <Primitive.Root open={Boolean(doc)} onOpenChange={(open) => !open && onClose()}>
       <Primitive.Portal>
-        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-ink/50" />
+        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim" />
         <Primitive.Content className="fixed inset-0 z-50 flex animate-fade-in flex-col bg-surface outline-none lg:inset-y-3 lg:right-3 lg:left-auto lg:w-[min(64rem,calc(100vw-1.5rem))] lg:rounded-xl lg:shadow-float">
           {doc && (
             <>
