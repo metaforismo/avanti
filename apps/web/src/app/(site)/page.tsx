@@ -63,6 +63,22 @@ const PRACTICES = [
   },
 ] as const;
 
+// Verified figures only, with year and primary source (see docs/research/market.md).
+const FACTS = [
+  {
+    value: "85%",
+    label: "delle DSU per l'ISEE passa da un CAF (2024)",
+    source: "Ministero del Lavoro, Rapporto ISEE 2024",
+    href: "https://lavoro.gov.it/documenti-e-norme/studi-e-statistiche/rapporto-isee-2024",
+  },
+  {
+    value: "71%",
+    label: "delle DSU 2025 è arrivato nel primo trimestre",
+    source: "INPS, Osservatorio DSU e ISEE, febbraio 2026",
+    href: "https://www.inps.it/it/it/inps-comunica/notizie/dettaglio-news-page.news.2026.02.osservatorio-su-dsu-e-isee-i-dati-2016-2025.html",
+  },
+] as const;
+
 const NOT_DOING = [
   {
     title: "Non fa la pratica",
@@ -296,6 +312,27 @@ export default function HomePage() {
               Gennaio è il mese più pesante per l&apos;ISEE, aprile apre la campagna 730. Ogni
               pratica arriva quando è verificata con chi la fa ogni giorno.
             </p>
+            <dl className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {FACTS.map((fact) => (
+                <div key={fact.value} className="border-t-2 border-ink pt-3">
+                  <dt className="sr-only">{fact.label}</dt>
+                  <dd className="tabular font-display text-5xl font-bold tracking-[-0.03em]">
+                    {fact.value}
+                  </dd>
+                  <dd className="mt-1 text-ink-2">{fact.label}</dd>
+                  <dd className="mt-1 text-sm">
+                    <a
+                      href={fact.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-ink-3 underline underline-offset-2 hover:text-ink"
+                    >
+                      {fact.source}
+                    </a>
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
           <ol className="relative grid gap-0 border-s border-line-strong ps-8">
             {PRACTICES.map((p) => (
