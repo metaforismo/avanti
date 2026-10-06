@@ -36,6 +36,20 @@
       "when": 1791246760134,
       "tag": "0004_happy_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791251631640,
+      "tag": "0005_lame_virginia_dare",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791251825199,
+      "tag": "0006_condemned_trish_tilby",
+      "breakpoints": true
     }
   ]
 }

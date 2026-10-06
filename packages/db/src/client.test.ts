@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
@@ -76,7 +77,7 @@ describe("PostgreSQL schema on PGlite", () => {
   });
 
   it("applies migrations twice in memory without losing existing data", async () => {
-    const client = new PGlite();
+    const client = new PGlite({ extensions: { pg_trgm } });
     closes.push(() => client.close());
     const db = drizzle(client, { schema });
     const options = { migrationsFolder: join(repoRoot, "packages/db/migrations") };
