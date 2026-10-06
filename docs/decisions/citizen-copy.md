@@ -50,3 +50,12 @@ completo.
 istruzioni AI di intake e traduzione. Il messaggio originale dell’operatore è
 conservato, anche quando è in un altro registro. Il fallback locale segue lo
 stesso glossario. I test AI controllano le istruzioni senza chiamare un provider.
+
+## Testi del frontend
+
+L'interfaccia del cittadino vive in `apps/web/src/lib/citizen/messages.ts` (it, en) e
+`messages-extra.ts` (le altre lingue). Fuori da quei file ci sono testi multilingue scritti a
+mano, da allineare quando cambia il glossario: il cartello A4
+(`components/console/office-poster.tsx`), la vetrina delle lingue e la demo della homepage
+(`components/landing/language-showcase.tsx`, `intake-demo-samples.ts`; le frasi della demo sono
+anche un test del backend).
