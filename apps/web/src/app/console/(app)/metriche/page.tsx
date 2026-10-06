@@ -5,6 +5,7 @@ import { Suspense, useMemo } from "react";
 import type { Route } from "next";
 import type { Metrics } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { DailyChart } from "@/components/console/daily-chart";
 import { formatMinutes, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
@@ -73,11 +74,12 @@ function MetricsView() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {operator.offices.length > 1 && (
-            <select
+            <Select
               value={officeId}
               onChange={(e) => setOfficeId(e.target.value)}
               aria-label="Sportello"
-              className="h-9 rounded-sm bg-surface px-3 text-sm ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
+              compact
+              className="h-9 text-sm"
             >
               <option value="">Tutti gli sportelli</option>
               {operator.offices.map((office) => (
@@ -85,7 +87,7 @@ function MetricsView() {
                   {office.name}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
           <div role="group" aria-label="Periodo" className="flex rounded-sm bg-sunk p-0.5">
             {RANGES.map((range) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -10,6 +11,32 @@ const control =
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(control, "h-11 text-base", className)} {...props} />;
+}
+
+/** Native select (keyboard and screen readers for free) styled like the other controls. */
+export function Select({
+  className,
+  wrapperClassName,
+  compact = false,
+  ...props
+}: ComponentProps<"select"> & { wrapperClassName?: string; compact?: boolean }) {
+  return (
+    <span className={cn("relative flex", wrapperClassName)}>
+      <select
+        className={cn(
+          control,
+          "cursor-pointer appearance-none pe-9",
+          compact ? "h-10 text-[0.9375rem]" : "h-11 text-base",
+          className,
+        )}
+        {...props}
+      />
+      <ChevronDown
+        className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
+        aria-hidden
+      />
+    </span>
+  );
 }
 
 export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
@@ -43,7 +70,8 @@ export function Field({
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
   return (
-    <div className={cn("grid gap-1.5", className)}>
+    // content-start: next to a taller field (one with a hint) the control stays aligned on top.
+    <div className={cn("grid content-start gap-1.5", className)}>
       <label
         htmlFor={id}
         className="flex items-baseline justify-between gap-2 text-sm font-semibold text-ink"

@@ -8,6 +8,7 @@ import type { Route } from "next";
 import type { CaseListItem, CaseListResponse, CaseStatus } from "@avanti/contracts";
 import { PRACTICE_IDS } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/field";
 import { apiFetch } from "@/lib/api";
 import {
   CASE_STATUS,
@@ -204,11 +205,11 @@ function Queue() {
             </button>
           )}
         </div>
-        <select
+        <Select
           value={practice}
           onChange={(e) => setParam("pratica", e.target.value)}
           aria-label="Filtra per pratica"
-          className="h-10 rounded-sm bg-surface px-3 text-[0.9375rem] ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
+          compact
         >
           <option value="">Tutte le pratiche</option>
           {PRACTICE_IDS.map((id) => (
@@ -216,17 +217,17 @@ function Queue() {
               {PRACTICE_SHORT[id]}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           value={assignee}
           onChange={(e) => setParam("assegnatario", e.target.value)}
           aria-label="Filtra per operatore"
-          className="h-10 rounded-sm bg-surface px-3 text-[0.9375rem] ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
+          compact
         >
           <option value="">Tutti gli operatori</option>
           <option value="me">Assegnate a me</option>
           <option value="none">Non assegnate</option>
-        </select>
+        </Select>
       </div>
 
       <p role="status" className="sr-only">
@@ -328,6 +329,9 @@ function QueueRow({ item }: { item: CaseListItem }) {
         <span className="flex items-center gap-1.5 text-sm">
           {item.blockers > 0 && (
             <span
+              title={
+                item.blockers === 1 ? "1 problema bloccante" : `${item.blockers} problemi bloccanti`
+              }
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
                 TONE_CLASSES.danger,
@@ -340,6 +344,7 @@ function QueueRow({ item }: { item: CaseListItem }) {
           )}
           {item.warnings > 0 && (
             <span
+              title={item.warnings === 1 ? "1 avviso" : `${item.warnings} avvisi`}
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
                 TONE_CLASSES.warn,
