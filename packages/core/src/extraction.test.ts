@@ -1,0 +1,525 @@
+import { describe, expect, it } from "vitest";
+import { DEMO_EXPECTED, DEMO_STORIES } from "./demo-stories";
+import { extractFacts } from "./extraction";
+
+describe("homepage stories without AI", () => {
+  for (const language of Object.keys(DEMO_STORIES) as (keyof typeof DEMO_STORIES)[]) {
+    it(language, () => {
+      const result = extractFacts(DEMO_STORIES[language], language);
+      expect(result.practiceId).toBe(DEMO_EXPECTED.practiceId);
+      expect(result.answers).toEqual(DEMO_EXPECTED.answers);
+      expect(result.facts).toEqual({
+        householdCount: 2,
+        nonresidentParent: true,
+        institutions: ["Fineco"],
+      });
+    });
+  }
+});
+
+import type { Language } from "@avanti/contracts";
+import type { Answers } from "./catalog";
+
+const mother = {
+  household_count: 2,
+  household_roles: ["richiedente", "genitore"],
+  household_relations: ["madre"],
+};
+const father = { ...mother, household_relations: ["padre"] };
+const spouseAndChild = {
+  household_count: 3,
+  household_roles: ["richiedente", "coniuge", "figlio"],
+  household_relations: ["coniuge", "figlio"],
+};
+type Variant = { text: string; expected: Answers };
+const VARIANTS: Record<Language, Variant[]> = {
+  it: [
+    {
+      text: "devo fare isee sto con mamma e papà non vive con noi ho una moto e un conto in Fineco",
+      expected: {
+        ...mother,
+        applicant_parent_nonresident: true,
+        accounts_count: 1,
+        account_bank_0: "Fineco",
+        vehicles_count: 1,
+      },
+    },
+    {
+      text: "ho una macchina vivo con babbo ma mia madre abita altrove",
+      expected: { ...father, vehicles_count: 1, applicant_parent_nonresident: true },
+    },
+    { text: "con mia moglie vivo e mio figlio", expected: spouseAndChild },
+    {
+      text: "abito con mio marito e due figli",
+      expected: {
+        household_count: 4,
+        household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+        household_relations: ["coniuge", "figlio", "figlio"],
+      },
+    },
+    { text: "mi serve aiuto mio padre lavora", expected: {} },
+    { text: "mi serve aiuto", expected: {} },
+  ],
+  en: [
+    {
+      text: "I need the ISEE I live with my mum and my dad does not live with us",
+      expected: { ...mother, applicant_parent_nonresident: true },
+    },
+    {
+      text: "gotta do isee i live with mom and my dad doesn't live with us i have a Fineco account and a car",
+      expected: {
+        ...mother,
+        applicant_parent_nonresident: true,
+        accounts_count: 1,
+        account_bank_0: "Fineco",
+        vehicles_count: 1,
+      },
+    },
+    {
+      text: "i have a motorbike i stay with dad but my mom lives elsewhere",
+      expected: { ...father, applicant_parent_nonresident: true, vehicles_count: 1 },
+    },
+    { text: "i live with my husband and my daughter", expected: spouseAndChild },
+    {
+      text: "with my wife i live and two kids",
+      expected: {
+        household_count: 4,
+        household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+        household_relations: ["coniuge", "figlio", "figlio"],
+      },
+    },
+    { text: "need help my father works", expected: {} },
+    { text: "can you help me", expected: {} },
+  ],
+  fr: [
+    {
+      text: "besoin isee je vis avec maman et mon papa ne vit pas avec nous j'ai un compte chez Fineco et une voiture",
+      expected: {
+        ...mother,
+        applicant_parent_nonresident: true,
+        accounts_count: 1,
+        account_bank_0: "Fineco",
+        vehicles_count: 1,
+      },
+    },
+    {
+      text: "j ai une moto j habite avec papa mais ma mere habite ailleurs",
+      expected: { ...father, applicant_parent_nonresident: true, vehicles_count: 1 },
+    },
+    { text: "je vis avec mon mari et ma fille", expected: spouseAndChild },
+    {
+      text: "avec ma femme je vis et deux enfants",
+      expected: {
+        household_count: 4,
+        household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+        household_relations: ["coniuge", "figlio", "figlio"],
+      },
+    },
+    { text: "aidez moi mon père travaille", expected: {} },
+    { text: "besoin d aide", expected: {} },
+  ],
+  es: [
+    {
+      text: "necesito isee vivo con mamá y mi papá no vive con nosotros tengo una cuenta en Fineco y un coche",
+      expected: {
+        ...mother,
+        applicant_parent_nonresident: true,
+        accounts_count: 1,
+        account_bank_0: "Fineco",
+        vehicles_count: 1,
+      },
+    },
+    {
+      text: "tengo un carro vivo con papa pero mi mama vive aparte",
+      expected: { ...father, applicant_parent_nonresident: true, vehicles_count: 1 },
+    },
+    { text: "vivo con mi esposo y mi hija", expected: spouseAndChild },
+    {
+      text: "con mi esposa vivo y dos hijos tengo una moto",
+      expected: {
+        household_count: 4,
+        household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+        household_relations: ["coniuge", "figlio", "figlio"],
+        vehicles_count: 1,
+      },
+    },
+    { text: "ayuda mi padre trabaja", expected: {} },
+    { text: "necesito ayuda", expected: {} },
+  ],
+  ro: [
+    {
+      text: "vreau isee stau cu mama si tata nu locuiește cu noi am un cont la Fineco si o mașină",
+      expected: {
+        ...mother,
+        applicant_parent_nonresident: true,
+        accounts_count: 1,
+        account_bank_0: "Fineco",
+        vehicles_count: 1,
+      },
+    },
+    {
+      text: "am o masina locuiesc cu tata dar mama nu locuieste cu noi",
+      expected: { ...father, applicant_parent_nonresident: true, vehicles_count: 1 },
+    },
+    { text: "locuiesc cu sotul meu si fiica", expected: spouseAndChild },
+    {
+      text: "cu sotia locuiesc si doi copii",
+      expected: {
+        household_count: 4,
+        household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+        household_relations: ["coniuge", "figlio", "figlio"],
+      },
+    },
+    { text: "ajutor tata lucreaza", expected: {} },
+    { text: "vreau ajutor", expected: {} },
+  ],
+  uk: [
+    {
+      text: "треба isee живу з мамою і тато з нами не живе у мене є рахунок у Fineco і машина",
+      expected: {
+        ...mother,
+        applicant_parent_nonresident: true,
+        accounts_count: 1,
+        account_bank_0: "Fineco",
+        vehicles_count: 1,
+      },
+    },
+    {
+      text: "маю автомобіль живу з батьком але мама не живе з нами",
+      expected: { ...father, applicant_parent_nonresident: true, vehicles_count: 1 },
+    },
+    { text: "живу з чоловіком і донькою", expected: spouseAndChild },
+    {
+      text: "з дружиною живу і двома дітьми",
+      expected: {
+        household_count: 4,
+        household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+        household_relations: ["coniuge", "figlio", "figlio"],
+      },
+    },
+    { text: "допоможіть мій батько працює", expected: {} },
+    { text: "потрібна допомога", expected: {} },
+  ],
+  ar: [
+    {
+      text: "احتاج isee أعيش مع أمي وأبي لا يعيش معنا لدي حساب في Fineco وسيارة",
+      expected: {
+        ...mother,
+        applicant_parent_nonresident: true,
+        accounts_count: 1,
+        account_bank_0: "Fineco",
+        vehicles_count: 1,
+      },
+    },
+    {
+      text: "لدي دراجة نارية أسكن مع بابا لكن ماما لا تعيش معنا",
+      expected: { ...father, applicant_parent_nonresident: true, vehicles_count: 1 },
+    },
+    { text: "أعيش مع زوجي وابنتي", expected: spouseAndChild },
+    {
+      text: "أسكن مع زوجتي وطفلين",
+      expected: {
+        household_count: 4,
+        household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+        household_relations: ["coniuge", "figlio", "figlio"],
+      },
+    },
+    { text: "اريد مساعدة والدي يعمل", expected: {} },
+    { text: "ممكن مساعدة", expected: {} },
+  ],
+  bn: [
+    { text: "আমার ISEE করতে হবে আমি আমার মায়ের সাথে থাকি", expected: mother },
+    {
+      text: "isee করতে হবে আমি মায়ের সাথে থাকি আর আমার বাবা আমাদের সাথে থাকেন না আমার একটি Fineco অ্যাকাউন্ট আর একটি গাড়ি আছে",
+      expected: {
+        ...mother,
+        applicant_parent_nonresident: true,
+        accounts_count: 1,
+        account_bank_0: "Fineco",
+        vehicles_count: 1,
+      },
+    },
+    {
+      text: "আমার একটা বাইক আছে আমি আব্বুর সঙ্গে থাকি আর আমার মা আমাদের সাথে থাকে না",
+      expected: { ...father, applicant_parent_nonresident: true, vehicles_count: 1 },
+    },
+    { text: "আমি স্বামীর সাথে থাকি আর মেয়ের", expected: spouseAndChild },
+    {
+      text: "আমি স্ত্রীর সঙ্গে থাকি আর দুই ছেলের",
+      expected: {
+        household_count: 4,
+        household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+        household_relations: ["coniuge", "figlio", "figlio"],
+      },
+    },
+    { text: "সাহায্য দরকার আমার বাবা কাজ করেন", expected: {} },
+    { text: "আমার সাহায্য দরকার", expected: {} },
+  ],
+};
+
+describe("informal citizen stories", () => {
+  for (const language of Object.keys(VARIANTS) as Language[]) {
+    it.each(VARIANTS[language])(`${language}: $text`, ({ text, expected }) => {
+      const result = extractFacts(text, language, "isee_ordinario");
+      expect(result.answers).toMatchObject(expected);
+      if (!Object.keys(expected).length) expect(result.answers).toEqual({});
+      if (expected.household_count) {
+        expect(result.facts.householdCount).toBe(expected.household_count);
+      }
+    });
+  }
+});
+
+const PARENT_NEGATIONS: [Language, string][] = [
+  ["it", "vivo con mamma e mio padre non vive con noi"],
+  ["en", "i live with mum and my dad doesn't live with us"],
+  ["en", "i live with mom and my dad does not live with us"],
+  ["en", "i live with mum and my dad isn't living with us"],
+  ["en", "i live with mom and my dad lives elsewhere"],
+  ["en", "i live with mum and my dad lives apart"],
+  ["fr", "je vis avec maman et mon papa ne vit pas avec nous"],
+  ["es", "vivo con mamá y mi papá no vive con nosotros"],
+  ["ro", "locuiesc cu mama și tata nu locuiește cu noi"],
+  ["uk", "живу з мамою і батько не живе з нами"],
+  ["ar", "أعيش مع والدتي ووالدي لا يعيش معنا"],
+  ["ar", "أعيش مع ماما وبابا لا يعيش معنا"],
+  ["bn", "আমি আম্মুর সাথে থাকি আর আমার আব্বু আমাদের সাথে থাকে না"],
+  ["bn", "আমি মায়ের সঙ্গে থাকি আর আমার বাবা আমাদের সঙ্গে থাকেন না"],
+];
+it.each(PARENT_NEGATIONS)("negation scope in %s: %s", (language, text) => {
+  const result = extractFacts(text, language, "isee_ordinario");
+  expect(result.answers).toEqual({ ...mother, applicant_parent_nonresident: true });
+  expect(result.answers.nonresident_parent).toBeUndefined();
+});
+
+it.each([
+  ["it", "abito con mio papà"],
+  ["en", "i live with dad"],
+  ["fr", "je vis avec papa"],
+  ["es", "vivo con papá"],
+  ["ro", "stau cu tata"],
+  ["uk", "живу з татом"],
+  ["ar", "أعيش مع والدي"],
+  ["bn", "আমি বাবার সাথে থাকি"],
+] as const)("resident father in %s", (language, text) => {
+  expect(extractFacts(text, language, "isee_ordinario").answers).toEqual(father);
+});
+
+const ASSETS: [Language, string, number][] = [
+  ["it", "ho un auto e una moto", 2],
+  ["en", "i have a car and a motorcycle", 2],
+  ["fr", "j ai une voiture et une moto", 2],
+  ["es", "tengo un carro y un coche y una moto", 3],
+  ["ro", "am o mașină și o motocicletă", 2],
+  ["uk", "маю машину і автомобіль", 2],
+  ["ar", "لدي سيارة ودراجة نارية", 2],
+  ["bn", "আমার একটি গাড়ি আর একটি মোটরসাইকেল আর একটি বাইক আছে", 3],
+];
+it.each(ASSETS)("vehicles in %s: %s", (language, text, count) => {
+  expect(extractFacts(text, language, "isee_ordinario").answers.vehicles_count).toBe(count);
+});
+
+const BANK_WRAPPERS: Record<Language, (bank: string) => string> = {
+  it: (bank) => `ho un conto ${bank}`,
+  en: (bank) => `i have a ${bank} account`,
+  fr: (bank) => `j ai un compte chez ${bank}`,
+  es: (bank) => `tengo una cuenta en ${bank}`,
+  ro: (bank) => `am un cont la ${bank}`,
+  uk: (bank) => `у мене є рахунок у${bank}`,
+  ar: (bank) => `لدي حساب في${bank}`,
+  bn: (bank) => `আমার একটি ${bank}অ্যাকাউন্ট আছে`,
+};
+const EXPECTED_BANKS = [
+  "Fineco",
+  "Intesa Sanpaolo",
+  "UniCredit",
+  "Poste",
+  "BancoPosta",
+  "BNL",
+  "Banco BPM",
+  "Mediolanum",
+  "ING",
+  "N26",
+  "Revolut",
+  "Hype",
+  "BPER",
+  "Crédit Agricole",
+  "Monte dei Paschi",
+  "Sella",
+  "Santander",
+  "Wise",
+];
+for (const language of Object.keys(BANK_WRAPPERS) as Language[]) {
+  it.each(EXPECTED_BANKS)(`${language}: bank %s with surrounding script`, (bank) => {
+    const result = extractFacts(
+      BANK_WRAPPERS[language](bank.toUpperCase()),
+      language,
+      "isee_ordinario",
+    );
+    expect(result.answers.accounts_count).toBe(1);
+    expect(result.answers.account_bank_0).toBe(bank);
+    expect(result.facts.institutions).toEqual([bank]);
+  });
+}
+it("matches whole Latin bank names, not substrings", () => {
+  expect(extractFacts("Finecologia BPERsonale INGrosso", "it", "isee_ordinario").answers).toEqual(
+    {},
+  );
+});
+it("keeps affirmative banks and vehicles independent from negated assets", () => {
+  expect(
+    extractFacts("non ho conti Fineco ma ho un conto Revolut e una moto", "it", "isee_ordinario")
+      .answers,
+  ).toMatchObject({ accounts_count: 1, account_bank_0: "Revolut", vehicles_count: 1 });
+});
+it.each(["it", "bn", "ar", "uk", "en"] as const)(
+  "normalizes Unicode and case in %s",
+  (language) => {
+    expect(
+      extractFacts(DEMO_STORIES[language].normalize("NFD").toUpperCase(), language).answers,
+    ).toEqual(DEMO_EXPECTED.answers);
+  },
+);
+it.each([
+  ["siamo in 3 vivo con mamma", 3],
+  ["siamo in 2 vivo con mamma e papà", 3],
+  ["siamo in 2 vivo con mia moglie e due figli", 4],
+])("reconciles stated household and roles: %s", (text, count) => {
+  const result = extractFacts(String(text), "it", "isee_ordinario");
+  expect(result.answers.household_count).toBe(count);
+  expect(result.facts.householdCount).toBe(count);
+});
+it("does not invent the number of unspecified children", () => {
+  expect(extractFacts("vivo con mia moglie e figli", "it", "isee_ordinario").answers).toMatchObject(
+    { household_count: 2, household_roles: ["richiedente", "coniuge"] },
+  );
+});
+it.each([
+  ["it", "vivo con mamma e mio padre lavora"],
+  ["en", "i live with mom and my father works"],
+  ["fr", "je vis avec maman et mon père travaille"],
+  ["es", "vivo con mama y mi padre trabaja"],
+  ["ro", "locuiesc cu mama si tata lucreaza"],
+  ["uk", "живу з мамою і батько працює"],
+  ["ar", "أعيش مع أمي وأبي يعمل"],
+  ["bn", "আমি মায়ের সাথে থাকি আর আমার বাবা কাজ করেন"],
+] as const)("does not count an unrelated subject in %s", (language, text) => {
+  expect(extractFacts(text, language, "isee_ordinario").answers).toEqual(mother);
+});
+
+it.each([
+  ["it", "vivo con mamma mio padre non vive con noi"],
+  ["en", "i live with mum my dad does not live with us"],
+  ["fr", "je vis avec maman mon papa ne vit pas avec nous"],
+  ["es", "vivo con mamá mi papá no vive con nosotros"],
+  ["ro", "locuiesc cu mama tata nu locuiește cu noi"],
+  ["uk", "живу з мамою тато з нами не живе"],
+  ["ar", "أعيش مع أمي أبي لا يعيش معنا"],
+  ["bn", "আমি মায়ের সাথে থাকি আমার বাবা আমাদের সাথে থাকেন না"],
+] as const)("parent negation without punctuation or conjunction in %s", (language, text) => {
+  expect(extractFacts(text, language, "isee_ordinario").answers).toEqual({
+    ...mother,
+    applicant_parent_nonresident: true,
+  });
+});
+it.each([
+  ["it", "vivo con mamma mio padre lavora"],
+  ["en", "my father works i live with mum"],
+] as const)("unrelated subject without punctuation in %s", (language, text) => {
+  expect(extractFacts(text, language, "isee_ordinario").answers).toEqual(mother);
+});
+it("keeps relatives listed with commas in the living context", () => {
+  expect(
+    extractFacts("vivo con mamma, papà, due figli", "it", "isee_ordinario").answers.household_count,
+  ).toBe(5);
+});
+it.each([
+  ["it", "non vivo con mia madre"],
+  ["en", "i do not live with my mother"],
+  ["fr", "je ne vis pas avec maman"],
+  ["es", "no vivo con mamá"],
+  ["ro", "nu locuiesc cu mama"],
+  ["uk", "не живу з мамою"],
+  ["ar", "لا أعيش مع أمي"],
+  ["bn", "আমি মায়ের সাথে থাকি না"],
+] as const)(
+  "does not turn negative first-person living into a household in %s",
+  (language, text) => {
+    const result = extractFacts(text, language, "isee_ordinario");
+    expect(result.answers.household_roles).toBeUndefined();
+    expect(result.answers.household_count).toBeUndefined();
+  },
+);
+it("does not confuse the applicant's father with their child's father in one statement", () => {
+  const result = extractFacts(
+    "ho un figlio minorenne mio padre non vive con noi",
+    "it",
+    "isee_ordinario",
+  );
+  expect(result.answers.applicant_parent_nonresident).toBe(true);
+  expect(result.answers.nonresident_parent).toBeUndefined();
+});
+it.each([
+  ["it", "siamo in tre vivo con mamma"],
+  ["en", "we are three i live with mom"],
+  ["fr", "nous sommes trois je vis avec maman"],
+  ["es", "somos tres vivo con mamá"],
+  ["ro", "suntem trei stau cu mama"],
+  ["uk", "нас три живу з мамою"],
+  ["ar", "نحن ثلاثة أعيش مع أمي"],
+  ["bn", "আমরা তিন জন আমি মায়ের সাথে থাকি"],
+] as const)("keeps an explicit greater count in %s", (language, text) => {
+  const result = extractFacts(text, language, "isee_ordinario");
+  expect(result.answers).toEqual({ ...mother, household_count: 3 });
+  expect(result.facts.householdCount).toBe(3);
+});
+it.each([
+  ["আমি আমার স্বামীর আর মেয়ের সাথে থাকি", spouseAndChild],
+  [
+    "আমি আমার স্ত্রীর আর দুই ছেলের সঙ্গে থাকি",
+    {
+      household_count: 4,
+      household_roles: ["richiedente", "coniuge", "figlio", "figlio"],
+      household_relations: ["coniuge", "figlio", "figlio"],
+    },
+  ],
+  [
+    "আমি আমার মায়ের আর বাবার সাথে থাকি",
+    {
+      household_count: 3,
+      household_roles: ["richiedente", "genitore", "genitore"],
+      household_relations: ["madre", "padre"],
+    },
+  ],
+] as const)(
+  "Bengali shares a final living verb across the preceding list: %s",
+  (text, expected) => {
+    expect(extractFacts(text, "bn", "isee_ordinario").answers).toEqual(expected);
+  },
+);
+it("Bengali does not share a negated final living verb", () => {
+  const result = extractFacts("আমি আমার স্বামীর আর ছেলের সাথে থাকি না", "bn", "isee_ordinario");
+  expect(result.answers.household_count).toBeUndefined();
+});
+it("Bengali does not share the living verb with an unrelated earlier subject", () => {
+  expect(
+    extractFacts("আমার মা কাজ করে আর আমি বাবার সাথে থাকি", "bn", "isee_ordinario").answers,
+  ).toEqual(father);
+});
+it.each([
+  ["it", "vivo con mamma papà"],
+  ["en", "i live with mom dad"],
+  ["fr", "je vis avec maman papa"],
+  ["es", "vivo con mamá papá"],
+  ["ro", "stau cu mama tata"],
+  ["uk", "живу з мамою татом"],
+  ["ar", "أعيش مع أمي أبي"],
+  ["bn", "আমি আমার মায়ের বাবার সাথে থাকি"],
+] as const)("accepts a bare list without punctuation in %s", (language, text) => {
+  const result = extractFacts(text, language, "isee_ordinario");
+  expect(result.answers).toEqual({
+    household_count: 3,
+    household_roles: ["richiedente", "genitore", "genitore"],
+    household_relations: ["madre", "padre"],
+  });
+});

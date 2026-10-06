@@ -60,3 +60,54 @@ packages/contracts — schemi zod condivisi tra frontend e backend (unica fonte 
    dichiarata dal CAF.
 
 Vedi [API.md](API.md) per gli endpoint e [DATA_MODEL.md](DATA_MODEL.md) per lo schema.
+
+## Estrazione euristica del racconto
+
+`packages/core/src/extraction.ts` classifica la pratica ed estrae indizi dal testo,
+senza I/O né chiavi AI. L’API la usa come fallback locale e come rete di sicurezza
+per l’estrazione AI. Le lingue coperte sono italiano (`it`), inglese (`en`), francese
+(`fr`), spagnolo (`es`), rumeno (`ro`), ucraino (`uk`), arabo (`ar`) e bengalese (`bn`).
+La classificazione resta basata sulle parole chiave del catalogo; i lessici dei fatti
+seguono la lingua scelta dal cittadino.
+
+Il testo viene normalizzato in NFC, senza distinzione fra maiuscole e minuscole;
+si tollerano accenti latini omessi, apostrofi tipografici, vocalizzazione araba e cifre
+arabe/bengalesi. I segni bengalesi restano intatti. Le clausole si separano su
+punteggiatura (anche `،` e `।`), congiunzioni e inizi di frasi riconosciuti. In arabo
+si separa anche la `و` attaccata ai termini noti. La negazione vale nella propria
+clausola, anche quando segue il parente, come in bengalese e ucraino.
+
+Solo la convivenza dichiarata produce ruoli: citare un parente che lavora non lo
+aggiunge al nucleo. Una lista di parenti può proseguire dopo virgole o congiunzioni;
+un genitore negato resta fuori. Il genitore non convivente del richiedente produce
+`applicant_parent_nonresident`, distinto da `nonresident_parent`, riservato agli indizi
+su un figlio minorenne e il suo genitore. Nessun indizio sostituisce la conferma
+nell’intervista o la valutazione dell’operatore.
+
+Il conteggio è almeno quello dei ruoli riconosciuti (richiedente più conviventi).
+Un numero esplicito maggiore viene conservato: l’intervista chiede le persone
+ancora da identificare. Per un plurale senza numero, come «vivo con mia moglie e
+figli», non si inventa il numero dei figli. Le banche note sono riconosciute anche
+accanto a preposizioni o suffissi in altri alfabeti; le parole latine più lunghe
+non sono abbinate per sottostringa. Conti e veicoli hanno negazioni locali e
+quantità esplicite, oppure il singolare implicito di una dichiarazione di possesso.
+
+I lessici sono in `extraction-lexicons.ts`: per aggiungere un termine, inserire la
+forma letterale nella lista della lingua (`KIN_TERMS`, `VEHICLE_TERMS`,
+`ACCOUNT_TERMS`, oppure `BANKS` per un istituto). Le liste `*_PATTERNS` contengono
+frammenti regexp nominati, da estendere quando cambia la struttura della frase.
+Aggiungere in `extraction.test.ts` un racconto concreto con risultato atteso e un
+caso negativo vicino; eseguire `pnpm --filter @avanti/core test`.
+
+Le cinque storie esatte della homepage e il risultato atteso sono esportati da
+`@avanti/core/demo-stories`, un subpath di soli dati senza import o dipendenze dal
+resto del core. Il test di accettazione le esegue senza AI; il frontend può usarle
+per verificare che i propri segmenti non divergano.
+
+Limiti noti: non è un parser generale e non comprende ogni errore ortografico,
+dialetto, pronome anaforico o lingua mescolata. Parentele indirette («la madre di
+mio marito»), racconti ipotetici e liste ambigue possono richiedere chiarimento.
+Il collettivo «vivo con i miei genitori» non identifica ancora i ruoli: occorre
+indicare madre/padre o completarli nell’intervista. Non identifica persone, titolarità dei conti o il nucleo legale; i
+figli senza quantità restano da completare. L’assenza di un fatto estratto non
+significa una risposta negativa.

@@ -159,8 +159,17 @@ credenziali errate. La lista include gli inattivi, è ordinata per nome e riport
 l’ultimo login riuscito. Un admin non può disattivarsi, declassarsi o reimpostare
 la propria password attraverso la rotta admin; deve restare un admin attivo.
 
-Lo slug pubblico dello sportello è ASCII, generato da città e nome, unico nel
-sistema con suffisso numerico in caso di collisione; resta invariato dopo gli edit.
+Il nome dello sportello è unico all’interno dell’organizzazione: su create ed edit
+il confronto ignora maiuscole/minuscole e spazi ai bordi. Un duplicato restituisce
+HTTP 409, codice `conflict` e messaggio «C'è già uno sportello con questo nome.».
+Lo stesso nome è consentito in organizzazioni diverse; rinominare lo sportello
+senza cambiarne il nome normalizzato è consentito.
+
+Lo slug pubblico dello sportello è ASCII, generato da città e nome. Se il nome
+normalizzato coincide con la città o inizia con la città seguita da un separatore,
+la città non viene aggiunta di nuovo: «Milano Centro» a Milano diventa
+`milano-centro`. Lo slug resta unico nel sistema, con suffisso numerico in caso di
+collisione, e invariato dopo gli edit di nome o città.
 `linkDays` vale solo per nuovi link. `retentionDays` viene applicato dal cron ai
 fascicoli chiusi o scaduti da più del periodo configurato (25 per esecuzione).
 La cancellazione manuale richiede il riferimento, senza distinzione maiuscole/minuscole.
