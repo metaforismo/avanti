@@ -1,6 +1,16 @@
 "use client";
 
-import { BarChart3, CircleHelp, Inbox, LogOut, Menu, Plus, QrCode, X } from "lucide-react";
+import {
+  BarChart3,
+  CircleHelp,
+  Inbox,
+  LogOut,
+  Menu,
+  Plus,
+  QrCode,
+  Settings,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -13,35 +23,50 @@ import { apiFetch } from "@/lib/api";
 import { OperatorProvider } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
+import { PasswordForm } from "./admin/password-form";
 import { NewCaseDialog } from "./new-case-dialog";
 
-const NAV: { href: Route; label: string; icon: typeof Inbox; match: (path: string) => boolean }[] =
-  [
-    {
-      href: "/console",
-      label: "Pratiche",
-      icon: Inbox,
-      match: (p) => p === "/console" || p.startsWith("/console/pratiche"),
-    },
-    {
-      href: "/console/metriche",
-      label: "Metriche",
-      icon: BarChart3,
-      match: (p) => p.startsWith("/console/metriche"),
-    },
-    {
-      href: "/console/sportelli",
-      label: "Sportelli e QR",
-      icon: QrCode,
-      match: (p) => p.startsWith("/console/sportelli"),
-    },
-    {
-      href: "/console/aiuto",
-      label: "Aiuto",
-      icon: CircleHelp,
-      match: (p) => p.startsWith("/console/aiuto"),
-    },
-  ];
+type NavItem = {
+  href: Route;
+  label: string;
+  icon: typeof Inbox;
+  match: (path: string) => boolean;
+  adminOnly?: boolean;
+};
+
+const NAV: NavItem[] = [
+  {
+    href: "/console",
+    label: "Pratiche",
+    icon: Inbox,
+    match: (p) => p === "/console" || p.startsWith("/console/pratiche"),
+  },
+  {
+    href: "/console/metriche",
+    label: "Metriche",
+    icon: BarChart3,
+    match: (p) => p.startsWith("/console/metriche"),
+  },
+  {
+    href: "/console/sportelli",
+    label: "Sportelli e QR",
+    icon: QrCode,
+    match: (p) => p.startsWith("/console/sportelli"),
+  },
+  {
+    href: "/console/impostazioni",
+    label: "Impostazioni",
+    icon: Settings,
+    match: (p) => p.startsWith("/console/impostazioni"),
+    adminOnly: true,
+  },
+  {
+    href: "/console/aiuto",
+    label: "Aiuto",
+    icon: CircleHelp,
+    match: (p) => p.startsWith("/console/aiuto"),
+  },
+];
 
 export function ConsoleShell({ children }: { children: ReactNode }) {
   const me = useResource<Operator>("/api/auth/me");
@@ -92,8 +117,25 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
 
   const operator = me.data!;
 
+  if (operator.mustChangePassword) {
+    return (
+      <OperatorProvider value={{ operator, reload: me.reload, replace: me.setData }}>
+        <main className="mx-auto grid min-h-dvh max-w-md content-center px-4 py-12">
+          <Logo />
+          <h1 className="mt-8 font-display text-3xl font-bold tracking-[-0.025em]">
+            Scegli la tua password
+          </h1>
+          <p className="mt-2 mb-6 text-ink-2">
+            Stai usando una password temporanea. Scegline una tua per entrare nella console.
+          </p>
+          <PasswordForm submitLabel="Salva ed entra" onChanged={me.setData} />
+        </main>
+      </OperatorProvider>
+    );
+  }
+
   return (
-    <OperatorProvider value={operator}>
+    <OperatorProvider value={{ operator, reload: me.reload, replace: me.setData }}>
       <a
         href="#contenuto"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-contrast focus:px-4 focus:py-2 focus:text-on-contrast"
@@ -140,26 +182,28 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
           </div>
           <nav aria-label="Console" className="mt-4 flex-1 px-3">
             <ul className="grid gap-0.5">
-              {NAV.map(({ href, label, icon: Icon, match }) => {
-                const active = match(pathname);
-                return (
-                  <li key={href}>
-                    <Link
-                      href={href}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex h-10 items-center gap-3 rounded-sm px-3 text-[0.9375rem] transition-colors",
-                        active
-                          ? "bg-stamp-wash font-semibold text-stamp"
-                          : "text-ink-2 hover:bg-sunk hover:text-ink",
-                      )}
-                    >
-                      <Icon className="size-4.5" aria-hidden />
-                      {label}
-                    </Link>
-                  </li>
-                );
-              })}
+              {NAV.filter((item) => !item.adminOnly || operator.role === "admin").map(
+                ({ href, label, icon: Icon, match }) => {
+                  const active = match(pathname);
+                  return (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex h-10 items-center gap-3 rounded-sm px-3 text-[0.9375rem] transition-colors",
+                          active
+                            ? "bg-stamp-wash font-semibold text-stamp"
+                            : "text-ink-2 hover:bg-sunk hover:text-ink",
+                        )}
+                      >
+                        <Icon className="size-4.5" aria-hidden />
+                        {label}
+                      </Link>
+                    </li>
+                  );
+                },
+              )}
             </ul>
           </nav>
           <OperatorCard operator={operator} />
@@ -202,7 +246,12 @@ function OperatorCard({ operator }: { operator: Operator }) {
           .toUpperCase()}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{operator.name}</p>
+        <Link
+          href="/console/account"
+          className="block truncate text-sm font-semibold hover:underline"
+        >
+          {operator.name}
+        </Link>
         <p className="truncate text-xs text-ink-3">{operator.organization.name}</p>
       </div>
       <Button

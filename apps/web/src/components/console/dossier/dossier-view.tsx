@@ -22,6 +22,7 @@ import { CASE_STATUS, LANGUAGE_IT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { ChecklistSection } from "./checklist-section";
+import { DeleteCaseDialog } from "./delete-case-dialog";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
 import { FindingsSummary } from "./findings-summary";
@@ -42,6 +43,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   // The open document lives in the URL: shareable with a colleague, closed by the Back button.
   const router = useRouter();
   const pathname = usePathname();
@@ -238,6 +240,14 @@ export function DossierView({ caseId }: { caseId: string }) {
                     Lascia la pratica
                   </MenuItem>
                 )}
+                {operator.role === "admin" && (
+                  <>
+                    <DropdownMenu.Separator className="my-1 h-px bg-line" />
+                    <MenuItem onSelect={() => setConfirmDelete(true)}>
+                      <span className="text-danger">Elimina definitivamente…</span>
+                    </MenuItem>
+                  </>
+                )}
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
@@ -303,6 +313,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           </Button>
         </div>
       </Dialog>
+      <DeleteCaseDialog open={confirmDelete} onOpenChange={setConfirmDelete} dossier={data} />
       <RequestDialog
         open={requesting}
         onOpenChange={setRequesting}
