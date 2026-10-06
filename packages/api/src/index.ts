@@ -8,13 +8,24 @@ import { GatewayIntelligence } from "./ai";
 export { createApp } from "./app";
 export { MemoryStorage, DiskStorage, BlobStorage } from "./storage";
 export type { ApiOptions } from "./context";
-import { lazyRuntime, processSingleton } from "./runtime";
+import { lazyRuntime, processSingleton, activityGate } from "./runtime";
 import { safeError } from "./logging";
+const activityStore = globalThis as Record<symbol, ReturnType<typeof activityGate> | undefined>;
+const activity = (activityStore[Symbol.for("avanti.activity")] ??= activityGate());
 const database = processSingleton(Symbol.for("avanti.database"), () => createDatabase());
 
 /** Call after draining requests in a Node host, or during teardown of a shared-runtime test. */
 export function closeRuntimeDatabase() {
-  return database.close((resource) => resource.close());
+  return activity.close(() => database.close((resource) => resource.close()));
+}
+
+const backgroundKey = Symbol.for("avanti.background");
+const backgroundStore = globalThis as Record<
+  symbol,
+  ((work: () => Promise<void>) => void) | undefined
+>;
+export function configureRuntimeBackground(schedule: (work: () => Promise<void>) => void) {
+  backgroundStore[backgroundKey] = schedule;
 }
 
 async function initialize() {
@@ -30,6 +41,23 @@ async function initialize() {
   const { db } = await database();
   return createApp({
     db,
+    background: (work) => {
+      const schedule = backgroundStore[backgroundKey];
+      if (!schedule) throw new Error("Background scheduler unavailable");
+      const done = activity.begin();
+      try {
+        schedule(async () => {
+          try {
+            await work();
+          } finally {
+            done();
+          }
+        });
+      } catch (error) {
+        done();
+        throw error;
+      }
+    },
     storage: process.env.BLOB_READ_WRITE_TOKEN
       ? new BlobStorage(process.env.BLOB_READ_WRITE_TOKEN)
       : new DiskStorage(resolve(repoRoot, ".data/uploads")),
@@ -54,12 +82,22 @@ async function initialize() {
 const runtime = lazyRuntime(initialize);
 export const app = new Hono().basePath("/api");
 app.all("*", async (c) => {
+  let done: (() => void) | undefined;
   try {
+    done = activity.begin();
     return await (await runtime()).fetch(c.req.raw);
   } catch (error) {
     const requestId = crypto.randomUUID();
     console.error(JSON.stringify({ requestId, ...safeError(error) }));
     c.header("X-Request-Id", requestId);
+    c.header("Cache-Control", "no-store");
+    c.header("Referrer-Policy", "no-referrer");
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("X-Frame-Options", "DENY");
+    c.header(
+      "Content-Security-Policy",
+      "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    );
     return c.json(
       {
         error: {
@@ -68,7 +106,9 @@ app.all("*", async (c) => {
           requestId,
         },
       },
-      500,
+      activity.closing ? 503 : 500,
     );
+  } finally {
+    done?.();
   }
 });

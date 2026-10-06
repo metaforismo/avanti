@@ -3,10 +3,10 @@ import { cases, operators, sessions } from "@avanti/db";
 import { getCookie, setCookie } from "hono/cookie";
 import type { MiddlewareHandler } from "hono";
 import type { ApiContext, ApiEnv, Services } from "../context";
-import { ApiFailure, hashToken, notFound } from "../security";
+import { ApiFailure, hashToken, notFound, tokenMatches } from "../security";
 
 export const ABSOLUTE_SESSION_SECONDS = 12 * 60 * 60;
-export const SESSION_SECONDS = 8 * 60 * 60;
+export const SESSION_SECONDS = 30 * 60;
 export const SESSION_COOKIE = "avanti_session";
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
 
@@ -35,6 +35,7 @@ export function authenticateOperator(services: Services): MiddlewareHandler<ApiE
     const readOnly = ["GET", "HEAD", "OPTIONS"].includes(context.req.method);
     if (
       !session ||
+      !tokenMatches(token, session.tokenHash) ||
       Date.parse(session.expiresAt) <= now.getTime() ||
       Date.parse(session.createdAt) + ABSOLUTE_SESSION_SECONDS * 1000 <= now.getTime()
     ) {
@@ -50,7 +51,7 @@ export function authenticateOperator(services: Services): MiddlewareHandler<ApiE
     if (!operator?.active) throw new ApiFailure("unauthorized", 401, "Accedi per continuare.");
     if (operator.mustChangePassword && !passwordRoutes.has(context.req.path))
       throw new ApiFailure("forbidden", 403, "Cambia la password per continuare.");
-    {
+    if (!["/api/auth/password", "/api/auth/logout"].includes(context.req.path)) {
       await services.db
         .update(sessions)
         .set({
@@ -78,8 +79,8 @@ export function authenticateCitizen(services: Services): MiddlewareHandler<ApiEn
       .from(cases)
       .where(eq(cases.tokenHash, hashToken(token)))
       .limit(1);
-    if (!row) throw notFound();
-    if (Date.parse(row.expiresAt) <= services.clock().getTime()) {
+    if (!row || !tokenMatches(token, row.tokenHash)) throw notFound();
+    if (row.status === "closed" || Date.parse(row.expiresAt) <= services.clock().getTime()) {
       throw new ApiFailure(
         "link_expired",
         410,

@@ -26,6 +26,7 @@ export interface ApiOptions {
   rateLimitSecret?: string;
   vercel?: boolean;
   cronSecret?: string;
+  background?: (work: () => Promise<void>) => void;
   transport?: "fetch" | "node";
   clientAddress?: (context: ApiContext) => string | null;
   logger?: (record: {
@@ -37,7 +38,12 @@ export interface ApiOptions {
 }
 export interface ApiEnv {
   Bindings: { incoming?: { socket: { remoteAddress?: string } } };
-  Variables: { operator: typeof operators.$inferSelect; citizen: CaseRow; requestId: string };
+  Variables: {
+    operator: typeof operators.$inferSelect;
+    citizen: CaseRow;
+    requestId: string;
+    bodyTooLarge: boolean;
+  };
 }
 export type App = Hono<ApiEnv>;
 export type ApiContext = Context<ApiEnv>;

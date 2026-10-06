@@ -10,10 +10,11 @@ export function requireOrigin(services: Services): MiddlewareHandler<ApiEnv> {
     if (!safeMethods.has(context.req.method)) {
       const origin = context.req.header("Origin");
       const requestUrl = new URL(context.req.url);
-      const allowedOrigins = new Set([requestUrl.origin, publicOrigin]);
+      const allowedOrigins = new Set([publicOrigin]);
+      if (!services.production) allowedOrigins.add(requestUrl.origin);
       // Next can normalize the URL hostname to localhost while preserving the browser's Host.
       const host = context.req.header("Host");
-      if (host) {
+      if (host && !services.production) {
         requestUrl.host = host;
         allowedOrigins.add(requestUrl.origin);
       }

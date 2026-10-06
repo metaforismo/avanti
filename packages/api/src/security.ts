@@ -14,6 +14,11 @@ const derive = (password: string, salt: string) =>
 export const newToken = () => randomBytes(32).toString("base64url");
 export const hashBytes = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+export function tokenMatches(token: string, storedHash: string): boolean {
+  const expected = Buffer.from(storedHash, "hex");
+  const provided = Buffer.from(hashToken(token), "hex");
+  return expected.length === provided.length && timingSafeEqual(expected, provided);
+}
 export class ApiFailure extends Error {
   constructor(
     public code: ErrorCode,
@@ -63,7 +68,7 @@ export function sanitizeName(name: string, mime?: string): string {
   return `${sanitized.replace(/(?:\.[^.]+)+$/, "") || "documento"}.${extension}`;
 }
 export function sniffMime(bytes: Uint8Array): string | null {
-  const b = Buffer.from(bytes);
+  const b = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (b.subarray(0, 5).toString() === "%PDF-") return "application/pdf";
   if (b.length >= 8 && b.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])))
     return "image/png";

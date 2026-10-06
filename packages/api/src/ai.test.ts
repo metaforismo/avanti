@@ -130,3 +130,17 @@ it("applies the citizen register and vocabulary to translation and intake instru
   expect(intake).toContain("Capitalize all Ukrainian courtesy pronouns");
   expect(translation).toContain("Do not add facts, deadlines, requirements or promises");
 });
+
+it("pilot: a nonresponding provider hits the hard deadline and keeps the citizen text in a fallback turn", async () => {
+  vi.useFakeTimers();
+  try {
+    vi.mocked(generateText).mockImplementation(() => new Promise(() => {}));
+    const ai = new GatewayIntelligence({ key: "synthetic-key", logger: vi.fn() });
+    const work = ai.intake("Devo fare ISEE", "it", null, [], new Date("2027-01-01Z"));
+    await vi.advanceTimersByTimeAsync(12001);
+    expect(await work).toMatchObject({ engine: "heuristic", practiceId: "isee_ordinario" });
+    expect(ai.fallbackCount).toBe(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});

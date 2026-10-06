@@ -6,7 +6,9 @@ import { ApiFailure } from "../security";
 export function registerErrors(app: App, logger: ApiOptions["errorLogger"]) {
   app.onError((error, context) => {
     let failure: ApiFailure;
-    if (error instanceof ApiFailure) failure = error;
+    if (context.get("bodyTooLarge"))
+      failure = new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
+    else if (error instanceof ApiFailure) failure = error;
     else if (error instanceof DomainValidationError) {
       failure = new ApiFailure("bad_request", 400, error.message);
     } else {

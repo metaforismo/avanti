@@ -50,7 +50,7 @@ describe("intake recovery and household minimum over HTTP", () => {
     const post = (path: string, input: unknown) =>
       app.request(path, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Origin: "http://localhost:3400" },
         body: JSON.stringify(input),
       });
     const start = async (language = "it", practiceId?: string) =>
