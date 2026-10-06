@@ -431,6 +431,9 @@ function UploadButtons({
   );
 }
 
+/** Errors worth another try with the same file; size and format errors are not. */
+const RETRYABLE = new Set<PendingUpload["error"]>(["network", "rate_limited", "internal"]);
+
 function PendingUploads({
   uploads,
   api,
@@ -479,6 +482,11 @@ function PendingUploads({
                 />
               )}
             </div>
+            {upload.error && RETRYABLE.has(upload.error) && (
+              <Button variant="secondary" size="sm" onClick={() => api.retryUpload(upload.id)}>
+                {m.common.retry}
+              </Button>
+            )}
             {upload.error && (
               <button
                 type="button"
