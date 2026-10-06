@@ -15,7 +15,7 @@ const phrases: Record<Language, Phrases> = {
   it: {
     prefix: "Ho capito",
     alone: "Vivi da solo o sola",
-    household: "Il tuo nucleo comprende {n} persone",
+    household: "Il tuo nucleo familiare comprende {n} persone",
     relatives: ["tua madre", "tuo padre", "il tuo coniuge"],
     with: "Vivi con {who}",
     accounts: ["hai un conto", "hai {n} conti"],
@@ -45,7 +45,7 @@ const phrases: Record<Language, Phrases> = {
   es: {
     prefix: "He entendido",
     alone: "Vives solo o sola",
-    household: "Tu hogar tiene {n} personas",
+    household: "Tu unidad familiar tiene {n} personas",
     relatives: ["tu madre", "tu padre", "tu cónyuge"],
     with: "Vives con {who}",
     accounts: ["tienes una cuenta", "tienes {n} cuentas"],
@@ -55,7 +55,7 @@ const phrases: Record<Language, Phrases> = {
   ro: {
     prefix: "Am înțeles",
     alone: "Locuiești singur sau singură",
-    household: "Familia ta are {n} persoane",
+    household: "Nucleul tău familial are {n} persoane",
     relatives: ["mama ta", "tatăl tău", "soțul sau soția ta"],
     with: "Locuiești cu {who}",
     accounts: ["ai un cont", "ai {n} conturi"],
@@ -65,12 +65,12 @@ const phrases: Record<Language, Phrases> = {
   uk: {
     prefix: "Я зрозумів",
     alone: "Ви живете самі",
-    household: "У вашій сім’ї {n} осіб",
+    household: "У Вашій сім’ї {n} осіб",
     relatives: ["матір’ю", "батьком", "чоловіком або дружиною"],
     with: "Ви живете з {who}",
-    accounts: ["у вас один рахунок", "у вас {n} рахунків"],
-    properties: ["у вас один об’єкт нерухомості", "у вас {n} об’єктів нерухомості"],
-    vehicles: ["у вас один транспортний засіб", "у вас {n} транспортних засобів"],
+    accounts: ["у Вас один рахунок", "у Вас {n} рахунків"],
+    properties: ["у Вас один об’єкт нерухомості", "у Вас {n} об’єктів нерухомості"],
+    vehicles: ["у Вас один транспортний засіб", "у Вас {n} транспортних засобів"],
   },
   ar: {
     prefix: "فهمت",
@@ -106,7 +106,7 @@ const composition: Record<Language, Composition> = {
   fr: { separator: ", ", conjunction: " et ", stop: ".", sharedPrefix: "vous avez " },
   es: { separator: ", ", conjunction: " y ", stop: ".", sharedPrefix: "tienes " },
   ro: { separator: ", ", conjunction: " și ", stop: ".", sharedPrefix: "ai " },
-  uk: { separator: ", ", conjunction: " і ", stop: ".", sharedPrefix: "у вас " },
+  uk: { separator: ", ", conjunction: " і ", stop: ".", sharedPrefix: "у Вас " },
   ar: { separator: "، ", conjunction: " و", stop: ".", sharedPrefix: "لديك " },
   bn: { separator: ", ", conjunction: " এবং ", stop: "।", sharedPrefix: null },
 };

@@ -35,8 +35,8 @@ const demoNotice: Record<Language, string> = {
   es: "Expediente de EJEMPLO. Las personas y los documentos son ficticios.",
   ro: "Dosar EXEMPLU. Persoanele și documentele sunt fictive.",
   uk: "Зразок справи. Люди та документи вигадані.",
-  ar: "ملف تجريبي. الأشخاص والمستندات غير حقيقيين.",
-  bn: "এটি একটি নমুনা ফাইল। এখানে মানুষ ও কাগজপত্র কাল্পনিক।",
+  ar: "ملف تجريبي. الأشخاص والوثائق غير حقيقيين.",
+  bn: "এটি একটি নমুনা ফাইল। এখানে মানুষ ও নথি কাল্পনিক।",
 };
 
 const demoIntegrationRequest: Record<Language, string> = {
@@ -109,7 +109,7 @@ export async function seedDemo(
         organizationId,
         slug: "demo-milano-centro",
         name: "Milano Centro",
-        address: "Via Esempio 10 (sede fittizia)",
+        address: "Via Esempio 10 (sportello fittizio)",
         city: "Milano",
         phone: "+39 02 00000000",
         openingHours: "Lun–Ven 09:00–13:00, 14:00–18:00",
@@ -119,7 +119,7 @@ export async function seedDemo(
         organizationId,
         slug: "demo-milano-loreto",
         name: "Milano Loreto",
-        address: "Via Dimostrazione 20 (sede fittizia)",
+        address: "Via Dimostrazione 20 (sportello fittizio)",
         city: "Milano",
         phone: "+39 02 00000001",
         openingHours: "Lun–Ven 09:00–17:00",

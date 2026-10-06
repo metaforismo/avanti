@@ -158,13 +158,13 @@ export function applyTurn(
 
 const choosePractice: Record<Language, string> = {
   it: "Scegli la pratica che ti serve.",
-  en: "Choose the service you need.",
-  fr: "Choisissez le service souhaité.",
-  es: "Elige el servicio que necesitas.",
-  ro: "Alege serviciul dorit.",
-  uk: "Оберіть потрібну послугу.",
-  ar: "اختر الخدمة التي تحتاجها.",
-  bn: "আপনার প্রয়োজনীয় সেবা বেছে নিন।",
+  en: "Choose the application you need.",
+  fr: "Choisissez la demande souhaitée.",
+  es: "Elige el trámite que necesitas.",
+  ro: "Alege cererea dorită.",
+  uk: "Оберіть потрібну заяву.",
+  ar: "اختر الطلب الذي تحتاجه.",
+  bn: "আপনার প্রয়োজনীয় আবেদন বেছে নিন।",
 };
 const uploadDocuments: Record<Language, string> = {
   it: "Puoi caricare i documenti della checklist.",
@@ -173,7 +173,7 @@ const uploadDocuments: Record<Language, string> = {
   es: "Puedes subir los documentos de la lista.",
   ro: "Poți încărca documentele din listă.",
   uk: "Можете завантажити документи зі списку.",
-  ar: "يمكنك تحميل المستندات في القائمة.",
+  ar: "يمكنك تحميل الوثائق في القائمة.",
   bn: "তালিকার নথিগুলো আপলোড করতে পারেন।",
 };
 
