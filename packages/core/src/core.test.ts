@@ -191,7 +191,7 @@ describe("interview validation and edits", () => {
     },
   );
 
-  it("requires exactly one applicant, consistent count and non-future birth years", () => {
+  it("requires exactly one applicant and non-future birth years", () => {
     for (const value of [
       members.slice(1),
       [...members, members[0]],
