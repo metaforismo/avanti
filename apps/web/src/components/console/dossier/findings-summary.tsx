@@ -54,17 +54,33 @@ export function FindingsSummary({ dossier }: { dossier: CaseDossier }) {
                   ? "Manca 1 documento obbligatorio"
                   : `Mancano ${missing.length} documenti obbligatori`}
               </p>
-              <p className="mt-1 text-[0.9375rem] text-ink-2">
-                {missing.map((item, i) => (
-                  <span key={item.id}>
-                    <a href={`#item-${item.id}`} className="hover:text-ink hover:underline">
-                      {item.title}
-                      {item.memberName ? ` (${item.memberName})` : ""}
-                    </a>
-                    {i < missing.length - 1 ? "; " : ""}
-                  </span>
+              {/* Grouped by person: "what is Giulia still missing?" is the operator's question. */}
+              <dl className="mt-2 grid gap-2 text-[0.9375rem]">
+                {groupByMember(missing, dossier.household).map(([member, items]) => (
+                  <div key={member ?? ""}>
+                    <dt className="text-sm font-semibold text-ink-2">
+                      {member ?? "Tutto il nucleo familiare"}
+                    </dt>
+                    <dd>
+                      <ul className="mt-0.5 grid gap-0.5">
+                        {items.map((item) => (
+                          <li key={item.id} className="flex gap-2">
+                            <span aria-hidden className="text-ink-3">
+                              ·
+                            </span>
+                            <a
+                              href={`#item-${item.id}`}
+                              className="text-ink-2 hover:text-ink hover:underline"
+                            >
+                              {item.title}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
                 ))}
-              </p>
+              </dl>
             </div>
           </li>
         )}
@@ -167,4 +183,22 @@ function FindingRow({ finding }: { finding: Finding }) {
       )}
     </li>
   );
+}
+
+/** People in household order (applicant first), then the items that concern everyone. */
+function groupByMember(items: CaseDossier["checklist"], household: CaseDossier["household"]) {
+  const groups = new Map<string | null, CaseDossier["checklist"]>();
+  for (const item of items) {
+    const key = item.memberName ?? null;
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  const names = household.map((member) =>
+    [member.firstName, member.lastName].filter(Boolean).join(" "),
+  );
+  const rank = (name: string | null) => {
+    if (name === null) return Number.MAX_SAFE_INTEGER;
+    const index = names.indexOf(name);
+    return index === -1 ? names.length : index;
+  };
+  return [...groups].sort(([a], [b]) => rank(a) - rank(b));
 }
