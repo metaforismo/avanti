@@ -36,8 +36,8 @@ const QUESTIONS = [
     itName: "Ucraino",
     name: "Українська",
     dir: "ltr",
-    q: "З ким ти живеш?",
-    help: "Порахуй усіх, хто зареєстрований за твоєю адресою, навіть якщо це не родичі.",
+    q: "З ким Ви живете?",
+    help: "Порахуйте всіх, хто зареєстрований за Вашою адресою, навіть якщо це не родичі.",
     options: ["Сам або сама", "З іншими людьми"],
   },
   {
@@ -63,8 +63,8 @@ const QUESTIONS = [
     itName: "Francese",
     name: "Français",
     dir: "ltr",
-    q: "Avec qui vis-tu ?",
-    help: "Compte toutes les personnes qui ont la même résidence que toi, même si ce ne sont pas des proches.",
+    q: "Avec qui vivez-vous ?",
+    help: "Comptez toutes les personnes qui ont la même résidence que vous, même si ce ne sont pas des proches.",
     options: ["Seul ou seule", "Avec d'autres personnes"],
   },
   {

@@ -12,11 +12,11 @@ import { apiFetch } from "@/lib/api";
 
 const HEADLINES = [
   { lang: "en", text: "Prepare your application on your phone" },
-  { lang: "fr", text: "Prépare ton dossier depuis ton téléphone" },
+  { lang: "fr", text: "Préparez votre demande depuis votre téléphone" },
   { lang: "es", text: "Prepara tu trámite desde el móvil" },
-  { lang: "ro", text: "Pregătește-ți dosarul de pe telefon" },
-  { lang: "uk", text: "Підготуй свою справу з телефона" },
-  { lang: "ar", text: "حضّر ملفك من هاتفك", dir: "rtl" },
+  { lang: "ro", text: "Pregătește-ți cererea de pe telefon" },
+  { lang: "uk", text: "Підготуйте свою заяву з телефона" },
+  { lang: "ar", text: "حضّر طلبك من هاتفك", dir: "rtl" },
   { lang: "bn", text: "ফোন থেকেই আপনার আবেদন প্রস্তুত করুন" },
 ] as const;
 
