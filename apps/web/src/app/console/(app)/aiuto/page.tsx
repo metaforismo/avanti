@@ -61,7 +61,11 @@ export default function HelpPage() {
               "Verifichi o chiedi",
               "Verifica, Rifiuta (con un motivo che il cittadino legge tradotto) o Non serve. Per quello che manca: Chiedi integrazione.",
             ],
-            ["Chiudi", "Segna come pronta, scarica PDF o JSON per il gestionale, archivia."],
+            [
+              "Copi nel gestionale",
+              "Segna come pronta: si apre il Prospetto DSU, nell'ordine del modello, con un pulsante Copia per ogni valore e il documento da guardare per saldi e importi.",
+            ],
+            ["Chiudi", "Scarica PDF o JSON se servono all'archivio del CAF, poi archivia."],
           ].map(([title, body], i) => (
             <li key={title} className="flex gap-4">
               <span className="tabular grid size-8 shrink-0 place-items-center rounded-full bg-stamp font-display font-bold text-on-stamp">
