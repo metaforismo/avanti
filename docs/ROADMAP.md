@@ -46,8 +46,16 @@ nelle PR.
 
 ## In corso
 
-- Testi del catalogo: descrizioni dei documenti senza ripetizioni, registro e vocabolario uniformi
-  tra domande e interfaccia in tutte le lingue (glossario per lingua).
+- Staging su Vercel secondo `docs/DEPLOY.md` (in attesa del via libera: il cron di manutenzione
+  al minuto richiede il piano Pro), con Postgres e Blob in UE e `pnpm db:check` sul database reale.
+
+## Fatto di recente (6 ottobre)
+
+- Audit di sicurezza e prestazioni per il pilota (`docs/SECURITY.md`,
+  `docs/verification/pilot-hardening.md`): sessioni, link, upload, isolamento tra CAF, header.
+- Limiti pensati per la sala d'attesa sullo stesso Wi-Fi; analisi dei documenti in background.
+- Un'unica voce per catalogo e interfaccia: registro e glossario per lingua
+  (`docs/decisions/citizen-copy.md`).
 
 ## Prima del pilota (ottobre–dicembre 2026)
 
