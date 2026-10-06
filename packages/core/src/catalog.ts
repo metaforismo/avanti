@@ -9,7 +9,7 @@ import {
   type Question,
 } from "@avanti/contracts";
 import { localize, t, type Text, type TextKey } from "./i18n";
-import { buildHousehold } from "./household";
+import { buildHousehold, householdMinimum } from "./household";
 
 export const CATALOG_VERSION = "2027-preparation.1";
 export type Answers = Record<string, AnswerValue>;
@@ -475,7 +475,7 @@ export function questionDefinitions(
       );
   }
   if (practiceId === "isee_ordinario" || practiceId === "assegno_unico")
-    named("household_count", "number", "household", { min: 1, max: 20 });
+    named("household_count", "number", "household", { min: householdMinimum(answers), max: 20 });
   add(
     "members",
     "members",

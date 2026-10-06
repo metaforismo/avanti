@@ -1,4 +1,4 @@
-import type { Language, PracticeId } from "@avanti/contracts";
+import { LANGUAGES, type Language, type PracticeId } from "@avanti/contracts";
 import type { Answers } from "./catalog";
 import {
   normalize,
@@ -20,7 +20,12 @@ import {
   ACCOUNT_TERMS,
   ASSET_NEGATION_PATTERNS,
   POSSESSION_PATTERNS,
-  BANKS,
+  BANK_ALIASES,
+  NUMBER_WORDS,
+  COLLECTIVE_PARENT_TERMS,
+  RELATION_LIST_TERMS,
+  FOREIGN_ASSET_PATTERNS,
+  HOME_MORTGAGE_PATTERNS,
   PLURAL_CHILD_TERMS,
   INFORMAL_PARENT_TERMS,
   MINOR_CHILD_PATTERNS,
@@ -39,7 +44,8 @@ const markers: Record<PracticeId, RegExp[]> = {
     /إيزي|ايزي|আইএসইই/u,
   ],
   isee_universitario: [
-    /isee.{0,20}(universit|student)/u,
+    /universita/u,
+    /isee.{0,20}student/u,
     /university (fees|grant|income)/u,
     /universitaire|universitario|університетськ|جامع|বিশ্ববিদ্যাল/u,
   ],
@@ -63,70 +69,74 @@ const markers: Record<PracticeId, RegExp[]> = {
   ],
   naspi: [/naspi|unemployment|ch[oô]mage|desempleo|somaj|безробіт|البطالة|বেকারত্ব/u],
 };
-const numberWords: Record<string, number> = {
-  un: 1,
-  uno: 1,
-  una: 1,
-  one: 1,
-  a: 1,
-  une: 1,
-  deux: 2,
-  due: 2,
-  two: 2,
-  dos: 2,
-  o: 1,
-  doua: 2,
-  doi: 2,
-  tre: 3,
-  three: 3,
-  trois: 3,
-  tres: 3,
-  trei: 3,
-  quattro: 4,
-  four: 4,
-  quatre: 4,
-  cuatro: 4,
-  patru: 4,
-  cinque: 5,
-  five: 5,
-  cinq: 5,
-  cinco: 5,
-  cinci: 5,
-  six: 6,
-  sei: 6,
-  seis: 6,
-  sase: 6,
-  один: 1,
-  одна: 1,
-  одне: 1,
-  два: 2,
-  дві: 2,
-  двома: 2,
-  двоє: 2,
-  три: 3,
-  чотири: 4,
-  واحد: 1,
-  واحدة: 1,
-  اثنان: 2,
-  اثنين: 2,
-  طفلين: 2,
-  سيارتين: 2,
-  حسابين: 2,
-  ثلاثة: 3,
-  একটি: 1,
-  এক: 1,
-  দুটি: 2,
-  দুই: 2,
-  তিনটি: 3,
-  তিন: 3,
-  চারটি: 4,
-};
 const propertyNoun =
   /(?:immobil[ei]|terren[oi]|properties|houses|land plots|biens|terrains|inmuebles|terrenos|imobile|terenuri|нерухомост|ділянк|عقار|اراض|বাড়ি|জমি)/u;
 
+function compileExtraction(language: Language) {
+  const kin = KIN_TERMS[language];
+  const parent = termsPattern([...kin.madre, ...kin.padre]);
+  const possessive = termsPattern(POSSESSIVE_TERMS[language]);
+  return {
+    living: fragmentsPattern(LIVING_PATTERNS[language]),
+    negative: fragmentsPattern(NEGATION_PATTERNS[language]),
+    withUs: fragmentsPattern(WITH_US_PATTERNS[language]),
+    elsewhere: fragmentsPattern(ELSEWHERE_PATTERNS[language]),
+    parent,
+    ownedParent:
+      language === "ar"
+        ? possessive
+        : new RegExp(
+            `(?:${possessive.source})\\s+(?:${parent.source})|(?:${parent.source})\\s+(?:${possessive.source})`,
+            "u",
+          ),
+    childContext: fragmentsPattern(CHILD_CONTEXT_PATTERNS[language]),
+    continuationWords: termsPattern(
+      [
+        ...Object.values(kin).flat(),
+        ...POSSESSIVE_TERMS[language],
+        ...COLLECTIVE_PARENT_TERMS[language],
+        ...RELATION_LIST_TERMS[language],
+        ...Object.keys(NUMBER_WORDS),
+        ...(language === "bn" ? BENGALI_SUBJECT_TERMS : []),
+      ],
+      "gu",
+    ),
+    informalParent: termsPattern(INFORMAL_PARENT_TERMS[language]),
+    minorChild: fragmentsPattern(MINOR_CHILD_PATTERNS[language]),
+    relations: (Object.keys(kin) as Relation[]).map((relation) => ({
+      relation,
+      pattern: termsPattern(kin[relation], "gu"),
+    })),
+    collectiveParents: termsPattern(COLLECTIVE_PARENT_TERMS[language], "gu"),
+    pluralChildren: termsPattern(PLURAL_CHILD_TERMS[language]),
+    householdCount: new RegExp(
+      `${fragmentsPattern(HOUSEHOLD_COUNT_PATTERNS[language]).source}\\s+(\\d{1,2}|[\\p{L}\\p{M}]+)`,
+      "u",
+    ),
+    alone: new RegExp(fragmentsPattern(ALONE_PATTERNS[language]).source, "gu"),
+    accounts: termsPattern(ACCOUNT_TERMS[language], "gu"),
+    vehicles: termsPattern(VEHICLE_TERMS[language], "gu"),
+    accountNoun: termsPattern(ACCOUNT_TERMS[language]),
+    assetNegative: fragmentsPattern(ASSET_NEGATION_PATTERNS[language]),
+    possession: fragmentsPattern(POSSESSION_PATTERNS[language]),
+    foreignAssets: fragmentsPattern(FOREIGN_ASSET_PATTERNS[language]),
+    mortgage: fragmentsPattern(HOME_MORTGAGE_PATTERNS[language]),
+  };
+}
+const extractionPatterns = Object.fromEntries(
+  LANGUAGES.map((language) => [language, compileExtraction(language)]),
+) as Record<Language, ReturnType<typeof compileExtraction>>;
+const bankPatterns = BANK_ALIASES.map((bank) => ({
+  ...bank,
+  marker: new RegExp(
+    `(?<![\\p{Script=Latin}\\p{N}])(?:${alternatives(bank.aliases)})(?![\\p{Script=Latin}\\p{N}])`,
+    "u",
+  ),
+}));
+const exactPropertyNoun = new RegExp(`^(?:${propertyNoun.source})$`, "u");
 function numericWord(word: string): number | undefined {
   if (/^\d{1,2}$/.test(word)) return Number(word);
-  return numberWords[word];
+  return NUMBER_WORDS[word];
 }
 function normalizedMarker(expression: RegExp): RegExp {
   // Normalize literal accents without lowercasing RegExp syntax such as \p{L}.
@@ -138,12 +148,18 @@ function normalizedMarker(expression: RegExp): RegExp {
     expression.flags,
   );
 }
-function countNoun(text: string, noun: RegExp): number | undefined {
+const classificationPatterns = Object.fromEntries(
+  (Object.keys(markers) as PracticeId[]).map((id) => [
+    id,
+    markers[id].map((marker) => new RegExp(normalizedMarker(marker).source, "gu")),
+  ]),
+) as Record<PracticeId, RegExp[]>;
+function countNoun(text: string): number | undefined {
   const tokens = text.split(/[^\p{L}\p{M}\p{N}]+/u).filter(Boolean);
   let result: number | undefined;
   for (let index = 0; index < tokens.length; index++) {
     const token = tokens[index] ?? "";
-    if (!new RegExp(`^(?:${noun.source})$`, "u").test(token)) continue;
+    if (!exactPropertyNoun.test(token)) continue;
     if (token === "حسابين" || token === "سيارتين") {
       result = 2;
       continue;
@@ -191,9 +207,7 @@ function countNoun(text: string, noun: RegExp): number | undefined {
   return result;
 }
 function hasPositive(text: string, expression: RegExp): boolean {
-  const matches = text.matchAll(
-    new RegExp(expression.source, `${expression.flags.replace("g", "")}g`),
-  );
+  const matches = text.matchAll(expression);
   for (const match of matches) {
     const prefix =
       text
@@ -211,10 +225,8 @@ export type ExtractedFacts = {
   nonresidentParent?: boolean;
   institutions: string[];
 };
-function countAssets(clauses: Clause[], terms: string[], language: Language): number | undefined {
-  const noun = termsPattern(terms, "gu");
-  const negative = fragmentsPattern(ASSET_NEGATION_PATTERNS[language]);
-  const possession = fragmentsPattern(POSSESSION_PATTERNS[language]);
+function countAssets(clauses: Clause[], noun: RegExp, language: Language): number | undefined {
+  const { assetNegative: negative, possession } = extractionPatterns[language];
   let sharedPossession = false;
   let total: number | undefined;
   for (const clause of clauses) {
@@ -249,31 +261,9 @@ function extractHousehold(
   answers: Answers,
   facts: ExtractedFacts,
 ): void {
-  const kin = KIN_TERMS[language];
-  const living = fragmentsPattern(LIVING_PATTERNS[language]);
-  const negative = fragmentsPattern(NEGATION_PATTERNS[language]);
-  const withUs = fragmentsPattern(WITH_US_PATTERNS[language]);
-  const elsewhere = fragmentsPattern(ELSEWHERE_PATTERNS[language]);
-  const parentSource = termsPattern([...kin.madre, ...kin.padre]).source;
-  const possessiveSource = termsPattern(POSSESSIVE_TERMS[language]).source;
-  const ownedParent =
-    language === "ar"
-      ? termsPattern(POSSESSIVE_TERMS.ar)
-      : new RegExp(
-          `(?:${possessiveSource})\\s+(?:${parentSource})|(?:${parentSource})\\s+(?:${possessiveSource})`,
-          "u",
-        );
-  const childContext = fragmentsPattern(CHILD_CONTEXT_PATTERNS[language]);
-  const relationTerms = Object.values(kin).flat();
-  const continuationWords = termsPattern(
-    [
-      ...relationTerms,
-      ...POSSESSIVE_TERMS[language],
-      ...Object.keys(numberWords),
-      ...(language === "bn" ? BENGALI_SUBJECT_TERMS : []),
-    ],
-    "gu",
-  );
+  const patterns = extractionPatterns[language];
+  const { living, negative, withUs, elsewhere, ownedParent, childContext, continuationWords } =
+    patterns;
   const isRelationList = (clause: Clause) =>
     clause.text.replace(continuationWords, "").replace(/[\s\d]+/gu, "") === "";
   const livingClauses = clauses.map(
@@ -296,16 +286,15 @@ function extractHousehold(
   for (const [index, clause] of clauses.entries()) {
     const absent =
       negative.test(clause.text) && (withUs.test(clause.text) || elsewhere.test(clause.text));
-    const parent = termsPattern([...kin.madre, ...kin.padre]).test(clause.text);
+    const parent = patterns.parent.test(clause.text);
     if (absent && parent) {
       facts.nonresidentParent = true;
       if (
         ownedParent.test(clause.text) ||
-        (termsPattern(INFORMAL_PARENT_TERMS[language]).test(clause.text) &&
-          !childContext.test(clause.text))
+        (patterns.informalParent.test(clause.text) && !childContext.test(clause.text))
       ) {
         answers.applicant_parent_nonresident = true;
-      } else if (fragmentsPattern(MINOR_CHILD_PATTERNS[language]).test(clause.text)) {
+      } else if (patterns.minorChild.test(clause.text)) {
         answers.nonresident_parent = true;
       } else if (["uk", "ar", "bn"].includes(language)) {
         answers.applicant_parent_nonresident = true;
@@ -317,25 +306,27 @@ function extractHousehold(
         (clause.coordinated && sharedLiving && isRelationList(clause)));
     sharedLiving = cohabiting;
     if (!cohabiting) continue;
-    const mentioned = (Object.keys(kin) as Relation[])
-      .flatMap((relation) => {
-        return Array.from(clause.text.matchAll(termsPattern(kin[relation], "gu")), (match) => ({
-          relation,
-          match,
-        }));
-      })
-      .sort((a, b) => a.match.index - b.match.index);
+    const mentioned = [
+      ...patterns.relations.flatMap(({ relation, pattern }) =>
+        Array.from(clause.text.matchAll(pattern), (match) => ({ relation, match })),
+      ),
+      ...Array.from(clause.text.matchAll(patterns.collectiveParents)).flatMap((match) =>
+        (["madre", "padre"] as const).map((relation) => ({ relation, match })),
+      ),
+    ].sort((a, b) => a.match.index - b.match.index);
     // A bare list can omit punctuation. Additional predicates instead introduce
     // unrelated subjects, which must not become household members.
     const bareList = isRelationList({ ...clause, text: clause.text.replace(living, "") });
-    const residents = bareList ? mentioned : mentioned.slice(0, 1);
+    const residents = bareList
+      ? mentioned
+      : mentioned.filter((entry) => entry.match.index === mentioned[0]?.match.index);
     for (const { relation, match } of residents) {
       if (relation !== "figlio") {
         if (!relations.includes(relation)) relations.push(relation);
         continue;
       }
       const previous = clause.text.slice(0, match.index).trim().split(/\s+/u).at(-1) ?? "";
-      const pluralChildren = termsPattern(PLURAL_CHILD_TERMS[language]);
+      const pluralChildren = patterns.pluralChildren;
       const count =
         numericWord(previous) ??
         (language === "ar" ? numericWord(match[0]) : undefined) ??
@@ -347,7 +338,11 @@ function extractHousehold(
     answers.household_roles = [
       "richiedente",
       ...relations.map((relation) =>
-        relation === "madre" || relation === "padre" ? "genitore" : relation,
+        relation === "madre" || relation === "padre"
+          ? "genitore"
+          : relation === "coniuge" || relation === "figlio"
+            ? relation
+            : "altro",
       ),
     ];
     answers.household_relations = relations;
@@ -367,9 +362,8 @@ export function extractFacts(
   const scores = (Object.keys(markers) as PracticeId[])
     .map((id) => ({
       id,
-      score: markers[id].reduce(
-        (score, expression) =>
-          score + (hasPositive(normalized, normalizedMarker(expression)) ? 1 : 0),
+      score: classificationPatterns[id].reduce(
+        (score, expression) => score + (hasPositive(normalized, expression) ? 1 : 0),
         0,
       ),
     }))
@@ -379,10 +373,7 @@ export function extractFacts(
   let practiceId: PracticeId | null = null;
   let confidence = 0;
   if (best && best.score > 0) {
-    if (
-      best.id === "isee_universitario" &&
-      markers.isee_universitario.some((marker) => normalizedMarker(marker).test(normalized))
-    ) {
+    if (best.id === "isee_universitario") {
       practiceId = best.id;
       confidence = 0.95;
     } else if (best.score !== second?.score) {
@@ -407,47 +398,48 @@ export function extractFacts(
     confidence = 1;
   }
   const answers: Answers = {};
+  if (practiceId === "isee_universitario") {
+    practiceId = "isee_ordinario";
+    answers.university = true;
+  } else if (practiceId === "isee_ordinario" && university && university.score > 0) {
+    answers.university = true;
+  }
   const facts: ExtractedFacts = { institutions: [] };
   if (practiceId !== "isee_ordinario" && practiceId !== "assegno_unico")
     return { practiceId, confidence, answers, facts };
   const clauses = splitClauses(normalized, language);
-  const countPrefix = fragmentsPattern(HOUSEHOLD_COUNT_PATTERNS[language]).source;
-  const explicitHousehold = new RegExp(`${countPrefix}\\s+(\\d{1,2}|[\\p{L}\\p{M}]+)`, "u").exec(
-    normalized,
-  );
+  const patterns = extractionPatterns[language];
+  const explicitHousehold = patterns.householdCount.exec(normalized);
   const statedCount = explicitHousehold ? numericWord(explicitHousehold[1] ?? "") : undefined;
   if (statedCount && statedCount <= 20) answers.household_count = statedCount;
-  const alone = fragmentsPattern(ALONE_PATTERNS[language]);
+  const alone = patterns.alone;
   if (clauses.some((clause) => hasPositive(clause.text, alone))) {
     answers.household_count = Math.max(statedCount ?? 0, 1);
     answers.household_roles = ["richiedente"];
   }
   extractHousehold(clauses, language, answers, facts);
   if (practiceId === "assegno_unico") return { practiceId, confidence, answers, facts };
-  const accountNoun = termsPattern(ACCOUNT_TERMS[language]);
-  const accounts = countAssets(clauses, ACCOUNT_TERMS[language], language);
+  const accountNoun = patterns.accountNoun;
+  const accounts = countAssets(clauses, patterns.accounts, language);
   if (accounts !== undefined) answers.accounts_count = accounts;
-  const vehicles = countAssets(clauses, VEHICLE_TERMS[language], language);
+  const vehicles = countAssets(clauses, patterns.vehicles, language);
   if (vehicles !== undefined) answers.vehicles_count = vehicles;
-  const properties = countNoun(normalized, propertyNoun);
+  const properties = countNoun(normalized);
   if (properties !== undefined) answers.properties_count = properties;
-  for (const bank of BANKS) {
-    // Latin boundaries allow Arabic, Ukrainian and Bengali affixes next to bank names.
-    const marker = new RegExp(
-      `(?<![\\p{Script=Latin}\\p{N}])(?:${alternatives([bank])})(?![\\p{Script=Latin}\\p{N}])`,
-      "u",
-    );
-    if (bank === "BPM" && facts.institutions.includes("Banco BPM")) continue;
-    if (
-      clauses.some(
-        (clause) =>
-          marker.test(clause.text) &&
-          !fragmentsPattern(ASSET_NEGATION_PATTERNS[language]).test(clause.text),
-      )
-    ) {
-      facts.institutions.push(bank);
-    }
-  }
+  const matchedBanks = bankPatterns.filter((bank) =>
+    clauses.some(
+      (clause) => bank.marker.test(clause.text) && !patterns.assetNegative.test(clause.text),
+    ),
+  );
+  facts.institutions = matchedBanks.map((bank) => bank.name);
+  if (matchedBanks.some((bank) => bank.reviewForeign)) answers.foreign_institution_review = true;
+  if (
+    clauses.some(
+      (clause) =>
+        patterns.foreignAssets.test(clause.text) && !patterns.assetNegative.test(clause.text),
+    )
+  )
+    answers.foreign_assets = true;
   if (facts.institutions.length && answers.accounts_count !== 0) {
     answers.accounts_count = Math.max(
       typeof answers.accounts_count === "number" ? answers.accounts_count : 0,
@@ -464,7 +456,7 @@ export function extractFacts(
     !/titoli|investiment|funds|bonds|fond[os]|облігац|سندات|বন্ড/u.test(normalized)
   ) {
     for (let index = 0; index < answers.accounts_count; index++)
-      answers[`account_type_${index}`] = "deposit";
+      if (!matchedBanks[index]?.wallet) answers[`account_type_${index}`] = "deposit";
   }
   if (
     /in affitto|rent my home|renting|en location|alquil|in chirie|оренд|ايجار|إيجار|ভাড়া/u.test(
@@ -478,5 +470,18 @@ export function extractFacts(
     )
   )
     answers.housing = "owned";
+  if (
+    clauses.some(
+      (clause) => patterns.mortgage.test(clause.text) && !patterns.assetNegative.test(clause.text),
+    )
+  ) {
+    answers.housing = "owned";
+    answers.properties_count = Math.max(
+      typeof answers.properties_count === "number" ? answers.properties_count : 0,
+      1,
+    );
+    // The catalog asks about 31/12/2025; a current mortgage does not prove that historical fact.
+    answers.mortgage_review = true;
+  }
   return { practiceId, confidence, answers, facts };
 }

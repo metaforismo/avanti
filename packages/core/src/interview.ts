@@ -7,7 +7,7 @@ import {
 } from "@avanti/contracts";
 import { catalog, getQuestions, questionDefinitions, type Answers } from "./catalog";
 import { t } from "./i18n";
-import { normalizedName } from "./household";
+import { normalizedName, knownHouseholdRoles } from "./household";
 import { calendarYear } from "./calendar";
 
 export class DomainValidationError extends Error {
@@ -57,6 +57,25 @@ export function applyAnswer(
       valid = typeof value === "boolean";
       break;
     case "number":
+      if (
+        questionId === "household_count" &&
+        typeof value === "number" &&
+        Number.isInteger(value) &&
+        value >= 1 &&
+        value < (definition.min ?? 1)
+      ) {
+        const roles = knownHouseholdRoles(answers);
+        throw new DomainValidationError(
+          questionId,
+          t(
+            language,
+            roles.length === 2 && roles.includes("coniuge")
+              ? "householdSpouseMinimum"
+              : "householdMinimum",
+            { min: definition.min ?? 1 },
+          ),
+        );
+      }
       valid =
         typeof value === "number" &&
         Number.isFinite(value) &&
@@ -121,7 +140,11 @@ export function applyAnswer(
     [questionId]: value,
     // The declared count only suggests rows; the confirmed list is authoritative.
     ...(definition.kind === "members" && Array.isArray(value)
-      ? { household_count: value.length }
+      ? {
+          household_count: value.length,
+          household_roles: value.map((member) => MemberInput.parse(member).role),
+          household_relations: [],
+        }
       : {}),
   };
 }
