@@ -79,10 +79,6 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 - [Ricerca: mercato, competitor, normativa](docs/research/README.md)
 - [Istruzioni per agenti e contributori](AGENTS.md)
 
-## Licenza
-
-Proprietario. Tutti i diritti riservati.
-
 ## Sviluppo backend
 
 ```bash
@@ -99,6 +95,11 @@ Se il watcher nel sandbox macOS restituisce `EMFILE`, lo smoke locale può usare
 `WATCHPACK_POLLING=1000 pnpm dev --env-mode=loose -- --port=3417`.
 La modalità `loose` passa l’impostazione di polling al processo Next; la porta diversa
 consente di mantenere avviato l’altro worktree.
+
+Il database locale (PGlite in `.data/pglite`) ammette un solo processo alla volta: non
+lanciare `pnpm db:*` mentre `pnpm dev` è attivo sulla stessa cartella e ferma il server con
+Ctrl+C. Se all'avvio compare `RuntimeError: abort` da PGlite, il database demo è
+danneggiato: `rm -rf .data && pnpm db:migrate && pnpm db:seed` lo ricrea (solo dati demo).
 
 Il seed crea **CAF Demo Milano**, sedi `demo-milano-centro` e
 `demo-milano-loreto`, dieci fascicoli e PDF chiaramente marcati ESEMPIO. Le
@@ -188,3 +189,7 @@ direttamente dal client.
 
 `GET /api/health` espone `fallbackCount`, il numero di errori AI degradati al fallback
 nella singola istanza, senza dettagli di richieste o cittadini.
+
+## Licenza
+
+Proprietario. Tutti i diritti riservati.
