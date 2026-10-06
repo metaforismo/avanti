@@ -23,7 +23,7 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["Pixel 7"], channel: "chrome", locale: "it-IT" },
-      testMatch: /citizen|landing/,
+      testMatch: /citizen|landing|accessibility/,
     },
     {
       name: "desktop",
@@ -31,10 +31,13 @@ export default defineConfig({
       testMatch: /console|landing|screenshots/,
     },
   ],
-  webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:3400/api/health",
-    reuseExistingServer: true,
-    timeout: 180_000,
-  },
+  // With E2E_BASE_URL the tests target an already running app (another port, a preview deploy).
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: "pnpm dev",
+        url: "http://localhost:3400/api/health",
+        reuseExistingServer: true,
+        timeout: 180_000,
+      },
 });
