@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
   // The PDF parser worker needs a real Node module path, not a Turbopack module ID.
   serverExternalPackages: ["@electric-sql/pglite", "pdf-lib"],
   outputFileTracingIncludes: {
-    "/api/**/*": ["../../packages/db/migrations/**/*", "../../packages/api/assets/fonts/**/*"],
+    "/api/**/*": [
+      "../../packages/db/migrations/**/*",
+      "../../packages/api/assets/fonts/**/*",
+      "../../packages/api/assets/pdf-*.cjs",
+    ],
   },
   logging: { incomingRequests: false },
   poweredByHeader: false,
@@ -13,4 +17,14 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
 };
 
-export default nextConfig;
+export default function configureNext(phase: string): NextConfig {
+  if (
+    phase === "phase-production-server" &&
+    process.env.VERCEL !== "1" &&
+    process.env.TRUST_PROXY !== "1"
+  )
+    throw new Error(
+      "Next Fetch cannot read the client socket: configure TRUST_PROXY=1 behind a trusted proxy before starting Avanti.",
+    );
+  return nextConfig;
+}

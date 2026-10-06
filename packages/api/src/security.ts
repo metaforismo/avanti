@@ -17,7 +17,7 @@ export const hashToken = (token: string) => createHash("sha256").update(token).d
 export class ApiFailure extends Error {
   constructor(
     public code: ErrorCode,
-    public status: 400 | 401 | 403 | 404 | 409 | 410 | 413 | 415 | 429 | 500,
+    public status: 400 | 401 | 403 | 404 | 409 | 410 | 413 | 415 | 429 | 500 | 503,
     message: string,
   ) {
     super(message);

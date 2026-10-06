@@ -11,6 +11,8 @@ import {
 } from "@avanti/core";
 import type { IntakeProposal } from "./ai";
 import type { CaseRow } from "./dossier";
+import { turnAcknowledgement } from "./turn-acknowledgement";
+import { storeMemberIds } from "./household-ids";
 import { ApiFailure } from "./security";
 
 export function assertStartable(practiceId: PracticeId | undefined, now: Date) {
@@ -27,6 +29,21 @@ export function assertProposalCurrent(initial: CaseRow, current: CaseRow) {
   ) {
     throw new ApiFailure("conflict", 409, "Le risposte sono cambiate. Riprova il messaggio.");
   }
+}
+
+function applyValidatedAnswer(
+  practiceId: PracticeId,
+  answers: Record<string, AnswerValue>,
+  questionId: string,
+  value: unknown,
+  language: Language,
+  now: Date,
+) {
+  let updated = applyAnswer(practiceId, answers, questionId, value, language, now);
+  // Keep identity and ownership while the citizen is still changing the household size.
+  if (questionId === "household_count" && answers.members)
+    updated = { ...answers, household_count: updated.household_count! };
+  return storeMemberIds(updated, answers);
 }
 
 function applyProposedAnswers(
@@ -47,7 +64,7 @@ function applyProposedAnswers(
       if (value === undefined) continue;
       pending.delete(question.id);
       try {
-        answers = applyAnswer(practiceId, answers, question.id, value, language, now);
+        answers = applyValidatedAnswer(practiceId, answers, question.id, value, language, now);
         accepted = true;
       } catch (error) {
         if (!(error instanceof DomainValidationError)) throw error;
@@ -80,12 +97,22 @@ export function applyTurn(
       answers = applyProposedAnswers(practiceId, answers, proposal, current.language, now);
     const roles = MemberRole.array().max(20).safeParse(proposal.answers.household_roles);
     if (roles.success) answers.household_roles = roles.data;
+    const relations = proposal.answers.household_relations;
+    if (
+      Array.isArray(relations) &&
+      relations.every(
+        (value) => typeof value === "string" && ["madre", "padre", "coniuge"].includes(value),
+      )
+    )
+      answers.household_relations = relations;
+    if (proposal.answers.applicant_parent_nonresident === true)
+      answers.applicant_parent_nonresident = true;
     return { practiceId, answers };
   }
   if (!practiceId) throw new ApiFailure("bad_request", 400, "Scegli prima la pratica.");
   switch (input.type) {
     case "answer":
-      answers = applyAnswer(
+      answers = applyValidatedAnswer(
         practiceId,
         answers,
         input.questionId,
@@ -96,6 +123,10 @@ export function applyTurn(
       break;
     case "edit":
       answers = editAnswer(practiceId, answers, input.questionId);
+      if (["members", "household_count"].includes(input.questionId)) {
+        answers = { ...current.answers };
+        if (input.questionId === "household_count") delete answers.household_count;
+      }
       break;
     case "skip":
       answers = skipQuestion(practiceId, answers, input.questionId, current.language);
@@ -125,38 +156,16 @@ const uploadDocuments: Record<Language, string> = {
   bn: "তালিকার নথিগুলো আপলোড করতে পারেন।",
 };
 
-const acknowledgement: Record<Language, [string, string, string, string, string]> = {
-  it: ["Ho capito", "persone", "conti", "immobili", "veicoli"],
-  en: ["I understood", "people", "accounts", "properties", "vehicles"],
-  fr: ["J’ai compris", "personnes", "comptes", "biens", "véhicules"],
-  es: ["He entendido", "personas", "cuentas", "inmuebles", "vehículos"],
-  ro: ["Am înțeles", "persoane", "conturi", "imobile", "vehicule"],
-  uk: ["Я зрозумів", "людей", "рахунків", "нерухомість", "транспорт"],
-  ar: ["فهمت", "أشخاص", "حسابات", "عقارات", "مركبات"],
-  bn: ["বুঝেছি", "জন", "হিসাব", "সম্পত্তি", "গাড়ি"],
-};
-export function assistantReply(view: CitizenCase, proposal: IntakeProposal | null) {
+export function assistantReply(
+  view: Pick<CitizenCase, "language" | "practice" | "answers" | "nextQuestion">,
+  proposal: IntakeProposal | null,
+  previous: Record<string, AnswerValue> = {},
+  text = "",
+  previousPractice?: PracticeId | null,
+) {
   if (proposal) {
-    const [prefix, ...labels] = acknowledgement[view.language];
-    const facts: string[] = [];
-    if (view.practice) facts.push(view.practice.name);
-    for (const [index, key] of [
-      "household_count",
-      "accounts_count",
-      "properties_count",
-      "vehicles_count",
-    ].entries()) {
-      const value = view.answers[key];
-      if (typeof value === "number") facts.push(`${labels[index]}: ${value}`);
-    }
-    const banks = Object.entries(view.answers)
-      .filter(
-        ([key, value]) => /^account_bank_\d+$/.test(key) && typeof value === "string" && value,
-      )
-      .map(([, value]) => String(value));
-    if (banks.length) facts.push(banks.join(", "));
-    if (facts.length) return `${prefix}: ${facts.join(", ")}.`;
-    return choosePractice[view.language];
+    const reply = turnAcknowledgement(view, proposal, previous, text, previousPractice);
+    if (reply) return reply;
   }
   if (view.nextQuestion) return view.nextQuestion.prompt;
   return view.practice ? uploadDocuments[view.language] : choosePractice[view.language];

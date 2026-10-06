@@ -102,6 +102,7 @@ export const cases = pgTable(
     language: text("language").$type<Language>().notNull(),
     practiceId: text("practice_id").$type<PracticeId>(),
     status: text("status").$type<CaseStatus>().notNull().default("intake"),
+    editingQuestion: text("editing_question"),
     confirmedAnswers: jsonb("confirmed_answers").$type<string[]>().notNull().default([]),
     answers: jsonb("answers").$type<Record<string, AnswerValue>>().notNull().default({}),
     contact: jsonb("contact").$type<Partial<CitizenContactRequest>>(),

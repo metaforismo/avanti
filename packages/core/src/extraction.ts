@@ -114,7 +114,7 @@ const propertyNoun =
 function normalize(text: string): string {
   return text
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0300-\u036f\u064b-\u065f]/g, "")
     .toLowerCase()
     .replace(/[’']/g, " ")
     .replace(/[০-৯٠-٩۰-۹]/g, (digit) => {
@@ -130,7 +130,7 @@ function numericWord(word: string): number | undefined {
 function normalizedMarker(expression: RegExp): RegExp {
   // Normalize literal accents without lowercasing RegExp syntax such as \p{L}.
   return new RegExp(
-    expression.source.normalize("NFKD").replace(/[\u0300-\u036f]/g, ""),
+    expression.source.normalize("NFKD").replace(/[\u0300-\u036f\u064b-\u065f]/g, ""),
     expression.flags,
   );
 }
@@ -260,9 +260,18 @@ export function extractFacts(
   if (practiceId !== "isee_ordinario" && practiceId !== "assegno_unico")
     return { practiceId, confidence, answers, facts };
   const explicitHousehold =
-    /(?:siamo|we are|nous sommes|somos|suntem|нас|نحن)\s+(\d{1,2}|[\p{L}]+)/u.exec(normalized);
+    /(?:siamo|we are|nous sommes|somos|suntem|нас|نحن)\s+(?:in\s+)?(\d{1,2}|[\p{L}]+)/u.exec(
+      normalized,
+    );
   const statedCount = explicitHousehold ? numericWord(explicitHousehold[1] ?? "") : undefined;
   if (statedCount && statedCount <= 20) answers.household_count = statedCount;
+  if (
+    hasPositive(
+      normalized,
+      /(?:vivo da sol[oa]|(?:i )?live alone|vis seul[e]?|vivo sol[oa]|locuiesc singur[a]?|живу сам[а]?|اعيش وحدي|একা থাকি)/u,
+    )
+  )
+    answers.household_count = 1;
   const livingWith =
     /(?:vivo con|abito con|live with|living with|vis avec|vivo con|locuiesc cu|живу з|اعيش مع|থাকি)/u.exec(
       normalized,
@@ -274,9 +283,9 @@ export function extractFacts(
         .split(/[.;]|(?:mio padre|my father|mon pere|mi padre).{0,10}(?:non|not|ne |no )/u)[0] ??
       "";
     const relations = [
-      /(?:madre|mamma|mother|mere|mama|мама|والدت|امي|মা)/u,
-      /(?:padre|papa|father|pere|tata|батько|والد|ابي|বাবা)/u,
-      /(?:moglie|marito|wife|husband|epouse|epoux|esposa|esposo|sot(?:ie|ul)?|дружина|чоловік|زوج|স্ত্রী|স্বামী)/u,
+      /(?:madre|mamma|mother|mere|mama|мам[ао]ю?|والدتي|امي|মা)/u,
+      /(?:padre|papa|father|pere|tata|батько|والد(?:ي)?|ابي|বাবা)/u,
+      /(?:moglie|marito|wife|husband|epouse|epoux|esposa|esposo|sot(?:ie|ia|ul|ul meu)|дружин[ао]ю?|чоловік(?:ом)?|زوج|স্ত্রী|স্বামী)/u,
     ];
     const roles = relations.flatMap((expression, index) => {
       const bounded = new RegExp(
@@ -287,7 +296,16 @@ export function extractFacts(
       return [index === 2 ? "coniuge" : "genitore"];
     });
     const known = roles.length;
-    if (known) answers.household_roles = ["richiedente", ...roles];
+    if (known) {
+      answers.household_roles = ["richiedente", ...roles];
+      answers.household_relations = relations.flatMap((expression, index) => {
+        const bounded = new RegExp(
+          `(?<![\\p{L}\\p{M}])(?:${expression.source})(?![\\p{L}\\p{M}])`,
+          "u",
+        );
+        return hasPositive(householdClause, bounded) ? [["madre", "padre", "coniuge"][index]!] : [];
+      });
+    }
     if (
       answers.household_count === undefined &&
       known > 0 &&
@@ -296,11 +314,33 @@ export function extractFacts(
       answers.household_count = 1 + known;
   }
   if (typeof answers.household_count === "number") facts.householdCount = answers.household_count;
-  facts.nonresidentParent =
-    /(?:padre|madre|father|mother|pere|mere|tata|mama|батько|мати|الاب|الام).{0,30}(?:non vive|non abita|does not live|doesn t live|not living|ne vit pas|no vive|nu locuieste|не живе|لا يعيش)/u.test(
-      normalized,
-    ) || undefined;
-  if (facts.nonresidentParent) answers.nonresident_parent = true;
+  const clauses = normalized.split(/[.,;!?]|\b(?:ma|but|mais|pero)\b/u);
+  const absentParent =
+    /(?:padre|madre|father|mother|pere|mere|tata|mama|батько|мати|الاب|الام)\s+(?:\p{L}+\s+){0,2}(?:non vive|non abita|does not live|doesn t live|not living|ne vit pas|no vive|nu locuieste|не живе|لا يعيش)/u;
+  facts.nonresidentParent = clauses.some((clause) => absentParent.test(clause)) || undefined;
+  if (
+    clauses.some(
+      (clause) =>
+        absentParent.test(clause) &&
+        /(?:mio padre|mia madre|my father|my mother|mon pere|ma mere|mi padre|mi madre)/u.test(
+          clause,
+        ),
+    )
+  )
+    answers.applicant_parent_nonresident = true;
+  if (
+    clauses.some(
+      (clause) =>
+        absentParent.test(clause) &&
+        /(?:figli[oa] minorenne|figli minorenni|minor child|underage child|enfant mineur|hijo menor|copil minor|неповнолітн.{0,4} дит|طفل قاصر|নাবালক সন্তান)/u.test(
+          clause,
+        ) &&
+        !/(?:mio padre|mia madre|my father|my mother|mon pere|ma mere|mi padre|mi madre)/u.test(
+          clause,
+        ),
+    )
+  )
+    answers.nonresident_parent = true;
   if (practiceId === "assegno_unico") return { practiceId, confidence, answers, facts };
   const accounts = countNoun(normalized, accountNoun);
   if (accounts !== undefined) answers.accounts_count = accounts;

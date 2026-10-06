@@ -48,7 +48,7 @@ export function authenticateOperator(services: Services): MiddlewareHandler<ApiE
       .where(eq(operators.id, session.operatorId))
       .limit(1);
     if (!operator) throw new ApiFailure("unauthorized", 401, "Accedi per continuare.");
-    if (!readOnly) {
+    {
       await services.db
         .update(sessions)
         .set({

@@ -41,3 +41,38 @@ it("33: AI household role suggestions must match the contract", () => {
   );
   expect(result.answers.household_roles).toBeUndefined();
 });
+
+it("B4: acknowledgement describes only this turn, naturally and with relations", async () => {
+  const { assistantReply } = await import("./citizen-turn");
+  const { getPractice } = await import("@avanti/core");
+  const view = {
+    language: "it",
+    practice: getPractice("isee_ordinario", "it"),
+    answers: {
+      household_count: 2,
+      household_roles: ["richiedente", "genitore"],
+      accounts_count: 1,
+      account_bank_0: "Fineco",
+      vehicles_count: 1,
+      household_relations: ["madre"],
+    },
+  } as unknown as import("@avanti/contracts").CitizenCase;
+  const proposal = {
+    practiceId: "isee_ordinario" as const,
+    confidence: 1,
+    answers: { vehicles_count: 1 },
+    reply: "",
+    engine: "heuristic" as const,
+  };
+  expect(
+    assistantReply(view, proposal, { ...view.answers, vehicles_count: 0 }, "", "isee_ordinario"),
+  ).toBe("Ho capito: hai un veicolo.");
+  expect(
+    assistantReply(
+      view,
+      { ...proposal, answers: view.answers },
+      {},
+      "ISEE vivo con mia madre, ho un conto Fineco e un'auto",
+    ),
+  ).toContain("Vivi con tua madre");
+});

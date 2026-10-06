@@ -28,9 +28,10 @@ export function proxyAddress(headers: Headers, vercel: boolean): string | null {
 export function rateKey(secret: string, category: string, value: string): string {
   return createHmac("sha256", secret).update(`${category}:${value}`).digest("hex");
 }
-function remoteAddress(context: ApiContext, services: Services): string | null {
+export function remoteAddress(context: ApiContext, services: Services): string | null {
   if (services.trustProxy) return proxyAddress(context.req.raw.headers, services.vercel ?? false);
-  if (services.clientAddress) return services.clientAddress(context);
+  const address = services.clientAddress?.(context) ?? context.env?.incoming?.socket.remoteAddress;
+  if (address && isIP(address)) return address;
   return null;
 }
 export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
@@ -41,7 +42,8 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       const identities: string[] = [];
       const address = remoteAddress(context, services);
       if (services.production && !address)
-        throw new ApiFailure("internal", 500, "Servizio momentaneamente non disponibile. Riprova.");
+        throw new ApiFailure("bad_request", 400, "Richiesta non valida.");
+
       if (address) identities.push(`ip:${address}`);
       const capability = /^\/api\/c\/([^/]+)/.exec(context.req.path)?.[1];
       if (capability) identities.push(`capability:${capability}`);

@@ -24,8 +24,8 @@ della directory. In produzione le migrazioni si applicano esplicitamente con
 | `operators`          | Operatori, ruolo e hash scrypt; email normalizzata dall'API e univoca.                                        |
 | `sessions`           | Hash del token casuale, operatore e scadenza; nessun token in chiaro.                                         |
 | `cases`              | Pratica, risposte tipizzate JSON, lingua, contatto, stato, link hash, assegnatario, note e istanti KPI.       |
-| `members`            | Membri con identificatori stabili, ruolo, nome e anno di nascita; PK composta pratica/ID.                     |
 | `checklist_reviews`  | Decisione e nota per coppia pratica/voce stabile; operatore e istante della revisione.                        |
+| `storage_deletions`  | Tombstone e backoff per cancellazioni storage da ritentare tramite cron, senza nome o contenuto del file.     |
 | `documents`          | Metadati, chiave storage, SHA-256 e analisi tipizzata; mai i byte nel database.                               |
 | `messages`           | Conversazione necessaria alla pratica e originale italiano delle traduzioni.                                  |
 | `events`             | Audit strutturato: categoria di azione, attore, identificatore e istante; metadata solo numeri/booleani/null. |
@@ -51,7 +51,12 @@ altro tenant. Gli eventi associati a un caso hanno a loro volta una foreign key 
 per imporre che il tenant dell’audit corrisponda a quello della pratica. Indici coprono tenant/stato/aggiornamento, tenant/sede/creazione,
 assegnatario, hash token, documenti per pratica e audit per tenant/tipo/istante.
 
-La cancellazione di una pratica elimina membri, revisioni, messaggi, eventi e metadati
+I membri sono salvati soltanto in `cases.answers.members`, con UUID persistenti;
+la vecchia tabella `members` è stata rimossa. `confirmed_answers` conserva le chiavi
+confermate e `editing_question` la domanda da riproporre durante un edit. Per i casi
+preesistenti la migrazione conferma tutte le chiavi delle risposte già salvate.
+
+La cancellazione di una pratica elimina revisioni, messaggi, eventi e metadati
 documenti. La cancellazione dei byte storage deve essere coordinata dal servizio: una
 foreign key non può eliminare file. Sedi e assegnatari ancora usati dalle pratiche sono
 protetti dalla cancellazione. La cancellazione di un operatore elimina le sessioni e

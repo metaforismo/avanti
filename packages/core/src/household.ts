@@ -14,6 +14,6 @@ export function buildHousehold(answers: Record<string, AnswerValue>): Member[] {
     const key = member.role;
     const count = occurrence.get(key) ?? 0;
     occurrence.set(key, count + 1);
-    return [{ ...member, id: `m_${key}_${count}` }];
+    return [{ ...member, id: member.id ?? `m_${key}_${count}` }];
   });
 }

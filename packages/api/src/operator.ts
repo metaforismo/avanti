@@ -200,9 +200,16 @@ export function mountOperatorRoutes(app: App, s: Services) {
           durationMinutes: minutes(updated.reviewStartedAt, updated.reviewCompletedAt),
         });
       }
-      if (input.status === "in_review" && !current.reviewStartedAt)
-        await audit(tx, updated, "operator", "review.started", now, operator.id);
-      if (input.status && input.status !== current.status) {
+      if (input.status === "in_review" && current.status !== "in_review")
+        await audit(
+          tx,
+          updated,
+          "operator",
+          current.status === "closed" ? "case.reopened" : "review.started",
+          now,
+          operator.id,
+        );
+      if (input.status && input.status !== current.status && input.status !== "in_review") {
         const eventType = current.status === "closed" ? "case.reopened" : `case.${input.status}`;
         await audit(tx, updated, "operator", eventType, now, operator.id);
       }
@@ -352,8 +359,12 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const row = await caseById(s.db, c.req.param("id"), operator.organizationId);
     const dossier = await dossierView(s.db, row, s.clock());
     c.header("Content-Disposition", `attachment; filename="${row.reference}.${format}"`);
-    if (format === "json") return c.json(dossier);
+    if (format === "json") {
+      await audit(s.db, row, "operator", "case.exported", s.clock(), operator.id);
+      return c.json(dossier);
+    }
     const bytes = await exportPdf(dossier);
+    await audit(s.db, row, "operator", "case.exported", s.clock(), operator.id);
     c.header("Content-Type", "application/pdf");
     return c.body(Buffer.from(bytes));
   });

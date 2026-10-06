@@ -129,7 +129,7 @@ describe("heuristic classification and fact extraction", () => {
     expect(result.answers.account_bank_0).toBe("Fineco");
     expect(result.answers.vehicles_count).toBe(1);
     expect(result.facts.nonresidentParent).toBe(true);
-    expect(result.answers.nonresident_parent).toBe(true);
+    expect(result.answers.nonresident_parent).toBeUndefined();
     expect(result.answers.members).toBeUndefined();
   });
 
