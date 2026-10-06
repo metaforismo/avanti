@@ -161,15 +161,15 @@ l'identità del cittadino. I bucket sono persistiti come HMAC, distinti per cate
 e finestra. I controlli della pratica/email precedono quelli IP: richieste già bloccate
 per quell'identità non consumano il budget del Wi-Fi.
 
-| Operazione              | Identità principale                                                  | Tetto IP fidato e burst     |
-| ----------------------- | -------------------------------------------------------------------- | --------------------------- |
-| Nuova pratica pubblica  | Non esiste ancora una capability                                     | 60/ora, burst 40/minuto     |
-| Turni intervista        | 120/ora e 20/minuto per capability                                   | 2.000/ora, burst 200/minuto |
-| Upload                  | 120/ora e 30/minuto per capability; 4 simultanei per pratica/istanza | 4.000/ora, burst 400/minuto |
-| Login/cambio password   | 10/minuto per email; cambio anche per operatore                      | 100/minuto                  |
-| Export operatore        | 20/minuto per operatore                                              | 200/minuto                  |
-| Traduzioni/integrazioni | 30/minuto per operatore                                              | 300/minuto                  |
-| Candidature CAF         | —                                                                    | 5/minuto                    |
+| Operazione              | Identità principale                                                  | Tetto IP fidato e burst        |
+| ----------------------- | -------------------------------------------------------------------- | ------------------------------ |
+| Nuova pratica pubblica  | Non esiste ancora una capability                                     | 60/ora, burst 40/minuto        |
+| Turni intervista        | 400/ora e 60/minuto per capability                                   | 15.000/ora, burst 1.500/minuto |
+| Upload                  | 120/ora e 30/minuto per capability; 4 simultanei per pratica/istanza | 4.000/ora, burst 400/minuto    |
+| Login/cambio password   | 10/minuto per email; cambio anche per operatore                      | 100/minuto                     |
+| Export operatore        | 20/minuto per operatore                                              | 200/minuto                     |
+| Traduzioni/integrazioni | 30/minuto per operatore                                              | 300/minuto                     |
+| Candidature CAF         | —                                                                    | 5/minuto                       |
 
 Sono finestre fisse che partono dalla prima richiesta, con guardia al minuto per i
 burst; non un token bucket a ricarica continua. Ogni tentativo arrivato a un bucket

@@ -21,7 +21,9 @@ const hour = (limit: number): WindowLimit => ({ limit, seconds: 3600 });
 export const RATE_POLICIES = {
   login: { category: "login", primary: [minute(10)], ip: [minute(100)] },
   intake: { category: "intake", primary: [], ip: [minute(40), hour(60)] },
-  turn: { category: "turn", primary: [minute(20), hour(120)], ip: [minute(200), hour(2000)] },
+  // Answers are quick taps (a large family can give 30 in a minute) and only free text reaches
+  // the AI; the IP ceiling assumes a full waiting room on one Wi-Fi, all tapping at once.
+  turn: { category: "turn", primary: [minute(60), hour(400)], ip: [minute(1500), hour(15000)] },
   upload: { category: "upload", primary: [minute(30), hour(120)], ip: [minute(400), hour(4000)] },
   leads: { category: "leads", primary: [], ip: [minute(5)] },
   export: { category: "export", primary: [minute(20)], ip: [minute(200)] },

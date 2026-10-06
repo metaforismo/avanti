@@ -94,7 +94,8 @@ it("40 citizens on one Wi-Fi create cases together and complete ISEE interviews 
     round < 40 && citizens.some((citizen) => citizen.case.nextQuestion);
     round++
   ) {
-    now = new Date(Date.parse("2027-01-05T10:00:00Z") + (round + 1) * 15000);
+    // Everyone taps an answer every two seconds: the busiest a room can realistically get.
+    now = new Date(Date.parse("2027-01-05T10:00:00Z") + (round + 1) * 2000);
     citizens = await Promise.all(
       citizens.map(async (citizen) => {
         const question = citizen.case.nextQuestion;
@@ -173,14 +174,14 @@ it("capability burst is strict, localized, and does not charge the Wi-Fi for rej
     .set({ tokenHash: hashToken(token), language: "en" })
     .where(eq(cases.id, row!.id));
   const app = limitedApp();
-  for (let i = 0; i < 20; i++)
+  for (let i = 0; i < 60; i++)
     expect((await post(app, `/api/c/${token}/turn`, {})).status).toBe(200);
   const blocked = await post(app, `/api/c/${token}/turn`, {});
   expect(blocked.status).toBe(429);
   expect(blocked.headers.get("Retry-After")).toBe("60");
   expect(ApiError.parse(await blocked.json()).error.message).toBe(limitMessage("en", 60));
   const counters = await db.select().from(rateLimits);
-  expect(counters.filter((r) => r.count === 20)).toHaveLength(3);
+  expect(counters.filter((r) => r.count === 60)).toHaveLength(3);
   now = new Date(now.getTime() + 60000);
   expect((await post(app, `/api/c/${token}/turn`, {})).status).toBe(200);
 });
@@ -202,15 +203,18 @@ it("intake allows 60 cases an hour with a 40-case burst, returns the actual rema
   now = new Date("2027-01-05T13:00:00Z");
   expect((await post(app, "/api/intake", input)).status).toBe(200);
 });
-it("the broad IP ceiling stops at 2,000 turns per hour across otherwise healthy capabilities", async () => {
+it("the broad IP ceiling stops at 15,000 turns per hour across otherwise healthy capabilities", async () => {
   await db.delete(rateLimits);
   const base = Date.parse("2027-01-05T15:00:00Z");
   const app = limitedApp();
-  const tokens = Array.from({ length: 40 }, (_, i) => String(i).padStart(43, "x"));
+  // 50 citizens, six taps a minute each, for 50 minutes: every per-case limit stays healthy.
+  const tokens = Array.from({ length: 50 }, (_, i) => String(i).padStart(43, "x"));
   for (let minute = 0; minute < 50; minute++) {
     now = new Date(base + minute * 60000);
     const responses = await Promise.all(
-      tokens.map((token) => post(app, `/api/c/${token}/turn`, {})),
+      Array.from({ length: 6 }, () =>
+        tokens.map((token) => post(app, `/api/c/${token}/turn`, {})),
+      ).flat(),
     );
     expect(responses.every((response) => response.status === 200)).toBe(true);
   }
@@ -232,4 +236,27 @@ it.each(LANGUAGES)("intake limits return citizen copy and Retry-After in %s", as
   const message = ApiError.parse(await response.json()).error.message;
   expect(message).toContain("60");
   if (language !== "it") expect(message).not.toBe(limitMessage("it", 60));
+});
+
+it("a citizen answering at full speed is never throttled", async () => {
+  await db.delete(rateLimits);
+  const app = createApp(services());
+  now = new Date("2027-01-05T18:00:00Z");
+  const start = await post(app, "/api/intake", {
+    officeSlug: "room",
+    language: "it",
+    practiceId: "isee_ordinario",
+    privacyAccepted: true,
+  });
+  const { token } = StartIntakeResponse.parse(await start.json());
+  // 46 quick turns in 90 seconds (changing an answer and giving it again), one every two seconds.
+  for (let tap = 0; tap < 46; tap++) {
+    now = new Date(Date.parse("2027-01-05T18:00:00Z") + tap * 2000);
+    const turn =
+      tap % 2 === 0
+        ? { type: "answer", questionId: "household_count", value: (tap % 5) + 1 }
+        : { type: "edit", questionId: "household_count" };
+    const response = await post(app, `/api/c/${token}/turn`, turn);
+    expect(response.status, `tap ${tap}`).toBe(200);
+  }
 });

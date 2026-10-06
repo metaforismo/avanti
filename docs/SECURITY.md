@@ -76,7 +76,7 @@ La policy del proxy/browser fa parte del deployment e non è provata dai soli te
 ## Sala d'attesa e manutenzione pianificata
 
 L'IP non identifica il cittadino: 40 persone possono condividere il Wi-Fi del CAF.
-Capability per pratica: turni 20/minuto + 120/ora, upload 30/minuto + 120/ora.
+Capability per pratica: turni 60/minuto + 400/ora (le risposte sono tocchi rapidi; solo il testo libero arriva all'AI), upload 30/minuto + 120/ora.
 IP fidato: turni 200/minuto + 2.000/ora, upload 400/minuto + 4.000/ora; avvii pubblici
 40/minuto + 60/ora. Login/password conservano 10/minuto per email (password anche per
 operatore), con tetto IP 100/minuto per non bloccare l'ingresso di 10 operatori.

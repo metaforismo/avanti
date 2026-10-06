@@ -177,8 +177,8 @@ trascorsi, includono pause/attesa, non misurano minuti di attività continua. No
 intervalli come prova di risparmio di lavoro senza un protocollo di misurazione nel pilota.
 
 Rate limit persistente su HMAC di identità/categoria/finestra. Capability come identità
-principale per turni (20/minuto, 120/ora) e upload (30/minuto, 120/ora); tetti IP
-rispettivamente 200/minuto e 2.000/ora, 400/minuto e 4.000/ora. Nuove pratiche pubbliche:
+principale per turni (60/minuto, 400/ora) e upload (30/minuto, 120/ora); tetti IP
+rispettivamente 1.500/minuto e 15.000/ora, 400/minuto e 4.000/ora. Nuove pratiche pubbliche:
 40/minuto e 60/ora per IP. Login/password: 10/minuto per email, 100/minuto per IP;
 password anche per operatore. Export: 20/minuto per operatore, 200 per IP; integrazioni:
 30/minuto per operatore, 300 per IP. Lead: 5/minuto per IP. Finestre fisse dalla prima
