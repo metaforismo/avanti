@@ -17,7 +17,7 @@ export function storeMemberIds(
       throw new ApiFailure(
         "bad_request",
         400,
-        "Il componente del nucleo non è valido. Ricarica la pagina.",
+        "Il componente del nucleo familiare non è valido. Ricarica la pagina.",
       );
     if (!input.id) {
       match = before.find(

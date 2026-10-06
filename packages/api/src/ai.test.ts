@@ -115,3 +115,18 @@ it("13: provider fallback emits only safe telemetry and increments its counter",
   });
   expect(JSON.stringify(logger.mock.calls)).not.toContain("private");
 });
+
+it("applies the citizen register and vocabulary to translation and intake instructions", async () => {
+  vi.mocked(generateText).mockRejectedValue(new Error("unavailable"));
+  const ai = new GatewayIntelligence({ key: "test-key", logger: vi.fn() });
+  await ai.translate("Porta i documenti allo sportello", "fr");
+  await ai.intake("ISEE", "uk", null, [], new Date("2027-01-01Z"));
+  const [translation, intake] = vi
+    .mocked(generateText)
+    .mock.calls.map(([options]) => options.instructions);
+  expect(translation).toContain("Address the citizen using vous");
+  expect(translation).toContain('"desk":"guichet"');
+  expect(intake).toContain("Address the citizen using Ви");
+  expect(intake).toContain("Capitalize all Ukrainian courtesy pronouns");
+  expect(translation).toContain("Do not add facts, deadlines, requirements or promises");
+});

@@ -11,7 +11,7 @@ export function dossierSummary(
   const practice = getPractice(practiceId, "it");
   if (household.length)
     facts.push({
-      label: "Nucleo",
+      label: "Nucleo familiare",
       value: `${household.length} ${household.length === 1 ? "persona" : "persone"}`,
       source: "citizen",
     });
@@ -43,7 +43,7 @@ export function dossierSummary(
       facts.push({ label, value: String(answers[key]), source: "citizen" });
   }
   for (const [key, label] of [
-    ["household_exceptions", "Nucleo con familiari non conviventi"],
+    ["household_exceptions", "Nucleo familiare con persone non conviventi"],
     ["nonresident_parent", "Genitore non convivente del figlio minorenne"],
     ["applicant_parent_nonresident", "Genitore del richiedente non convivente (da chiarire)"],
     ["disability", "Disabilità"],
