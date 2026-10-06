@@ -14,8 +14,9 @@ prima che arrivi allo sportello.
 cittadino → AI → fascicolo completo → operatore CAF → pratica ufficiale
 ```
 
-> Stato: in sviluppo attivo. Primo verticale: **ISEE ordinario 2027** (DSU con redditi e
-> patrimoni 2025), pilota con CAF gennaio 2027.
+> Stato: in sviluppo attivo, pronto per le prove interne. Primo verticale: **ISEE ordinario
+> 2027** (DSU con redditi e patrimoni 2025), pilota con CAF gennaio 2027. Vedi la
+> [roadmap](docs/ROADMAP.md).
 
 ![Landing di Avanti](docs/screenshots/landing.png)
 
@@ -71,6 +72,7 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 
 ## Documentazione
 
+- [Stato e roadmap](docs/ROADMAP.md)
 - [Architettura](docs/ARCHITECTURE.md)
 - [Design e UX](docs/DESIGN.md)
 - [Guida per gli operatori](docs/guide/operatori.md)
