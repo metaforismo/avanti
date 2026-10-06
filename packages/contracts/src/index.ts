@@ -101,6 +101,7 @@ export const MemberRole = z.enum(["richiedente", "coniuge", "figlio", "genitore"
 export type MemberRole = z.infer<typeof MemberRole>;
 
 export const MemberInput = z.object({
+  id: Id.optional(),
   role: MemberRole,
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().max(80).optional(),

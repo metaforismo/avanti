@@ -14,6 +14,8 @@ const ADD_BUTTON_ID = "members-add";
 
 type Draft = {
   key: string;
+  /** Server id of an existing member, sent back so documents stay with the right person. */
+  id?: string;
   role: MemberRole;
   firstName: string;
   lastName?: string;
@@ -28,6 +30,7 @@ const newKey = () => Math.random().toString(36).slice(2);
 function toDraft(member: MemberInput): Draft {
   return {
     key: newKey(),
+    id: member.id,
     role: member.role,
     firstName: member.firstName,
     lastName: member.lastName,
@@ -112,6 +115,7 @@ export function MembersEditor({
     }
     onSubmit(
       members.map((member) => ({
+        ...(member.id ? { id: member.id } : {}),
         role: member.role,
         firstName: member.firstName.trim(),
         lastName: member.lastName?.trim() || undefined,

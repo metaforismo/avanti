@@ -14,8 +14,9 @@ prima che arrivi allo sportello.
 cittadino → AI → fascicolo completo → operatore CAF → pratica ufficiale
 ```
 
-> Stato: in sviluppo attivo. Primo verticale: **ISEE ordinario 2027** (DSU con redditi e
-> patrimoni 2025), pilota con CAF gennaio 2027.
+> Stato: in sviluppo attivo, pronto per le prove interne. Primo verticale: **ISEE ordinario
+> 2027** (DSU con redditi e patrimoni 2025), pilota con CAF gennaio 2027. Vedi la
+> [roadmap](docs/ROADMAP.md).
 
 ![Landing di Avanti](docs/screenshots/landing.png)
 
@@ -71,6 +72,7 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 
 ## Documentazione
 
+- [Stato e roadmap](docs/ROADMAP.md)
 - [Architettura](docs/ARCHITECTURE.md)
 - [Design e UX](docs/DESIGN.md)
 - [Guida per gli operatori](docs/guide/operatori.md)
@@ -161,12 +163,27 @@ ISEE e 730 2027 sono preparati secondo le regole disponibili al 5–6 ottobre 20
 modelli e istruzioni annuali vanno ricontrollati prima del pilota. Avanti prepara
 un fascicolo e non trasmette alcuna pratica agli enti.
 
-Le sessioni scadono comunque dopo 12 ore dalla creazione. La manutenzione sulle
-mutazioni elimina sessioni e bucket scaduti e ritenta le cancellazioni dei file;
-i GET non modificano il fascicolo o la cronologia. Le cancellazioni fallite restano
-in `storage_deletions`, senza dati del documento, fino alla conferma dello storage.
-In assenza di traffico il retry attende la successiva mutazione: la tabella deve
-essere monitorata e svuotata prima di attestare una cancellazione completa.
-Ogni pratica accetta al massimo 60 documenti; l’analisi del PDF ha un limite di due
-secondi in un worker terminabile. HEIC resta scaricabile e soggetto a controllo
-visivo dell’operatore, senza invio al modello vision.
+Le sessioni si rinnovano anche durante la consultazione e scadono comunque dopo 12 ore.
+La manutenzione è separata dalle richieste utente: `GET /api/cron/maintenance`, con
+`Authorization: Bearer <CRON_SECRET>`, elimina sessioni e bucket scaduti e ritenta le
+cancellazioni dei file. Configurare Vercel Cron (o un scheduler Node) almeno ogni ora.
+`CRON_SECRET` deve essere casuale e riservato; senza segreto l’endpoint rifiuta ogni chiamata.
+La manutenzione limita i tentativi a uno al minuto anche dopo un errore. Le cancellazioni
+fallite restano in `storage_deletions` fino alla conferma dello storage.
+
+I download e gli export appendono eventi di accesso anche su GET; la lettura di un
+fascicolo non modifica la sua data di aggiornamento o lo stato di revisione.
+Ogni pratica accetta al massimo 60 documenti. Il parser PDF usa un worker riutilizzabile,
+un heap dimensionato sul limite upload e una scadenza di 15 secondi per lavoro. Timeout,
+OOM e saturazione restituiscono 503 con invito a riprovare; un PDF non leggibile restituisce 415.
+HEIC resta scaricabile e soggetto a controllo visivo dell’operatore.
+
+In produzione l’adattatore Fetch di Next richiede un proxy fidato. Con un server Node
+che passa i binding Hono, inizializzare `createApp({ ..., transport: "node" })` prima di
+aprire il listener: il rate limit usa `incoming.socket.remoteAddress`. Un adattatore diverso
+può fornire `clientAddress`. La configurazione priva di un trasporto identificabile o proxy
+viene rifiutata all’inizializzazione, con un errore esplicito. Non fidarsi di header inviati
+direttamente dal client.
+
+`GET /api/health` espone `fallbackCount`, il numero di errori AI degradati al fallback
+nella singola istanza, senza dettagli di richieste o cittadini.

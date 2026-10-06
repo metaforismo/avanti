@@ -7,7 +7,9 @@ import { notFound } from "../security";
 import { officeView, organizationView } from "../views";
 
 export function mountPublicRoutes(app: App, services: Services) {
-  app.get("/health", (context) => context.json({ status: "ok" }));
+  app.get("/health", (context) =>
+    context.json({ status: "ok", fallbackCount: services.ai.fallbackCount ?? 0 }),
+  );
   app.get("/practices", (context) =>
     context.json(listPractices(parse(Language, context.req.query("lang") ?? "it"))),
   );

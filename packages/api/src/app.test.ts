@@ -22,6 +22,7 @@ import {
   cases,
   createDatabase,
   documents,
+  checklistReviews,
   storageDeletions,
   events,
   leads,
@@ -218,7 +219,7 @@ describe("public API and validation", () => {
   it("returns health, localized catalog and only public office details", async () => {
     const health = await request("/api/health");
     expect(health.status).toBe(200);
-    expect(await health.json()).toEqual({ status: "ok" });
+    expect(await health.json()).toEqual({ status: "ok", fallbackCount: 0 });
     const catalog = await request("/api/practices?lang=bn");
     expect(catalog.status).toBe(200);
     const value: unknown = await catalog.json();
@@ -973,7 +974,7 @@ describe("second backend review", () => {
     expect(view.status).toBe("submitted");
     expect(view.updatedAt).toBe(initialInstant);
     expect(await db.select().from(events).where(eq(events.caseId, intake.case.id))).toEqual(before);
-    expect(await db.select().from(sessions)).toEqual(sessionsBefore);
+    expect((await db.select().from(sessions))[0]?.id).toBe(sessionsBefore[0]?.id);
   });
   it.each(["intake", "submitted", "in_review", "needs_citizen", "ready"] as const)(
     "8,24: closes %s and reopens with explicit timeline events",
@@ -1017,7 +1018,8 @@ describe("second backend review", () => {
       editable: false,
     });
     expect(view.answers.household_roles).toEqual(["richiedente", "genitore"]);
-    expect(view.answers.nonresident_parent).toBe(true);
+    expect(view.answers.nonresident_parent).toBeUndefined();
+    expect(view.answers.applicant_parent_nonresident).toBe(true);
     expect(view.messages.find((m) => m.role === "assistant")?.text).toContain("Fineco");
     expect(view.messages.find((m) => m.role === "assistant")?.text).not.toBe(
       view.nextQuestion?.prompt,
@@ -1079,7 +1081,8 @@ describe("second backend review", () => {
     const doc = view.documents[0]!;
     const preview = await request(`/api/c/${intake.token}/documents/${doc.id}/file`);
     expect(preview.headers.get("content-disposition")).toContain("inline;");
-    expect(preview.headers.get("content-security-policy")).toBe("sandbox");
+    expect(preview.headers.get("content-security-policy")).not.toContain("sandbox");
+    expect(preview.headers.get("content-security-policy")).toContain("frame-ancestors 'self'");
     expect(doc.fileName).not.toContain("\u202E");
     expect(doc.fileName).toMatch(/\.pdf$/);
     const download = await request(`/api/c/${intake.token}/documents/${doc.id}/file?download=1`);
@@ -1148,6 +1151,9 @@ describe("storage and startup regressions", () => {
     storage.delete = originalDelete;
     instant = new Date(instant.getTime() + 61000);
     await request(`/api/c/${intake.token}/language`, "PUT", { language: "en" });
+    expect(await db.select().from(storageDeletions)).toHaveLength(1);
+    app = createApp({ db, storage, clock: () => new Date(instant), cronSecret: "test-cron" });
+    await app.request("/api/cron/maintenance", { headers: { Authorization: "Bearer test-cron" } });
     expect(await db.select().from(storageDeletions)).toHaveLength(0);
   });
   it("16: production requires an explicit public origin", () => {
@@ -1281,9 +1287,10 @@ it("12: internal API failures emit a safe record and a safe Italian response", a
       stack: expect.any(String),
     }),
   );
-  expect(JSON.stringify(errorLogger.mock.calls)).not.toContain("private");
+  expect(JSON.stringify(errorLogger.mock.calls)).not.toContain("private-email@example.test");
+  expect(JSON.stringify(errorLogger.mock.calls)).not.toContain("private-content");
 });
-it("17: mutation maintenance removes expired sessions and rate buckets", async () => {
+it("17: cron maintenance removes expired sessions and rate buckets", async () => {
   await db.insert(sessions).values({
     id: "expired",
     operatorId: "operator-a",
@@ -1292,7 +1299,13 @@ it("17: mutation maintenance removes expired sessions and rate buckets", async (
     expiresAt: "2027-01-06T10:00:00Z",
   });
   await db.insert(rateLimits).values({ key: "expired", count: 1, resetAt: "2027-01-04T10:00:00Z" });
-  await start();
+  app = createApp({
+    db,
+    storage: new MemoryStorage(),
+    clock: () => new Date(instant),
+    cronSecret: "test-cron",
+  });
+  await app.request("/api/cron/maintenance", { headers: { Authorization: "Bearer test-cron" } });
   expect(await db.select().from(sessions)).toEqual([]);
   expect(await db.select().from(rateLimits)).toEqual([]);
 });
@@ -1328,4 +1341,346 @@ it("25: unclassified cases share the core's headline", async () => {
   );
   const { dossierSummary } = await import("@avanti/core");
   expect(response.case.headline).toBe(dossierSummary(null, {}, []).headline);
+});
+
+describe("second backend review", () => {
+  it("1: IDs are stored, preserved through edit and removed members lose documents/reviews", async () => {
+    const intake = await start();
+    await db
+      .update(cases)
+      .set({ answers: { household_count: 3 } })
+      .where(eq(cases.id, intake.case.id));
+    const members = [
+      { role: "richiedente", firstName: "Test" },
+      { role: "figlio", firstName: "Uno" },
+      { role: "figlio", firstName: "Due" },
+    ];
+    const first = CitizenCase.parse(
+      await (
+        await request(`/api/c/${intake.token}/turn`, "POST", {
+          type: "answer",
+          questionId: "members",
+          value: members,
+        })
+      ).json(),
+    );
+    expect(first.answers.members).toEqual(first.household);
+    const removed = first.household[1]!;
+    const survivor = first.household[2]!;
+    await db.insert(documents).values({
+      id: "removed-member",
+      caseId: first.id,
+      fileName: "test.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 10,
+      storageKey: "unused",
+      sha256: "unused",
+      uploadedAt: instant.toISOString(),
+      status: "analyzed",
+      memberId: removed.id,
+      checklistItemId: `identity:${removed.id}`,
+    });
+    await db.insert(checklistReviews).values({
+      caseId: first.id,
+      itemId: `identity:${removed.id}`,
+      decision: "verified",
+      reviewedAt: instant.toISOString(),
+    });
+    await request(`/api/c/${intake.token}/turn`, "POST", { type: "edit", questionId: "members" });
+    await db
+      .update(cases)
+      .set({ answers: { ...first.answers, household_count: 2 } })
+      .where(eq(cases.id, first.id));
+    const updated = CitizenCase.parse(
+      await (
+        await request(`/api/c/${intake.token}/turn`, "POST", {
+          type: "answer",
+          questionId: "members",
+          value: [first.household[0], survivor],
+        })
+      ).json(),
+    );
+    expect(updated.household[1]?.id).toBe(survivor.id);
+    expect(updated.documents[0]).toMatchObject({ memberId: null, checklistItemId: null });
+    expect(
+      await db.select().from(checklistReviews).where(eq(checklistReviews.caseId, first.id)),
+    ).toEqual([]);
+    const [stored] = await db.select().from(documents).where(eq(documents.id, "removed-member"));
+    expect(stored).toMatchObject({ memberId: null, checklistItemId: null });
+  });
+  it("5: actionable findings reach citizens", async () => {
+    const intake = await start();
+    const view = await completeInterview(intake.token, intake.case);
+    const identity = view.checklist.find((i) => i.requirementId === "identity")!;
+    const uploaded = CitizenCase.parse(
+      await (await upload(intake.token, await examplePdf(), "test.pdf", identity.id)).json(),
+    );
+    await db
+      .update(documents)
+      .set({
+        status: "failed",
+        analysis: {
+          engine: "ai",
+          confidence: 1,
+          detectedRequirementId: "income",
+          detectedLabel: null,
+          ownerName: "Altro Nome",
+          referenceYear: null,
+          expiresOn: null,
+          legible: true,
+          pagesComplete: true,
+          findings: [],
+        },
+      })
+      .where(eq(documents.id, uploaded.documents[0]!.id));
+    const citizen = CitizenCase.parse(await (await request(`/api/c/${intake.token}`)).json());
+    expect(citizen.findings.map((f) => f.code)).toEqual(
+      expect.arrayContaining([
+        "document.wrong_owner",
+        "document.other_practice",
+        "document.failed",
+      ]),
+    );
+  });
+  it("6: edit prioritizes that question, including later GET", async () => {
+    const intake = await start();
+    await request(`/api/c/${intake.token}/turn`, "POST", {
+      type: "answer",
+      questionId: "accounts_count",
+      value: 2,
+    });
+    const response = await request(`/api/c/${intake.token}/turn`, "POST", {
+      type: "edit",
+      questionId: "accounts_count",
+    });
+    expect(CitizenCase.parse(await response.json()).nextQuestion?.id).toBe("accounts_count");
+    expect(
+      CitizenCase.parse(await (await request(`/api/c/${intake.token}`)).json()).nextQuestion?.id,
+    ).toBe("accounts_count");
+  });
+  it("8: production without client identity fails configuration, socket transport works", async () => {
+    const options = {
+      db,
+      storage: new MemoryStorage(),
+      production: true,
+      publicUrl: origin,
+      rateLimitSecret: "test",
+    };
+    expect(() => createApp(options)).toThrow(/client|CLIENT|proxy|PROXY/);
+    app = createApp({ ...options, transport: "node" });
+    const response = await app.request(
+      "/api/intake",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          officeSlug: "test-a",
+          practiceId: "isee_ordinario",
+          privacyAccepted: true,
+        }),
+      },
+      { incoming: { socket: { remoteAddress: "127.0.0.1" } } },
+    );
+    expect(response.status).toBe(201);
+  });
+  it("11: POST never runs maintenance, cron authenticates and clears expired state", async () => {
+    app = createApp({
+      db,
+      storage: new MemoryStorage(),
+      clock: () => new Date(instant),
+      cronSecret: "test-cron",
+    });
+    const cookie = await login();
+    await db.update(sessions).set({ expiresAt: new Date(instant.getTime() - 1).toISOString() });
+    await start();
+    expect(await db.select().from(sessions)).toHaveLength(1);
+    expect((await request("/api/cron/maintenance")).status).toBe(401);
+    expect(
+      (
+        await app.request("/api/cron/maintenance", {
+          headers: { Authorization: "Bearer test-cron" },
+        })
+      ).status,
+    ).toBe(200);
+    expect(await db.select().from(sessions)).toHaveLength(0);
+    expect(cookie).toBeTruthy();
+  });
+  it("13/B5: download/export audit GET and review transition is a single event", async () => {
+    const intake = await start();
+    const view = CitizenCase.parse(
+      await (await upload(intake.token, await examplePdf(), "test.pdf")).json(),
+    );
+    const cookie = await login();
+    await db.update(cases).set({ status: "submitted" }).where(eq(cases.id, view.id));
+    await request(`/api/cases/${view.id}`, "PATCH", { status: "in_review" }, cookie);
+    await request(
+      `/api/cases/${view.id}/documents/${view.documents[0]!.id}/file`,
+      "GET",
+      undefined,
+      cookie,
+    );
+    await request(`/api/cases/${view.id}/export`, "GET", undefined, cookie);
+    const timeline = await db.select().from(events).where(eq(events.caseId, view.id));
+    expect(
+      timeline.filter((e) => ["case.in_review", "review.started"].includes(e.type)),
+    ).toHaveLength(1);
+    expect(timeline.filter((e) => e.type === "document.downloaded")).toHaveLength(1);
+    expect(timeline.filter((e) => e.type === "case.exported")).toHaveLength(1);
+  });
+  it("B2: GET extends session up to the absolute cap", async () => {
+    const cookie = await login();
+    instant = new Date(instant.getTime() + 7 * 3600000);
+    expect(
+      (await request("/api/auth/me", "GET", undefined, cookie)).headers.get("set-cookie"),
+    ).toBeTruthy();
+    const [session] = await db.select().from(sessions);
+    expect(Date.parse(session!.expiresAt)).toBe(Date.parse(initialInstant) + 12 * 3600000);
+    instant = new Date(Date.parse(initialInstant) + 9 * 3600000);
+    expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(200);
+  });
+  it("B6: health exposes only the numeric fallback count", async () => {
+    const ai = new GatewayIntelligence();
+    ai.fallbackCount = 7;
+    app = createApp({ db, storage: new MemoryStorage(), ai });
+    expect(await (await request("/api/health")).json()).toEqual({ status: "ok", fallbackCount: 7 });
+  });
+});
+it("B1: rollback tombstone logs insert error separately from storage error", async () => {
+  const storage = new MemoryStorage();
+  const errorLogger = vi.fn();
+  const storageLogger = vi.fn();
+  app = createApp({ db, storage, errorLogger, storageLogger, clock: () => new Date(instant) });
+  const intake = await start();
+  storage.delete = async () => {
+    throw new RangeError("storage private");
+  };
+  const transaction = vi
+    .spyOn(db, "transaction")
+    .mockRejectedValueOnce(new Error("upload private"));
+  const insert = db.insert.bind(db);
+  const insertion = vi
+    .spyOn(db, "insert")
+    .mockImplementation((table: Parameters<typeof db.insert>[0]) => {
+      if (table === storageDeletions)
+        return {
+          values: () => ({
+            onConflictDoNothing: () => Promise.reject(new TypeError("insert private")),
+          }),
+        } as unknown as ReturnType<typeof db.insert>;
+      return insert(table);
+    });
+  expect((await upload(intake.token, await examplePdf(), "test.pdf")).status).toBe(500);
+  expect(errorLogger.mock.calls.some(([record]) => record.name === "TypeError")).toBe(true);
+  expect(storageLogger).toHaveBeenCalledWith(expect.objectContaining({ errorName: "RangeError" }));
+  transaction.mockRestore();
+  insertion.mockRestore();
+});
+it("1: reducing the household through the real edit/count/member sequence preserves surviving IDs", async () => {
+  const intake = await start();
+  await request(`/api/c/${intake.token}/turn`, "POST", {
+    type: "answer",
+    questionId: "household_count",
+    value: 3,
+  });
+  const first = CitizenCase.parse(
+    await (
+      await request(`/api/c/${intake.token}/turn`, "POST", {
+        type: "answer",
+        questionId: "members",
+        value: [
+          { role: "richiedente", firstName: "Test" },
+          { role: "figlio", firstName: "Uno" },
+          { role: "figlio", firstName: "Due" },
+        ],
+      })
+    ).json(),
+  );
+  await request(`/api/c/${intake.token}/turn`, "POST", {
+    type: "edit",
+    questionId: "household_count",
+  });
+  const count = CitizenCase.parse(
+    await (
+      await request(`/api/c/${intake.token}/turn`, "POST", {
+        type: "answer",
+        questionId: "household_count",
+        value: 2,
+      })
+    ).json(),
+  );
+  expect(count.nextQuestion?.id).toBe("members");
+  const response = await request(`/api/c/${intake.token}/turn`, "POST", {
+    type: "answer",
+    questionId: "members",
+    value: [first.household[0], first.household[2]],
+  });
+  expect(response.status).toBe(200);
+  expect(CitizenCase.parse(await response.json()).household[1]?.id).toBe(first.household[2]?.id);
+});
+it("13: repeated GET download and both export formats append access records", async () => {
+  const intake = await start();
+  const view = CitizenCase.parse(
+    await (await upload(intake.token, await examplePdf(), "test.pdf")).json(),
+  );
+  const document = view.documents[0]!;
+  const cookie = await login();
+  for (let visit = 0; visit < 2; visit++)
+    expect(
+      (
+        await request(
+          `/api/cases/${view.id}/documents/${document.id}/file`,
+          "GET",
+          undefined,
+          cookie,
+        )
+      ).status,
+    ).toBe(200);
+  for (const format of ["json", "pdf"])
+    expect(
+      (await request(`/api/cases/${view.id}/export?format=${format}`, "GET", undefined, cookie))
+        .status,
+    ).toBe(200);
+  const records = await db.select().from(events).where(eq(events.caseId, view.id));
+  expect(records.filter((e) => e.type === "document.downloaded")).toHaveLength(2);
+  expect(records.filter((e) => e.type === "case.exported")).toHaveLength(2);
+  expect(
+    records
+      .filter((e) => ["document.downloaded", "case.exported"].includes(e.type))
+      .every((e) => e.actorId === "operator-a"),
+  ).toBe(true);
+});
+it("11: failed cron jobs observe cooldown and never retry on citizen POST", async () => {
+  const errorLogger = vi.fn();
+  app = createApp({
+    db,
+    storage: new MemoryStorage(),
+    errorLogger,
+    clock: () => new Date(instant),
+    cronSecret: "test-cron",
+  });
+  const deletion = vi.spyOn(db, "delete").mockImplementationOnce(() => {
+    throw new Error("maintenance failure");
+  });
+  const cron = () =>
+    app.request("/api/cron/maintenance", { headers: { Authorization: "Bearer test-cron" } });
+  expect((await cron()).status).toBe(500);
+  expect(await (await cron()).json()).toEqual({ ok: true, skipped: true });
+  await start();
+  expect(deletion).toHaveBeenCalledTimes(1);
+  deletion.mockRestore();
+});
+it("8: the Next production server rejects missing trusted proxy before serving requests", async () => {
+  const { default: configure } = await import("../../../apps/web/next.config");
+  expect(typeof configure).toBe("function");
+  vi.stubEnv("TRUST_PROXY", "0");
+  vi.stubEnv("VERCEL", "0");
+  try {
+    const callConfig = configure as unknown as (phase: string) => unknown;
+    expect(() => callConfig("phase-production-server")).toThrow("TRUST_PROXY");
+    expect(() => callConfig("phase-production-build")).not.toThrow();
+    vi.stubEnv("TRUST_PROXY", "1");
+    expect(() => callConfig("phase-production-server")).not.toThrow();
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });

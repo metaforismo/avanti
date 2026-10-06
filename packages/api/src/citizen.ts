@@ -19,10 +19,12 @@ import {
   SubmitCaseRequest,
   UPLOAD_LIMITS,
   type ChecklistItem,
+  MemberInput,
   type PracticeId,
 } from "@avanti/contracts";
 import { calendarYear, getQuestions } from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
+import { detachRemovedMembers } from "./household-cleanup";
 import { pdfPages } from "./pdf-pages";
 import { retryStorageDeletions } from "./storage-cleanup";
 import { safeError } from "./logging";
@@ -125,7 +127,21 @@ async function download(c: ApiContext, s: Services, row: CaseRow, id: string) {
     `${disposition}; filename="${sanitizeName("documento", document.mimeType)}"; filename*=UTF-8''${encodedName}`,
   );
   c.header("X-Content-Type-Options", "nosniff");
-  c.header("Content-Security-Policy", "sandbox");
+  if (disposition === "inline" && document.mimeType === "application/pdf") {
+    c.header(
+      "Content-Security-Policy",
+      "frame-ancestors 'self'; object-src 'none'; base-uri 'none'",
+    );
+  } else c.header("Content-Security-Policy", "sandbox");
+  const operator = c.get("operator");
+  await audit(
+    s.db,
+    row,
+    operator ? "operator" : "citizen",
+    "document.downloaded",
+    s.clock(),
+    operator?.id ?? null,
+  );
   return c.body(Buffer.from(bytes));
 }
 export { download };
@@ -195,11 +211,13 @@ export function mountCitizenRoutes(app: App, s: Services) {
           practiceId,
           answers,
           confirmedAnswers: confirmedAnswers(current, input, answers),
+          editingQuestion: editingQuestion(input, answers),
           updatedAt: s.clock().toISOString(),
         })
         .where(eq(cases.id, current.id))
         .returning();
       if (!updated) throw notFound();
+      await detachRemovedMembers(tx, current, updated);
       await audit(
         tx,
         updated,
@@ -222,7 +240,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           id: crypto.randomUUID(),
           caseId: current.id,
           role: "assistant",
-          text: assistantReply(view, proposal),
+          text: assistantReply(view, proposal, current.answers, input.text, current.practiceId),
           createdAt: s.clock().toISOString(),
         });
       }
@@ -333,10 +351,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
             nextAttemptAt: s.clock().toISOString(),
           })
           .onConflictDoNothing()
-          .catch(() => {
+          .catch((insertError) => {
             (s.errorLogger ?? console.error)({
               requestId: c.get("requestId"),
-              ...safeError(cleanupError),
+              ...safeError(insertError),
             });
           });
         (s.storageLogger ?? console.error)({
@@ -465,4 +483,16 @@ function assertDocumentLimit(count: number) {
       409,
       "Hai raggiunto il limite di 60 documenti. Elimina quelli non necessari.",
     );
+}
+
+function editingQuestion(input: IntakeTurn, answers: CaseRow["answers"]): string | null {
+  if (input.type === "edit") return input.questionId;
+  const members = MemberInput.array().safeParse(answers.members);
+  if (
+    members.success &&
+    typeof answers.household_count === "number" &&
+    members.data.length !== answers.household_count
+  )
+    return "members";
+  return null;
 }

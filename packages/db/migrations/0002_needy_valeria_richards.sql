@@ -8,15 +8,24 @@ CREATE TABLE "storage_deletions" (
 );
 --> statement-breakpoint
 CREATE TEMP TABLE avanti_member_remap AS
-SELECT c.id AS case_id, m.id AS old_id,
-  'm_' || (a.value->>'role') || '_' ||
-  (row_number() OVER (PARTITION BY c.id, a.value->>'role' ORDER BY a.position) - 1)::text AS new_id
-FROM cases c
-CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(c.answers->'members') = 'array' THEN c.answers->'members' ELSE '[]'::jsonb END) WITH ORDINALITY a(value, position)
-JOIN members m ON m.case_id = c.id AND m.role = a.value->>'role'
+WITH answer_members AS (
+  SELECT c.id AS case_id, a.value, a.position,
+    row_number() OVER (PARTITION BY c.id, a.value->>'role' ORDER BY a.position) - 1 AS role_position,
+    row_number() OVER (PARTITION BY c.id, a.value->>'role', a.value->>'firstName', coalesce(a.value->>'lastName', ''), coalesce(a.value->>'birthYear', '') ORDER BY a.position) AS occurrence
+  FROM cases c
+  CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(c.answers->'members') = 'array' THEN c.answers->'members' ELSE '[]'::jsonb END) WITH ORDINALITY a(value, position)
+), stored_members AS (
+  SELECT m.*, row_number() OVER (PARTITION BY case_id, role, first_name, coalesce(last_name, ''), coalesce(birth_year::text, '')
+    ORDER BY substring(id from '[0-9]+$')::integer NULLS LAST, id) AS occurrence
+  FROM members m
+)
+SELECT a.case_id, a.position, m.id AS old_id, 'm_' || (a.value->>'role') || '_' || a.role_position::text AS new_id
+FROM answer_members a JOIN stored_members m
+  ON m.case_id = a.case_id AND m.role = a.value->>'role'
   AND m.first_name = a.value->>'firstName'
   AND coalesce(m.last_name, '') = coalesce(a.value->>'lastName', '')
-  AND coalesce(m.birth_year::text, '') = coalesce(a.value->>'birthYear', '');
+  AND coalesce(m.birth_year::text, '') = coalesce(a.value->>'birthYear', '')
+  AND m.occurrence = a.occurrence;
 --> statement-breakpoint
 UPDATE documents d SET member_id = r.new_id FROM avanti_member_remap r
 WHERE d.case_id = r.case_id AND d.member_id = r.old_id;
@@ -39,10 +48,18 @@ BEGIN
   END LOOP;
 END $$;
 --> statement-breakpoint
+UPDATE cases c SET answers = jsonb_set(answers, '{members}', (
+  SELECT jsonb_agg(a.value || jsonb_build_object('id', r.new_id) ORDER BY a.position)
+  FROM jsonb_array_elements(c.answers->'members') WITH ORDINALITY a(value, position)
+  JOIN avanti_member_remap r ON r.case_id = c.id AND r.position = a.position
+)) WHERE EXISTS (SELECT 1 FROM avanti_member_remap r WHERE r.case_id = c.id);
+--> statement-breakpoint
 DROP TABLE avanti_member_remap;
 --> statement-breakpoint
 DROP TABLE "members" CASCADE;--> statement-breakpoint
 ALTER TABLE "cases" ADD COLUMN "confirmed_answers" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+UPDATE cases SET confirmed_answers = coalesce((SELECT jsonb_agg(key ORDER BY key) FROM jsonb_object_keys(answers) key), '[]'::jsonb);
+--> statement-breakpoint
 ALTER TABLE "sessions" ADD COLUMN "created_at" timestamp with time zone DEFAULT now() NOT NULL;
 --> statement-breakpoint
 UPDATE sessions SET expires_at = least(expires_at, now());

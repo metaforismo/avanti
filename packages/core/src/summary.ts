@@ -44,7 +44,8 @@ export function dossierSummary(
   }
   for (const [key, label] of [
     ["household_exceptions", "Nucleo con familiari non conviventi"],
-    ["nonresident_parent", "Genitore non convivente"],
+    ["nonresident_parent", "Genitore non convivente del figlio minorenne"],
+    ["applicant_parent_nonresident", "Genitore del richiedente non convivente (da chiarire)"],
     ["disability", "Disabilità"],
     ["university", "Prestazioni universitarie"],
     ["foreign_income", "Redditi esteri"],

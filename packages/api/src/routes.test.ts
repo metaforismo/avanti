@@ -20,6 +20,7 @@ const exampleCase: CaseRow = {
   status: "ready",
   answers: {},
   confirmedAnswers: [],
+  editingQuestion: null,
   contact: null,
   citizenNote: null,
   internalNotes: null,

@@ -7,13 +7,13 @@ di dominio dell'intervista sono nella lingua cittadino, gli errori infrastruttur
 
 ## Pubblico
 
-| Metodo | Percorso             | Input                  | Risposta                                                        |
-| ------ | -------------------- | ---------------------- | --------------------------------------------------------------- |
-| GET    | `/health`            | —                      | `{status:"ok"}`: processo API pronto, non prova provider remoti |
-| GET    | `/practices?lang=it` | `Language`, default it | `PracticeSummary[]`, include coming_soon                        |
-| GET    | `/offices/:slug`     | slug pubblico          | `{office:Office,organization:OrganizationPublic}`               |
-| POST   | `/leads`             | `PilotLeadRequest`     | 201 `{ok:true}`                                                 |
-| POST   | `/intake`            | `StartIntakeRequest`   | 201 `StartIntakeResponse`, token mostrato una volta             |
+| Metodo | Percorso             | Input                  | Risposta                                                                             |
+| ------ | -------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| GET    | `/health`            | —                      | `{status:"ok",fallbackCount:number}`: processo API pronto, non prova provider remoti |
+| GET    | `/practices?lang=it` | `Language`, default it | `PracticeSummary[]`, include coming_soon                                             |
+| GET    | `/offices/:slug`     | slug pubblico          | `{office:Office,organization:OrganizationPublic}`                                    |
+| POST   | `/leads`             | `PilotLeadRequest`     | 201 `{ok:true}`                                                                      |
+| POST   | `/intake`            | `StartIntakeRequest`   | 201 `StartIntakeResponse`, token mostrato una volta                                  |
 
 `privacyAccepted:true` obbligatorio per intake e lead. Coming soon non avviabili. La privacy
 è presa visione; il CAF definisce basi giuridiche e deleghe, anche per gli altri membri.
@@ -40,8 +40,8 @@ Intervista/upload modificabili in `intake` o `needs_citizen`. Invio richiede pra
 intervista terminata; può contenere documenti mancanti, esplicitamente segnalati. La prima
 completezza è fotografata al primo invio e non riscritta da integrazioni successive.
 
-`turn`: text classifica/estrae; sotto confidenza 0,65 rimane la scelta esplicita della
-pratica. answer valida tipi/opzioni/condizioni; edit invalida dipendenze; skip ammesso solo
+`turn`: text classifica/estrae; sotto confidenza 0,75 rimane la scelta esplicita della
+pratica. answer valida tipi/opzioni/condizioni; edit rende prioritaria la domanda modificata e invalida dipendenze; skip ammesso solo
 per domande opzionali; choose_practice riparte con risposte vuote quando cambia pratica.
 AI SDK 7 propone, core convalida. Nessuna chiave/errore/timeout → euristica esplicita.
 
@@ -53,30 +53,34 @@ di più membri/conti serve scelta umana. Riassegnare a null lascia il documento 
 
 Quando cambiano i requisiti, documenti conservati e restituiti non abbinati; revisioni
 persistono sugli ID rimasti applicabili. Modificare i file di una voce invalida la verifica
-precedente. Download: attachment, nosniff; storage key e URL Blob mai esposti.
+precedente. I membri mantengono gli UUID in `answers.members`: rimandare `MemberInput.id`
+negli edit; i vecchi input senza ID restano accettati. La rimozione di un membro stacca i suoi
+documenti e annulla le revisioni relative. Download: PDF/immagini supportate inline;
+`?download=1` forza attachment, sempre `nosniff`. Storage key e URL Blob mai esposti.
+Timeout/OOM del parser PDF restituiscono 503 con invito a riprovare, file non valido 415.
 
 ## Autenticazione e console
 
 Cookie `avanti_session`, HttpOnly, SameSite=Lax, Secure in produzione, path `/api`, durata
-scorrevole 8 ore. Solo hash del token salvato. Origin deve coincidere con l’origine della richiesta o con `PUBLIC_APP_URL` per
+scorrevole 8 ore, rinnovata anche sui GET entro il cap assoluto di 12 ore. Solo hash del token salvato. Origin deve coincidere con l’origine della richiesta o con `PUBLIC_APP_URL` per
 login/logout e modifiche operatore. Se Next normalizza il nome host dell’URL, si usa
 anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è accettato soltanto
 `Sec-Fetch-Site: same-origin`; un Origin presente e diverso resta rifiutato.
 
-| Metodo | Percorso                                 | Input                        | Risposta                                              |
-| ------ | ---------------------------------------- | ---------------------------- | ----------------------------------------------------- |
-| POST   | `/auth/login`                            | `LoginRequest`               | `Operator` + cookie                                   |
-| POST   | `/auth/logout`                           | —                            | `{ok:true}`, sessione revocata                        |
-| GET    | `/auth/me`                               | —                            | `Operator`                                            |
-| GET    | `/cases`                                 | `CaseListQuery`              | `CaseListResponse`                                    |
-| POST   | `/cases`                                 | `CreateCaseRequest`          | 201 `CreateCaseResponse`, link mostrato una volta     |
-| GET    | `/cases/:id`                             | —                            | `CaseDossier`, evento apertura; submitted → in_review |
-| PATCH  | `/cases/:id`                             | `UpdateCaseRequest`          | `CaseDossier`                                         |
-| POST   | `/cases/:id/checklist/:itemId/review`    | `ReviewChecklistItemRequest` | `CaseDossier`                                         |
-| POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`  | `CaseDossier`                                         |
-| GET    | `/cases/:id/export?format=json`          | `ExportFormat` json o pdf    | allegato completo                                     |
-| GET    | `/cases/:id/documents/:docId/file`       | —                            | allegato autorizzato                                  |
-| GET    | `/metrics?from=2027-01-01&to=2027-01-31` | `MetricsQuery`               | `Metrics`                                             |
+| Metodo | Percorso                                 | Input                        | Risposta                                          |
+| ------ | ---------------------------------------- | ---------------------------- | ------------------------------------------------- |
+| POST   | `/auth/login`                            | `LoginRequest`               | `Operator` + cookie                               |
+| POST   | `/auth/logout`                           | —                            | `{ok:true}`, sessione revocata                    |
+| GET    | `/auth/me`                               | —                            | `Operator`                                        |
+| GET    | `/cases`                                 | `CaseListQuery`              | `CaseListResponse`                                |
+| POST   | `/cases`                                 | `CreateCaseRequest`          | 201 `CreateCaseResponse`, link mostrato una volta |
+| GET    | `/cases/:id`                             | —                            | `CaseDossier`, senza transizione di stato         |
+| PATCH  | `/cases/:id`                             | `UpdateCaseRequest`          | `CaseDossier`                                     |
+| POST   | `/cases/:id/checklist/:itemId/review`    | `ReviewChecklistItemRequest` | `CaseDossier`                                     |
+| POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`  | `CaseDossier`                                     |
+| GET    | `/cases/:id/export?format=json`          | `ExportFormat` json o pdf    | allegato completo, evento audit di accesso        |
+| GET    | `/cases/:id/documents/:docId/file`       | —                            | allegato autorizzato, evento audit di accesso     |
+| GET    | `/metrics?from=2027-01-01&to=2027-01-31` | `MetricsQuery`               | `Metrics`                                         |
 
 Ogni accesso è filtrato per organizzazione della sessione. Sedi, assegnatari e documenti
 di altri tenant restituiscono 404. Operatore vede sempre italiano nei testi di dominio;
@@ -113,3 +117,11 @@ su server direttamente accessibile che accetta header arbitrari.
 
 Provider AI/Blob/Postgres remoto non provati dalla suite locale. I modelli DSU/730 2027
 richiedono aggiornamento normativo prepilota; beta non sostituisce la revisione dello sportello.
+
+## Manutenzione
+
+`GET /api/cron/maintenance` richiede `Authorization: Bearer <CRON_SECRET>`. Nessuna
+sessione operatore richiesta. Il job elimina sessioni e bucket scaduti e ritenta le
+cancellazioni storage; risponde `{ok:true}`, oppure `{ok:true,skipped:true}` entro il
+cooldown di un minuto. Un segreto assente o errato dà 401. Compatibile con Vercel Cron;
+va configurato nello scheduler del deploy. Nessun purge globale durante i POST utente.

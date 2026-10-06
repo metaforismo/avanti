@@ -107,7 +107,7 @@ describe("review regressions", () => {
   it("33: relationships and nonresident parent are persisted as facts", () => {
     const result = extractFacts("ISEE vivo con mia madre, mio padre non vive con noi", "it");
     expect(result.answers.household_roles).toEqual(["richiedente", "genitore"]);
-    expect(result.answers.nonresident_parent).toBe(true);
+    expect(result.answers.nonresident_parent).toBeUndefined();
     const explicit = extractFacts("ISEE siamo 3, vivo con mia madre", "it");
     expect(explicit.answers.household_roles).toEqual(["richiedente", "genitore"]);
     expect(explicit.answers.household_count).toBe(3);

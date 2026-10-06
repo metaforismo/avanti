@@ -8,7 +8,7 @@ import { authenticateCitizen, authenticateOperator } from "./middleware/auth";
 import { registerErrors } from "./middleware/errors";
 import { requireOrigin } from "./middleware/origin";
 import { rateLimit } from "./middleware/rate-limit";
-import { maintenance } from "./middleware/maintenance";
+import { mountMaintenance } from "./middleware/maintenance";
 import { requestMetadata } from "./middleware/request";
 import { mountAuthRoutes } from "./routes/auth";
 import { mountPublicRoutes } from "./routes/public";
@@ -20,6 +20,15 @@ export function createApp(options: ApiOptions) {
     throw new Error("PUBLIC_APP_URL required in production");
   if (options.production && !options.rateLimitSecret)
     throw new Error("RATE_LIMIT_SECRET required in production");
+  if (
+    options.production &&
+    !options.trustProxy &&
+    !options.clientAddress &&
+    options.transport !== "node"
+  )
+    throw new Error(
+      "Client address unavailable: configure TRUST_PROXY or a socket clientAddress adapter before startup",
+    );
   const services: Services = {
     ...options,
     clock: options.clock ?? (() => new Date()),
@@ -39,7 +48,7 @@ export function createApp(options: ApiOptions) {
     }),
   );
   registerErrors(app, options.errorLogger);
-  app.use("*", maintenance(services));
+  mountMaintenance(app, services);
   app.use("*", rateLimit(services));
   app.use("/auth/*", requireOrigin(services));
   const authenticated = authenticateOperator(services);

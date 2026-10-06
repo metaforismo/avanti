@@ -87,6 +87,9 @@ const citizenCodes = new Set([
   "document.missing_pages",
   "document.duplicate",
   "document.unmatched",
+  "document.wrong_owner",
+  "document.other_practice",
+  "document.failed",
 ]);
 export async function citizenView(
   db: Database,
@@ -166,7 +169,10 @@ export async function citizenView(
       evaluation.findings.some((f) => f.checklistItemId === item.id && f.severity === "blocker")
     )
       item.status = "issue";
-  const question = row.practiceId ? nextQuestion(row.practiceId, row.answers, language) : null;
+  const questions = row.practiceId ? getQuestions(row.practiceId, row.answers, language) : [];
+  const question =
+    questions.find((q) => q.id === row.editingQuestion) ??
+    (row.practiceId ? nextQuestion(row.practiceId, row.answers, language) : null);
   let step: CitizenCase["step"] = "documents";
   if (["submitted", "in_review", "ready", "closed"].includes(row.status)) step = "submitted";
   else if (!row.practiceId) step = "need";

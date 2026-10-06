@@ -1,31 +1,34 @@
+import { timingSafeEqual } from "node:crypto";
 import { lte, or, sql } from "drizzle-orm";
 import { clearExpiredRateLimits, sessions } from "@avanti/db";
-import type { MiddlewareHandler } from "hono";
-import type { ApiEnv, Services } from "../context";
+import type { App, Services } from "../context";
 import { retryStorageDeletions } from "../storage-cleanup";
-import { safeError } from "../logging";
-export function maintenance(s: Services): MiddlewareHandler<ApiEnv> {
+import { ApiFailure } from "../security";
+
+export function mountMaintenance(app: App, s: Services) {
   let nextRun = 0;
-  return async (c, next) => {
+  app.get("/cron/maintenance", async (c) => {
+    const provided = Buffer.from(c.req.header("Authorization") ?? "");
+    const expected = Buffer.from(`Bearer ${s.cronSecret ?? ""}`);
+    if (
+      !s.cronSecret ||
+      provided.length !== expected.length ||
+      !timingSafeEqual(provided, expected)
+    )
+      throw new ApiFailure("unauthorized", 401, "Accesso non autorizzato.");
     const now = s.clock();
-    if (!["GET", "HEAD", "OPTIONS"].includes(c.req.method) && now.getTime() >= nextRun) {
-      nextRun = now.getTime() + 60000;
-      try {
-        await s.db
-          .delete(sessions)
-          .where(
-            or(
-              lte(sessions.expiresAt, now.toISOString()),
-              sql`${sessions.createdAt} + interval '12 hours' <= ${now.toISOString()}::timestamptz`,
-            ),
-          );
-        await clearExpiredRateLimits(s.db, now);
-        await retryStorageDeletions(s);
-      } catch (error) {
-        nextRun = 0;
-        (s.errorLogger ?? console.error)({ requestId: c.get("requestId"), ...safeError(error) });
-      }
-    }
-    await next();
-  };
+    if (now.getTime() < nextRun) return c.json({ ok: true, skipped: true });
+    nextRun = now.getTime() + 60000;
+    await s.db
+      .delete(sessions)
+      .where(
+        or(
+          lte(sessions.expiresAt, now.toISOString()),
+          sql`${sessions.createdAt} + interval '12 hours' <= ${now.toISOString()}::timestamptz`,
+        ),
+      );
+    await clearExpiredRateLimits(s.db, now);
+    await retryStorageDeletions(s);
+    return c.json({ ok: true });
+  });
 }
