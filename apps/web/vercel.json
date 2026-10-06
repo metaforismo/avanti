@@ -8,5 +8,5 @@
     }
   ],
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm preflight && pnpm db:migrate && pnpm db:check && pnpm build"
+  "buildCommand": "cd ../.. && pnpm preflight && if [ \"$VERCEL_ENV\" = production ] || [ \"$MIGRATE_ON_BUILD\" = 1 ]; then pnpm db:migrate && pnpm db:check; fi && pnpm build"
 }

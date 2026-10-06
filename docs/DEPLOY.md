@@ -87,8 +87,13 @@ Postgres.js sul pooler condiviso e preferire session mode per questo staging.
 4. Build Command (parte da `apps/web`):
 
    ```sh
-   cd ../.. && pnpm preflight && pnpm db:migrate && pnpm db:check && pnpm build
+   cd ../.. && pnpm preflight && if [ "$VERCEL_ENV" = production ] || [ "$MIGRATE_ON_BUILD" = 1 ]; then pnpm db:migrate && pnpm db:check; fi && pnpm build
    ```
+
+   Le migrazioni partono da sole solo in Production. Per staging o Preview con un database
+   **separato**, impostare `MIGRATE_ON_BUILD=1` solo nell'ambiente Vercel di quel database:
+   così una Preview configurata per errore sul database di produzione non può cambiarne lo
+   schema con il codice di un branch non ancora approvato.
 
    Install e Build Command sono già in `apps/web/vercel.json`; evitare override discordanti.
    Il preflight precede migrazioni e build, è fuori dalla cache e non si connette al DB.
@@ -96,7 +101,7 @@ Postgres.js sul pooler condiviso e preferire session mode per questo staging.
    Output Directory: mantenere il default Next.js (`.next` dell'app). Il comando Turbo
    costruisce il monorepo; non sostituirlo con una seconda build Next. Le variabili server
    sono dichiarate in `turbo.json` per strict mode e hash di cache. Migrazione e controllo
-   sono fuori dalla cache e precedono ogni build: un loro errore deve bloccare il deploy.
+   sono fuori dalla cache e precedono la build dove abilitate: un loro errore blocca il deploy.
 
 5. Applicare prima le variabili del passo 4. Per Preview fornire un DB/Blob separato con
    lo stesso elenco di variabili; se non disponibili, disabilitare i deploy Preview.
@@ -150,6 +155,7 @@ segreti: gli script DB non leggono `apps/web/.env.local`.
 | `NEXT_PUBLIC_DEMO_OFFICE_SLUG` | No, pubblico              | Assente/vuota: niente collegamento allo sportello demo sullo staging/pilota                                           |
 | `NODE_ENV`                     | No, gestita dal framework | `production` in build/runtime; non forzare `development` per aggirare i controlli                                     |
 | `VERCEL` / `VERCEL_ENV`        | No, gestite da Vercel     | `1` / ambiente del deployment; non simularle in sviluppo locale                                                       |
+| `MIGRATE_ON_BUILD`             | No                        | `1` solo negli ambienti con database separato (staging, Preview): abilita le migrazioni in build fuori da Production  |
 | `NEXT_RUNTIME`                 | No, gestita da Next       | `nodejs` per la route API; non impostare manualmente                                                                  |
 | `NEXT_MANUAL_SIG_HANDLE`       | No                        | Assente su Vercel; opzione solo per host Node gestito manualmente                                                     |
 
