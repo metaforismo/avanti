@@ -32,6 +32,7 @@ import {
 import { createCase, download } from "./citizen";
 import { ApiFailure, notFound } from "./security";
 import { exportPdf } from "./export";
+import { scheduleDocumentRecovery } from "./document-analysis";
 import { calculateMetrics, metricsRange } from "./operator-metrics";
 
 const transitions: Record<CaseRow["status"], CaseRow["status"][]> = {
@@ -140,7 +141,9 @@ export function mountOperatorRoutes(app: App, s: Services) {
   app.get("/cases/:id", async (c) => {
     const operator = c.get("operator");
     const row = await caseById(s.db, c.req.param("id"), operator.organizationId);
-    return c.json(await dossierView(s.db, row, s.clock()));
+    const view = await dossierView(s.db, row, s.clock());
+    scheduleDocumentRecovery(s, row.id);
+    return c.json(view);
   });
   app.patch("/cases/:id", async (c) => {
     const input = await body(c, UpdateCaseRequest);

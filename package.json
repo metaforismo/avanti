@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "turbo run dev --filter=@avanti/web",
-    "build": "turbo run build",
+    "build": "pnpm preflight --local && turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
@@ -20,7 +20,10 @@
     "db:generate": "pnpm --filter @avanti/db generate",
     "db:migrate": "pnpm --filter @avanti/db migrate",
     "db:seed": "pnpm --filter @avanti/db seed",
-    "db:check": "pnpm --filter @avanti/db check"
+    "db:check": "pnpm --filter @avanti/db check",
+    "preflight": "pnpm --filter @avanti/db preflight",
+    "admin:bootstrap": "pnpm --filter @avanti/api admin:bootstrap",
+    "admin:export": "pnpm --filter @avanti/api admin:export"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

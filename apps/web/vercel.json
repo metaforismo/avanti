@@ -4,7 +4,9 @@
   "crons": [
     {
       "path": "/api/cron/maintenance",
-      "schedule": "* * * * *"
+      "schedule": "0 3 * * *"
     }
-  ]
+  ],
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm preflight && if [ \"$VERCEL_ENV\" = production ] || [ \"$MIGRATE_ON_BUILD\" = 1 ]; then pnpm db:migrate && pnpm db:check; fi && pnpm build"
 }

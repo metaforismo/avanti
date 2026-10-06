@@ -33,7 +33,7 @@ Misure, comandi, integrazione web e limiti in
 
 **Aperto prima del trattamento reale:** header/CSP delle pagine, nonce per una CSP
 senza unsafe-inline, redazione dei log proxy, polling UI durante processing e
-compatibilità della preview dopo attachment; scheduler ogni minuto e recupero
+compatibilità della preview dopo attachment; scheduler giornaliero/configurabile e recupero su lettura
 su deployment; lifecycle Node/serverless e prova PostgreSQL/Blob reali con dati
 sintetici. Mancano scansione malware e decodifica isolata completa: i controlli
 sui contenitori/dimensioni non attestano la sicurezza di tutti i payload.
@@ -77,7 +77,7 @@ La policy del proxy/browser fa parte del deployment e non è provata dai soli te
 
 L'IP non identifica il cittadino: 40 persone possono condividere il Wi-Fi del CAF.
 Capability per pratica: turni 60/minuto + 400/ora (le risposte sono tocchi rapidi; solo il testo libero arriva all'AI), upload 30/minuto + 120/ora.
-IP fidato: turni 200/minuto + 2.000/ora, upload 400/minuto + 4.000/ora; avvii pubblici
+IP fidato: turni 1.500/minuto + 15.000/ora, upload 400/minuto + 4.000/ora; avvii pubblici
 40/minuto + 60/ora. Login/password conservano 10/minuto per email (password anche per
 operatore), con tetto IP 100/minuto per non bloccare l'ingresso di 10 operatori.
 I limiti identità precedono quelli IP; un abuso già fermato sulla capability non
@@ -86,24 +86,61 @@ nessun token, email o IP in chiaro nei bucket. Messaggi 429 nelle otto lingue de
 cittadino e `Retry-After` in secondi; quota upload simultanei per pratica mantenuta,
 non globale. Prove in `waiting-room.test.ts` e `pilot-upload.test.ts`.
 
-Con Root Directory Vercel `apps/web`, la pianificazione è in
-[`apps/web/vercel.json`](../apps/web/vercel.json): `* * * * *`, ogni minuto.
-`CRON_SECRET` separato per ambiente, almeno 32 byte casuali, autentica il Bearer con
-confronto costante; assente/errato dà 401. Il cron recupera processing >2 minuti a
-lotti di 4, retention a lotti di 25 e cancellazioni storage persistite/backoff;
-il cooldown è per istanza, non un lock distribuito. Verificare run concorrenti e
-restart prima del pilota; l'analisi può essere duplicata fra istanze.
-Richiede Pro; Hobby non consente questa frequenza. Cron automatico solo Production:
-lo staging deve essere un progetto separato con risorse fittizie isolate.
+Con Root Directory Vercel `apps/web`, la pianificazione in
+[`apps/web/vercel.json`](../apps/web/vercel.json) è `0 3 * * *` UTC, giornaliera,
+compatibile con Hobby. Su Pro si può scegliere `* * * * *` al prossimo deploy.
+Le letture autorizzate del fascicolo registrano con `after()` il recupero dei
+`processing` vecchi oltre 2 minuti: solo quel fascicolo, senza cambiare stato/data
+pratica. Upload, cron e lettura acquisiscono atomicamente un lease DB di 2 minuti;
+il token proprietario impedisce risultati obsoleti e analisi concorrenti durante
+un lease valido. Storage fallito conserva il lease fino a scadenza. Test locali in
+`document-recovery.test.ts`; il coordinamento multi-connessione resta da provare
+su Postgres effettivo. Il lease non è exactly-once per chiamate esterne interrotte.
+
+`CRON_SECRET`, distinto dal segreto rate limit, autentica il Bearer con confronto
+costante; assente/errato dà 401. Il cron recupera fino a 4 documenti/run, cancella
+25 fascicoli oltre retention e ritenta 100 cancellazioni file; cooldown per istanza.
+Cron automatico solo Production: staging e Preview devono avere risorse isolate.
 [Configurazione](https://vercel.com/docs/project-configuration/vercel-json),
-[piani](https://vercel.com/docs/cron-jobs/usage-and-pricing),
-[autenticazione](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
+[piani cron](https://vercel.com/docs/cron-jobs/usage-and-pricing).
 
 Procedura completa, regione UE, costi/backup, migrazioni prima della build, seed
-vietato, provisioning admin, HSTS e prove Postgres reali in [DEPLOY.md](DEPLOY.md).
+vietato, bootstrap admin, HSTS e prove Postgres reali in [DEPLOY.md](DEPLOY.md).
 `pnpm db:check` è read-only e non ripara: richiede Postgres, journal completo e
 indici validi. Il controllo è prerequisito del rilascio, non prova di conformità o
 backup funzionante. Nessuna credenziale o dato reale negli artefatti di verifica.
+
+## Preflight e comandi amministrativi
+
+`pnpm preflight` controlla obblighi, URL HTTPS canonico, TLS Postgres, regione se
+ricavabile, segreti distinti e forza statistica minima (192 bit stimati, almeno 12
+simboli diversi, niente ripetizioni periodiche). La stima non prova la casualità:
+generare 32 byte con un generatore crittografico e conservarli nel gestore segreti.
+Non apre DB/storage, non stampa valori né garantisce validità delle credenziali,
+regione effettiva, accesso Blob privato o backup. Il build Vercel lo esegue per primo,
+fuori cache. Seed bloccato prima di qualsiasi apertura DB in produzione, su Vercel
+e quando `DATABASE_URL` è impostata, anche con `NODE_ENV=development`.
+
+Bootstrap solo CLI: terminale privato senza registrazione, Postgres TLS migrato,
+`NODE_ENV=production`, conferma `CREA CAF PILOTA`, transazione con lock delle tabelle.
+Rifiuta admin preesistenti anche inattivi e DB non vuoti; non sovrascrive credenziali.
+Password casuale solo sul terminale di controllo una volta, hash scrypt nel DB,
+cambio obbligatorio con tutte le altre API bloccate. Audit senza nomi o credenziali.
+
+Export organizzazione solo CLI: email/password dell’admin attivo del CAF, password
+nascosta nel terminale, niente argomenti segreti o endpoint pubblico. Il cambio della
+password temporanea è obbligatorio prima dell’export. Massimo 10 tentativi/minuto
+per email HMAC usando `RATE_LIMIT_SECRET`. Snapshot transazionale coerente, query
+circoscritte al CAF, audit con conteggi. JSON include note interne e dati dei membri:
+non distribuirlo automaticamente a un singolo interessato. Esclude hash password,
+sessioni, capability e chiavi storage; metadati file con SHA-256, senza binari.
+File locale nuovo `0600` in `.data/exports`, senza sovrascritture; cifratura del disco,
+trasferimento protetto e cancellazione delle copie a cura del responsabile.
+L’evento registra la preparazione dell’export, non attesta la consegna al destinatario.
+
+Backup Neon e prova trimestrale DB **e file** in [DEPLOY.md](DEPLOY.md); la finestra
+backup non coincide con retention dei fascicoli. Dopo restore ripristinare revoche,
+cancellazioni e retry prima di riaprire gli accessi. Restano prove del futuro deploy.
 
 ## GDPR: ruoli, base e informativa
 
@@ -152,8 +189,8 @@ una transazione vengono saltati. Le richieste utente non eseguono il purge.
 
 L’amministratore può anticipare la cancellazione con `DELETE /api/cases/:id`,
 confermando il riferimento; usa la stessa cancellazione e lo stesso retry dei file.
-Restano manuali l’attivazione e la verifica dello scheduler nel deployment (almeno
-ogni ora, più frequente se il volume supera i lotti), il monitoraggio dei retry,
+Restano manuali l’attivazione e la verifica dello scheduler nel deployment (giornaliero per il pilota; aumentare
+la frequenza o i run se il volume supera i lotti), il monitoraggio dei retry,
 l’identificazione del richiedente, la valutazione degli obblighi di conservazione,
 la gestione delle copie esportate/backup e la durata appropriata degli audit.
 

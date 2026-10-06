@@ -69,6 +69,9 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 | `pnpm --filter @avanti/web test:e2e` | Test end-to-end Playwright e controlli axe (WCAG 2.2 AA, temi chiaro/scuro, RTL) |
 | `pnpm build`                         | Build di produzione                                                              |
 | `pnpm db:check`                      | Verifica Postgres reale, migrazioni e indici senza modifiche                     |
+| `pnpm preflight`                     | Verifica configurazione produzione, senza connessioni o segreti nei log          |
+| `pnpm admin:bootstrap`               | Crea il primo CAF/admin con conferma, solo da terminale amministrativo           |
+| `pnpm admin:export`                  | Esporta il CAF in JSON, solo admin autenticato da CLI                            |
 | `pnpm db:seed`                       | Carica i dati demo                                                               |
 
 ## Documentazione
@@ -113,14 +116,26 @@ metriche demo sono sintetiche, non risultati del pilota. Credenziali locali:
 | Disattivato | `disattivato@demo.avanti.local` | accesso negato    |
 
 La password è identica soltanto nei dati demo. Seed rifiutato con
-`NODE_ENV=production`; non distribuire queste credenziali in ambienti reali. I link
+`NODE_ENV=production`, Vercel o `DATABASE_URL` configurata; non distribuire queste credenziali in ambienti reali. I link
 cittadino vengono mostrati una volta alla creazione; non sono ricostruibili dal DB.
+
+## Avvio di un CAF pilota
+
+La procedura in [DEPLOY.md](docs/DEPLOY.md) prepara Neon UE, Blob privato, backup e
+variabili. `pnpm preflight` è read-only e restituisce exit 1 per errori obbligatori;
+`pnpm preflight --local` ammette i fallback solo fuori produzione. Il build Vercel
+lo esegue prima delle migrazioni. Dopo migrazioni e check, usare
+`NODE_ENV=production pnpm admin:bootstrap` in terminale privato: conferma esplicita,
+password temporanea mostrata una volta e cambio obbligatorio. Il seed demo è vietato.
+Per uscire dal pilota: `NODE_ENV=production pnpm admin:export`, con admin del CAF,
+produce JSON riservato in `.data/exports` con risposte, eventi e hash dei documenti;
+i file binari vanno trasferiti separatamente. Backup e prove trimestrali nel runbook.
 
 ## Configurazione
 
 Copia `.env.example` in `apps/web/.env.local` per Next. Gli script DB leggono
-variabili della shell: per Postgres esporta `DATABASE_URL` anche quando esegui
-`pnpm db:migrate` e `pnpm db:seed`.
+variabili della shell: per Postgres esporta `DATABASE_URL` quando esegui
+`pnpm db:migrate` e gli altri comandi amministrativi. Il seed accetta solo PGlite locale.
 
 | Variabile                           | Effetto                                                                                                         |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -186,7 +201,7 @@ sotto 10 minuti dallo stesso IP, oltre a 10 operatori che accedono con un retry.
 - [API e semantica dei KPI](docs/API.md)
 - [Modello dati](docs/DATA_MODEL.md)
 - [Sicurezza e prerequisiti GDPR/AI Act](docs/SECURITY.md)
-- [Deploy staging: Vercel, Postgres UE, Blob privato e verifiche](docs/DEPLOY.md)
+- [Deploy e avvio CAF pilota: preflight, bootstrap, backup ed export](docs/DEPLOY.md)
 - [Ricerca ISEE 2027 e limiti annuali](docs/research/isee-2027.md)
 - [Decisioni backend](docs/decisions/backend.md)
 
@@ -198,7 +213,10 @@ Le sessioni si rinnovano anche durante la consultazione: 30 minuti di inattivit�
 La manutenzione è separata dalle richieste utente: `GET /api/cron/maintenance`, con
 `Authorization: Bearer <CRON_SECRET>`, elimina sessioni e bucket scaduti, cancella i fascicoli oltre retention e ritenta le
 cancellazioni dei file. La pianificazione è in `apps/web/vercel.json` (Root Directory Vercel `apps/web`):
-`* * * * *`, ogni minuto, su Vercel Pro. Vercel invoca solo Production: lo staging
+`0 3 * * *`, giornaliero UTC, compatibile con Hobby. Per Pro si può scegliere
+`* * * * *` nel file prima del rilascio. Le letture autorizzate di un fascicolo
+recuperano in background le analisi ferme oltre 2 minuti, sotto lease DB condiviso
+con upload e cron. Hobby resta soggetto alle condizioni d’uso del piano. Vercel invoca solo Production: lo staging
 usa un progetto separato con dati fittizi; le Preview richiedono una chiamata manuale
 o uno scheduler esterno. La cadenza recupera fino a quattro analisi ferme da oltre due
 minuti per run e applica retention/retry a lotti. Configurazione, costi e prove in
@@ -230,6 +248,6 @@ Proprietario. Tutti i diritti riservati.
 
 L’upload Next restituisce `processing` prima dell’analisi AI, eseguita con `after()`.
 La manutenzione recupera documenti rimasti in analisi e upload interrotti, tracciati
-con un lease di cancellazione prima del put. Le migrazioni pilota 0005/0006 aggiungono
+con un lease di cancellazione prima del put. La migrazione 0007 aggiunge il lease di analisi. Le migrazioni pilota 0005/0006 aggiungono
 indici e `pg_trgm`, incluso anche nei test PGlite. Prove, misure e integrazione web
 in [pilot-hardening.md](docs/verification/pilot-hardening.md).

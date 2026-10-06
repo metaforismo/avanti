@@ -91,10 +91,23 @@ pratiche con persone fittizie. Documenti generati riportano "ESEMPIO" e gli even
 simulati per mostrare la console: metriche demo non sono risultati del pilota. Gli ID demo
 sono stabili; un secondo seed non sovrascrive pratiche o revisioni modificate dall'operatore.
 
-Il seed rifiuta `NODE_ENV=production` e database con organizzazioni diverse dal tenant
+Il seed rifiuta `NODE_ENV=production`, Vercel, qualsiasi `DATABASE_URL` e database con organizzazioni diverse dal tenant
 demo. Nucleo e checklist usano lo stesso core delle API; i contatori demo vengono
 assegnati nella transazione del caso. Se la creazione fallisce, vengono rimossi i file
 scritti da quel tentativo. Nei test PGlite e le migrazioni restano in memoria, mentre
 i PDF sono in directory temporanee rimosse a fine test. Le verifiche locali non
 attestano la compatibilità con uno specifico servizio PostgreSQL remoto, che va
 validato prima del deploy.
+
+## Coda di analisi e portabilità
+
+La migrazione 0007 aggiunge `documents.analysis_lease_token` e
+`analysis_lease_until`: proprietà e scadenza del lease DB condiviso da upload,
+recupero su lettura e cron. Restano interni, esclusi dai DTO e dall’export. Le righe
+`processing` preesistenti con lease nullo restano recuperabili dopo 2 minuti.
+La finalizzazione richiede lo stesso token e lease ancora valido, sotto lock pratica.
+
+Bootstrap registra `organization.bootstrapped`, export `organization.exported`,
+senza credenziali o dati personali nei metadata. L’export versione 1 include dati
+CAF/pratiche, risposte, messaggi, revisioni, eventi e documenti con SHA-256, senza
+capability, sessioni, hash password, chiavi storage o binari. Runbook in DEPLOY.md.
