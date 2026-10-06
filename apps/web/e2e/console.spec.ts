@@ -62,3 +62,21 @@ test("an admin adds an operator, who must choose a password at first login", asy
   // Operators don't administer the CAF.
   await expect(page.getByRole("link", { name: "Impostazioni" })).toHaveCount(0);
 });
+
+test("marking a case ready with missing documents asks first", async ({ page }) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await page.getByRole("link", { name: /Persona Esempio 8/ }).click();
+  await expect(page.getByText(/Mancano \d+ documenti obbligatori/).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Segna come pronta" }).click();
+  const confirm = page.getByRole("dialog", { name: /Segnare come pronta/ });
+  await expect(confirm).toContainText(/Mancano \d+ documenti obbligatori/);
+  await page.keyboard.press("Escape");
+  await expect(confirm).toBeHidden();
+  // Nothing happened: the case is still waiting for review.
+  await expect(page.getByText("Da revisionare", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Segna come pronta" })).toBeFocused();
+});
