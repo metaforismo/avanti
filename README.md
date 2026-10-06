@@ -165,17 +165,17 @@ ISEE e 730 2027 sono preparati secondo le regole disponibili al 5–6 ottobre 20
 modelli e istruzioni annuali vanno ricontrollati prima del pilota. Avanti prepara
 un fascicolo e non trasmette alcuna pratica agli enti.
 
-Le sessioni si rinnovano anche durante la consultazione e scadono comunque dopo 12 ore.
+Le sessioni si rinnovano anche durante la consultazione: 30 minuti di inattività e massimo 12 ore. Al cambio password il cookie viene ruotato e le sessioni precedenti revocate.
 La manutenzione è separata dalle richieste utente: `GET /api/cron/maintenance`, con
 `Authorization: Bearer <CRON_SECRET>`, elimina sessioni e bucket scaduti, cancella i fascicoli oltre retention e ritenta le
-cancellazioni dei file. Configurare Vercel Cron (o un scheduler Node) almeno ogni ora.
+cancellazioni dei file. Configurare Vercel Cron (o un scheduler Node) ogni minuto per recuperare anche le analisi interrotte.
 `CRON_SECRET` deve essere casuale e riservato; senza segreto l’endpoint rifiuta ogni chiamata.
 La manutenzione limita i tentativi a uno al minuto anche dopo un errore. Le cancellazioni
 fallite restano in `storage_deletions` fino alla conferma dello storage.
 
 I download e gli export appendono eventi di accesso anche su GET; la lettura di un
 fascicolo non modifica la sua data di aggiornamento o lo stato di revisione.
-Ogni pratica accetta al massimo 60 documenti. Il parser PDF usa un worker riutilizzabile,
+Ogni pratica accetta al massimo 60 documenti e 120 MiB complessivi, con 4 MiB per file. Il parser PDF usa un worker riutilizzabile,
 un heap dimensionato sul limite upload e una scadenza di 15 secondi per lavoro. Timeout,
 OOM e saturazione restituiscono 503 con invito a riprovare; un PDF non leggibile restituisce 415.
 HEIC resta scaricabile e soggetto a controllo visivo dell’operatore.
@@ -193,3 +193,9 @@ nella singola istanza, senza dettagli di richieste o cittadini.
 ## Licenza
 
 Proprietario. Tutti i diritti riservati.
+
+L’upload Next restituisce `processing` prima dell’analisi AI, eseguita con `after()`.
+La manutenzione recupera documenti rimasti in analisi e upload interrotti, tracciati
+con un lease di cancellazione prima del put. Le migrazioni pilota 0005/0006 aggiungono
+indici e `pg_trgm`, incluso anche nei test PGlite. Prove, misure e integrazione web
+in [pilot-hardening.md](docs/verification/pilot-hardening.md).

@@ -5,6 +5,7 @@ import { Dialog as Primitive } from "radix-ui";
 import { useEffect } from "react";
 import type { CaseDossier, DocumentSummary } from "@avanti/contracts";
 import { Pill } from "@/components/ui/pill";
+import { PdfPreview } from "./pdf-preview";
 import { formatDateTime } from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
 
@@ -78,7 +79,7 @@ export function DocumentViewer({
                   <ChevronRight className="size-5" />
                 </NavButton>
                 <a
-                  href={`${url}?download=1`}
+                  href={url}
                   download={doc.fileName}
                   className="rounded-sm p-2 text-ink-2 hover:bg-sunk hover:text-ink"
                   aria-label="Scarica il file"
@@ -96,12 +97,7 @@ export function DocumentViewer({
               <div className="grid min-h-0 flex-1 lg:grid-cols-[1fr_20rem]">
                 <div className="min-h-[50dvh] overflow-auto bg-sunk">
                   {doc.mimeType === "application/pdf" ? (
-                    <iframe
-                      key={doc.id}
-                      src={url}
-                      title={doc.fileName}
-                      className="size-full min-h-[70dvh]"
-                    />
+                    <PdfPreview key={doc.id} url={url} title={doc.fileName} />
                   ) : doc.mimeType === "image/heic" ? (
                     <p className="p-8 text-center text-ink-2">
                       Anteprima HEIC non supportata da questo browser. Scarica il file per aprirlo.

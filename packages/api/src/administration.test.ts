@@ -297,7 +297,7 @@ describe("password lifecycle", () => {
     ).toBe(Date.parse(initial));
     expect((await request("/auth/logout", "POST", undefined, loggedIn.cookie)).status).toBe(200);
   });
-  it("changes an ordinary operator's password and revokes other sessions only", async () => {
+  it("changes an ordinary operator's password and rotates the session", async () => {
     const second = await session("normal");
     const result = await request(
       "/auth/password",
@@ -307,7 +307,9 @@ describe("password lifecycle", () => {
     );
     expect(result.status).toBe(200);
     expect(Operator.parse(await result.json()).mustChangePassword).toBe(false);
-    expect((await request("/cases", "GET", undefined, normal)).status).toBe(200);
+    const rotated = result.headers.get("set-cookie")!.split(";")[0]!;
+    expect((await request("/cases", "GET", undefined, rotated)).status).toBe(200);
+    await fails(await request("/auth/me", "GET", undefined, normal), 401, "unauthorized");
     await fails(await request("/auth/me", "GET", undefined, second), 401, "unauthorized");
     await fails(
       await request("/auth/login", "POST", { email: "normal@example.test", password }),
@@ -316,7 +318,7 @@ describe("password lifecycle", () => {
     );
     await login("normal@example.test", "ChangedAvantiPassword!");
   });
-  it("unlocks a temporary account while preserving the current session", async () => {
+  it("unlocks a temporary account with a rotated session", async () => {
     const created = await createOperator();
     const first = await login(created.operator.email, created.temporaryPassword);
     const second = await login(created.operator.email, created.temporaryPassword);
@@ -328,7 +330,9 @@ describe("password lifecycle", () => {
     );
     expect(changed.status).toBe(200);
     expect(Operator.parse(await changed.json()).mustChangePassword).toBe(false);
-    expect((await request("/cases", "GET", undefined, first.cookie)).status).toBe(200);
+    const rotated = changed.headers.get("set-cookie")!.split(";")[0]!;
+    expect((await request("/cases", "GET", undefined, rotated)).status).toBe(200);
+    await fails(await request("/auth/me", "GET", undefined, first.cookie), 401, "unauthorized");
     await fails(await request("/auth/me", "GET", undefined, second.cookie), 401, "unauthorized");
   });
   it("validates current/new passwords, same-password rejection and Origin without modifying credentials", async () => {

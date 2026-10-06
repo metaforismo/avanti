@@ -26,6 +26,9 @@ import {
 import { calendarYear, getQuestions } from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
 import { detachRemovedMembers } from "./household-cleanup";
+import { heuristicAnalysis } from "./ai";
+import { analyzePendingDocument } from "./document-analysis";
+import { assertImageSafe } from "./image-safety";
 import { pdfPages } from "./pdf-pages";
 import { retryStorageDeletions } from "./storage-cleanup";
 import { safeError } from "./logging";
@@ -112,11 +115,7 @@ async function download(c: ApiContext, s: Services, row: CaseRow, id: string) {
     .limit(1);
   if (!document) throw notFound();
   const bytes = await s.storage.get(document.storageKey);
-  const previewTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
-  const disposition =
-    c.req.query("download") === "1" || !previewTypes.has(document.mimeType)
-      ? "attachment"
-      : "inline";
+  const disposition = "attachment";
   const name = sanitizeName(document.fileName, document.mimeType);
   const encodedName = encodeURIComponent(name).replace(
     /['()*]/g,
@@ -128,12 +127,7 @@ async function download(c: ApiContext, s: Services, row: CaseRow, id: string) {
     `${disposition}; filename="${sanitizeName("documento", document.mimeType)}"; filename*=UTF-8''${encodedName}`,
   );
   c.header("X-Content-Type-Options", "nosniff");
-  if (disposition === "inline" && document.mimeType === "application/pdf") {
-    c.header(
-      "Content-Security-Policy",
-      "frame-ancestors 'self'; object-src 'none'; base-uri 'none'",
-    );
-  } else c.header("Content-Security-Policy", "sandbox");
+  c.header("Content-Security-Policy", "default-src 'none'; sandbox; frame-ancestors 'none'");
   const operator = c.get("operator");
   await audit(
     s.db,
@@ -143,7 +137,14 @@ async function download(c: ApiContext, s: Services, row: CaseRow, id: string) {
     s.clock(),
     operator?.id ?? null,
   );
-  return c.body(Buffer.from(bytes));
+  return c.body(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      },
+    }),
+  );
 }
 export { download };
 
@@ -289,6 +290,9 @@ export function mountCitizenRoutes(app: App, s: Services) {
     const file = form.get("file");
     if (!(file instanceof File))
       throw new ApiFailure("bad_request", 400, "Scegli un file da caricare.");
+    if (!file.size) throw new ApiFailure("unsupported_file", 415, "Il file è vuoto.");
+    if (form.getAll("file").length !== 1)
+      throw new ApiFailure("bad_request", 400, "Carica un solo file alla volta.");
     if (file.size > UPLOAD_LIMITS.maxBytes)
       throw new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
     const fields = parse(UploadDocumentFields, {
@@ -298,22 +302,38 @@ export function mountCitizenRoutes(app: App, s: Services) {
     const mime = sniffMime(bytes);
     if (!mime || !UPLOAD_LIMITS.mimeTypes.some((t) => t === mime))
       throw new ApiFailure("unsupported_file", 415, "Carica un PDF o un'immagine supportata.");
+    if (file.type && file.type !== "application/octet-stream" && file.type !== mime)
+      throw new ApiFailure("unsupported_file", 415, "Il tipo dichiarato non corrisponde al file.");
+    assertImageSafe(bytes, mime);
     const pages = await pdfPages(bytes, mime);
     const view = await citizenView(s.db, initial, s.clock());
     assertDocumentLimit(view.documents.length);
+    assertCaseBytes(view.documents, file.size);
     if (fields.checklistItemId && !view.checklist.some((i) => i.id === fields.checklistItemId))
       throw new ApiFailure("bad_request", 400, "Voce della checklist non valida.");
     const fileName = sanitizeName(file.name, mime);
-    const analysis = await s.ai.analyze(bytes, mime, fileName, [
-      ...new Set(view.checklist.map((i) => i.requirementId)),
-    ]);
+    const requirements = [...new Set(view.checklist.map((i) => i.requirementId))];
+    const analysis = s.background
+      ? heuristicAnalysis(fileName, requirements)
+      : await s.ai.analyze(bytes, mime, fileName, requirements);
     const id = crypto.randomUUID();
-    const key = await s.storage.put(`${initial.organizationId}/${initial.id}/${id}`, bytes, mime);
+    const requestedKey = `${initial.organizationId}/${initial.id}/${id}`;
+    // Persist cleanup before the external write; a terminated upload cannot leave an untracked file.
+    await s.db.insert(storageDeletions).values({
+      id,
+      caseId: initial.id,
+      storageKey: requestedKey,
+      createdAt: s.clock().toISOString(),
+      nextAttemptAt: new Date(s.clock().getTime() + 600000).toISOString(),
+    });
+    const key = await s.storage.put(requestedKey, bytes, mime);
+    let committed = false;
     try {
       const row = await s.db.transaction(async (tx) => {
         const current = await lockCase(tx, initial, s.clock());
         const fresh = await citizenView(tx, current, s.clock());
         assertDocumentLimit(fresh.documents.length);
+        assertCaseBytes(fresh.documents, file.size);
         const item = uploadChecklistItem(
           fresh.checklist,
           fields.checklistItemId,
@@ -337,9 +357,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
           uploadedAt: s.clock().toISOString(),
           checklistItemId: item?.id ?? null,
           memberId: item?.memberId ?? null,
-          status: "analyzed",
-          analysis,
+          status: s.background ? "processing" : "analyzed",
+          analysis: s.background ? null : analysis,
         });
+        await tx.delete(storageDeletions).where(eq(storageDeletions.id, id));
         const updated = await touchCase(tx, current, s.clock());
         await audit(tx, current, "citizen", "document.uploaded", s.clock(), null, {
           bytes: bytes.length,
@@ -347,10 +368,27 @@ export function mountCitizenRoutes(app: App, s: Services) {
         });
         return updated;
       });
-      return c.json(await citizenView(s.db, row, s.clock()), 201);
+      committed = true;
+      const response = await citizenView(s.db, row, s.clock());
+      if (s.background) {
+        try {
+          s.background(async () => {
+            try {
+              await analyzePendingDocument(s, id);
+            } catch {
+              /* The maintenance job retries persisted processing documents. */
+            }
+          });
+        } catch {
+          /* Scheduling is optional; the durable job already exists. */
+        }
+      }
+      return c.json(response, 201);
     } catch (error) {
+      if (committed) throw error;
       try {
         await s.storage.delete(key);
+        await s.db.delete(storageDeletions).where(eq(storageDeletions.id, id));
       } catch (cleanupError) {
         await s.db
           .insert(storageDeletions)
@@ -361,7 +399,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
             createdAt: s.clock().toISOString(),
             nextAttemptAt: s.clock().toISOString(),
           })
-          .onConflictDoNothing()
+          .onConflictDoUpdate({
+            target: storageDeletions.id,
+            set: { storageKey: key, nextAttemptAt: s.clock().toISOString() },
+          })
           .catch((insertError) => {
             (s.errorLogger ?? console.error)({
               requestId: c.get("requestId"),
@@ -486,7 +527,16 @@ function confirmedAnswers(
   if (input.type === "choose_practice" && input.practiceId !== current.practiceId) return [];
   return confirmed;
 }
+export const MAX_CASE_BYTES = 120 * 1024 * 1024;
 export const MAX_CASE_DOCUMENTS = 60;
+function assertCaseBytes(stored: { sizeBytes: number }[], incoming: number) {
+  if (stored.reduce((total, document) => total + document.sizeBytes, incoming) > MAX_CASE_BYTES)
+    throw new ApiFailure(
+      "conflict",
+      409,
+      "Hai raggiunto il limite di 120 MB per fascicolo. Elimina i documenti non necessari.",
+    );
+}
 function assertDocumentLimit(count: number) {
   if (count >= MAX_CASE_DOCUMENTS)
     throw new ApiFailure(

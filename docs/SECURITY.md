@@ -4,6 +4,44 @@ Versione: **6 ottobre 2026**; fonti consultate il 5–6 ottobre. Questo document
 e lavoro operativo necessario al pilota; non certifica conformità GDPR o AI Act.
 Le prove di implementazione sono i test e i controlli riportati nella PR.
 
+## Audit mirato prima del pilota — 6 ottobre 2026
+
+**PASS locale sui controlli verificati; rilascio con persone reali ancora da verificare.**
+Riferimento: [OWASP ASVS v5.0.0, livello 2](https://owasp.org/projects/asvs),
+per autenticazione/sessioni, autorizzazione, validazione/file, API, logging e
+configurazione. Questo audit mirato non è una verifica completa o certificazione ASVS.
+Misure, comandi, integrazione web e limiti in
+[verification/pilot-hardening.md](verification/pilot-hardening.md).
+
+| Problema / controllo                                                                 | Gravità del problema trovato          | Esito e correzione                                                                                                                                                                                                                            | Prova locale                                                                                                                                                |
+| ------------------------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rotazione sessione al cambio password                                                | Alta                                  | Nuovo token e nuova scadenza; tutte le sessioni precedenti eliminate nella stessa transazione. Login sostituisce la sessione dello stesso operatore presentata col cookie                                                                     | `pilot-security.test.ts`: login/password/logout; `administration.test.ts`: cambio, reset e accesso concorrente                                              |
+| Inattività sessione di otto ore                                                      | Media                                 | 30 minuti di inattività, rinnovo su lettura, massimo assoluto 12 ore; cookie HttpOnly/Secure in produzione/SameSite=Lax                                                                                                                       | `app.test.ts`: limite esatto 30 minuti, sessione attiva oltre 12 ore, rinnovo e cap; `pilot-security.test.ts`: cookie                                       |
+| Link cittadino leggibile dopo chiusura                                               | Alta                                  | Chiusura anticipa expiresAt nella transazione; tutte le rotte cittadino rifiutano i fascicoli chiusi; riaprire non riattiva il link. Cancellazione elimina il record e restituisce 404                                                        | `pilot-security.test.ts`: chiusura/riapertura/file; `administration.test.ts`: erasure                                                                       |
+| Entropia/confronto capability                                                        | Nessun difetto rilevato nell'entropia | 32 byte da randomBytes, solo SHA-256 persistito; confronto timingSafeEqual dell'hash dopo lookup indicizzato. Il lookup/HTTP complessivo non è a tempo costante                                                                               | `pilot-security.test.ts`: 500 token da 32 byte, scadenza; `middleware/auth.ts` e `security.ts`: controllo esplicito; non è una prova statistica del CSPRNG  |
+| Origin assente su mutazioni cittadino/pubbliche; Host aggiunge origini in produzione | Alta                                  | Middleware globale prima del body, inclusi multipart; solo PUBLIC_APP_URL in produzione. Nessun CORS abilitato                                                                                                                                | `pilot-security.test.ts`: matrice mutazioni, multipart, Origin mancante/esterno, Host/URL estranei; `app.test.ts`: fallback Sec-Fetch-Site e origini locali |
+| Upload riconosciuto solo dalla firma                                                 | Alta                                  | Tipo dichiarato coerente col tipo rilevato, rifiuto PDF con JavaScript/allegati/azioni attive anche negli object stream, massimo 300 pagine. Dimensioni PNG/JPEG/WebP/HEIC entro 40 megapixel e 16.384 pixel per asse; WebP animati rifiutati | `pilot-upload.test.ts`: PDF compressi/allegati, MIME, immagini; `pdf-pages.test.ts`: validi, invalidi, timeout/OOM                                          |
+| Limite body dipendente da Content-Length; quota solo in numero file                  | Media                                 | Contatore sullo stream reale, 4 MiB/file, envelope 128 KiB, 60 documenti e 120 MiB/pratica verificati sotto lock; quattro upload simultanei per istanza                                                                                       | `pilot-upload.test.ts`: multipart oltre limite, Content-Length falsato, quota byte e quinto upload; `app.test.ts`: dimensione file e 61esimo documento      |
+| Storage traversal e symlink                                                          | Alta per symlink locali               | Chiavi con segmenti ammessi, confine canonicalizzato, rifiuto symlink, O_NOFOLLOW, file 0600. Nessun nome originale usato come percorso                                                                                                       | `storage.test.ts`: traversal, symlink directory/file, permessi; `pilot-upload.test.ts`: nomi                                                                |
+| PDF/file inline sullo stesso origin                                                  | Media                                 | Attachment sempre, nosniff, CSP sandbox/default-src none, nessun URL firmato/Blob nel DTO; API no-store/no-referrer e CSP restrittiva anche sugli errori                                                                                      | `pilot-security.test.ts`: file/header/log; `app.test.ts`: filename e audit download/export; revisione `dossier.ts` per DTO                                  |
+| Quote assenti su export e traduzioni operatore                                       | Media                                 | Export JSON/PDF 20/minuto e integrazioni 30/minuto per operatore e IP fidato. Restano quote su login/password/intake/lead/turn/upload                                                                                                         | `pilot-security.test.ts`: quote e proxy mancante; `middleware/rate-limit.test.ts`, `app.test.ts`: proxy fidato/socket e spoofing                            |
+| Isolamento CAF                                                                       | Nessun accesso estraneo trovato       | Predicate tenant su risorse, relazioni e filtri; 404 uniforme prima di storage/AI. Lo slug sportello è intenzionalmente pubblico e contiene solo campi pubblici                                                                               | `pilot-security.test.ts`: matrice pratiche, note, revisioni, documenti/file, operatori/reset, sportelli, metriche, export; test DB sui FK tenant            |
+| AI nel percorso upload; lavoro perso all'arresto                                     | Media                                 | Processing persistito, after() e recupero cron; fallback esplicito. Lease storage prima del put, rimosso nel commit documento; cleanup/backoff durevoli                                                                                       | `pilot-upload.test.ts`: risposta prima dell'AI, restart, documento eliminato, put ambiguo recuperato; `blob-storage.test.ts`: deadline/late success         |
+| Health sempre OK e shutdown senza drain applicativo                                  | Media                                 | Probe DB/storage con 503 sicuro, coalescenza 10 secondi; closeRuntimeDatabase drena richieste e background registrati                                                                                                                         | `pilot-reliability.test.ts`: outage/coalescenza e commit/rollback con DB persistente; `runtime.test.ts`: singleton e chiusura idempotente                   |
+| Letture storiche metriche e query ridondante assegnatario                            | Media prestazioni                     | Query circoscritte al periodo; upsert revisioni in batch; riuso operatori timeline; migrazioni 0005/0006                                                                                                                                      | `pilot-performance.test.ts`: 2.000 pratiche/20.000 documenti, conteggio query, cursori, EXPLAIN; `routes.test.ts`: storia metriche                          |
+| Dipendenze produzione                                                                | Nessuna segnalata                     | pnpm audit --prod: 234 dipendenze, zero info/low/moderate/high/critical; nessuna vulnerabilità accettata o soppressa                                                                                                                          | Audit registry eseguito in questa sessione; risultato in `pilot-hardening.md`                                                                               |
+
+**Aperto prima del trattamento reale:** header/CSP delle pagine, nonce per una CSP
+senza unsafe-inline, redazione dei log proxy, polling UI durante processing e
+compatibilità della preview dopo attachment; scheduler ogni minuto e recupero
+su deployment; lifecycle Node/serverless e prova PostgreSQL/Blob reali con dati
+sintetici. Mancano scansione malware e decodifica isolata completa: i controlli
+sui contenitori/dimensioni non attestano la sicurezza di tutti i payload.
+Il token resta una capability in URL: il frontend e il proxy devono applicare
+no-referrer e impedirne la raccolta da analytics/log. Le prove Hono non dimostrano
+questi controlli browser/infrastrutturali. Il rischio TOCTOU sul disco contro un
+processo locale privilegiato resta fuori dal confine applicativo.
+
 ## Confini e minacce
 
 Il link cittadino è una credenziale: chi lo possiede può accedere al relativo fascicolo.
@@ -12,18 +50,18 @@ Minacce principali: furto del link/sessione, accesso fra CAF, caricamenti malevo
 abuso degli endpoint, esposizione tramite log/cache/export e invio eccessivo a fornitori AI.
 Avanti prepara; il CAF verifica e utilizza il proprio gestionale per la pratica ufficiale.
 
-| Superficie     | Controllo da mantenere                                                                                                                                            |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Password       | scrypt `N=32768, r=8, p=1`, sale casuale 16 byte, derivato 64 byte; confronto costante. Nessuna password nei log                                                  |
-| Sessioni       | Token casuale 32 byte, solo SHA-256 nel DB; cookie HttpOnly, SameSite=Lax, Secure in produzione; scadenza e rinnovo controllati dal server                        |
-| CSRF operatore | Origin confrontato con origine della richiesta o PUBLIC_APP_URL; senza Origin solo Sec-Fetch-Site same-origin; controllo su tutte le mutazioni operatore          |
-| Cittadino      | Capability casuale 32 byte, solo hash nel DB; scadenza e risposta `link_expired`/410. Il token non viene ricostruito per la console                               |
-| Tenant         | Organizzazione dalla sessione, mai fidata dal body; ogni query, file, assegnatario, export e metrica deve essere circoscritto; risorse estranee restituiscono 404 |
-| Input          | Schemi condivisi più validazione di dominio; errori italiani sicuri, niente stack/dettagli infrastrutturali al client                                             |
-| Upload         | Massimo 4 MiB per file, limite della richiesta multipart, firma del tipo e nomi sanificati; chiavi storage generate dal server                                    |
-| Download       | Autorizzazione prima dello storage; allegato, `nosniff`, cache privata disabilitata. URL Blob privati non esposti al cittadino                                    |
-| Abusi          | Rate limit login/intake/turn/upload/leads, errore uniforme di login; origine IP derivata solo da proxy fidato                                                     |
-| Audit          | Attore, categoria, istante, conteggi; niente messaggi, nomi, CF, contatti, nomi file o contenuto documenti nei metadati/log                                       |
+| Superficie | Controllo da mantenere                                                                                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Password   | scrypt `N=32768, r=8, p=1`, sale casuale 16 byte, derivato 64 byte; confronto costante. Nessuna password nei log                                                              |
+| Sessioni   | Token casuale 32 byte, solo SHA-256 nel DB; cookie HttpOnly, SameSite=Lax, Secure in produzione; inattività 30 minuti, durata assoluta 12 ore, rotazione e revoca lato server |
+| CSRF       | In produzione Origin solo PUBLIC_APP_URL; senza Origin solo Sec-Fetch-Site same-origin; controllo globale su tutte le mutazioni, multipart incluso                            |
+| Cittadino  | Capability casuale 32 byte, solo hash nel DB; scadenza e risposta `link_expired`/410. Il token non viene ricostruito per la console                                           |
+| Tenant     | Organizzazione dalla sessione, mai fidata dal body; ogni query, file, assegnatario, export e metrica deve essere circoscritto; risorse estranee restituiscono 404             |
+| Input      | Schemi condivisi più validazione di dominio; errori italiani sicuri, niente stack/dettagli infrastrutturali al client                                                         |
+| Upload     | 4 MiB/file, 120 MiB e 60 documenti/pratica, contatore body, firma/MIME, PDF attivi e dimensioni immagini controllati; chiavi generate dal server                              |
+| Download   | Autorizzazione prima dello storage; allegato, `nosniff`, cache privata disabilitata. URL Blob privati non esposti al cittadino                                                |
+| Abusi      | Rate limit login/password/intake/turn/upload/leads/export/traduzioni, errore uniforme di login; origine IP derivata solo da proxy fidato                                      |
+| Audit      | Attore, categoria, istante, conteggi; niente messaggi, nomi, CF, contatti, nomi file o contenuto documenti nei metadati/log                                                   |
 
 Le firme riconoscono il contenitore; non sono antivirus né prova che tutte le pagine
 si aprano correttamente. PDF/immagini possono contenere dati o contenuti pericolosi:
@@ -58,7 +96,7 @@ autorizzazioni necessarie alla pratica tramite il CAF.
 
 I parametri iniziali del DB sono `linkDays=60` e `retentionDays=180`, configurabili per
 organizzazione: **scelte tecniche, non termini imposti dalla legge**. Scadenza link,
-chiusura della pratica e cancellazione sono operazioni distinte. Il job automatico applica la configurazione
+chiusura della pratica e cancellazione sono operazioni distinte; la chiusura revoca anche il link anticipandone la scadenza. Il job automatico applica la configurazione
 dell’organizzazione. La durata appropriata va motivata dal CAF,
 separando copia preparatoria Avanti dall'archivio obbligatorio del gestionale.
 [Garante, limitazione della conservazione](https://www.garanteprivacy.it/home/principi-fondamentali-del-trattamento).

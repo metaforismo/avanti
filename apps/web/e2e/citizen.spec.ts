@@ -3,6 +3,11 @@ import type { Language } from "@avanti/contracts";
 import { LANGUAGES } from "@avanti/contracts/constants";
 import { messagesFor } from "../src/lib/citizen/messages";
 
+/** Browsers send Origin on every POST and production requires it; Playwright's API client doesn't. */
+function origin() {
+  return { Origin: new URL(test.info().project.use.baseURL!).origin };
+}
+
 /** Answers the remaining interview through the API: the UI for each kind is covered elsewhere. */
 async function finishInterview(page: Page, token: string) {
   for (let i = 0; i < 40; i++) {
@@ -24,9 +29,10 @@ async function finishInterview(page: Page, token: string) {
                   ? "2025-06-01"
                   : "Prova";
     const response = await page.request.post(`/api/c/${token}/turn`, {
+      headers: origin(),
       data: { type: "answer", questionId: q.id, value },
     });
-    expect(response.ok(), `answer ${q.id}`).toBeTruthy();
+    expect(response.ok(), `answer ${q.id}: ${await response.text()}`).toBeTruthy();
   }
   throw new Error("Interview did not finish");
 }
@@ -34,11 +40,16 @@ async function finishInterview(page: Page, token: string) {
 /** Opens a case at the demo office, optionally with a first story, without the UI. */
 async function startCase(page: Page, story?: string, language: Language = "it") {
   const started = await page.request.post("/api/intake", {
+    headers: origin(),
     data: { officeSlug: "demo-milano-centro", language, privacyAccepted: true },
   });
   const { token } = (await started.json()) as { token: string };
   if (story) {
-    await page.request.post(`/api/c/${token}/turn`, { data: { type: "text", text: story } });
+    const told = await page.request.post(`/api/c/${token}/turn`, {
+      headers: origin(),
+      data: { type: "text", text: story },
+    });
+    expect(told.ok(), `story: ${await told.text()}`).toBeTruthy();
   }
   return token;
 }
@@ -182,12 +193,17 @@ async function layoutProblems(page: Page) {
 }
 
 test("the review step fits a 320px phone in every language", async ({ page }) => {
-  test.slow();
   await page.setViewportSize({ width: 320, height: 640 });
+  // One case, shown in each language: eight interviews would only exercise the rate limits.
+  const token = await startCase(page, "Devo fare l'ISEE, vivo con mia moglie");
+  await finishInterview(page, token);
   for (const language of LANGUAGES) {
     const m = messagesFor(language);
-    const token = await startCase(page, "Devo fare l'ISEE, vivo con mia moglie", language);
-    await finishInterview(page, token);
+    const switched = await page.request.put(`/api/c/${token}/language`, {
+      headers: origin(),
+      data: { language },
+    });
+    expect(switched.ok(), language).toBeTruthy();
     await page.goto(`/pratica/${token}`);
     await page.getByRole("button", { name: m.docs.toReview }).click();
     await expect(page.getByRole("heading", { level: 1, name: m.review.title })).toBeVisible();

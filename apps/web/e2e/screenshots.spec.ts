@@ -30,6 +30,8 @@ async function finishInterview(page: Page, token: string) {
                   ]
                 : "Prova";
     await page.request.post(`/api/c/${token}/turn`, {
+      // Production requires Origin on mutations; Playwright's API client doesn't send it.
+      headers: { Origin: new URL(test.info().project.use.baseURL!).origin },
       data: { type: "answer", questionId: q.id, value },
     });
   }

@@ -207,7 +207,11 @@ function upload(
   const form = new FormData();
   form.set("file", new File([new Uint8Array(bytes)], fileName, { type: declaredType }));
   if (itemId) form.set("checklistItemId", itemId);
-  return app.request(`/api/c/${token}/documents`, { method: "POST", body: form });
+  return app.request(`/api/c/${token}/documents`, {
+    method: "POST",
+    body: form,
+    headers: { Origin: origin },
+  });
 }
 
 const submitInput = {
@@ -259,7 +263,7 @@ describe("public API and validation", () => {
     await error(
       await app.request("/api/intake", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Origin: origin },
         body: "{",
       }),
       400,
@@ -538,7 +542,7 @@ describe("uploads and case boundaries", () => {
       bytes,
       '../ESEMPIO"\n.pdf.exe',
       undefined,
-      "text/plain",
+      "application/pdf",
     );
     expect(uploaded.status).toBe(201);
     const view = CitizenCase.parse(await uploaded.json());
@@ -551,7 +555,7 @@ describe("uploads and case boundaries", () => {
     expect(stored?.sha256).toBe(createHash("sha256").update(bytes).digest("hex"));
     const downloaded = await request(`/api/c/${intake.token}/documents/${document.id}/file`);
     expect(downloaded.status).toBe(200);
-    expect(downloaded.headers.get("content-disposition")).toContain("inline;");
+    expect(downloaded.headers.get("content-disposition")).toContain("attachment;");
     expect(downloaded.headers.get("content-disposition")).not.toMatch(/[\r\n]/);
     expect(downloaded.headers.get("x-content-type-options")).toBe("nosniff");
     expect(new Uint8Array(await downloaded.arrayBuffer())).toEqual(bytes);
@@ -655,7 +659,7 @@ describe("authentication and tenant isolation", () => {
       .select()
       .from(sessions)
       .where(eq(sessions.tokenHash, hashToken(token)));
-    instant = new Date(instant.getTime() + 60 * 60 * 1000);
+    instant = new Date(instant.getTime() + 15 * 60 * 1000);
     expect((await request("/api/cases", "POST", { officeId: "office-a" }, cookie)).status).toBe(
       201,
     );
@@ -664,7 +668,7 @@ describe("authentication and tenant isolation", () => {
       .from(sessions)
       .where(eq(sessions.tokenHash, hashToken(token)));
     expect(Date.parse(after?.expiresAt ?? "")).toBe(
-      Date.parse(before?.expiresAt ?? "") + 60 * 60 * 1000,
+      Date.parse(before?.expiresAt ?? "") + 15 * 60 * 1000,
     );
   });
 
@@ -1073,16 +1077,15 @@ describe("second backend review", () => {
     expect(resubmitted.status).toBe(200);
     expect(CitizenCase.parse(await resubmitted.json()).status).toBe("submitted");
   });
-  it("10: preview is sandboxed inline; download filename follows detected MIME", async () => {
+  it("10: files are attachments; download filename follows detected MIME", async () => {
     const intake = await start();
     const view = CitizenCase.parse(
       await (await upload(intake.token, await examplePdf(), "report\u202Efdp.exe")).json(),
     );
     const doc = view.documents[0]!;
     const preview = await request(`/api/c/${intake.token}/documents/${doc.id}/file`);
-    expect(preview.headers.get("content-disposition")).toContain("inline;");
-    expect(preview.headers.get("content-security-policy")).not.toContain("sandbox");
-    expect(preview.headers.get("content-security-policy")).toContain("frame-ancestors 'self'");
+    expect(preview.headers.get("content-disposition")).toContain("attachment;");
+    expect(preview.headers.get("content-security-policy")).toContain("sandbox");
     expect(doc.fileName).not.toContain("\u202E");
     expect(doc.fileName).toMatch(/\.pdf$/);
     const download = await request(`/api/c/${intake.token}/documents/${doc.id}/file?download=1`);
@@ -1102,11 +1105,9 @@ describe("second backend review", () => {
   });
   it("17: active sessions cannot survive 12 hours", async () => {
     const cookie = await login();
-    for (const hours of [7, 11]) {
-      instant = new Date(Date.parse(initialInstant) + hours * 3600000);
-      expect((await request("/api/cases", "POST", { officeId: "office-a" }, cookie)).status).toBe(
-        201,
-      );
+    for (let minutes = 20; minutes < 720; minutes += 20) {
+      instant = new Date(Date.parse(initialInstant) + minutes * 60000);
+      expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(200);
     }
     instant = new Date(Date.parse(initialInstant) + 12 * 3600000);
     expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(401);
@@ -1472,7 +1473,7 @@ describe("second backend review", () => {
       "/api/intake",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Origin: origin },
         body: JSON.stringify({
           officeSlug: "test-a",
           practiceId: "isee_ordinario",
@@ -1529,14 +1530,16 @@ describe("second backend review", () => {
   });
   it("B2: GET extends session up to the absolute cap", async () => {
     const cookie = await login();
-    instant = new Date(instant.getTime() + 7 * 3600000);
+    for (let minutes = 20; minutes <= 700; minutes += 20) {
+      instant = new Date(Date.parse(initialInstant) + minutes * 60000);
+      expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(200);
+    }
+    instant = new Date(Date.parse(initialInstant) + 710 * 60000);
     expect(
       (await request("/api/auth/me", "GET", undefined, cookie)).headers.get("set-cookie"),
     ).toBeTruthy();
     const [session] = await db.select().from(sessions);
     expect(Date.parse(session!.expiresAt)).toBe(Date.parse(initialInstant) + 12 * 3600000);
-    instant = new Date(Date.parse(initialInstant) + 9 * 3600000);
-    expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(200);
   });
   it("B6: health exposes only the numeric fallback count", async () => {
     const ai = new GatewayIntelligence();
@@ -1558,13 +1561,14 @@ it("B1: rollback tombstone logs insert error separately from storage error", asy
     .spyOn(db, "transaction")
     .mockRejectedValueOnce(new Error("upload private"));
   const insert = db.insert.bind(db);
+  let deletionInserts = 0;
   const insertion = vi
     .spyOn(db, "insert")
     .mockImplementation((table: Parameters<typeof db.insert>[0]) => {
-      if (table === storageDeletions)
+      if (table === storageDeletions && ++deletionInserts > 1)
         return {
           values: () => ({
-            onConflictDoNothing: () => Promise.reject(new TypeError("insert private")),
+            onConflictDoUpdate: () => Promise.reject(new TypeError("insert private")),
           }),
         } as unknown as ReturnType<typeof db.insert>;
       return insert(table);
@@ -1700,4 +1704,10 @@ it("8: the Next production server rejects missing trusted proxy before serving r
   } finally {
     vi.unstubAllEnvs();
   }
+});
+
+it("pilot: an inactive session expires at exactly thirty minutes", async () => {
+  const cookie = await login();
+  instant = new Date(Date.parse(initialInstant) + 30 * 60000);
+  expect((await request("/api/auth/me", "GET", undefined, cookie)).status).toBe(401);
 });

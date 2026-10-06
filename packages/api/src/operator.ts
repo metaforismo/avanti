@@ -1,4 +1,4 @@
-import { and, eq, desc, lt, or, ilike, sql, count } from "drizzle-orm";
+import { and, eq, desc, lt, or, ilike, sql, count, gte } from "drizzle-orm";
 import {
   cases,
   offices,
@@ -184,6 +184,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .update(cases)
         .set({
           ...input,
+          ...(input.status === "closed" ? { expiresAt: now.toISOString() } : {}),
           ...(input.status && input.status !== current.status
             ? { closedAt: input.status === "closed" ? now.toISOString() : null }
             : {}),
@@ -305,17 +306,19 @@ export function mountOperatorRoutes(app: App, s: Services) {
       const selected = localized.checklist.filter((item) =>
         input.checklistItemIds.includes(item.id),
       );
-      for (const item of selected) {
+      if (selected.length)
         await tx
           .insert(checklistReviews)
-          .values({
-            caseId: current.id,
-            itemId: item.id,
-            decision: "rejected",
-            note: input.message,
-            operatorId: operator.id,
-            reviewedAt: s.clock().toISOString(),
-          })
+          .values(
+            selected.map((item) => ({
+              caseId: current.id,
+              itemId: item.id,
+              decision: "rejected" as const,
+              note: input.message,
+              operatorId: operator.id,
+              reviewedAt: s.clock().toISOString(),
+            })),
+          )
           .onConflictDoUpdate({
             target: [checklistReviews.caseId, checklistReviews.itemId],
             set: {
@@ -325,7 +328,6 @@ export function mountOperatorRoutes(app: App, s: Services) {
               reviewedAt: s.clock().toISOString(),
             },
           });
-      }
       const labels = selected
         .map((item) => `${item.title}${item.memberName ? ` · ${item.memberName}` : ""}`)
         .join("\n");
@@ -378,16 +380,33 @@ export function mountOperatorRoutes(app: App, s: Services) {
   });
   app.get("/metrics", async (c) => {
     const q = parse(MetricsQuery, c.req.query());
-    const { end } = metricsRange(q.from, q.to);
+    const { start, end } = metricsRange(q.from, q.to);
     const org = c.get("operator").organizationId;
+    const completedInRange = sql`exists (select 1 from ${events} where ${events.caseId} = ${cases.id} and ${events.organizationId} = ${org} and ${events.type} = 'review.completed' and ${events.at} >= ${start.toISOString()}::timestamptz and ${events.at} < ${end.toISOString()}::timestamptz)`;
+    const submittedInRange = and(
+      gte(cases.submittedAt, start.toISOString()),
+      lt(cases.submittedAt, end.toISOString()),
+    );
     const rows = await s.db
-      .select()
+      .select({
+        id: cases.id,
+        createdAt: cases.createdAt,
+        submittedAt: cases.submittedAt,
+        practiceId: cases.practiceId,
+        language: cases.language,
+        firstSubmissionComplete: cases.firstSubmissionComplete,
+        reviewStartedAt: cases.reviewStartedAt,
+      })
       .from(cases)
       .where(
         and(
           eq(cases.organizationId, org),
           q.officeId ? eq(cases.officeId, q.officeId) : undefined,
-          lt(cases.createdAt, end.toISOString()),
+          or(
+            and(gte(cases.createdAt, start.toISOString()), lt(cases.createdAt, end.toISOString())),
+            submittedInRange,
+            completedInRange,
+          ),
         ),
       );
     const ev = await s.db
@@ -405,6 +424,10 @@ export function mountOperatorRoutes(app: App, s: Services) {
           eq(cases.organizationId, org),
           q.officeId ? eq(cases.officeId, q.officeId) : undefined,
           lt(events.at, end.toISOString()),
+          or(
+            and(eq(events.type, "review.completed"), gte(events.at, start.toISOString())),
+            and(sql`${events.type} in ('case.requested', 'citizen.requested')`, submittedInRange),
+          ),
         ),
       );
     const [config] = await s.db.select().from(settings).where(eq(settings.organizationId, org));

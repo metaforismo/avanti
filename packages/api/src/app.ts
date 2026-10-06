@@ -1,6 +1,5 @@
 import { Hono } from "hono";
-import { bodyLimit } from "hono/body-limit";
-import { UPLOAD_LIMITS } from "@avanti/contracts";
+import { boundedBody, uploadCapacity } from "./middleware/body";
 import { GatewayIntelligence } from "./ai";
 import type { ApiEnv, ApiOptions, Services } from "./context";
 import { ApiFailure } from "./security";
@@ -43,21 +42,14 @@ export function createApp(options: ApiOptions) {
   };
   const app = new Hono<ApiEnv>().basePath("/api");
   app.use("*", requestMetadata(options.logger));
-  app.use(
-    "*",
-    bodyLimit({
-      maxSize: UPLOAD_LIMITS.maxBytes + 128 * 1024,
-      onError: () => {
-        throw new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
-      },
-    }),
-  );
+  app.use("*", requireOrigin(services));
+  app.use("*", uploadCapacity());
+  app.use("*", boundedBody());
   registerErrors(app, options.errorLogger);
   mountMaintenance(app, services);
   app.use("*", restrictTemporaryPassword(services));
   const limited = rateLimit(services);
   app.use("*", limited);
-  app.use("/auth/*", requireOrigin(services));
   const authenticated = authenticateOperator(services);
   for (const path of [
     "/auth/me",
@@ -68,8 +60,8 @@ export function createApp(options: ApiOptions) {
     "/settings",
     "/operators/*",
   ]) {
-    if (!path.startsWith("/auth/")) app.use(path, requireOrigin(services));
     app.use(path, authenticated);
+    if (!path.startsWith("/auth/")) app.use(path, limited);
   }
   app.use("/auth/password", limited);
   // The slug lookup stays public; only office mutations use operator authentication.

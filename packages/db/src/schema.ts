@@ -146,6 +146,18 @@ export const cases = pgTable(
     index("cases_org_status_updated_idx").on(t.organizationId, t.status, t.updatedAt, t.id),
     index("cases_org_office_created_idx").on(t.organizationId, t.officeId, t.createdAt),
     index("cases_org_assignee_idx").on(t.organizationId, t.assigneeId),
+    index("cases_reference_search_idx").using("gin", sql`${t.reference} gin_trgm_ops`),
+    index("cases_contact_search_idx").using(
+      "gin",
+      sql`(coalesce(${t.contact}->>'firstName','') || ' ' || coalesce(${t.contact}->>'lastName','')) gin_trgm_ops`,
+    ),
+    index("cases_org_updated_idx").on(t.organizationId, t.updatedAt, t.id),
+    index("cases_org_office_updated_idx").on(t.organizationId, t.officeId, t.updatedAt, t.id),
+    index("cases_org_practice_updated_idx").on(t.organizationId, t.practiceId, t.updatedAt, t.id),
+    index("cases_org_assignee_updated_idx").on(t.organizationId, t.assigneeId, t.updatedAt, t.id),
+    index("cases_org_created_idx").on(t.organizationId, t.createdAt),
+    index("cases_org_submitted_idx").on(t.organizationId, t.submittedAt),
+    index("cases_org_office_submitted_idx").on(t.organizationId, t.officeId, t.submittedAt),
     index("cases_expires_idx").on(t.expiresAt),
     check(
       "cases_status_check",
@@ -196,6 +208,9 @@ export const documents = pgTable(
   },
   (t) => [
     index("documents_case_idx").on(t.caseId, t.uploadedAt),
+    index("documents_processing_idx")
+      .on(t.uploadedAt, t.id)
+      .where(sql`${t.status} = 'processing'`),
     index("documents_case_sha_idx").on(t.caseId, t.sha256),
     check("documents_status_check", sql`${t.status} in ('processing', 'analyzed', 'failed')`),
     check("documents_size_check", sql`${t.sizeBytes} >= 0`),
@@ -249,6 +264,7 @@ export const events = pgTable(
       "events_metadata_check",
       sql`jsonb_typeof(${t.metadata}) = 'object' and not jsonb_path_exists(${t.metadata}, '$.* ? (@.type() != "number" && @.type() != "boolean" && @.type() != "null")')`,
     ),
+    index("events_case_type_time_idx").on(t.caseId, t.type, t.at),
     index("events_case_time_idx").on(t.caseId, t.at),
     index("events_org_type_time_idx").on(t.organizationId, t.type, t.at),
   ],

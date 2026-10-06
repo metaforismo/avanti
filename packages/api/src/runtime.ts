@@ -43,3 +43,39 @@ export function processSingleton<T>(key: symbol, initialize: () => Promise<T>) {
   const store = globalThis as Record<symbol, ReturnType<typeof lazyRuntime<T>> | undefined>;
   return (store[key] ??= lazyRuntime(initialize));
 }
+
+export function activityGate() {
+  let active = 0;
+  let closing = false;
+  let resolveDrain: (() => void) | undefined;
+  let shutdown: Promise<void> | undefined;
+  return {
+    get closing() {
+      return closing;
+    },
+    begin() {
+      if (closing) throw new Error("Runtime is draining");
+      active++;
+      let finished = false;
+      return () => {
+        if (finished) return;
+        finished = true;
+        active--;
+        if (!active) resolveDrain?.();
+      };
+    },
+    close(dispose: () => Promise<void>) {
+      if (!shutdown) {
+        closing = true;
+        shutdown = (async () => {
+          if (active)
+            await new Promise<void>((resolve) => {
+              resolveDrain = resolve;
+            });
+          await dispose();
+        })();
+      }
+      return shutdown;
+    },
+  };
+}

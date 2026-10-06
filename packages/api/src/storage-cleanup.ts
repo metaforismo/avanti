@@ -21,7 +21,9 @@ export async function retryStorageDeletions(
     )
     .orderBy(asc(storageDeletions.nextAttemptAt), asc(storageDeletions.id))
     .limit(100);
+  const started = performance.now();
   for (const row of pending) {
+    if (performance.now() - started >= 20000) break;
     try {
       await s.storage.delete(row.storageKey);
       await s.db.delete(storageDeletions).where(eq(storageDeletions.id, row.id));

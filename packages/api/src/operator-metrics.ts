@@ -36,10 +36,21 @@ function average(values: (number | null)[]) {
   return measured.length ? measured.reduce((sum, value) => sum + value, 0) / measured.length : null;
 }
 
+export type MetricCase = Pick<
+  CaseRow,
+  | "id"
+  | "createdAt"
+  | "submittedAt"
+  | "practiceId"
+  | "language"
+  | "firstSubmissionComplete"
+  | "reviewStartedAt"
+>;
+
 export function calculateMetrics(
   from: string,
   to: string,
-  rows: CaseRow[],
+  rows: MetricCase[],
   events: MetricEvent[],
   baselineMinutesPerCase: number | null,
 ): Metrics {
@@ -73,6 +84,16 @@ export function calculateMetrics(
     // Older events still use their own completion time, never the row's later mutable timestamp.
     return [minutes(row.reviewStartedAt, completion.at)];
   });
+  const startedByDay = new Map<string, number>();
+  const submittedByDay = new Map<string, number>();
+  for (const row of started) {
+    const day = calendarDate(new Date(row.createdAt));
+    startedByDay.set(day, (startedByDay.get(day) ?? 0) + 1);
+  }
+  for (const row of submitted) {
+    const day = calendarDate(new Date(row.submittedAt!));
+    submittedByDay.set(day, (submittedByDay.get(day) ?? 0) + 1);
+  }
   const daily: Metrics["daily"] = [];
   for (
     let day = new Date(`${from}T00:00:00Z`);
@@ -82,10 +103,8 @@ export function calculateMetrics(
     const date = day.toISOString().slice(0, 10);
     daily.push({
       date,
-      started: started.filter((row) => calendarDate(new Date(row.createdAt)) === date).length,
-      submitted: submitted.filter(
-        (row) => row.submittedAt && calendarDate(new Date(row.submittedAt)) === date,
-      ).length,
+      started: startedByDay.get(date) ?? 0,
+      submitted: submittedByDay.get(date) ?? 0,
     });
   }
   return {

@@ -229,20 +229,12 @@ export async function citizenView(
 }
 export async function dossierView(db: Database, row: CaseRow, now: Date): Promise<CaseDossier> {
   const view = await citizenView(db, row, now, "it", true);
-  const [timeline, [assignee], actors] = await Promise.all([
+  const [timeline, actors] = await Promise.all([
     db
       .select()
       .from(events)
       .where(and(eq(events.caseId, row.id), eq(events.organizationId, row.organizationId)))
       .orderBy(asc(events.at), asc(events.id)),
-    row.assigneeId
-      ? db
-          .select({ id: operators.id, name: operators.name })
-          .from(operators)
-          .where(
-            and(eq(operators.id, row.assigneeId), eq(operators.organizationId, row.organizationId)),
-          )
-      : Promise.resolve([]),
     db
       .select({ id: operators.id, name: operators.name })
       .from(operators)
@@ -259,7 +251,7 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
     status: row.status,
     language: row.language,
     office: view.office,
-    assignee: assignee ?? null,
+    assignee: actors.find((actor) => actor.id === row.assigneeId) ?? null,
     progress: view.progress,
     blockers: view.findings.filter((f) => f.severity === "blocker").length,
     warnings: view.findings.filter((f) => f.severity === "warning").length,

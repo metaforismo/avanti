@@ -1,3 +1,4 @@
+import { recoverDocumentAnalysis } from "../document-analysis";
 import { timingSafeEqual } from "node:crypto";
 import { lte, or, sql } from "drizzle-orm";
 import { clearExpiredRateLimits, sessions } from "@avanti/db";
@@ -31,6 +32,7 @@ export function mountMaintenance(app: App, s: Services) {
     await clearExpiredRateLimits(s.db, now);
     const deletedCases = await purgeRetainedCases(s, now);
     await retryStorageDeletions(s);
+    await recoverDocumentAnalysis(s);
     return c.json({ ok: true, deletedCases });
   });
 }

@@ -16,6 +16,12 @@ export function requestMetadata(logger: ApiOptions["logger"]): MiddlewareHandler
     context.header("Cache-Control", "no-store");
     context.header("Referrer-Policy", "no-referrer");
     context.header("X-Content-Type-Options", "nosniff");
+    context.header("X-Frame-Options", "DENY");
+    context.header(
+      "Content-Security-Policy",
+      "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    );
+    context.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     try {
       await next();
     } finally {

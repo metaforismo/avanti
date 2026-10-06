@@ -13,7 +13,10 @@ const publicLimits = new Map([
   ["/api/leads", { category: "leads", limit: 5 }],
 ]);
 function policy(path: string, method: string) {
+  if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path))
+    return { category: "export", limit: 20 };
   if (method !== "POST") return null;
+  if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return { category: "translate", limit: 30 };
   const publicPolicy = publicLimits.get(path);
   if (publicPolicy) return publicPolicy;
   if (/^\/api\/c\/[^/]+\/turn$/.test(path)) return { category: "turn", limit: 120 };
@@ -41,12 +44,13 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
     const rule = policy(context.req.path, context.req.method);
     // Password attempts use the authenticated email, never a client-supplied identity.
     if (context.req.path === "/api/auth/password" && !context.get("operator")) return next();
-    if (rule) {
+    if (rule && (!["export", "translate"].includes(rule.category) || context.get("operator"))) {
       const identities: string[] = [];
       const address = remoteAddress(context, services);
       if (services.production && !address)
         throw new ApiFailure("bad_request", 400, "Richiesta non valida.");
 
+      if (context.get("operator")) identities.push(`operator:${context.get("operator").id}`);
       if (address) identities.push(`ip:${address}`);
       const capability = /^\/api\/c\/([^/]+)/.exec(context.req.path)?.[1];
       if (capability) identities.push(`capability:${capability}`);
