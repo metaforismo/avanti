@@ -4,7 +4,7 @@ import { ArrowLeft, Check, ChevronDown, Download, FileJson, Send, UserCheck } fr
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Route } from "next";
 import type {
   CaseDossier,
@@ -80,6 +80,17 @@ export function DossierView({ caseId }: { caseId: string }) {
       setPending(null);
     }
   }
+
+  // Uploads are analysed in the background: refresh until every document has its result.
+  const analysing = dossier.data?.documents.some((doc) => doc.status === "processing") ?? false;
+  const { reload } = dossier;
+  useEffect(() => {
+    if (!analysing) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") reload();
+    }, 3000);
+    return () => window.clearInterval(id);
+  }, [analysing, reload]);
 
   if (dossier.status === "loading") {
     return (

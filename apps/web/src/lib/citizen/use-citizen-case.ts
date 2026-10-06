@@ -11,6 +11,7 @@ import type {
   SubmitCaseRequest,
 } from "@avanti/contracts";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { createLimiter } from "./limiter";
 import { prepareUpload } from "./prepare-upload";
 
 export type LoadState =
@@ -64,6 +65,9 @@ function uploadWithProgress(
   });
 }
 
+const ANALYSIS_POLL_MS = 2500;
+const PARALLEL_UPLOADS = 2;
+
 export function useCitizenCase(token: string) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [pending, setPending] = useState<string | null>(null);
@@ -75,6 +79,7 @@ export function useCitizenCase(token: string) {
   const [unavailablePractice, setUnavailablePractice] = useState<PracticeId | null>(null);
   const base = `/api/c/${encodeURIComponent(token)}`;
   const inFlight = useRef(0);
+  const uploadSlots = useRef(createLimiter(PARALLEL_UPLOADS));
 
   const load = useCallback(async () => {
     try {
@@ -103,6 +108,17 @@ export function useCitizenCase(token: string) {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [load]);
+
+  // Documents are analysed in the background after upload: check back until they're done.
+  const analysing =
+    state.kind === "ready" && state.data.documents.some((doc) => doc.status === "processing");
+  useEffect(() => {
+    if (!analysing) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible" && inFlight.current === 0) void load();
+    }, ANALYSIS_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [analysing, load]);
 
   const run = useCallback(
     async <T>(key: string, action: () => Promise<T>): Promise<T | undefined> => {
@@ -193,28 +209,32 @@ export function useCitizenCase(token: string) {
         { id, fileName: file.name, checklistItemId, progress: 0, error: null },
       ]);
 
-      const prepared = await prepareUpload(file);
-      if (!prepared.ok) {
-        patch({ error: prepared.reason });
-        return;
-      }
-      const body = new FormData();
-      body.append("file", prepared.file);
-      if (checklistItemId) body.append("checklistItemId", checklistItemId);
-      inFlight.current += 1;
-      try {
-        const data = await uploadWithProgress(`${base}/documents`, body, (p) =>
-          patch({ progress: p }),
-        );
-        setUploads((list) => list.filter((u) => u.id !== id));
-        apply(data);
-      } catch (error) {
-        const code = errorCode(error);
-        if (code === "link_expired") setState({ kind: "error", code });
-        patch({ error: code });
-      } finally {
-        inFlight.current -= 1;
-      }
+      // Several photos at once wait in line: resizing them all together strains older phones,
+      // and the server accepts a few uploads per case at a time.
+      await uploadSlots.current(async () => {
+        const prepared = await prepareUpload(file);
+        if (!prepared.ok) {
+          patch({ error: prepared.reason });
+          return;
+        }
+        const body = new FormData();
+        body.append("file", prepared.file);
+        if (checklistItemId) body.append("checklistItemId", checklistItemId);
+        inFlight.current += 1;
+        try {
+          const data = await uploadWithProgress(`${base}/documents`, body, (p) =>
+            patch({ progress: p }),
+          );
+          setUploads((list) => list.filter((u) => u.id !== id));
+          apply(data);
+        } catch (error) {
+          const code = errorCode(error);
+          if (code === "link_expired") setState({ kind: "error", code });
+          patch({ error: code });
+        } finally {
+          inFlight.current -= 1;
+        }
+      });
     },
     [apply, base],
   );
