@@ -24,3 +24,31 @@ jobs:
       - run: pnpm format:check
       - run: pnpm check
       - run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: check
+    env:
+      PUBLIC_APP_URL: http://localhost:3400
+      NEXT_PUBLIC_DEMO_OFFICE_SLUG: demo-milano-centro
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Local PGlite database with fictitious demo data only.
+      - run: pnpm db:migrate && pnpm db:seed
+      # GitHub-hosted Ubuntu runners ship Google Chrome, which the Playwright config uses.
+      - run: pnpm --filter @avanti/web test:e2e
+        env:
+          CI: "true"
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/web/test-results
+          retention-days: 7
