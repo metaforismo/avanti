@@ -77,7 +77,9 @@ function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () =>
   const { offices } = useOperator();
   // Citizens pick their office by name: two with the same one would be indistinguishable.
   const takenNames = new Set(
-    offices.filter((other) => other.id !== office?.id).map((other) => other.name.toLocaleLowerCase("it")),
+    offices
+      .filter((other) => other.id !== office?.id)
+      .map((other) => other.name.toLocaleLowerCase("it")),
   );
   const [errors, setErrors] = useState<Partial<Record<keyof OfficeInput, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
