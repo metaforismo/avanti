@@ -27,7 +27,7 @@ import { calendarYear, getQuestions } from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
 import { detachRemovedMembers } from "./household-cleanup";
 import { heuristicAnalysis } from "./ai";
-import { analyzePendingDocument } from "./document-analysis";
+import { analyzePendingDocument, scheduleDocumentRecovery } from "./document-analysis";
 import { assertImageSafe } from "./image-safety";
 import { pdfPages } from "./pdf-pages";
 import { retryStorageDeletions } from "./storage-cleanup";
@@ -185,7 +185,12 @@ export function mountCitizenRoutes(app: App, s: Services) {
       201,
     );
   });
-  app.get("/c/:token", async (c) => c.json(await citizenView(s.db, c.get("citizen"), s.clock())));
+  app.get("/c/:token", async (c) => {
+    const row = c.get("citizen");
+    const view = await citizenView(s.db, row, s.clock());
+    scheduleDocumentRecovery(s, row.id);
+    return c.json(view);
+  });
   app.post("/c/:token/turn", async (c) => {
     const input = await body(c, IntakeTurn);
     const initial = c.get("citizen");

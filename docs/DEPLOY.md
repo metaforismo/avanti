@@ -1,9 +1,26 @@
-# Staging Avanti su Vercel
+# Deploy Avanti: staging e avvio del pilota
 
 Procedura verificata sulle fonti ufficiali il **6 ottobre 2026**. Lo staging usa solo
 persone e documenti fittizi, risorse separate e un dominio dedicato. Il deploy remoto,
 Postgres gestito, Blob e cron devono ancora essere provati: i test locali non li attestano.
 Per il pilota con cittadini reali completare anche i prerequisiti di [SECURITY.md](SECURITY.md).
+
+## Checklist quando arriva il via
+
+1. Creare progetto Vercel, Neon Frankfurt e Blob privato Frankfurt, separati dalle Preview.
+2. Configurare backup, restore window 7 giorni e variabili dal gestore segreti; AI opzionale.
+3. Impostare Root Directory `apps/web`, Node 24.x e Fluid Compute abilitato.
+4. Dalla radice, con variabili nella shell: `pnpm preflight`.
+5. Eseguire `NODE_ENV=production pnpm db:migrate` e `pnpm db:check`.
+6. In terminale privato: `NODE_ENV=production pnpm admin:bootstrap` (mai seed).
+7. Eseguire il deploy approvato: `apps/web/vercel.json` contiene install/build command e cron.
+8. Cambiare password admin, creare operatori e stampare il QR dello sportello scelto.
+9. Provare health, upload/recupero, cron, export e ripristino su dati sintetici isolati.
+10. Aprire ai cittadini solo dopo i prerequisiti contrattuali e le prove di SECURITY.md.
+
+Questa checklist si esegue **dopo l'autorizzazione al deploy**. Nessuna risorsa remota
+è stata creata durante la preparazione. I comandi amministrativi non leggono `.env.local`:
+caricare le variabili nella shell dal gestore segreti senza stamparle.
 
 ## 1. Scegliere Postgres in UE e il piano
 
@@ -22,13 +39,17 @@ Fonti: [Neon piani](https://neon.com/docs/introduction/plans)
 [Postgres via Marketplace](https://vercel.com/docs/postgres).
 
 Scelta proposta per il primo staging: Neon Launch a Frankfurt, compute iniziale 0,25 CU,
-restore window 7 giorni e budget/avvisi. È una stima, non un limite di spesa: il cron ogni
-minuto impedisce di contare sullo scale-to-zero per risparmiare. Supabase Pro è un'alternativa
+restore window 7 giorni e budget/avvisi. Il default giornaliero consente lo scale-to-zero
+tra richieste; le stime di compute continuo in tabella sono un riferimento, non il costo
+garantito del nuovo default. Il cron al minuto tiene invece attivo il compute. Supabase Pro è un'alternativa
 con costo base più prevedibile e backup giornalieri. I Free servono a prove fittizie:
 Neon ha una finestra di ripristino breve e Supabase Free non include backup automatici.
 Prima del pilota fare un restore su una risorsa isolata e definire RPO/RTO e responsabilità.
 Il backup DB non comprende i file nel Blob: serve una procedura distinta per questi.
 
+Il codice è compatibile con Hobby, incluso il cron giornaliero. Hobby è riservato
+all’uso personale non commerciale: per il servizio CAF usare il piano appropriato,
+normalmente Pro. [Condizioni Hobby](https://vercel.com/docs/plans/hobby).
 Aggiungere Vercel Pro (base $20/mese, più utilizzo), Blob, eventuale AI, dominio e imposte.
 Ordine di grandezza: circa $40/mese con Neon minimo sempre attivo oppure $45 con Supabase
 primo progetto, prima delle altre voci. Non è un preventivo per 40 utenti: misurare picco,
@@ -52,20 +73,26 @@ Postgres.js sul pooler condiviso e preferire session mode per questo staging.
 
 ## 2. Creare il progetto Vercel
 
-1. Importare il repository in un progetto **separato** `avanti-staging`, su piano Pro.
+1. Importare il repository in un progetto **separato** `avanti-staging`, con piano appropriato all’uso (vedi sopra).
    Impostare la Production Branch al branch di staging approvato. La sua Production
    contiene dati fittizi: è distinta dal futuro progetto pilota.
 2. Framework Preset: **Next.js**. Root Directory: **`apps/web`**. Abilitare
    **Include source files outside of the Root Directory in the Build Step**:
    `packages/*`, lockfile e migrazioni sono esterni alla directory dell'app.
-3. Node.js: **24.x** (il repo richiede almeno 22.19); pnpm è fissato dal `packageManager`
+3. Node.js: **24.x**, **Fluid Compute abilitato** (la route API usa `maxDuration=120`,
+   compatibile con Hobby Fluid; il vecchio limite Hobby senza Fluid è 60 secondi).
+   [Durata Functions](https://vercel.com/docs/functions/configuring-functions/duration).
+   Il repo richiede almeno 22.19; pnpm è fissato dal `packageManager`
    radice a 10.28.0. Install Command: `cd ../.. && pnpm install --frozen-lockfile`.
 4. Build Command (parte da `apps/web`):
 
    ```sh
-   cd ../.. && pnpm db:migrate && pnpm db:check && pnpm build
+   cd ../.. && pnpm preflight && pnpm db:migrate && pnpm db:check && pnpm build
    ```
 
+   Install e Build Command sono già in `apps/web/vercel.json`; evitare override discordanti.
+   Il preflight precede migrazioni e build, è fuori dalla cache e non si connette al DB.
+   `pnpm build` lo riesegue anche localmente (fallback ammessi solo fuori produzione).
    Output Directory: mantenere il default Next.js (`.next` dell'app). Il comando Turbo
    costruisce il monorepo; non sostituirlo con una seconda build Next. Le variabili server
    sono dichiarate in `turbo.json` per strict mode e hash di cache. Migrazione e controllo
@@ -114,7 +141,7 @@ segreti: gli script DB non leggono `apps/web/.env.local`.
 | `BLOB_READ_WRITE_TOKEN`        | Sì                        | Token dello store **privato** UE di staging; obbligatorio                                                             |
 | `RATE_LIMIT_SECRET`            | Sì                        | Segreto casuale stabile distinto per ambiente, almeno 32 byte; obbligatorio                                           |
 | `CRON_SECRET`                  | Sì                        | Altro segreto casuale di almeno 32 byte; obbligatorio per eseguire manutenzione                                       |
-| `PUBLIC_APP_URL`               | No                        | Origine HTTPS canonica di staging, senza path; obbligatoria. Usata per link, metadata e CSRF                          |
+| `PUBLIC_APP_URL`               | No                        | Origine HTTPS canonica di staging, senza path o slash finale; obbligatoria. Usata per link, metadata e CSRF           |
 | `TRUST_PROXY`                  | No                        | `1` dietro Vercel; il runtime riconosce anche `VERCEL=1` e usa `x-real-ip` fidato                                     |
 | `AI_GATEWAY_API_KEY`           | Sì                        | Lasciare assente per primo staging: fallback euristico. Abilitare solo dopo verifica provider/contratti/trasferimenti |
 | `AI_GATEWAY_PROVIDER`          | No                        | `anthropic` (default), unico provider autorizzato; filtro non garantisce residenza UE                                 |
@@ -136,7 +163,7 @@ le quote correnti; `CRON_SECRET` deve cambiare anche nello scheduler esterno se 
 ## 5. Migrare e predisporre lo sportello
 
 Prima di assegnare il dominio, eseguire il build command del passo 2 con il DB corretto.
-`db:migrate` applica 0000–0006 idempotentemente sotto advisory lock; 0006 richiede
+`db:migrate` applica 0000–0007 idempotentemente sotto advisory lock; 0006 richiede
 `CREATE EXTENSION pg_trgm`. Concedere i permessi al ruolo di migrazione, non ignorare
 errori di estensione. Se il ruolo runtime è diverso, verificare che possa leggere il
 journal Drizzle e i cataloghi usati da `db:check`, oltre alle tabelle applicative.
@@ -147,36 +174,36 @@ espliciti** (struttura, ordine colonne, unicità, predicati, opclass e validità
 Il controllo non certifica tutti i vincoli o l'intero schema. Restituisce exit 1 se non
 pronto, senza stampare URL, credenziali o dettagli grezzi del driver.
 
-**Seed vietato in staging e pilota**, anche con dati fittizi: non eseguire `pnpm db:seed`
-é usare credenziali Demo. Il guard `NODE_ENV=production` è una protezione aggiuntiva.
-Predisporre il primo admin con provisioning DB amministrativo distinto; l'API richiede
-un admin esistente per creare operatori e non ha un endpoint bootstrap pubblico.
+### Avvio di un CAF pilota
 
-1. Generare una password temporanea unica (almeno il minimo di `PASSWORD_MIN_LENGTH`
-   in contracts). Usare l'helper `hashPassword` di `packages/api/src/security.ts` in una
-   sessione Node amministrativa locale, passando il segreto da secret manager/env, non
-   da argomenti o stringhe nello script; trasferire **solo l'hash scrypt** al DB.
-2. Nella console SQL amministrativa del DB staging eseguire una transazione con gli
-   insert seguenti, sostituendo i segnaposto. Non usare `ON CONFLICT` per sovrascrivere
-   silenziosamente un ambiente esistente:
+**Mai eseguire `pnpm db:seed`**: il guard rifiuta produzione, Vercel e qualsiasi
+`DATABASE_URL`. Il seed è esclusivamente PGlite locale. Non usare credenziali Demo.
+Il primo CAF si crea dalla radice con DB già migrato, senza endpoint bootstrap pubblico:
 
-   ```sql
-   BEGIN;
-   INSERT INTO organizations (id, name, kind)
-   VALUES ('staging-caf', 'CAF Prova Staging', 'caf');
-   INSERT INTO offices (id, organization_id, slug, name, address, city)
-   VALUES ('staging-office', 'staging-caf', 'staging-prova', 'Sportello Prova', 'Indirizzo fittizio', 'Roma');
-   INSERT INTO settings (organization_id, baseline_minutes_per_case)
-   VALUES ('staging-caf', 30);
-   INSERT INTO operators (id, organization_id, name, email, password_hash, role, must_change_password)
-   VALUES ('staging-admin', 'staging-caf', 'Admin Staging', 'EMAIL_ADMIN_APPROVATA',
-           'HASH_SCRYPT_GENERATO_CON_HELPER', 'admin', true);
-   COMMIT;
-   ```
+```sh
+pnpm preflight
+NODE_ENV=production pnpm admin:bootstrap
+```
 
-3. Accedere alla console e cambiare subito password: le altre azioni sono bloccate
-   fino al cambio. Creare gli operatori via console/API autenticata, poi usare
-   `/s/staging-prova` per la pratica fittizia.
+Il terminale deve essere interattivo e privato: niente pipe, redirect, registrazione
+sessione o esecuzione in CI. Il comando verifica le migrazioni senza applicarle,
+chiede nome/tipo CAF, sportello, slug, indirizzo/città, nome/email admin e conferma
+esatta **`CREA CAF PILOTA`**. Nessuna password passa come argomento o variabile.
+Crea organizzazione, sportello, impostazioni e admin in una transazione protetta da
+lock; genera una password casuale, conserva solo scrypt e la mostra una volta sul
+terminale di controllo, mai nei log stdout. Baseline non inventata: resta vuota.
+
+Una seconda esecuzione è rifiutata se esiste qualunque admin, anche disattivato;
+non duplica CAF e non rigenera credenziali. Un DB non vuoto senza admin è rifiutato
+per richiedere un provisioning amministrativo controllato. Questo è il comportamento
+idempotente: il retry non modifica quanto già creato. Non usarlo per aggiungere CAF.
+
+Annotare `organizationId` per le esportazioni e lo slug scelto per `/s/<slug>`.
+Consegnare la password di persona, cambiarla al primo login su `/console/accedi`
+e creare i successivi operatori dalla console. Le altre API e l’export CLI sono
+bloccati finché il cambio non è completato. Se si perde la password mostrata,
+serve recupero amministrativo supervisionato sul DB: il bootstrap non la ristampa.
+La guida [operatori](guide/operatori.md) descrive i passi del responsabile.
 
 Le migrazioni precedono il rilascio e possono cambiare il DB mentre il vecchio deploy
 serve ancora traffico. Future modifiche devono essere compatibili con entrambe le
@@ -209,20 +236,35 @@ non equivale a garanzia che CDN, log, backup e subresponsabili restino tutti nel
 
 ## 7. Attivare e verificare manutenzione
 
-Il file `apps/web/vercel.json` pianifica `GET /api/cron/maintenance` con `* * * * *`
-(UTC, ogni minuto). Vercel aggiunge `Authorization: Bearer <CRON_SECRET>`; l'endpoint
-rifiuta segreto mancante o errato con 401. Pro supporta cadenza al minuto, Hobby solo
-una volta al giorno e rifiuta questa configurazione.
-[Cron e piani](https://vercel.com/docs/cron-jobs/usage-and-pricing),
-[autenticazione cron](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
+Il default in `apps/web/vercel.json` è **`0 3 * * *`**, giornaliero in UTC.
+È compatibile con Hobby, che ha precisione entro l’ora; Pro permette ogni minuto.
+Il default evita un fallimento al primo deploy Hobby e lascia sospendere Neon:
+il recupero delle pratiche aperte non dipende dalla frequenza del cron.
+[Cron e piani](https://vercel.com/docs/cron-jobs/usage-and-pricing).
 
-Motivo: il recupero prende fino a 4 documenti in `processing` da oltre 2 minuti per run,
-con budget di recupero 45 secondi; retention a lotti di 25 e retry storage fino a 100
-con backoff 1 minuto–1 ora. La route Next ha `maxDuration=120`. La cadenza riduce la coda
-dopo arresti, ma non garantisce completamento entro tre minuti con backlog/errori.
-Il cooldown di un minuto è per istanza, anche dopo fallimento; non è un lock globale.
-Vercel può duplicare/sovrapporre invocazioni: verificare l'idempotenza e l'eventuale
-duplicazione di analisi/costo AI nello staging; mai assumere esecuzione exactly-once.
+Per Pro cambiare solo `crons[0].schedule` in **`* * * * *`** prima del prossimo
+rilascio. Non è una variabile runtime: Vercel registra lo schedule dal file al deploy.
+Per tornare giornaliero ripristinare `0 3 * * *`. Su host Node configurare lo scheduler
+esterno sulla medesima route. Vercel aggiunge `Authorization: Bearer <CRON_SECRET>`;
+segreto assente o errato dà 401. [Autenticazione](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
+
+Le GET autorizzate `/api/c/:token` e `/api/cases/:id` restituiscono il fascicolo e
+registrano recupero con `after()`. Non avviano la revisione né toccano `updatedAt`.
+Si recuperano solo documenti della pratica aperta, in `processing` da oltre **N=2
+minuti**, senza lease valido. Upload, lettura e cron usano la stessa acquisizione
+atomica nel DB: lease di 2 minuti e token proprietario, senza analisi concorrenti
+con lease valido. Un worker tardivo non può sovrascrivere il nuovo proprietario;
+errori storage lasciano scadere il lease prima del retry. Non è una garanzia exactly-once
+sul provider AI dopo una terminazione: vale il limite del lease e la scadenza AI SDK.
+
+Recupero: fino a 4 documenti per lettura/run, budget 45 secondi tra lavori, storage
+10 secondi e analisi 25 secondi massimi per lavoro; la route ha 120 secondi disponibili.
+Retention: fino a 25 fascicoli/run; retry file: fino a 100/run. Il cron giornaliero
+recupera anche le pratiche mai riaperte e fa le pulizie. Con backlog superiore ai
+lotti servono run ulteriori o cadenza Pro; la retention è un criterio di eleggibilità,
+non una promessa di cancellazione all’istante esatto. Monitorare conteggi e ritardi.
+Il cooldown di un minuto è per istanza; lease e transazioni proteggono le operazioni
+persistite anche in presenza di invocazioni sovrapposte.
 
 Vercel Cron invoca **solo Production**, non Preview. Il progetto staging separato del
 passo 2 permette di provarlo. Per una Preview fare un test manuale autorizzato oppure
@@ -247,13 +289,15 @@ lavoro persistito recuperano la coda. Sorvegliare 5xx, backlog `processing` e
    capability/sessione deve rifiutare il download; URL Blob senza autorizzazione deve
    rifiutare la lettura. Provare anche la cancellazione dal fascicolo e dal Blob.
 4. Cron: chiamata senza segreto → 401; con segreto via header → 200. In Settings → Cron
-   Jobs confermare path/espressione, osservare **due run effettivi** nei log e lo stato
+   Jobs confermare path/espressione, osservare **due run effettivi** nei log (su giornaliero attendere due giorni) e lo stato
    persistito. Su dati fittizi lasciare un documento in processing vecchio >2 minuti,
    un lease storage scaduto e una pratica oltre retention: verificare recupero,
-   cancellazione file/righe e retry dopo un errore storage controllato.
+   cancellazione file/righe e retry dopo un errore storage controllato. Aprire anche
+   il fascicolo da cittadino e operatore senza invocare cron: l’analisi deve ripartire
+   dopo la risposta; provare due letture simultanee con un solo lease valido.
 5. Ricreare la sala con 40 capability distinte dallo stesso IP: avvio simultaneo, circa
    4 turni/minuto/pratica per 10 minuti (1.600 turni), nessun 429. Una singola capability
-   oltre 20 turni/minuto deve avere 429 localizzato e `Retry-After`; gli altri cittadini
+   oltre 60 turni/minuto deve avere 429 localizzato e `Retry-After`; gli altri cittadini
    continuano. Dieci operatori possono entrare e correggere una password errata senza
    esaurire il tetto condiviso. Usare solo dati fittizi e controllare latenze/pool.
 6. Su **DB sacrificabile** `_test` in ambiente staging, esportare separatamente
@@ -279,8 +323,111 @@ permitted`, quindi Postgres reale è **NOT RUN**. Prima di dichiarare pronto lo 
 | Lock e rollback        | Suite sopra verde; due istanze API aggiornano stessa pratica senza perdere risposte; turno obsoleto dà conflict; upload e cancellazione concorrenti non ricreano file/righe                                    |
 | Pooler                 | Eseguire la suite e carico anche con URL/modalità runtime scelta; nessun errore transazione/pipelining o esaurimento connessioni                                                                               |
 | Ricerca pg_trgm        | Ricerca console per riferimento e nome fittizio, anche con accenti; verificare risultati e `EXPLAIN (ANALYZE, BUFFERS)` con volume sintetico sufficiente per usare i GIN; un DB piccolo può preferire seq scan |
-| Cron multi-istanza     | Due invocazioni autorizzate concorrenti e riavvio: retention/retry idempotenti, analisi non resuscita documenti cancellati; osservare eventuali chiamate AI duplicate                                          |
+| Cron multi-istanza     | Due invocazioni autorizzate concorrenti e riavvio: retention/retry idempotenti, analisi non resuscita documenti cancellati; verificare un solo worker per lease valido e il rifiuto dei risultati tardivi      |
 | Restore                | Restore DB e procedura file su risorse isolate: controllo migrazioni, link/sessioni, indici e accessi; rispettare revoche e cancellazioni dopo ripristino                                                      |
 
 Conservare esiti e deployment ID in una nota di verifica senza segreti o capability.
 Questo documento prepara il rilascio; non afferma che staging o pilota siano già online.
+
+## 9. Backup Neon e prova di ripristino trimestrale
+
+Provider scelto per il primo pilota: **Neon Launch, Frankfurt**. Nel dashboard
+Settings → Postgres impostare **history/restore window a 7 giorni** e verificare
+che sia effettivamente applicata (il default paid è 1 giorno). PITR/instant restore
+è disponibile sulla root branch; non basta creare una branch figlia e chiamarla
+backup. Configurazione, limiti e addebiti: [Neon piani](https://neon.com/docs/introduction/plans),
+[sorgente ufficiale](https://github.com/neondatabase/website/blob/main/content/docs/introduction/plans.md).
+
+Policy operativa proposta, da approvare col CAF: snapshot giornaliero con scadenza
+**7 giorni**, più snapshot prima delle migrazioni con la stessa scadenza. In Neon
+Backup & restore attivare il backup schedule e controllare timestamp ultimo successo,
+retention e alert: scrivere questa policy non la attiva. L’ultimo snapshot di uno
+schedule attivo può essere preservato oltre la scadenza: sorvegliare i backup falliti
+e disciplinare anche quella copia nella cancellazione finale. Evitare snapshot manuali
+senza expiry e copie indefinite. La finestra PITR non è la retention applicativa.
+[Backup & restore](https://neon.com/docs/guides/backup-restore),
+[sorgente ufficiale](https://github.com/neondatabase/website/blob/main/content/docs/guides/backup-restore.md).
+
+Obiettivi iniziali **da misurare**, non garanzie del provider: RPO DB ≤1 ora,
+RPO file ≤24 ore, RTO del servizio ≤4 ore. Il responsabile tecnico controlla ogni
+giorno ultimo backup, ultimo cron e backlog, registra solo conteggi/tempi; il CAF
+nomina responsabile e sostituto per incidenti e restore. Se l’obiettivo non è
+raggiunto, adeguare strategia prima dei dati reali.
+
+**Blob è separato:** il DB salva hash/chiavi ma non i binari. Prima del pilota
+attivare una copia cifrata giornaliera degli oggetti privati in destinazione UE
+approvata, accesso separato e retention 7 giorni, con manifest DB/storage e SHA-256.
+Provare recupero di PDF/immagine e riconciliare anche gli oggetti caricati dopo il
+restore point. Questo repository non crea né pianifica la copia remota: assenza
+backup file è un prerequisito operativo aperto, non risolta dal PITR o dall’export.
+Le chiavi storage nel manifest di backup sono riservate e non entrano nell’export
+portabile. Se queste copie non sono disponibili, non aprire il pilota ai dati reali.
+
+**Ogni trimestre e prima del primo pilota**, il tecnico con il referente CAF:
+
+1. Registra ora di inizio e punto UTC scelto nella finestra di ripristino; usa una
+   pratica sintetica con risposte, evento e PDF dal contenuto noto, senza esportare
+   dati personali nei verbali. Prova sia la storia PITR sia uno snapshot giornaliero.
+2. In Neon crea un ambiente di restore **isolato** dal punto storico della root;
+   per lo snapshot usa **Restore → Multi-step restore**, che crea la copia senza
+   spostare il compute. Non eseguire **Finalize** o migrare connessioni della produzione.
+   Mai premere Instant Restore sulla produzione durante una prova. Credenziali, Blob e
+   accesso di rete separati; nessun cron o provider AI collegato alle copie reali.
+3. Carica solo la URL del DB ripristinato nella shell e lancia `pnpm db:check` da
+   un checkout compatibile con quel punto (non applicare migrazioni per mascherare
+   un restore incompleto). Verifica journal, indici, conteggi e relazione CAF/sportello.
+4. Ripristina una copia isolata dei file dal backup e confronta bytes e SHA-256
+   con `documents.sha256`. Verifica PDF e immagine fittizi scaricabili solo tramite
+   API autorizzata e che un altro CAF non possa leggerli.
+5. **Prima di qualsiasi riapertura**, ripristina dal registro protetto degli interventi
+   le cancellazioni e revoche successive al punto scelto. Svuota le sessioni restaurate,
+   revoca capability compromesse, applica tombstone/retention e riconcilia Blob.
+   L’audit nel DB vecchio non contiene le cancellazioni avvenute dopo quel punto:
+   il CAF deve conservare quel registro separato per la finestra dei backup.
+6. Verifica login, cambio password, lettura, recupero lease e una pratica sintetica
+   completa; misura perdita dati (RPO) e tempo totale (RTO). Nessuna chiamata AI
+   con dati reali durante la prova, nessun contatto a cittadini.
+7. Registra PASS/FAIL, timestamp, snapshot/branch ID, hash del campione, durata,
+   responsabili e rimedi senza password/capability/payload. Elimina copie e risorse
+   temporanee secondo l’approvazione operativa e fissa la prossima prova a 3 mesi.
+
+Un guasto reale richiede autorizzazione del responsabile, blocco scritture/accessi,
+scelta del punto, preservazione controllata dell’ultima versione e la medesima
+riconciliazione prima di cambiare la URL del servizio. Rollback Vercel e restore DB
+sono azioni distinte; misurare gli effetti sul cron e sui worker ancora attivi.
+**Stato attuale: NOT RUN** per backup/restore remoti e copia Blob; nessuna risorsa
+è stata creata da questo lavoro.
+
+## 10. Esportazione e uscita dal pilota
+
+Con DB migrato, credenziali DB TLS e `RATE_LIMIT_SECRET` caricati dal gestore segreti,
+admin attivo del CAF che abbia completato il cambio password e terminale privato:
+
+```sh
+NODE_ENV=production pnpm admin:export
+```
+
+Il comando chiede `organizationId`, email e password (input nascosto). Il ruolo e
+l’organizzazione sono verificati nel DB: conoscere l’id non autorizza l’export.
+Operatori, admin di altri CAF, disattivati e password temporanee sono rifiutati;
+i tentativi sono limitati a 10/minuto per email HMAC. Le credenziali non passano in
+argomenti, file o log. Non usare CI, redirect, session recorder o shell tracing.
+L’accesso diretto alle credenziali DB resta un privilegio infrastrutturale distinto:
+chi può interrogare liberamente il DB può aggirare qualunque CLI; limitarlo al tecnico.
+
+Scrive un file nuovo `0600` in `.data/exports/organization-<UUID>.json`, directory
+fuori Git: formato `avanti.organization`, versione 1, timestamp, organizzazione,
+sportelli, impostazioni, operatori senza credenziali, pratiche con risposte strutturate,
+contatti/note, messaggi originali, revisioni ed eventi, inclusi audit di cancellazione.
+Lo snapshot transazionale è coerente. Documenti: elenco, metadati, analisi e **SHA-256**;
+**nessun binario**, chiave storage, hash capability, sessione o password.
+
+L’audit `organization.exported` registra la preparazione e i conteggi, non la
+consegna; un errore di scrittura non stampa il dataset. Verificare destinatario,
+integrità e importabilità con il CAF, trasferire file/binari cifrati tramite canale
+approvato, documentare ricevuta e cancellare copie locali secondo l’accordo.
+L’export completo contiene dati di più persone e note interne: il CAF deve filtrare
+una risposta al singolo interessato e proteggere terzi. Supporta restituzione/uscita
+ex art. 28 e, quando applicabile, portabilità art. 20; non dichiara assolti tutti i
+diritti GDPR e non è un backup completo. Fonti/limiti in
+[ricerca portabilità](research/data-portability.md) e [SECURITY.md](SECURITY.md).

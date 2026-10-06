@@ -69,7 +69,7 @@ aprire la stessa cartella PGlite; usare Postgres per un deployment con più work
    avvia l'intervista, saltando le domande a cui ha già risposto nel testo libero.
 2. **Checklist** — dalle risposte il core genera la checklist personalizzata (per persona del
    nucleo, per conto corrente, per immobile, …).
-3. **Documenti** — upload con stato `processing` persistito e analisi dopo la risposta (`after()`), con recupero cron dei lavori interrotti; analisi (tipo, intestatario, anno, scadenza, leggibilità, pagine),
+3. **Documenti** — upload con stato `processing` persistito e analisi dopo la risposta (`after()`), con lease DB e recupero su lettura autorizzata/cron dei lavori interrotti; analisi (tipo, intestatario, anno, scadenza, leggibilità, pagine),
    abbinamento automatico alla voce della checklist, segnalazioni in linguaggio semplice.
 4. **Invio** — il cittadino conferma; il fascicolo passa in coda all'operatore con riepilogo,
    problemi bloccanti e avvisi.

@@ -50,6 +50,13 @@
       "when": 1791251825199,
       "tag": "0006_condemned_trish_tilby",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791290615629,
+      "tag": "0007_acoustic_shatterstar",
+      "breakpoints": true
     }
   ]
 }

@@ -13,7 +13,8 @@
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed.ts",
-    "check": "tsx src/check-cli.ts"
+    "check": "tsx src/check-cli.ts",
+    "preflight": "tsx src/preflight-cli.ts"
   },
   "dependencies": {
     "@avanti/contracts": "workspace:*",

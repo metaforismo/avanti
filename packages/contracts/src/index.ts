@@ -637,6 +637,28 @@ export const OfficeInput = z.object({
 });
 export type OfficeInput = z.infer<typeof OfficeInput>;
 
+/** Interactive CLI provisioning; never exposed as an unauthenticated API. */
+export const BootstrapOrganizationRequest = z.object({
+  organization: z.object({
+    name: z.string().trim().min(2).max(160),
+    kind: OrganizationKind,
+  }),
+  office: OfficeInput.extend({
+    slug: z
+      .string()
+      .min(2)
+      .max(80)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  }),
+  admin: CreateOperatorRequest.pick({ name: true, email: true }),
+  confirmation: z.literal("CREA CAF PILOTA"),
+});
+
+export const OrganizationExportRequest = z.object({
+  organizationId: Id,
+  login: LoginRequest,
+});
+
 export const UpdateOfficeRequest = OfficeInput.partial();
 export type UpdateOfficeRequest = z.infer<typeof UpdateOfficeRequest>;
 

@@ -10,7 +10,9 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "admin:bootstrap": "tsx src/admin-bootstrap-cli.ts",
+    "admin:export": "tsx src/organization-export-cli.ts"
   },
   "dependencies": {
     "@avanti/contracts": "workspace:*",

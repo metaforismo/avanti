@@ -1,3 +1,4 @@
+import { assertDemoSeedAllowed } from "./seed-guard";
 import { createHash, randomBytes, scrypt as scryptCallback } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -78,9 +79,7 @@ export async function seedDemo(
   db: Database,
   options: DemoSeedOptions,
 ): Promise<{ created: number }> {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Demo seed is disabled in production");
-  }
+  assertDemoSeedAllowed();
   if (!Number.isFinite(options.now.getTime())) {
     throw new RangeError("Invalid demo clock");
   }

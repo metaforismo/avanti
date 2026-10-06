@@ -205,6 +205,8 @@ export const documents = pgTable(
     memberId: text("member_id"),
     status: text("status").$type<DocumentStatus>().notNull(),
     analysis: jsonb("analysis").$type<DocumentAnalysis>(),
+    analysisLeaseToken: text("analysis_lease_token"),
+    analysisLeaseUntil: instant("analysis_lease_until"),
   },
   (t) => [
     index("documents_case_idx").on(t.caseId, t.uploadedAt),

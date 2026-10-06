@@ -4,7 +4,9 @@
   "crons": [
     {
       "path": "/api/cron/maintenance",
-      "schedule": "* * * * *"
+      "schedule": "0 3 * * *"
     }
-  ]
+  ],
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm preflight && pnpm db:migrate && pnpm db:check && pnpm build"
 }

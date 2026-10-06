@@ -13,6 +13,27 @@ come usarlo in una giornata normale. Bastano dieci minuti per leggerla.
 
 Avanti non invia nulla a INPS o all'Agenzia delle Entrate e non decide al posto tuo.
 
+## Avvio di un CAF pilota
+
+Il responsabile tecnico segue [DEPLOY.md](../DEPLOY.md), configura backup e variabili,
+esegue migrazioni/check e avvia `NODE_ENV=production pnpm admin:bootstrap` da un
+terminale privato. Inserisce CAF, primo sportello e primo admin, poi conferma
+`CREA CAF PILOTA`. Il comando non usa il seed demo e non si può ripetere per
+rigenerare la password: se esiste già un admin, si ferma senza modifiche.
+
+Ricevi una password temporanea mostrata una sola volta: entra in `/console/accedi`
+e cambiala subito, prima di vedere le pratiche. Poi crea operatori e sportelli,
+controlla indirizzo/orari e informativa, misura la baseline e stampa i QR.
+Per il primo giro usa esclusivamente cittadini e documenti fittizi. I dati reali
+iniziano dopo le verifiche operative e contrattuali del CAF.
+
+Per chiudere o trasferire il pilota il tecnico usa `NODE_ENV=production pnpm admin:export`:
+serve l’accesso di un admin attivo del tuo CAF con password definitiva. Riceverai
+un JSON con pratiche, risposte, conversazioni, revisioni ed eventi, elenco documenti
+e hash; i file binari si consegnano separatamente con procedura protetta. Il JSON
+contiene anche note interne e dati di altri membri: il responsabile verifica cosa
+può consegnare a ciascun interessato. Non inviarlo in chat o email non protetta.
+
 ## Prima di iniziare
 
 - **Stampa il cartello**: _Sportelli e QR_ → _Stampa il cartello_. Un A4 con il QR e il titolo

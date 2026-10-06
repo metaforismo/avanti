@@ -1,9 +1,10 @@
+import { assertDemoSeedAllowed } from "./seed-guard";
 import { resolve } from "node:path";
 import { buildChecklist, buildHousehold } from "@avanti/core";
 import { createDatabase, repoRoot } from "./client";
 import { seedDemo } from "./demo";
 
-if (process.env.NODE_ENV === "production") throw new Error("Demo seed is disabled in production");
+assertDemoSeedAllowed();
 const database = await createDatabase({ migrate: true });
 try {
   const now = new Date();
