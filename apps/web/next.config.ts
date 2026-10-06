@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   },
   logging: { incomingRequests: false },
   poweredByHeader: false,
+  devIndicators: false,
   typedRoutes: true,
 };
 

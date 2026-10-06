@@ -17,6 +17,16 @@ cittadino → AI → fascicolo completo → operatore CAF → pratica ufficiale
 > Stato: in sviluppo attivo. Primo verticale: **ISEE ordinario 2027** (DSU con redditi e
 > patrimoni 2025), pilota con CAF gennaio 2027.
 
+![Landing di Avanti](docs/screenshots/landing.png)
+
+| Cittadino: ingresso dal QR                           | Cittadino: una domanda alla volta                  | Cittadino: documenti                                   |
+| ---------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
+| ![Ingresso](docs/screenshots/cittadino-ingresso.png) | ![Domande](docs/screenshots/cittadino-domande.png) | ![Documenti](docs/screenshots/cittadino-documenti.png) |
+
+![Console operatore: fascicolo](docs/screenshots/console-fascicolo.png)
+
+Gli screenshot si rigenerano con `pnpm --filter @avanti/web screenshots` (dati demo fittizi).
+
 ## Avvio rapido
 
 ```bash
