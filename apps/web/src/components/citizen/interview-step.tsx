@@ -18,33 +18,48 @@ export function InterviewStep({ api, data, m }: StepProps) {
   const question = data.nextQuestion;
   const answered = data.answered ?? [];
   const { questionsAnswered, questionsTotal } = data.progress;
+  const remaining = Math.max(0, questionsTotal - questionsAnswered);
+  const percent = questionsTotal > 0 ? (questionsAnswered / questionsTotal) * 100 : 0;
+  // Answers can open new questions: while the citizen moves forward the bar must not go back.
+  const [bar, setBar] = useState({ answered: questionsAnswered, percent });
+  if (bar.answered !== questionsAnswered) {
+    const forward = questionsAnswered > bar.answered;
+    setBar({
+      answered: questionsAnswered,
+      percent: forward ? Math.max(bar.percent, percent) : percent,
+    });
+  }
   const showAssistant = api.lastTurn === "text" || api.lastTurn === "choose_practice";
   const assistant = showAssistant ? lastMessage(data.messages, "assistant") : undefined;
 
   return (
     <div className="grid gap-5">
       <div>
-        <h1
-          id={STEP_TITLE_ID}
-          tabIndex={-1}
-          className="font-display text-xl font-semibold tracking-[-0.01em] outline-none"
-        >
-          {data.practice?.name ?? m.steps.interview}
-        </h1>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h1
+            id={STEP_TITLE_ID}
+            tabIndex={-1}
+            className="font-display text-xl font-semibold tracking-[-0.01em] outline-none"
+          >
+            {data.practice?.name ?? m.steps.interview}
+          </h1>
+          {remaining > 0 && (
+            <p aria-hidden className="text-sm text-ink-3">
+              {remaining === 1
+                ? m.interview.remainingOne
+                : format(m.interview.remainingMany, { n: remaining })}
+            </p>
+          )}
+        </div>
         {questionsTotal > 0 && (
-          <div className="mt-2 flex items-center gap-3">
-            <ProgressBar
-              value={(questionsAnswered / questionsTotal) * 100}
-              label={format(m.interview.progressLabel, {
-                n: questionsAnswered,
-                total: questionsTotal,
-              })}
-              className="flex-1"
-            />
-            <span aria-hidden className="tabular text-sm text-ink-3" dir="ltr">
-              {questionsAnswered}/{questionsTotal}
-            </span>
-          </div>
+          <ProgressBar
+            value={bar.percent}
+            label={format(m.interview.progressLabel, {
+              n: questionsAnswered,
+              total: questionsTotal,
+            })}
+            className="mt-2"
+          />
         )}
       </div>
 

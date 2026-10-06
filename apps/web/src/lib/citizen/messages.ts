@@ -68,6 +68,8 @@ const it = {
   interview: {
     inferred: "Dedotto da quello che hai scritto: controlla",
     progressLabel: "Domande: {n} di {total}",
+    remainingOne: "Ultima domanda",
+    remainingMany: "Ancora circa {n} domande",
     assistant: "Assistente automatico",
     known: "Abbiamo capito",
     why: "Perché te lo chiediamo",
@@ -297,6 +299,8 @@ const en: Widen<CitizenMessages> = {
   interview: {
     inferred: "Taken from what you wrote: please check",
     progressLabel: "Questions: {n} of {total}",
+    remainingOne: "Last question",
+    remainingMany: "About {n} questions left",
     assistant: "Automated assistant",
     known: "What we understood",
     why: "Why we ask",

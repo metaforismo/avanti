@@ -20,6 +20,12 @@ landing   ──► /                 ─┘   packages/api   (Hono: routing, au
 packages/contracts — schemi zod condivisi tra frontend e backend (unica fonte di verità delle API).
 ```
 
+Le pagine server possono chiamare l'API in-process (`app.request(...)`, solo GET pubbliche): lo
+fa `/s/[office]` per mostrare CAF e sportello al primo paint. Next.js valuta `@avanti/api` una
+volta per bundle e di nuovo a ogni hot reload, quindi il database è un singleton di processo
+(`processSingleton` in `packages/api/src/runtime.ts`): PGlite ammette una sola istanza aperta
+per cartella e due aperture concorrenti corrompono `.data/pglite`.
+
 ## Pacchetti
 
 | Pacchetto           | Responsabilità                                                                 | Owner     |
