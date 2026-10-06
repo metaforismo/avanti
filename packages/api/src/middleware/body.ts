@@ -30,22 +30,33 @@ export function boundedBody(): MiddlewareHandler<ApiEnv> {
     await next();
   };
 }
+const UPLOAD_PATH = /^\/api\/c\/([^/]+)\/documents$/;
+const MAX_UPLOADS_PER_CASE = 4;
+
+/**
+ * Bounds simultaneous uploads per case, not per process: anyone can open a case from a public
+ * QR, and a global counter let four deliberately slow uploads block every citizen.
+ */
 export function uploadCapacity(): MiddlewareHandler<ApiEnv> {
-  let active = 0;
+  const active = new Map<string, number>();
   return async (context, next) => {
-    if (context.req.method !== "POST" || !/^\/api\/c\/[^/]+\/documents$/.test(context.req.path))
-      return next();
-    if (active >= 4)
+    const token =
+      context.req.method === "POST" ? UPLOAD_PATH.exec(context.req.path)?.[1] : undefined;
+    if (!token) return next();
+    const running = active.get(token) ?? 0;
+    if (running >= MAX_UPLOADS_PER_CASE)
       throw new ApiFailure(
-        "internal",
-        503,
-        "Caricamento momentaneamente non disponibile. Riprova tra poco.",
+        "rate_limited",
+        429,
+        "Stai caricando troppi file insieme. Attendi che finiscano e riprova.",
       );
-    active++;
+    active.set(token, running + 1);
     try {
       await next();
     } finally {
-      active--;
+      const left = (active.get(token) ?? 1) - 1;
+      if (left > 0) active.set(token, left);
+      else active.delete(token);
     }
   };
 }

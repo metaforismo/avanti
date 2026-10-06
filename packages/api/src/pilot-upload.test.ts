@@ -55,10 +55,15 @@ beforeAll(async () => {
 afterAll(async () => {
   await close?.();
 });
-function upload(bytes: Uint8Array, mime = "application/pdf", name = "ESEMPIO.pdf") {
+function upload(
+  bytes: Uint8Array,
+  mime = "application/pdf",
+  name = "ESEMPIO.pdf",
+  caseToken = token,
+) {
   const form = new FormData();
   form.set("file", new File([bytes as BlobPart], name, { type: mime }));
-  return app.request(`/api/c/${token}/documents`, {
+  return app.request(`/api/c/${caseToken}/documents`, {
     method: "POST",
     headers: { Origin: origin },
     body: form,
@@ -250,7 +255,20 @@ it("pilot: response failure after commit preserves the stored document and file"
     remove.mockRestore();
   }
 });
-it("pilot: fifth concurrent upload is refused before the multipart body is parsed", async () => {
+it("pilot: a fifth concurrent upload on one case waits its turn; other cases are unaffected", async () => {
+  const other = newToken();
+  await db.insert(cases).values({
+    id: "other-case",
+    organizationId: "org",
+    officeId: "office",
+    reference: "AV-2027-000002",
+    tokenHash: hashToken(other),
+    language: "it",
+    practiceId: "isee_ordinario",
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    expiresAt: "2027-03-01T00:00:00Z",
+  });
   const original = storage.put.bind(storage);
   let release: () => void = () => {};
   let ready: () => void = () => {};
@@ -270,8 +288,11 @@ it("pilot: fifth concurrent upload is refused before the multipart body is parse
     const bytes = await (await pdf()).save();
     const requests = Array.from({ length: 4 }, () => upload(bytes));
     await started;
-    expect((await upload(bytes)).status).toBe(503);
+    expect((await upload(bytes)).status).toBe(429);
+    // Four slow uploads on one case must not lock other citizens out.
+    const elsewhere = upload(bytes, "application/pdf", "ESEMPIO.pdf", other);
     release();
+    expect((await elsewhere).status).toBe(201);
     expect((await Promise.all(requests)).every((r) => r.status === 201)).toBe(true);
   } finally {
     release();
