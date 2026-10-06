@@ -7,7 +7,7 @@ import type { CreateCaseResponse, Language, PracticeId, PracticeSummary } from "
 import { LANGUAGES } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { CopyButton } from "@/components/ui/copy-button";
 import { FullscreenQr } from "@/components/ui/fullscreen-qr";
 import { QrCode } from "@/components/ui/qr-code";
@@ -32,9 +32,6 @@ function inviteMessage(language: Language, link: string) {
   if (language !== "it") lines.push(INVITE[language]);
   return `${lines.join("\n")}\n${link}`;
 }
-
-const selectClass =
-  "h-11 w-full rounded-sm bg-surface px-3 text-base ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none";
 
 export function NewCaseDialog({
   open,
@@ -121,10 +118,10 @@ function CreateForm({
       {operator.offices.length > 1 ? (
         <Field label="Sportello">
           {(p) => (
-            <select
+            <Select
               {...p}
               name="officeId"
-              className={selectClass}
+
               defaultValue={operator.offices[0]?.id}
             >
               {operator.offices.map((office) => (
@@ -132,7 +129,7 @@ function CreateForm({
                   {office.name}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </Field>
       ) : (
@@ -148,25 +145,25 @@ function CreateForm({
           }
         >
           {(p) => (
-            <select {...p} name="practiceId" className={selectClass} defaultValue="">
+            <Select {...p} name="practiceId" defaultValue="">
               <option value="">Da capire con il cittadino</option>
               {practices.map((practice) => (
                 <option key={practice.id} value={practice.id}>
                   {practice.name}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </Field>
         <Field label="Lingua del cittadino">
           {(p) => (
-            <select {...p} name="language" className={selectClass} defaultValue="it">
+            <Select {...p} name="language" defaultValue="it">
               {LANGUAGES.map((code) => (
                 <option key={code} value={code}>
                   {LANGUAGE_IT[code]}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </Field>
       </div>

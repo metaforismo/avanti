@@ -16,6 +16,7 @@ import {
 import { useId, useRef, useState } from "react";
 import type { ChecklistItem, CitizenCase, DocumentSummary, Finding } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/field";
 import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
@@ -606,12 +607,14 @@ function DocumentRow({
           <label htmlFor={selectId} className="shrink-0 text-sm text-ink-2">
             {m.docs.assignTo}
           </label>
-          <select
+          <Select
             id={selectId}
             value={doc.checklistItemId ?? ""}
             disabled={reassigning}
             onChange={(e) => void api.reassign(doc.id, e.target.value || null)}
-            className="h-10 min-w-0 flex-1 rounded-sm bg-surface px-2 text-sm ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
+            compact
+            wrapperClassName="min-w-0 flex-1"
+            className="text-sm"
           >
             <option value="">{m.docs.notAssigned}</option>
             {data.checklist.map((item) => (
@@ -619,7 +622,7 @@ function DocumentRow({
                 {item.memberName ? `${item.title} (${item.memberName})` : item.title}
               </option>
             ))}
-          </select>
+          </Select>
           {reassigning && <Spinner className="size-4 text-stamp" />}
         </div>
       )}

@@ -24,3 +24,6 @@ test-results
 
 # Local agent settings
 .claude/settings.local.json
+
+# Temporary worktrees of local agents
+.claude/worktrees/
