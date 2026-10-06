@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { cases, operators, sessions } from "@avanti/db";
 import { getCookie, setCookie } from "hono/cookie";
 import type { MiddlewareHandler } from "hono";
@@ -47,7 +47,9 @@ export function authenticateOperator(services: Services): MiddlewareHandler<ApiE
       .from(operators)
       .where(eq(operators.id, session.operatorId))
       .limit(1);
-    if (!operator) throw new ApiFailure("unauthorized", 401, "Accedi per continuare.");
+    if (!operator?.active) throw new ApiFailure("unauthorized", 401, "Accedi per continuare.");
+    if (operator.mustChangePassword && !passwordRoutes.has(context.req.path))
+      throw new ApiFailure("forbidden", 403, "Cambia la password per continuare.");
     {
       await services.db
         .update(sessions)
@@ -85,6 +87,34 @@ export function authenticateCitizen(services: Services): MiddlewareHandler<ApiEn
       );
     }
     context.set("citizen", row);
+    await next();
+  };
+}
+
+const passwordRoutes = new Set(["/api/auth/me", "/api/auth/password", "/api/auth/logout"]);
+
+// Even public API routes cannot be used to bypass the temporary-password gate with a live session.
+export function restrictTemporaryPassword(services: Services): MiddlewareHandler<ApiEnv> {
+  return async (context, next) => {
+    const token = getCookie(context, SESSION_COOKIE);
+    if (token && tokenPattern.test(token) && !passwordRoutes.has(context.req.path)) {
+      const now = services.clock().toISOString();
+      const [pending] = await services.db
+        .select({ id: operators.id })
+        .from(sessions)
+        .innerJoin(operators, eq(operators.id, sessions.operatorId))
+        .where(
+          and(
+            eq(sessions.tokenHash, hashToken(token)),
+            eq(operators.active, true),
+            eq(operators.mustChangePassword, true),
+            gt(sessions.expiresAt, now),
+            sql`${sessions.createdAt} + interval '12 hours' > ${now}::timestamptz`,
+          ),
+        )
+        .limit(1);
+      if (pending) throw new ApiFailure("forbidden", 403, "Cambia la password per continuare.");
+    }
     await next();
   };
 }

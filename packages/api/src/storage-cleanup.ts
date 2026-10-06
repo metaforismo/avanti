@@ -1,17 +1,25 @@
-import { eq, lte } from "drizzle-orm";
+import { and, asc, eq, lte } from "drizzle-orm";
 import { storageDeletions } from "@avanti/db";
 import type { Services } from "./context";
 import { safeError } from "./logging";
 
-export async function retryStorageDeletions(s: Services, id?: string): Promise<void> {
+export async function retryStorageDeletions(
+  s: Services,
+  id?: string,
+  caseId?: string,
+): Promise<void> {
   const pending = await s.db
     .select()
     .from(storageDeletions)
     .where(
       id
         ? eq(storageDeletions.id, id)
-        : lte(storageDeletions.nextAttemptAt, s.clock().toISOString()),
+        : and(
+            lte(storageDeletions.nextAttemptAt, s.clock().toISOString()),
+            caseId ? eq(storageDeletions.caseId, caseId) : undefined,
+          ),
     )
+    .orderBy(asc(storageDeletions.nextAttemptAt), asc(storageDeletions.id))
     .limit(100);
   for (const row of pending) {
     try {
