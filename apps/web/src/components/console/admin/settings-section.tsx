@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useResource } from "@/lib/console/use-resource";
+import { focusFirstError } from "@/lib/validation";
 
 const LIMITS = {
   baselineMinutesPerCase: { min: 1, max: 600 },
@@ -68,7 +69,7 @@ function SettingsForm({
       else values[key] = n;
     }
     setErrors(next);
-    if (Object.keys(next).length > 0) return;
+    if (focusFirstError(event.currentTarget, next)) return;
     setState("saving");
     setFormError(null);
     try {

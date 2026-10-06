@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type RefObject } from "react";
+import type { Route } from "next";
 import type { CaseDossier } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -13,10 +14,12 @@ export function DeleteCaseDialog({
   open,
   onOpenChange,
   dossier,
+  returnFocusTo,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dossier: CaseDossier;
+  returnFocusTo?: RefObject<HTMLElement | null>;
 }) {
   const router = useRouter();
   const [value, setValue] = useState("");
@@ -32,9 +35,9 @@ export function DeleteCaseDialog({
     try {
       await apiFetch(`/api/cases/${dossier.id}`, {
         method: "DELETE",
-        body: { confirmReference: value.trim() },
+        body: { confirmReference: dossier.reference },
       });
-      router.replace("/console");
+      router.replace(`/console?eliminata=${encodeURIComponent(dossier.reference)}` as Route);
     } catch (err) {
       setPending(false);
       setError(
@@ -46,6 +49,7 @@ export function DeleteCaseDialog({
   return (
     <Dialog
       open={open}
+      returnFocusTo={returnFocusTo}
       onOpenChange={(next) => {
         if (!next) setValue("");
         onOpenChange(next);
@@ -60,7 +64,9 @@ export function DeleteCaseDialog({
               {...p}
               value={value}
               onChange={(e) => setValue(e.target.value)}
+              autoFocus
               autoComplete="off"
+              autoCapitalize="characters"
               spellCheck={false}
               className="font-mono"
             />

@@ -8,7 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useOperator } from "@/lib/console/operator-context";
-import { text } from "@/lib/validation";
+import { focusFirstError, text } from "@/lib/validation";
 
 /** Offices come with the operator profile; after a change the page reloads it. */
 export function OfficesSection({ onChanged }: { onChanged: () => void }) {
@@ -74,6 +74,11 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
 }
 
 function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () => void }) {
+  const { offices } = useOperator();
+  // Citizens pick their office by name: two with the same one would be indistinguishable.
+  const takenNames = new Set(
+    offices.filter((other) => other.id !== office?.id).map((other) => other.name.toLocaleLowerCase("it")),
+  );
   const [errors, setErrors] = useState<Partial<Record<keyof OfficeInput, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -91,10 +96,12 @@ function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () =>
     };
     const next: typeof errors = {};
     if (input.name.length < 2) next.name = "Scrivi il nome dello sportello.";
+    else if (takenNames.has(input.name.toLocaleLowerCase("it")))
+      next.name = "C'è già uno sportello con questo nome.";
     if (input.address.length < 2) next.address = "Scrivi l'indirizzo.";
     if (input.city.length < 2) next.city = "Scrivi la città.";
     setErrors(next);
-    if (Object.keys(next).length > 0) return;
+    if (focusFirstError(event.currentTarget, next)) return;
     setPending(true);
     setFormError(null);
     try {

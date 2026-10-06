@@ -12,7 +12,7 @@ import { apiFetch, ApiRequestError } from "@/lib/api";
 import { timeAgo } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
-import { isEmail, text } from "@/lib/validation";
+import { focusFirstError, isEmail, text } from "@/lib/validation";
 
 export function OperatorsSection() {
   const me = useOperator();
@@ -208,7 +208,7 @@ function AddOperatorForm({
     if (name.length < 2) next.name = "Scrivi nome e cognome.";
     if (!isEmail(email)) next.email = "Controlla l'email.";
     setErrors(next);
-    if (next.name || next.email) return;
+    if (focusFirstError(event.currentTarget, next)) return;
     setPending(true);
     setFormError(null);
     try {

@@ -4,7 +4,7 @@ import { ArrowLeft, Check, ChevronDown, Download, FileJson, Send, UserCheck } fr
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Route } from "next";
 import type {
   CaseDossier,
@@ -44,6 +44,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const moreButton = useRef<HTMLButtonElement>(null);
   // The open document lives in the URL: shareable with a colleague, closed by the Back button.
   const router = useRouter();
   const pathname = usePathname();
@@ -203,7 +204,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           )}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <Button variant="secondary">
+              <Button ref={moreButton} variant="secondary">
                 Altro
                 <ChevronDown className="size-4" aria-hidden />
               </Button>
@@ -295,6 +296,7 @@ export function DossierView({ caseId }: { caseId: string }) {
       <Dialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
+        returnFocusTo={moreButton}
         title="Chiudere e archiviare la pratica?"
         description="Il cittadino non potrà più caricare documenti da questo link. Potrai riaprirla dal menu Altro."
       >
@@ -313,7 +315,12 @@ export function DossierView({ caseId }: { caseId: string }) {
           </Button>
         </div>
       </Dialog>
-      <DeleteCaseDialog open={confirmDelete} onOpenChange={setConfirmDelete} dossier={data} />
+      <DeleteCaseDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        dossier={data}
+        returnFocusTo={moreButton}
+      />
       <RequestDialog
         open={requesting}
         onOpenChange={setRequesting}
