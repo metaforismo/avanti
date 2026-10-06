@@ -7,6 +7,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import type { Route } from "next";
 import type { CaseListItem, CaseListResponse, CaseStatus } from "@avanti/contracts";
 import { PRACTICE_IDS } from "@avanti/contracts/constants";
+import { FirstSteps } from "@/components/console/first-steps";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { apiFetch } from "@/lib/api";
@@ -91,6 +92,9 @@ function Queue() {
   const items = [...(list.data?.items ?? []), ...(appended?.items ?? [])];
   const nextCursor = appended ? appended.cursor : (list.data?.nextCursor ?? null);
   const counts = list.data?.counts;
+  const filtered = Boolean(practice || assignee || deferredSearch);
+  // No case in any state yet: a CAF's first day.
+  const firstDay = counts ? Object.values(counts).every((n) => n === 0) : false;
 
   async function loadMore() {
     if (!nextCursor) return;
@@ -247,7 +251,11 @@ function Queue() {
         ) : list.status === "loading" && !list.data ? (
           <QueueSkeleton />
         ) : items.length === 0 ? (
-          <EmptyQueue status={status} filtered={Boolean(practice || assignee || deferredSearch)} />
+          firstDay && !filtered ? (
+            <FirstSteps />
+          ) : (
+            <EmptyQueue status={status} filtered={filtered} />
+          )
         ) : (
           <>
             <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem] gap-4 px-4 pb-2 text-xs text-ink-3 md:grid">

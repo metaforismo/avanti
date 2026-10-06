@@ -43,6 +43,10 @@ può consegnare a ciascun interessato. Non inviarlo in chat o email non protetta
   da ricordare). Puoi cambiarla quando vuoi cliccando sul tuo nome in basso a sinistra. La
   sessione scade dopo alcune ore di inattività.
 
+Il primo giorno, quando la coda è ancora vuota, la pagina _Pratiche_ mostra **Per iniziare**:
+cartello, una pratica di prova da aprire sul telefono, colleghi e baseline (per gli
+amministratori), guida.
+
 ## Creare una pratica per un cittadino
 
 _Nuova pratica_ (in alto a sinistra):
