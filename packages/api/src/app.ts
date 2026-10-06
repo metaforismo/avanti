@@ -43,7 +43,7 @@ export function createApp(options: ApiOptions) {
   const app = new Hono<ApiEnv>().basePath("/api");
   app.use("*", requestMetadata(options.logger));
   app.use("*", requireOrigin(services));
-  app.use("*", uploadCapacity());
+  app.use("*", uploadCapacity(services));
   app.use("*", boundedBody());
   registerErrors(app, options.errorLogger);
   mountMaintenance(app, services);

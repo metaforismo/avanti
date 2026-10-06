@@ -1,7 +1,8 @@
 import type { MiddlewareHandler } from "hono";
 import { UPLOAD_LIMITS } from "@avanti/contracts";
-import type { ApiEnv } from "../context";
+import type { ApiEnv, Services } from "../context";
 import { ApiFailure } from "../security";
+import { limitLanguage, limitMessage } from "./limit-message";
 
 export function boundedBody(): MiddlewareHandler<ApiEnv> {
   return async (context, next) => {
@@ -37,19 +38,21 @@ const MAX_UPLOADS_PER_CASE = 4;
  * Bounds simultaneous uploads per case, not per process: anyone can open a case from a public
  * QR, and a global counter let four deliberately slow uploads block every citizen.
  */
-export function uploadCapacity(): MiddlewareHandler<ApiEnv> {
+export function uploadCapacity(services: Services): MiddlewareHandler<ApiEnv> {
   const active = new Map<string, number>();
   return async (context, next) => {
     const token =
       context.req.method === "POST" ? UPLOAD_PATH.exec(context.req.path)?.[1] : undefined;
     if (!token) return next();
     const running = active.get(token) ?? 0;
-    if (running >= MAX_UPLOADS_PER_CASE)
+    if (running >= MAX_UPLOADS_PER_CASE) {
+      context.header("Retry-After", "5");
       throw new ApiFailure(
         "rate_limited",
         429,
-        "Stai caricando troppi file insieme. Attendi che finiscano e riprova.",
+        limitMessage(await limitLanguage(context, services), 5, true),
       );
+    }
     active.set(token, running + 1);
     try {
       await next();

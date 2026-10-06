@@ -288,7 +288,9 @@ it("pilot: a fifth concurrent upload on one case waits its turn; other cases are
     const bytes = await (await pdf()).save();
     const requests = Array.from({ length: 4 }, () => upload(bytes));
     await started;
-    expect((await upload(bytes)).status).toBe(429);
+    const blocked = await upload(bytes);
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("Retry-After")).toBe("5");
     // Four slow uploads on one case must not lock other citizens out.
     const elsewhere = upload(bytes, "application/pdf", "ESEMPIO.pdf", other);
     release();

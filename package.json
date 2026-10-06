@@ -19,7 +19,8 @@
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @avanti/db generate",
     "db:migrate": "pnpm --filter @avanti/db migrate",
-    "db:seed": "pnpm --filter @avanti/db seed"
+    "db:seed": "pnpm --filter @avanti/db seed",
+    "db:check": "pnpm --filter @avanti/db check"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

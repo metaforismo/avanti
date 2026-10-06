@@ -68,6 +68,7 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 | `pnpm check`                         | Lint + typecheck + test di tutti i pacchetti                                     |
 | `pnpm --filter @avanti/web test:e2e` | Test end-to-end Playwright e controlli axe (WCAG 2.2 AA, temi chiaro/scuro, RTL) |
 | `pnpm build`                         | Build di produzione                                                              |
+| `pnpm db:check`                      | Verifica Postgres reale, migrazioni e indici senza modifiche                     |
 | `pnpm db:seed`                       | Carica i dati demo                                                               |
 
 ## Documentazione
@@ -153,11 +154,39 @@ titolarità o completezza. L'operatore deve verificare. Senza AI, le richieste l
 dell'operatore mantengono l'originale italiano e mostrano un avviso localizzato; non
 vengono presentate come traduzioni già verificate.
 
+## Limiti per la sala d'attesa
+
+La capability identifica la pratica; l'IP fidato è un tetto condiviso ampio, non
+l'identità del cittadino. I bucket sono persistiti come HMAC, distinti per categoria
+e finestra. I controlli della pratica/email precedono quelli IP: richieste già bloccate
+per quell'identità non consumano il budget del Wi-Fi.
+
+| Operazione              | Identità principale                                                  | Tetto IP fidato e burst        |
+| ----------------------- | -------------------------------------------------------------------- | ------------------------------ |
+| Nuova pratica pubblica  | Non esiste ancora una capability                                     | 60/ora, burst 40/minuto        |
+| Turni intervista        | 400/ora e 60/minuto per capability                                   | 15.000/ora, burst 1.500/minuto |
+| Upload                  | 120/ora e 30/minuto per capability; 4 simultanei per pratica/istanza | 4.000/ora, burst 400/minuto    |
+| Login/cambio password   | 10/minuto per email; cambio anche per operatore                      | 100/minuto                     |
+| Export operatore        | 20/minuto per operatore                                              | 200/minuto                     |
+| Traduzioni/integrazioni | 30/minuto per operatore                                              | 300/minuto                     |
+| Candidature CAF         | —                                                                    | 5/minuto                       |
+
+Sono finestre fisse che partono dalla prima richiesta, con guardia al minuto per i
+burst; non un token bucket a ricarica continua. Ogni tentativo arrivato a un bucket
+lo consuma anche se un controllo successivo rifiuta la richiesta. Un 429 contiene
+`rate_limited`, attesa reale in `Retry-After` e messaggio nella lingua della pratica
+(o dell'avvio validato; italiano per login). Upload simultanei: invito ad attendere
+fine caricamento e riprovare dopo 5 secondi, senza garanzia che siano già finiti.
+In locale senza IP attendibile restano i limiti capability/email.
+La suite `waiting-room.test.ts` verifica 40 avvii simultanei e interviste complete
+sotto 10 minuti dallo stesso IP, oltre a 10 operatori che accedono con un retry.
+
 ## Documentazione backend
 
 - [API e semantica dei KPI](docs/API.md)
 - [Modello dati](docs/DATA_MODEL.md)
 - [Sicurezza e prerequisiti GDPR/AI Act](docs/SECURITY.md)
+- [Deploy staging: Vercel, Postgres UE, Blob privato e verifiche](docs/DEPLOY.md)
 - [Ricerca ISEE 2027 e limiti annuali](docs/research/isee-2027.md)
 - [Decisioni backend](docs/decisions/backend.md)
 
@@ -168,7 +197,12 @@ un fascicolo e non trasmette alcuna pratica agli enti.
 Le sessioni si rinnovano anche durante la consultazione: 30 minuti di inattività e massimo 12 ore. Al cambio password il cookie viene ruotato e le sessioni precedenti revocate.
 La manutenzione è separata dalle richieste utente: `GET /api/cron/maintenance`, con
 `Authorization: Bearer <CRON_SECRET>`, elimina sessioni e bucket scaduti, cancella i fascicoli oltre retention e ritenta le
-cancellazioni dei file. Configurare Vercel Cron (o un scheduler Node) ogni minuto per recuperare anche le analisi interrotte.
+cancellazioni dei file. La pianificazione è in `apps/web/vercel.json` (Root Directory Vercel `apps/web`):
+`* * * * *`, ogni minuto, su Vercel Pro. Vercel invoca solo Production: lo staging
+usa un progetto separato con dati fittizi; le Preview richiedono una chiamata manuale
+o uno scheduler esterno. La cadenza recupera fino a quattro analisi ferme da oltre due
+minuti per run e applica retention/retry a lotti. Configurazione, costi e prove in
+[DEPLOY.md](docs/DEPLOY.md).
 `CRON_SECRET` deve essere casuale e riservato; senza segreto l’endpoint rifiuta ogni chiamata.
 La manutenzione limita i tentativi a uno al minuto anche dopo un errore. Le cancellazioni
 fallite restano in `storage_deletions` fino alla conferma dello storage.
