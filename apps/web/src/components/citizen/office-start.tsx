@@ -15,6 +15,8 @@ import { cn } from "@/lib/cn";
 import { browserLanguage, directionOf, useDocumentLanguage } from "@/lib/citizen/document-language";
 import { ErrorScreen } from "./error-screen";
 
+const NON_LATIN = new Set<Language>(["ar", "bn"]);
+
 export type OfficeInfo = { office: Office; organization: OrganizationPublic };
 
 export function OfficeStart({
@@ -188,7 +190,17 @@ export function OfficeStart({
                   >
                     {language === code && <span className="size-2.5 rounded-full bg-stamp" />}
                   </span>
-                  {LANGUAGE_NAMES[code].native}
+                  {/* System font for the other scripts' names: one word isn't worth a 100–200 KB font
+                      on the waiting-room network. Choosing the language loads the real one. */}
+                  <span
+                    className={cn(
+                      code !== language &&
+                        NON_LATIN.has(code) &&
+                        "[font-family:system-ui,sans-serif]",
+                    )}
+                  >
+                    {LANGUAGE_NAMES[code].native}
+                  </span>
                 </label>
               ))}
             </div>
