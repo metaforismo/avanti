@@ -26,6 +26,19 @@ volta per bundle e di nuovo a ogni hot reload, quindi il database è un singleto
 (`processSingleton` in `packages/api/src/runtime.ts`): PGlite ammette una sola istanza aperta
 per cartella e due aperture concorrenti corrompono `.data/pglite`.
 
+Lo stesso getter globale condivide anche un solo pool postgres-js (`max: 5`) e
+serializza gli avvii concorrenti. Un fallimento dell’inizializzazione permette un nuovo
+tentativo; un errore di richiesta non riapre il DB. `closeRuntimeDatabase()` è una
+chiusura esplicita, idempotente e definitiva del runtime: attende un avvio pendente,
+chiude una volta e impedisce riaperture. Usarla nel teardown dei test che importano
+il runtime condiviso o nell’host Node dopo aver fermato e drenato le richieste.
+I test con `createApp`/`createDatabase({memory:true})` continuano a chiudere la loro
+risorsa isolata. Next possiede SIGTERM/SIGINT: il pacchetto non installa listener che
+interferiscano con il suo shutdown. Un host Node dedicato deve chiamare la chiusura
+nel proprio handler dei segnali, dopo il drain. SIGKILL non consente cleanup.
+La condivisione vale solo nello stesso processo/isolate: più processi non devono
+aprire la stessa cartella PGlite; usare Postgres per un deployment con più worker.
+
 ## Pacchetti
 
 | Pacchetto           | Responsabilità                                                                 | Owner     |
@@ -113,7 +126,7 @@ per verificare che i propri segmenti non divergano.
 Limiti noti: non è un parser generale e non comprende ogni errore ortografico,
 dialetto, pronome anaforico o lingua mescolata. Parentele indirette («la madre di
 mio marito»), racconti ipotetici e liste ambigue possono richiedere chiarimento.
-Il collettivo «vivo con i miei genitori» non identifica ancora i ruoli: occorre
-indicare madre/padre o completarli nell’intervista. Non identifica persone, titolarità dei conti o il nucleo legale; i
+Il collettivo «vivo con i miei genitori» propone madre e padre conviventi, da
+confermare nell’intervista. Non identifica persone, titolarità dei conti o il nucleo legale; i
 figli senza quantità restano da completare. L’assenza di un fatto estratto non
 significa una risposta negativa.
