@@ -68,11 +68,72 @@ export function FindingsSummary({ dossier }: { dossier: CaseDossier }) {
             </div>
           </li>
         )}
-        {[...blockers, ...warnings].map((finding) => (
-          <FindingRow key={finding.id} finding={finding} />
-        ))}
+        {groupByCode([...blockers, ...warnings]).map((group) =>
+          group.length === 1 ? (
+            <FindingRow key={group[0]!.id} finding={group[0]!} />
+          ) : (
+            <FindingGroup key={group[0]!.code} findings={group} />
+          ),
+        )}
       </ul>
     </section>
+  );
+}
+
+/** Summaries for findings that repeat per document; anything else lists its first message. */
+const GROUP_TITLES: Record<string, (n: number) => string> = {
+  "document.unchecked": (n) =>
+    `${n} documenti da controllare a vista: il controllo automatico non ha verificato tutti i dati`,
+  "document.expiring": (n) => `${n} documenti in scadenza`,
+  "document.wrong_year": (n) => `${n} documenti con un anno diverso da quello richiesto`,
+  "document.unmatched": (n) => `${n} documenti non abbinati a una voce`,
+};
+
+/** Same-code findings become one line: three identical warnings hide the one that differs. */
+function groupByCode(findings: Finding[]) {
+  const groups = new Map<string, Finding[]>();
+  for (const finding of findings) {
+    groups.set(finding.code, [...(groups.get(finding.code) ?? []), finding]);
+  }
+  return [...groups.values()];
+}
+
+function FindingGroup({ findings }: { findings: Finding[] }) {
+  const first = findings[0]!;
+  const blocker = first.severity === "blocker";
+  const Icon = blocker ? AlertOctagon : AlertTriangle;
+  const title =
+    GROUP_TITLES[first.code]?.(findings.length) ??
+    `${first.message} (e altri ${findings.length - 1})`;
+  return (
+    <li className={cn(blocker && "bg-danger-wash/40")}>
+      <details className="group">
+        <summary className="flex cursor-pointer list-none gap-3 px-5 py-3 transition-colors hover:bg-paper [&::-webkit-details-marker]:hidden">
+          <Icon
+            className={cn("mt-0.5 size-4.5 shrink-0", blocker ? "text-danger" : "text-warn")}
+            aria-hidden
+          />
+          <span className="flex-1">{title}</span>
+          <span className="text-sm text-ink-3 group-open:hidden">Mostra</span>
+        </summary>
+        <ul className="grid gap-1 px-5 ps-12 pb-3 text-[0.9375rem] text-ink-2">
+          {findings.map((finding) => (
+            <li key={finding.id}>
+              {finding.checklistItemId ? (
+                <a
+                  href={`#item-${finding.checklistItemId}`}
+                  className="hover:text-ink hover:underline"
+                >
+                  {finding.message}
+                </a>
+              ) : (
+                finding.message
+              )}
+            </li>
+          ))}
+        </ul>
+      </details>
+    </li>
   );
 }
 

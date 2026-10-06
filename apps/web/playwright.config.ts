@@ -28,7 +28,7 @@ export default defineConfig({
     {
       name: "desktop",
       use: { ...devices["Desktop Chrome"], channel: "chrome", locale: "it-IT" },
-      testMatch: /console|landing/,
+      testMatch: /console|landing|screenshots/,
     },
   ],
   webServer: {
