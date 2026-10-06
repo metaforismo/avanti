@@ -60,8 +60,8 @@ export default function SecurityPage() {
       </h1>
       <p className="mt-5 max-w-2xl text-lg text-ink-2">
         Allo sportello arrivano documenti d&apos;identità, redditi, conti correnti. Ecco come li
-        trattiamo, in concreto. Non usiamo parole come &quot;certificato&quot; o
-        &quot;garantito&quot; dove non c&apos;è una certificazione.
+        trattiamo, in concreto. Non usiamo parole come «certificato» o «garantito» dove non c&apos;è
+        una certificazione.
       </p>
 
       <div className="mt-14 grid gap-x-12 gap-y-10 md:grid-cols-2">
