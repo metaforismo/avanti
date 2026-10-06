@@ -58,10 +58,34 @@ autorizzazioni necessarie alla pratica tramite il CAF.
 
 I parametri iniziali del DB sono `linkDays=60` e `retentionDays=180`, configurabili per
 organizzazione: **scelte tecniche, non termini imposti dalla legge**. Scadenza link,
-chiusura della pratica e cancellazione sono operazioni distinte. Una configurazione
-non esegue di per sé la cancellazione. La durata appropriata va motivata dal CAF,
+chiusura della pratica e cancellazione sono operazioni distinte. Il job automatico applica la configurazione
+dell’organizzazione. La durata appropriata va motivata dal CAF,
 separando copia preparatoria Avanti dall'archivio obbligatorio del gestionale.
 [Garante, limitazione della conservazione](https://www.garanteprivacy.it/home/principi-fondamentali-del-trattamento).
+
+`GET /api/cron/maintenance`, autenticato con `CRON_SECRET`, cancella fino a 25
+fascicoli per esecuzione quando la chiusura **oppure** la scadenza del link risale a
+più di `retentionDays` giorni. La chiusura ha un proprio istante: modificare una
+nota non lo sposta; riaprire il fascicolo lo azzera. Per i fascicoli già chiusi prima
+della migrazione si usa l’ultimo aggiornamento come limite conservativo. Il cambio
+di `linkDays` si applica solo ai nuovi link; la retention aggiornata vale per le
+esecuzioni successive del job.
+
+La cancellazione rimuove insieme fascicolo, risposte (incluse le persone), contatti,
+note, messaggi, revisioni, metadati dei documenti e vecchi eventi collegati. Conserva
+un solo audit senza contenuti personali: organizzazione, operatore (o sistema),
+istante e id del fascicolo, senza riferimento, nomi o testo libero. I file locali o
+Blob sono cancellati dopo il commit; un errore lascia una tombstone in
+`storage_deletions`, ritentata con backoff fino alla conferma dello storage. Il job
+ritenta al massimo 100 file per esecuzione ed è idempotente; i fascicoli in uso da
+una transazione vengono saltati. Le richieste utente non eseguono il purge.
+
+L’amministratore può anticipare la cancellazione con `DELETE /api/cases/:id`,
+confermando il riferimento; usa la stessa cancellazione e lo stesso retry dei file.
+Restano manuali l’attivazione e la verifica dello scheduler nel deployment (almeno
+ogni ora, più frequente se il volume supera i lotti), il monitoraggio dei retry,
+l’identificazione del richiedente, la valutazione degli obblighi di conservazione,
+la gestione delle copie esportate/backup e la durata appropriata degli audit.
 
 Runbook da concordare prima del pilota:
 

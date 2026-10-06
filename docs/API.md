@@ -125,3 +125,44 @@ sessione operatore richiesta. Il job elimina sessioni e bucket scaduti e ritenta
 cancellazioni storage; risponde `{ok:true}`, oppure `{ok:true,skipped:true}` entro il
 cooldown di un minuto. Un segreto assente o errato dà 401. Compatibile con Vercel Cron;
 va configurato nello scheduler del deploy. Nessun purge globale durante i POST utente.
+
+## Amministrazione dei CAF pilota
+
+Tutte le risorse amministrative sono limitate all’organizzazione della sessione.
+Le mutazioni richiedono il controllo Origin della console. Un operatore normale
+riceve `forbidden`; un id di un’altra organizzazione riceve `not_found`.
+
+| Metodo | Percorso                        | Input                   | Risposta                          |
+| ------ | ------------------------------- | ----------------------- | --------------------------------- |
+| POST   | `/auth/password`                | `ChangePasswordRequest` | `Operator`                        |
+| GET    | `/settings`                     | —                       | `OrganizationSettings`            |
+| PATCH  | `/settings`                     | `UpdateSettingsRequest` | `OrganizationSettings`            |
+| GET    | `/operators`                    | —                       | `OperatorSummary[]`               |
+| POST   | `/operators`                    | `CreateOperatorRequest` | `TemporaryPasswordResponse` (201) |
+| PATCH  | `/operators/:id`                | `UpdateOperatorRequest` | `OperatorSummary`                 |
+| POST   | `/operators/:id/reset-password` | —                       | `TemporaryPasswordResponse`       |
+| POST   | `/offices`                      | `OfficeInput`           | `Office` (201)                    |
+| PATCH  | `/offices/:id`                  | `UpdateOfficeRequest`   | `Office`                          |
+| DELETE | `/cases/:id`                    | `DeleteCaseRequest`     | 204                               |
+
+`/auth/password` è disponibile a ogni operatore e condivide il limite login
+(10 tentativi/minuto per email e, dove disponibile, IP fidato). Verifica la password
+attuale, rifiuta una nuova password uguale e revoca le altre sessioni mantenendo
+quella corrente. Login e `/auth/me` includono `mustChangePassword`; quando è vero,
+solo `/auth/me`, `/auth/password` e `/auth/logout` sono consentiti. Le altre rotte
+restituiscono `forbidden` con «Cambia la password per continuare.».
+
+Creazione e reset restituiscono una password temporanea casuale di 20 caratteri
+una sola volta, salvata esclusivamente come hash. Il reset revoca tutte le sessioni.
+Gli operatori disattivati non possono accedere e ricevono lo stesso errore delle
+credenziali errate. La lista include gli inattivi, è ordinata per nome e riporta
+l’ultimo login riuscito. Un admin non può disattivarsi, declassarsi o reimpostare
+la propria password attraverso la rotta admin; deve restare un admin attivo.
+
+Lo slug pubblico dello sportello è ASCII, generato da città e nome, unico nel
+sistema con suffisso numerico in caso di collisione; resta invariato dopo gli edit.
+`linkDays` vale solo per nuovi link. `retentionDays` viene applicato dal cron ai
+fascicoli chiusi o scaduti da più del periodo configurato (25 per esecuzione).
+La cancellazione manuale richiede il riferimento, senza distinzione maiuscole/minuscole.
+Entrambe rimuovono DB e file, con tombstone/retry e audit senza contenuti personali:
+vedi [SECURITY.md](SECURITY.md#retention-e-diritti).
