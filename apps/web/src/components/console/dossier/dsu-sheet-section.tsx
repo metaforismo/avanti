@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import type { CaseDossier, DsuRow, DsuSection } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { spreadsheetRows } from "@/lib/console/spreadsheet-safe";
 import type { DossierActions } from "./dossier-view";
 
 /**
@@ -44,7 +45,19 @@ export function DsuSheetSection({
   );
 }
 
+const VIEWS = {
+  all: { label: "Tutto", keep: () => true },
+  copy: { label: "Da copiare", keep: (row: DsuRow) => row.value !== null },
+  check: {
+    label: "Da controllare",
+    keep: (row: DsuRow) => row.source.kind === "document" || row.source.kind === "missing",
+  },
+} as const;
+type View = keyof typeof VIEWS;
+
 function SheetBody({ dossier, actions }: { dossier: CaseDossier; actions: DossierActions }) {
+  // While typing into the software the operator wants either the values or what to look up.
+  const [view, setView] = useState<View>("all");
   if (!dossier.dsuSheet) {
     return (
       <p className="border-t border-line px-5 py-4 text-ink-2">
@@ -54,6 +67,9 @@ function SheetBody({ dossier, actions }: { dossier: CaseDossier; actions: Dossie
   }
 
   const data = dossier.dsuSheet;
+  const sections = data.sections
+    .map((section) => ({ ...section, rows: section.rows.filter(VIEWS[view].keep) }))
+    .filter((section) => section.rows.length > 0);
   return (
     <div className="grid gap-5 border-t border-line px-5 py-5">
       <div className="grid gap-2 text-sm text-ink-2">
@@ -80,7 +96,24 @@ function SheetBody({ dossier, actions }: { dossier: CaseDossier; actions: Dossie
           <Legend tone="caf">a cura del CAF</Legend>
         </p>
       </div>
-      {data.sections.map((section) => (
+      <div role="group" aria-label="Mostra" className="flex w-fit rounded-sm bg-sunk p-0.5">
+        {(Object.keys(VIEWS) as View[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={view === key}
+            onClick={() => setView(key)}
+            className={cn(
+              "rounded-xs px-3 py-1.5 text-sm",
+              view === key ? "bg-surface font-semibold text-ink shadow-xs" : "text-ink-2",
+            )}
+          >
+            {VIEWS[key].label}
+          </button>
+        ))}
+      </div>
+      {sections.length === 0 && <p className="text-ink-2">Niente in questa vista.</p>}
+      {sections.map((section) => (
         <SheetSection
           key={`${section.module}-${section.quadro}-${section.memberId ?? ""}-${section.instanceId ?? ""}`}
           section={section}
@@ -101,11 +134,13 @@ function SheetSection({
   dossier: CaseDossier;
   actions: DossierActions;
 }) {
-  // Tab-separated pairs paste cleanly into a spreadsheet or a notes field next to the software.
-  const copyable = section.rows
-    .filter((row) => row.value !== null)
-    .map((row) => `${row.label}\t${row.value}`)
-    .join("\n");
+  // Tab-separated pairs paste into a spreadsheet next to the software; values come from the
+  // citizen, so they are neutralized against formula injection.
+  const values = section.rows.flatMap((row) =>
+    row.value === null ? [] : [[row.label, row.value] as [string, string]],
+  );
+  // With a single value the row's own button already does it.
+  const copyable = values.length > 1 ? spreadsheetRows(values) : "";
 
   return (
     <section aria-label={`Quadro ${section.quadro}`} className="rounded-md ring-1 ring-line">
@@ -155,7 +190,7 @@ function SheetRow({
       <dd className="flex min-w-0 items-center gap-2">
         {row.source.kind === "answer" && row.value !== null ? (
           <>
-            <span className="min-w-0 flex-1 font-mono text-[0.9375rem] break-words text-ink">
+            <span className="min-w-0 flex-1 font-semibold break-words text-ink tabular-nums">
               {row.value}
             </span>
             <CopyValue value={row.value} label={row.label} />
@@ -166,17 +201,17 @@ function SheetRow({
               <button
                 type="button"
                 onClick={() => actions.openDocument(document)}
-                className="inline-flex items-center gap-1.5 font-semibold underline underline-offset-4"
+                className="inline-flex items-start gap-1.5 text-start font-semibold text-stamp underline underline-offset-4"
               >
-                <FileSearch className="size-3.5" aria-hidden />
-                Leggi in {document.analysis?.detectedLabel ?? document.fileName}
+                <FileSearch className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                Apri {document.analysis?.detectedLabel ?? document.fileName}
               </button>
             ) : (
               "Da leggere nel documento"
             )}
           </Tag>
         ) : row.source.kind === "missing" ? (
-          <Tag tone="missing">Manca: chiedilo al cittadino</Tag>
+          <Tag tone="missing">Manca</Tag>
         ) : (
           <Tag tone="caf">A cura del CAF</Tag>
         )}
