@@ -387,10 +387,16 @@ export default function HomePage() {
             </h3>
             <p className="mt-2 max-w-3xl leading-relaxed text-ink-2">
               Il CAF resta titolare dei dati. Il cittadino accede con un link personale che scade,
-              senza password da ricordare. Ogni apertura del fascicolo è registrata, i documenti si
-              cancellano alla fine del periodo di conservazione e l&apos;AI riceve solo ciò che
-              serve a controllare il singolo documento.
+              senza password da ricordare. Ogni accesso al fascicolo è registrato, la durata di
+              conservazione la decide il CAF e l&apos;AI riceve solo ciò che serve a controllare il
+              singolo documento.
             </p>
+            <Link
+              href="/sicurezza"
+              className="mt-4 inline-block font-semibold text-stamp underline underline-offset-4"
+            >
+              Come proteggiamo i dati
+            </Link>
           </div>
         </div>
       </section>
