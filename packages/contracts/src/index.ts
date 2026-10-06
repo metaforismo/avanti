@@ -4,9 +4,15 @@
  * imports the inferred types. Changing a schema is a breaking API change.
  */
 import { z } from "zod";
-import { LANGUAGES, PRACTICE_IDS } from "./constants";
+import { LANGUAGES, PASSWORD_MIN_LENGTH, PRACTICE_IDS } from "./constants";
 
-export { LANGUAGES, PRACTICE_IDS, RTL_LANGUAGES, UPLOAD_LIMITS } from "./constants";
+export {
+  LANGUAGES,
+  PASSWORD_MIN_LENGTH,
+  PRACTICE_IDS,
+  RTL_LANGUAGES,
+  UPLOAD_LIMITS,
+} from "./constants";
 
 /* ------------------------------------------------------------------ */
 /* Primitives                                                          */
@@ -387,6 +393,8 @@ export const Operator = z.object({
   role: OperatorRole,
   organization: OrganizationPublic,
   offices: z.array(Office),
+  /** True after an admin set a temporary password: the console asks for a new one first. */
+  mustChangePassword: z.boolean().default(false),
 });
 export type Operator = z.infer<typeof Operator>;
 
@@ -556,6 +564,81 @@ export const Metrics = z.object({
   ),
 });
 export type Metrics = z.infer<typeof Metrics>;
+
+/* ------------------------------------------------------------------ */
+/* Administration (role "admin" only, scoped to the operator's organization) */
+/* ------------------------------------------------------------------ */
+
+export const ChangePasswordRequest = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(200),
+});
+export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequest>;
+
+export const OrganizationSettings = z.object({
+  /** Minutes per case measured by the CAF before Avanti; null until measured. */
+  baselineMinutesPerCase: z.number().int().min(1).max(600).nullable(),
+  /** Validity of citizen links, in days. */
+  linkDays: z.number().int().min(1).max(365),
+  /** How long Avanti keeps closed or expired cases and their files, in days. */
+  retentionDays: z.number().int().min(30).max(3650),
+});
+export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
+
+export const UpdateSettingsRequest = OrganizationSettings.partial();
+export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
+
+export const OperatorSummary = z.object({
+  id: Id,
+  name: z.string(),
+  email: z.string().email(),
+  role: OperatorRole,
+  active: z.boolean(),
+  lastLoginAt: IsoDateTime.nullable(),
+  createdAt: IsoDateTime,
+});
+export type OperatorSummary = z.infer<typeof OperatorSummary>;
+
+export const CreateOperatorRequest = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().toLowerCase().email().max(200),
+  role: OperatorRole.default("operator"),
+});
+export type CreateOperatorRequest = z.infer<typeof CreateOperatorRequest>;
+
+/** The temporary password is returned once and never stored in clear. */
+export const TemporaryPasswordResponse = z.object({
+  operator: OperatorSummary,
+  temporaryPassword: z.string(),
+});
+export type TemporaryPasswordResponse = z.infer<typeof TemporaryPasswordResponse>;
+
+/** An admin cannot demote or deactivate themselves (the API answers `conflict`). */
+export const UpdateOperatorRequest = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  role: OperatorRole.optional(),
+  active: z.boolean().optional(),
+});
+export type UpdateOperatorRequest = z.infer<typeof UpdateOperatorRequest>;
+
+export const OfficeInput = z.object({
+  name: z.string().trim().min(2).max(120),
+  address: z.string().trim().min(2).max(200),
+  city: z.string().trim().min(2).max(120),
+  phone: z.string().trim().max(30).nullable().optional(),
+  openingHours: z.string().trim().max(200).nullable().optional(),
+});
+export type OfficeInput = z.infer<typeof OfficeInput>;
+
+export const UpdateOfficeRequest = OfficeInput.partial();
+export type UpdateOfficeRequest = z.infer<typeof UpdateOfficeRequest>;
+
+/**
+ * Permanent erasure of a case and its files (GDPR request handled by the CAF).
+ * The reference must be typed again to confirm. Leaves an audit entry without personal data.
+ */
+export const DeleteCaseRequest = z.object({ confirmReference: z.string().trim().min(1) });
+export type DeleteCaseRequest = z.infer<typeof DeleteCaseRequest>;
 
 /* ------------------------------------------------------------------ */
 /* Public site                                                         */
