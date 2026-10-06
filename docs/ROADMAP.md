@@ -26,6 +26,8 @@ gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
   documenti, richieste d'integrazione tradotte, note interne, export PDF/JSON, metriche misurate.
 - Finché manca qualcosa il pulsante principale è "Chiedi integrazione"; segnare pronta una
   pratica incompleta chiede conferma.
+- Prospetto DSU nell'ordine del modello, ogni campo con la sua fonte, pronto da copiare nel
+  gestionale; mancanti raggruppati per persona; "Per iniziare" per il primo giorno di un CAF.
 - Nuova pratica con link, QR (anche a schermo intero), WhatsApp/SMS bilingue; cartello A4.
 - Tema scuro, pagina Aiuto, guida in `docs/guide/operatori.md`.
 
@@ -46,6 +48,8 @@ nelle PR.
 
 ## In corso
 
+- Rigenerare e rimandare il link al cittadino che l'ha perso; testi dei controlli scritti per
+  l'operatore.
 - Staging su Vercel secondo `docs/DEPLOY.md` (in attesa del via libera: il cron di manutenzione
   al minuto richiede il piano Pro), con Postgres e Blob in UE e `pnpm db:check` sul database reale.
 

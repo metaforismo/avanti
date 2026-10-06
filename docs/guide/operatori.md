@@ -104,6 +104,22 @@ invia. Il cittadino lo trova nel suo link, nella sua lingua; la pratica passa in
 cittadino_. Se la traduzione automatica non è disponibile, il cittadino vede il testo italiano
 e un avviso.
 
+### Prospetto DSU: copiare nel gestionale
+
+Quando la pratica è pronta, il fascicolo apre da solo il **Prospetto DSU**: gli stessi dati,
+nell'ordine del modello DSU (quadri A, B e FC per ogni componente, conto, immobile, veicolo).
+
+- Ogni valore ha il suo pulsante **Copia**; _Copia il quadro_ copia tutta la sezione come due
+  colonne (nome del campo, valore), da incollare in un foglio accanto al gestionale.
+- Il pallino accanto a ogni riga dice da dove arriva il dato: **risposta del cittadino**, **da
+  leggere nel documento** (il link apre il documento), **manca**, **a cura del CAF** (dati che il
+  CAF prende da INPS o Agenzia delle Entrate, o che decide: per esempio il nucleo ai fini ISEE).
+- _Da copiare_ mostra solo i valori, _Da controllare_ solo documenti e mancanti.
+- Un "No" del cittadino compare come **Nessuno**: è un'esclusione dichiarata, non un dato mancante.
+
+Avanti non legge importi dai documenti: saldi, giacenze e redditi li leggi tu nel documento
+indicato. La responsabilità della DSU resta del CAF.
+
 ### Chiudere
 
 - _Segna come pronta_ quando tutto è verificato. Se mancano documenti obbligatori o ci sono
