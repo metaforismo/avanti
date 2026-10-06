@@ -13,6 +13,7 @@ export function Dialog({
   children,
   className,
   returnFocusTo,
+  closeLabel = "Chiudi",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,6 +23,8 @@ export function Dialog({
   className?: string;
   /** Where focus goes on close when the opener disappears, e.g. an item of a closed menu. */
   returnFocusTo?: RefObject<HTMLElement | null>;
+  /** The citizen app passes its own language; the console is Italian. */
+  closeLabel?: string;
 }) {
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
@@ -54,7 +57,7 @@ export function Dialog({
             </div>
             <Primitive.Close
               className="-m-1 rounded-sm p-2 text-ink-3 hover:bg-sunk hover:text-ink"
-              aria-label="Chiudi"
+              aria-label={closeLabel}
             >
               <X className="size-5" aria-hidden />
             </Primitive.Close>
