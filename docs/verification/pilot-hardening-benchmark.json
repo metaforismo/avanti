@@ -1,0 +1,322 @@
+{
+  "environment": {
+    "node": "25.8.2",
+    "pnpm": "10.28.0",
+    "platform": "macOS arm64",
+    "pglite": "0.3.16",
+    "samples": 5,
+    "fixture": {
+      "cases": 2000,
+      "documents": 20000,
+      "events": 8000
+    }
+  },
+  "before": {
+    "queue": {
+      "queries": 11,
+      "medianMs": 19.98
+    },
+    "dossier": {
+      "queries": 13,
+      "medianMs": 3.87
+    },
+    "metrics": {
+      "queries": 7,
+      "medianMs": 61.02
+    },
+    "json": {
+      "queries": 14,
+      "medianMs": 4.5
+    },
+    "pdf": {
+      "queries": 14,
+      "medianMs": 87.08
+    }
+  },
+  "after": {
+    "queue": {
+      "queries": 11,
+      "medianMs": 15.42
+    },
+    "dossier": {
+      "queries": 12,
+      "medianMs": 3.42
+    },
+    "metrics": {
+      "queries": 7,
+      "medianMs": 6.48
+    },
+    "json": {
+      "queries": 14,
+      "medianMs": 3.89
+    },
+    "pdf": {
+      "queries": 14,
+      "medianMs": 71.15
+    }
+  },
+  "indexPlans": {
+    "queue": [
+      {
+        "Plan": {
+          "Node Type": "Limit",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 0.28,
+          "Total Cost": 7.22,
+          "Plan Rows": 50,
+          "Plan Width": 18,
+          "Plans": [
+            {
+              "Node Type": "Index Only Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Backward",
+              "Index Name": "cases_org_updated_idx",
+              "Relation Name": "cases",
+              "Alias": "cases",
+              "Startup Cost": 0.28,
+              "Total Cost": 277.96,
+              "Plan Rows": 2000,
+              "Plan Width": 18,
+              "Index Cond": "(organization_id = 'bench'::text)"
+            }
+          ]
+        }
+      }
+    ],
+    "status": [
+      {
+        "Plan": {
+          "Node Type": "Limit",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 0.28,
+          "Total Cost": 7.34,
+          "Plan Rows": 50,
+          "Plan Width": 18,
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Backward",
+              "Index Name": "cases_org_updated_idx",
+              "Relation Name": "cases",
+              "Alias": "cases",
+              "Startup Cost": 0.28,
+              "Total Cost": 282.96,
+              "Plan Rows": 2000,
+              "Plan Width": 18,
+              "Index Cond": "(organization_id = 'bench'::text)",
+              "Filter": "(status = 'submitted'::text)"
+            }
+          ]
+        }
+      }
+    ],
+    "office": [
+      {
+        "Plan": {
+          "Node Type": "Limit",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 0.28,
+          "Total Cost": 7.34,
+          "Plan Rows": 50,
+          "Plan Width": 18,
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Backward",
+              "Index Name": "cases_org_updated_idx",
+              "Relation Name": "cases",
+              "Alias": "cases",
+              "Startup Cost": 0.28,
+              "Total Cost": 282.96,
+              "Plan Rows": 2000,
+              "Plan Width": 18,
+              "Index Cond": "(organization_id = 'bench'::text)",
+              "Filter": "(office_id = 'office'::text)"
+            }
+          ]
+        }
+      }
+    ],
+    "practice": [
+      {
+        "Plan": {
+          "Node Type": "Limit",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 0.28,
+          "Total Cost": 7.34,
+          "Plan Rows": 50,
+          "Plan Width": 18,
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Backward",
+              "Index Name": "cases_org_updated_idx",
+              "Relation Name": "cases",
+              "Alias": "cases",
+              "Startup Cost": 0.28,
+              "Total Cost": 282.96,
+              "Plan Rows": 2000,
+              "Plan Width": 18,
+              "Index Cond": "(organization_id = 'bench'::text)",
+              "Filter": "(practice_id = 'isee_ordinario'::text)"
+            }
+          ]
+        }
+      }
+    ],
+    "assignee": [
+      {
+        "Plan": {
+          "Node Type": "Limit",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 0.28,
+          "Total Cost": 7.34,
+          "Plan Rows": 50,
+          "Plan Width": 18,
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Backward",
+              "Index Name": "cases_org_updated_idx",
+              "Relation Name": "cases",
+              "Alias": "cases",
+              "Startup Cost": 0.28,
+              "Total Cost": 282.96,
+              "Plan Rows": 2000,
+              "Plan Width": 18,
+              "Index Cond": "(organization_id = 'bench'::text)",
+              "Filter": "(assignee_id = 'operator'::text)"
+            }
+          ]
+        }
+      }
+    ],
+    "search": [
+      {
+        "Plan": {
+          "Node Type": "Bitmap Heap Scan",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Relation Name": "cases",
+          "Alias": "cases",
+          "Startup Cost": 336.28,
+          "Total Cost": 340.29,
+          "Plan Rows": 1,
+          "Plan Width": 10,
+          "Recheck Cond": "(reference ~~* '%002000%'::text)",
+          "Plans": [
+            {
+              "Node Type": "Bitmap Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Index Name": "cases_reference_search_idx",
+              "Startup Cost": 0,
+              "Total Cost": 336.28,
+              "Plan Rows": 1,
+              "Plan Width": 0,
+              "Index Cond": "(reference ~~* '%002000%'::text)"
+            }
+          ]
+        }
+      }
+    ],
+    "contact": [
+      {
+        "Plan": {
+          "Node Type": "Bitmap Heap Scan",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Relation Name": "cases",
+          "Alias": "cases",
+          "Startup Cost": 55.96,
+          "Total Cost": 59.99,
+          "Plan Rows": 1,
+          "Plan Width": 10,
+          "Recheck Cond": "(((COALESCE((contact ->> 'firstName'::text), ''::text) || ' '::text) || COALESCE((contact ->> 'lastName'::text), ''::text)) ~~* '%Esempio%'::text)",
+          "Plans": [
+            {
+              "Node Type": "Bitmap Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Index Name": "cases_contact_search_idx",
+              "Startup Cost": 0,
+              "Total Cost": 55.96,
+              "Plan Rows": 1,
+              "Plan Width": 0,
+              "Index Cond": "(((COALESCE((contact ->> 'firstName'::text), ''::text) || ' '::text) || COALESCE((contact ->> 'lastName'::text), ''::text)) ~~* '%Esempio%'::text)"
+            }
+          ]
+        }
+      }
+    ],
+    "submitted": [
+      {
+        "Plan": {
+          "Node Type": "Bitmap Heap Scan",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Relation Name": "cases",
+          "Alias": "cases",
+          "Startup Cost": 6.33,
+          "Total Cost": 89.33,
+          "Plan Rows": 200,
+          "Plan Width": 10,
+          "Recheck Cond": "((organization_id = 'bench'::text) AND (submitted_at >= '2027-01-01 00:00:00+00'::timestamp with time zone))",
+          "Plans": [
+            {
+              "Node Type": "Bitmap Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Index Name": "cases_org_submitted_idx",
+              "Startup Cost": 0,
+              "Total Cost": 6.28,
+              "Plan Rows": 200,
+              "Plan Width": 0,
+              "Index Cond": "((organization_id = 'bench'::text) AND (submitted_at >= '2027-01-01 00:00:00+00'::timestamp with time zone))"
+            }
+          ]
+        }
+      }
+    ],
+    "events": [
+      {
+        "Plan": {
+          "Node Type": "Index Scan",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Forward",
+          "Index Name": "events_case_type_time_idx",
+          "Relation Name": "events",
+          "Alias": "events",
+          "Startup Cost": 0.28,
+          "Total Cost": 8.3,
+          "Plan Rows": 1,
+          "Plan Width": 12,
+          "Index Cond": "((case_id = 'case-2000'::text) AND (type = 'review.completed'::text) AND (at >= '2027-01-01 00:00:00+00'::timestamp with time zone))"
+        }
+      }
+    ]
+  }
+}

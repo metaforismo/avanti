@@ -30,7 +30,7 @@ Lo stesso getter globale condivide anche un solo pool postgres-js (`max: 5`) e
 serializza gli avvii concorrenti. Un fallimento dell’inizializzazione permette un nuovo
 tentativo; un errore di richiesta non riapre il DB. `closeRuntimeDatabase()` è una
 chiusura esplicita, idempotente e definitiva del runtime: attende un avvio pendente,
-chiude una volta e impedisce riaperture. Usarla nel teardown dei test che importano
+blocca nuovi ingressi API, attende richieste e lavori background registrati, chiude una volta e impedisce riaperture. Usarla nel teardown dei test che importano
 il runtime condiviso o nell’host Node dopo aver fermato e drenato le richieste.
 I test con `createApp`/`createDatabase({memory:true})` continuano a chiudere la loro
 risorsa isolata. Next possiede SIGTERM/SIGINT: il pacchetto non installa listener che
@@ -69,7 +69,7 @@ aprire la stessa cartella PGlite; usare Postgres per un deployment con più work
    avvia l'intervista, saltando le domande a cui ha già risposto nel testo libero.
 2. **Checklist** — dalle risposte il core genera la checklist personalizzata (per persona del
    nucleo, per conto corrente, per immobile, …).
-3. **Documenti** — upload, analisi (tipo, intestatario, anno, scadenza, leggibilità, pagine),
+3. **Documenti** — upload con stato `processing` persistito e analisi dopo la risposta (`after()`), con recupero cron dei lavori interrotti; analisi (tipo, intestatario, anno, scadenza, leggibilità, pagine),
    abbinamento automatico alla voce della checklist, segnalazioni in linguaggio semplice.
 4. **Invio** — il cittadino conferma; il fascicolo passa in coda all'operatore con riepilogo,
    problemi bloccanti e avvisi.
