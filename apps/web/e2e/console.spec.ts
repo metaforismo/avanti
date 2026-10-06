@@ -80,3 +80,25 @@ test("marking a case ready with missing documents asks first", async ({ page }) 
   await expect(page.getByText("Da revisionare", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Segna come pronta" })).toBeFocused();
 });
+
+test("a CAF's first day shows how to get the first dossier", async ({ page }) => {
+  // An empty queue in every state, as right after the CAF is set up.
+  await page.route(/\/api\/cases\?/, (route) =>
+    route.fulfill({
+      json: {
+        items: [],
+        nextCursor: null,
+        counts: { submitted: 0, in_review: 0, needs_citizen: 0, ready: 0, intake: 0, closed: 0 },
+      },
+    }),
+  );
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(ADMIN.email);
+  await page.getByLabel("Password").fill(ADMIN.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+
+  const steps = page.getByRole("region", { name: "Per iniziare" });
+  await expect(steps.getByRole("listitem")).toHaveCount(5);
+  await steps.getByRole("button", { name: "Crea una pratica di prova" }).click();
+  await expect(page.getByRole("dialog", { name: "Nuova pratica" })).toBeVisible();
+});
