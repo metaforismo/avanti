@@ -15,7 +15,8 @@ const variants = {
 const sizes = {
   sm: "h-8 gap-1.5 rounded-sm px-3 text-sm",
   md: "h-10 gap-2 rounded-sm px-4 text-[0.9375rem]",
-  lg: "h-12 gap-2.5 rounded-md px-5 text-base",
+  // Full-width calls to action: long translations wrap onto two balanced lines.
+  lg: "min-h-12 gap-2.5 rounded-md px-5 py-2.5 text-base leading-tight text-balance whitespace-normal",
   icon: "size-10 rounded-sm",
   "icon-sm": "size-8 rounded-sm",
 } as const;
