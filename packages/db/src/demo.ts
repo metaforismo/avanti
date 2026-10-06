@@ -1,6 +1,7 @@
 import { createHash, randomBytes, scrypt as scryptCallback } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { MemberInput } from "@avanti/contracts";
 import type {
   AnswerValue,
   CaseStatus,
@@ -224,6 +225,10 @@ export async function seedDemo(
       exempt_income: false,
       excluded_savings: false,
     };
+    if (Array.isArray(answers.members))
+      answers.members = MemberInput.array()
+        .parse(answers.members)
+        .map((member) => ({ ...member, id: crypto.randomUUID() }));
     const household = (options.buildHousehold ?? buildHousehold)(answers);
     for (const member of household) {
       answers[`income_present_${member.id}`] = true;

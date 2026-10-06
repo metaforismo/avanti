@@ -17,6 +17,7 @@ const Proposal = z.object({
 });
 export type IntakeProposal = z.infer<typeof Proposal> & { engine: "ai" | "heuristic" };
 export interface Intelligence {
+  readonly fallbackCount?: number;
   intake(
     text: string,
     language: Language,

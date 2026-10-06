@@ -105,7 +105,7 @@ export function applyAnswer(
         data.every(
           (member) => member.birthYear === undefined || member.birthYear <= calendarYear(now),
         ) &&
-        new Set(identities).size === identities.length &&
+        new Set(data.map((member, index) => member.id ?? identities[index])).size === data.length &&
         (typeof answers.household_count !== "number" || data.length === answers.household_count);
       value = data;
       break;
@@ -116,7 +116,9 @@ export function applyAnswer(
     Object.hasOwn(answers, questionId) &&
     JSON.stringify(answers[questionId]) !== JSON.stringify(value);
   return {
-    ...(changed ? editAnswer(practiceId, answers, questionId) : answers),
+    ...(changed && questionId !== "members"
+      ? editAnswer(practiceId, answers, questionId)
+      : answers),
     [questionId]: value,
   };
 }
