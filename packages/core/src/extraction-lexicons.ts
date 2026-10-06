@@ -1,0 +1,313 @@
+import type { Language } from "@avanti/contracts";
+
+export type Relation = "madre" | "padre" | "coniuge" | "figlio";
+export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
+  it: {
+    madre: ["madre", "mamma"],
+    padre: ["padre", "papà", "papa", "babbo"],
+    coniuge: ["moglie", "marito"],
+    figlio: ["figlio", "figlia", "figli", "figlie", "bimbo", "bimba", "bimbi"],
+  },
+  en: {
+    madre: ["mother", "mum", "mom", "mummy", "mommy"],
+    padre: ["father", "dad", "daddy"],
+    coniuge: ["wife", "husband", "spouse"],
+    figlio: ["son", "sons", "daughter", "daughters", "child", "children", "kid", "kids"],
+  },
+  fr: {
+    madre: ["mère", "mere", "maman"],
+    padre: ["père", "pere", "papa"],
+    coniuge: ["femme", "mari", "épouse", "epouse", "époux", "epoux"],
+    figlio: ["fils", "fille", "filles", "enfant", "enfants"],
+  },
+  es: {
+    madre: ["madre", "mamá", "mama"],
+    padre: ["padre", "papá", "papa"],
+    coniuge: ["esposa", "esposo", "mujer", "marido"],
+    figlio: ["hijo", "hija", "hijos", "hijas", "niños", "ninos"],
+  },
+  ro: {
+    madre: ["mamă", "mama", "mamei"],
+    padre: ["tată", "tata", "tatal", "tatăl"],
+    coniuge: ["soție", "soția", "sotie", "sotia", "soț", "soțul", "sot", "sotul"],
+    figlio: ["fiu", "fiul", "fiica", "fiică", "copil", "copilul", "copii", "copiii"],
+  },
+  uk: {
+    madre: ["мама", "мамою", "маму", "мати", "матір", "матір’ю"],
+    padre: ["тато", "татом", "батько", "батьком"],
+    coniuge: ["дружина", "дружиною", "чоловік", "чоловіком"],
+    figlio: [
+      "син",
+      "сином",
+      "сини",
+      "синами",
+      "донька",
+      "донькою",
+      "дочка",
+      "дочкою",
+      "діти",
+      "дітьми",
+      "дитина",
+      "дитиною",
+    ],
+  },
+  ar: {
+    madre: ["أمي", "امي", "ماما", "والدتي", "الأم", "الام"],
+    padre: ["أبي", "ابي", "بابا", "والدي", "الأب", "الاب"],
+    coniuge: ["زوجي", "زوجتي", "زوج", "زوجة"],
+    figlio: [
+      "ابني",
+      "ابنتي",
+      "أولادي",
+      "اولادي",
+      "أطفالي",
+      "اطفالي",
+      "أطفال",
+      "اطفال",
+      "طفل",
+      "طفلين",
+    ],
+  },
+  bn: {
+    madre: ["মা", "মায়ের", "মায়ের", "মার", "আম্মু", "আম্মুর"],
+    padre: ["বাবা", "বাবার", "আব্বু", "আব্বুর"],
+    coniuge: ["স্ত্রী", "স্ত্রীর", "স্বামী", "স্বামীর"],
+    figlio: [
+      "ছেলে",
+      "ছেলের",
+      "মেয়ে",
+      "মেয়ের",
+      "মেয়ের",
+      "মেয়ে",
+      "সন্তান",
+      "বাচ্চা",
+      "বাচ্চাদের",
+      "ছেলেমেয়ে",
+    ],
+  },
+};
+
+// These lists contain regexp fragments; literal vocabulary is escaped separately.
+export const LIVING_PATTERNS: Record<Language, string[]> = {
+  it: ["(?:io )?(?:vivo|abito|sto) con", "(?:viviamo|abitiamo) con", "con .+ (?:vivo|abito)"],
+  en: ["(?:i |we )?(?:live|am living|are living|stay) with", "with .+ i (?:live|stay)"],
+  fr: ["(?:je )?(?:vis|habite) avec", "nous (?:vivons|habitons) avec", "avec .+ je (?:vis|habite)"],
+  es: ["(?:yo )?vivo con", "vivimos con", "con .+ vivo"],
+  ro: ["(?:eu )?(?:locuiesc|stau) cu", "locuim cu", "cu .+ (?:locuiesc|stau)"],
+  uk: ["(?:я )?живу (?:з|із|зі)", "живемо (?:з|із|зі)", "(?:з|із|зі) .+ живу"],
+  ar: ["(?:أنا |انا )?أعيش مع", "(?:أنا |انا )?اعيش مع", "أسكن مع", "اسكن مع", "نعيش مع"],
+  bn: ["(?:সাথে|সঙ্গে|সাথেই) (?:আমি )?থাকি", "(?:থাকি|থাকছি) .+ (?:সাথে|সঙ্গে)"],
+};
+export const NEGATION_PATTERNS: Record<Language, string[]> = {
+  it: [
+    "non (?:vive|abita|sta|convive|vivo|abito)",
+    "vive (?:altrove|separat[oa])",
+    "abita altrove",
+  ],
+  en: [
+    "(?:doesn t|does not|don t|do not) live",
+    "(?:isn t|is not|not) living",
+    "lives? (?:elsewhere|apart)",
+  ],
+  fr: ["(?:ne |n )?(?:vit|habite|vis) pas", "(?:vit|habite) ailleurs"],
+  es: ["no (?:vive|vivo|vivimos)", "vive (?:aparte|en otro lugar)"],
+  ro: ["nu (?:locuiește|locuieste|stă|sta|locuiesc)", "(?:locuiește|locuieste|stă|sta) separat"],
+  uk: ["не (?:живе|живу|проживає)", "живе окремо"],
+  ar: ["لا (?:يعيش|تعيش|يسكن|تسكن|أعيش|اعيش)", "(?:يعيش|تعيش) (?:بعيدا|وحده|وحدها)"],
+  bn: ["(?:থাকেন|থাকে|থাকি) না", "আলাদা (?:থাকে|থাকেন)"],
+};
+export const WITH_US_PATTERNS: Record<Language, string[]> = {
+  it: ["con noi", "con me"],
+  en: ["with us", "with me"],
+  fr: ["avec nous", "avec moi"],
+  es: ["con nosotros", "con nosotras", "conmigo"],
+  ro: ["cu noi", "cu mine"],
+  uk: ["з нами", "зі мною", "зi мною"],
+  ar: ["معنا", "معي"],
+  bn: ["আমাদের সাথে", "আমাদের সঙ্গে", "আমার সাথে", "আমার সঙ্গে"],
+};
+export const ELSEWHERE_PATTERNS: Record<Language, string[]> = {
+  it: ["altrove", "separat[oa]"],
+  en: ["elsewhere", "apart"],
+  fr: ["ailleurs"],
+  es: ["aparte", "en otro lugar"],
+  ro: ["separat"],
+  uk: ["окремо"],
+  ar: ["بعيدا", "وحده", "وحدها"],
+  bn: ["আলাদা"],
+};
+export const POSSESSIVE_TERMS: Record<Language, string[]> = {
+  it: ["mio", "mia", "miei", "mie"],
+  en: ["my"],
+  fr: ["mon", "ma", "mes"],
+  es: ["mi", "mis"],
+  ro: ["meu", "mea", "mei"],
+  uk: ["мій", "моя", "мої", "моєю", "моїм"],
+  ar: ["أمي", "امي", "والدتي", "أبي", "ابي", "والدي", "ماما", "بابا"],
+  bn: ["আমার"],
+};
+export const CHILD_CONTEXT_PATTERNS: Record<Language, string[]> = {
+  it: ["figli[oa] minorenne", "figli minorenni", "il cui", "suo padre", "sua madre"],
+  en: ["minor child", "underage child", "their (?:father|mother)"],
+  fr: ["enfant mineur", "son père", "sa mère"],
+  es: ["hijo menor", "su padre", "su madre"],
+  ro: ["copil minor"],
+  uk: ["неповнолітн.{0,4} дит"],
+  ar: ["طفل قاصر"],
+  bn: ["নাবালক সন্তান"],
+};
+export const VEHICLE_TERMS: Record<Language, string[]> = {
+  it: ["auto", "automobile", "automobili", "macchina", "macchine", "moto", "motocicletta"],
+  en: ["car", "cars", "motorbike", "motorcycle", "bike"],
+  fr: ["voiture", "voitures", "moto", "motos"],
+  es: ["coche", "coches", "carro", "carros", "moto"],
+  ro: ["mașină", "masina", "mașini", "masini", "motocicletă", "motocicleta"],
+  uk: ["авто", "машина", "машину", "машини", "автомобіль", "автомобілі", "мотоцикл"],
+  ar: ["سيارة", "سيارات", "سيارتين", "دراجة نارية"],
+  bn: ["গাড়ি", "মোটরসাইকেল", "বাইক"],
+};
+export const ACCOUNT_TERMS: Record<Language, string[]> = {
+  it: ["conto", "conti", "conto corrente", "conti correnti"],
+  en: ["account", "accounts", "bank account", "bank accounts"],
+  fr: ["compte", "comptes", "compte bancaire", "comptes bancaires"],
+  es: ["cuenta", "cuentas", "cuenta bancaria", "cuentas bancarias"],
+  ro: ["cont", "conturi"],
+  uk: ["рахунок", "рахунки", "рахунків"],
+  ar: ["حساب", "حسابات", "حسابين"],
+  bn: ["হিসাব", "অ্যাকাউন্ট", "একাউন্ট"],
+};
+export const ASSET_NEGATION_PATTERNS: Record<Language, string[]> = {
+  it: ["non ho", "non abbiamo", "nessun[oa]?"],
+  en: ["don t have", "do not have", "haven t", "no"],
+  fr: ["n ai pas", "pas de"],
+  es: ["no tengo", "no tenemos", "no"],
+  ro: ["nu am", "nu avem"],
+  uk: ["не маю", "немає"],
+  ar: ["لا أملك", "لا املك", "ليس لدي", "ما عندي"],
+  bn: ["নেই"],
+};
+export const POSSESSION_PATTERNS: Record<Language, string[]> = {
+  it: ["ho", "abbiamo"],
+  en: ["have", "has"],
+  fr: ["j ai", "nous avons"],
+  es: ["tengo", "tenemos"],
+  ro: ["am", "avem"],
+  uk: ["маю", "у мене є"],
+  ar: ["لدي", "لدينا", "عندي"],
+  bn: ["আমার", "আছে"],
+};
+export const CONJUNCTIONS: Record<Language, string[]> = {
+  it: ["e", "ma", "però", "pero"],
+  en: ["and", "but"],
+  fr: ["et", "mais"],
+  es: ["y", "pero"],
+  ro: ["și", "si", "dar"],
+  uk: ["і", "й", "та", "але"],
+  ar: ["و", "لكن"],
+  bn: ["আর", "এবং", "কিন্তু"],
+};
+export const BANKS = [
+  "Fineco",
+  "Intesa Sanpaolo",
+  "UniCredit",
+  "Poste",
+  "BancoPosta",
+  "BNL",
+  "Banco BPM",
+  "BPM",
+  "Mediolanum",
+  "ING",
+  "N26",
+  "Revolut",
+  "Hype",
+  "BPER",
+  "Crédit Agricole",
+  "Monte dei Paschi",
+  "Sella",
+  "Santander",
+  "Wise",
+];
+
+export const PLURAL_CHILD_TERMS: Record<Language, string[]> = {
+  it: ["figli", "figlie", "bimbi"],
+  en: ["sons", "daughters", "children", "kids"],
+  fr: ["enfants", "filles"],
+  es: ["hijos", "hijas", "niños", "ninos"],
+  ro: ["copii", "copiii"],
+  uk: ["діти", "дітьми", "сини", "синами"],
+  ar: ["أولادي", "أطفالي", "أطفال"],
+  bn: ["বাচ্চাদের", "ছেলেমেয়ে"],
+};
+export const CLAUSE_START_PATTERNS: Record<Language, string[]> = {
+  it: ["(?:io )?(?:non )?ho", "(?:noi )?(?:non )?abbiamo"],
+  en: ["i (?:don t have|do not have|have)", "we (?:do not have|have)"],
+  fr: ["(?:je )?j? ?(?:n ai pas|ai)", "nous (?:n avons pas|avons)"],
+  es: ["(?:yo )?(?:no )?tengo", "(?:no )?tenemos"],
+  ro: ["(?:eu )?(?:nu )?am", "(?:nu )?avem"],
+  uk: ["(?:я )?(?:не )?маю", "у мене є", "немає"],
+  ar: ["لدي", "عندي", "ليس لدي", "لا أملك"],
+  bn: [
+    "আমার (?:(?:একটি|একটা|দুটি|দুই|তিনটি|[0-9]+) )?(?:[a-z]+ )?(?:অ্যাকাউন্ট|একাউন্ট|হিসাব|গাড়ি|বাইক|মোটরসাইকেল)",
+  ],
+};
+export const INFORMAL_PARENT_TERMS: Record<Language, string[]> = {
+  it: ["mamma", "papà", "papa", "babbo"],
+  en: ["mum", "mom", "dad", "mummy", "mommy", "daddy"],
+  fr: ["maman", "papa"],
+  es: ["mamá", "mama", "papá", "papa"],
+  ro: ["mama", "tata"],
+  uk: ["мама", "мати", "тато", "батько"],
+  ar: ["أمي", "أبي", "ماما", "بابا", "والدتي", "والدي"],
+  bn: ["মা", "বাবা", "আম্মু", "আব্বু"],
+};
+export const LIVING_CLAUSE_START_PATTERNS: Record<Language, string[]> = {
+  it: ["(?:io )?(?:vivo|abito|sto) con", "(?:noi )?(?:viviamo|abitiamo) con"],
+  en: ["i (?:live|am living|stay) with", "we (?:live|are living|stay) with"],
+  fr: ["je (?:vis|habite) avec", "j habite avec", "nous (?:vivons|habitons) avec"],
+  es: ["(?:yo )?vivo con", "vivimos con"],
+  ro: ["(?:eu )?(?:locuiesc|stau) cu", "locuim cu"],
+  uk: ["(?:я )?живу (?:з|із|зі)"],
+  ar: ["(?:أنا |انا )?أعيش مع", "أسكن مع"],
+  bn: ["আমি"],
+};
+export const NEGATION_PREFIX_TERMS: Record<Language, string[]> = {
+  it: ["non"],
+  en: ["not", "don t", "do not"],
+  fr: ["ne", "n"],
+  es: ["no"],
+  ro: ["nu"],
+  uk: ["не"],
+  ar: ["لا"],
+  bn: [],
+};
+export const MINOR_CHILD_PATTERNS: Record<Language, string[]> = {
+  it: ["figli[oa] minorenne", "figli minorenni"],
+  en: ["minor child", "underage child"],
+  fr: ["enfant mineur"],
+  es: ["hijo menor"],
+  ro: ["copil minor"],
+  uk: ["неповнолітн.{0,4} дит"],
+  ar: ["طفل قاصر"],
+  bn: ["নাবালক সন্তান"],
+};
+export const HOUSEHOLD_COUNT_PATTERNS: Record<Language, string[]> = {
+  it: ["siamo(?: in)?"],
+  en: ["we are"],
+  fr: ["nous sommes"],
+  es: ["somos"],
+  ro: ["suntem(?: în| in)?"],
+  uk: ["нас"],
+  ar: ["نحن"],
+  bn: ["আমরা"],
+};
+export const ALONE_PATTERNS: Record<Language, string[]> = {
+  it: ["vivo da sol[oa]"],
+  en: ["(?:i )?live alone"],
+  fr: ["(?:je )?vis seul[e]?"],
+  es: ["vivo sol[oa]"],
+  ro: ["locuiesc singur[aă]?"],
+  uk: ["живу сам[а]?"],
+  ar: ["أعيش وحدي"],
+  bn: ["একা থাকি"],
+};
+export const BENGALI_SUBJECT_TERMS = ["আমি"];

@@ -592,6 +592,64 @@ describe("organization administration", () => {
     ).toEqual(current);
     expect((await request("/settings", "PATCH", { linkDays: 1 }, admin)).status).toBe(200);
   });
+  it("rejects office names already used by this organization on create and edit", async () => {
+    const input = { name: "  SPORTELLO  ", city: "Roma", address: "Via Esempio" };
+    const message = "C'è già uno sportello con questo nome.";
+    expect(await fails(await request("/offices", "POST", input, admin), 409, "conflict")).toBe(
+      message,
+    );
+    const created = await request("/offices", "POST", { ...input, name: "Centro" }, admin);
+    expect(created.status).toBe(201);
+    const office = Office.parse(await created.json());
+    expect(
+      await fails(
+        await request(`/offices/${office.id}`, "PATCH", { name: "  sPoRtElLo  " }, admin),
+        409,
+        "conflict",
+      ),
+    ).toBe(message);
+    const unchanged = Office.parse(
+      await (await request(`/offices/${office.id}`, "PATCH", { name: " CENTRO " }, admin)).json(),
+    );
+    expect(unchanged.name).toBe("CENTRO");
+    expect(unchanged.slug).toBe(office.slug);
+    expect((await request("/offices", "POST", { ...input, name: "Centro" }, foreign)).status).toBe(
+      201,
+    );
+    expect(JSON.stringify(logs)).not.toContain(message);
+  });
+  it("serializes simultaneous office names within the organization", async () => {
+    const input = { name: "Centro", city: "Milano", address: "Via Esempio" };
+    const responses = await Promise.all([
+      request("/offices", "POST", input, admin),
+      request("/offices", "POST", { ...input, name: " CENTRO " }, admin),
+    ]);
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    const rows = await db.select().from(offices).where(eq(offices.organizationId, "org-a"));
+    expect(rows).toHaveLength(2);
+  });
+  it.each([
+    ["Milano Centro", "Milano", "milano-centro"],
+    [" MILANO-centro ", "milano", "milano-centro"],
+    ["Milano", "Milano", "milano"],
+    ["Città Nuova Centro", "Città Nuova", "citta-nuova-centro"],
+    ["Milanofiori", "Milano", "milano-milanofiori"],
+    ["Centro", "Milano", "milano-centro"],
+  ])("allocates %s in %s as %s without repeating the city", async (name, city, slug) => {
+    const input = { name, city, address: "Via Esempio" };
+    const response = await request("/offices", "POST", input, admin);
+    expect(response.status).toBe(201);
+    const first = Office.parse(await response.json());
+    expect(first.slug).toBe(slug);
+    const second = Office.parse(await (await request("/offices", "POST", input, foreign)).json());
+    expect(second.slug).toBe(`${slug}-2`);
+    const edited = Office.parse(
+      await (
+        await request(`/offices/${first.id}`, "PATCH", { name: "Roma Centro", city: "Roma" }, admin)
+      ).json(),
+    );
+    expect(edited.slug).toBe(first.slug);
+  });
   it("creates global ASCII slugs with collision suffixes, preserves the printed QR after edits", async () => {
     const input = {
       name: "Sédè Centro",

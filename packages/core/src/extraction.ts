@@ -1,5 +1,34 @@
 import type { Language, PracticeId } from "@avanti/contracts";
 import type { Answers } from "./catalog";
+import {
+  normalize,
+  alternatives,
+  termsPattern,
+  fragmentsPattern,
+  splitClauses,
+  type Clause,
+} from "./extraction-clauses";
+import {
+  KIN_TERMS,
+  LIVING_PATTERNS,
+  NEGATION_PATTERNS,
+  WITH_US_PATTERNS,
+  ELSEWHERE_PATTERNS,
+  POSSESSIVE_TERMS,
+  CHILD_CONTEXT_PATTERNS,
+  VEHICLE_TERMS,
+  ACCOUNT_TERMS,
+  ASSET_NEGATION_PATTERNS,
+  POSSESSION_PATTERNS,
+  BANKS,
+  PLURAL_CHILD_TERMS,
+  INFORMAL_PARENT_TERMS,
+  MINOR_CHILD_PATTERNS,
+  HOUSEHOLD_COUNT_PATTERNS,
+  ALONE_PATTERNS,
+  BENGALI_SUBJECT_TERMS,
+  type Relation,
+} from "./extraction-lexicons";
 
 export const CLASSIFICATION_THRESHOLD = 0.75;
 const markers: Record<PracticeId, RegExp[]> = {
@@ -45,6 +74,7 @@ const numberWords: Record<string, number> = {
   due: 2,
   two: 2,
   dos: 2,
+  o: 1,
   doua: 2,
   doi: 2,
   tre: 3,
@@ -71,12 +101,17 @@ const numberWords: Record<string, number> = {
   одне: 1,
   два: 2,
   дві: 2,
+  двома: 2,
+  двоє: 2,
   три: 3,
   чотири: 4,
   واحد: 1,
   واحدة: 1,
   اثنان: 2,
   اثنين: 2,
+  طفلين: 2,
+  سيارتين: 2,
+  حسابين: 2,
   ثلاثة: 3,
   একটি: 1,
   এক: 1,
@@ -86,43 +121,9 @@ const numberWords: Record<string, number> = {
   তিন: 3,
   চারটি: 4,
 };
-const banks = [
-  "Fineco",
-  "Intesa Sanpaolo",
-  "UniCredit",
-  "Poste",
-  "BancoPosta",
-  "ING",
-  "BPER",
-  "BNL",
-  "BPM",
-  "Monte dei Paschi",
-  "Revolut",
-  "N26",
-  "Sella",
-  "Crédit Agricole",
-  "Santander",
-  "Wise",
-];
-const accountNoun =
-  /(?:cont[oi]|accounts?|comptes?|cuentas?|conturi|рахун(?:ок|ки|ків)|حساب(?:ات|ين)?|হিসাব|অ্যাকাউন্ট)/u;
-const vehicleNoun =
-  /(?:auto(?:mobile)?|macchin[ae]|cars?|voitures?|coches?|masin[ai]|авто|машин(?:а|и)|سيار(?:ة|ات|تين)|গাড়ি)/u;
 const propertyNoun =
   /(?:immobil[ei]|terren[oi]|properties|houses|land plots|biens|terrains|inmuebles|terrenos|imobile|terenuri|нерухомост|ділянк|عقار|اراض|বাড়ি|জমি)/u;
 
-function normalize(text: string): string {
-  return text
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f\u064b-\u065f]/g, "")
-    .toLowerCase()
-    .replace(/[’']/g, " ")
-    .replace(/[০-৯٠-٩۰-۹]/g, (digit) => {
-      const codePoint = digit.codePointAt(0) ?? 0;
-      const zero = codePoint >= 0x09e6 ? 0x09e6 : codePoint >= 0x06f0 ? 0x06f0 : 0x0660;
-      return String(codePoint - zero);
-    });
-}
 function numericWord(word: string): number | undefined {
   if (/^\d{1,2}$/.test(word)) return Number(word);
   return numberWords[word];
@@ -130,7 +131,10 @@ function numericWord(word: string): number | undefined {
 function normalizedMarker(expression: RegExp): RegExp {
   // Normalize literal accents without lowercasing RegExp syntax such as \p{L}.
   return new RegExp(
-    expression.source.normalize("NFKD").replace(/[\u0300-\u036f\u064b-\u065f]/g, ""),
+    expression.source
+      .normalize("NFC")
+      .replace(/[أإآ]/gu, "ا")
+      .replace(/\p{Script=Latin}/gu, (letter) => letter.normalize("NFD").replace(/\p{M}/gu, "")),
     expression.flags,
   );
 }
@@ -207,9 +211,156 @@ export type ExtractedFacts = {
   nonresidentParent?: boolean;
   institutions: string[];
 };
+function countAssets(clauses: Clause[], terms: string[], language: Language): number | undefined {
+  const noun = termsPattern(terms, "gu");
+  const negative = fragmentsPattern(ASSET_NEGATION_PATTERNS[language]);
+  const possession = fragmentsPattern(POSSESSION_PATTERNS[language]);
+  let sharedPossession = false;
+  let total: number | undefined;
+  for (const clause of clauses) {
+    if (!clause.coordinated) sharedPossession = false;
+    const owned: boolean = possession.test(clause.text) || sharedPossession;
+    let clauseCount: number | undefined;
+    for (const match of clause.text.matchAll(noun)) {
+      if (negative.test(clause.text)) {
+        clauseCount = 0;
+        break;
+      }
+      const before = clause.text.slice(0, match.index).trim().split(/\s+/u);
+      const after = clause.text
+        .slice(match.index + match[0].length)
+        .trim()
+        .split(/\s+/u);
+      const direct = numericWord(before.at(-1) ?? "");
+      const modifierCount = numericWord(before.at(-2) ?? "");
+      const following = language === "ar" ? numericWord(after[0] ?? "") : undefined;
+      const dual = language === "ar" ? numericWord(match[0]) : undefined;
+      const count = dual ?? direct ?? modifierCount ?? following ?? (owned ? 1 : undefined);
+      if (count !== undefined) clauseCount = (clauseCount ?? 0) + count;
+    }
+    if (clauseCount !== undefined) total = (total ?? 0) + clauseCount;
+    sharedPossession = owned && !negative.test(clause.text);
+  }
+  return total;
+}
+function extractHousehold(
+  clauses: Clause[],
+  language: Language,
+  answers: Answers,
+  facts: ExtractedFacts,
+): void {
+  const kin = KIN_TERMS[language];
+  const living = fragmentsPattern(LIVING_PATTERNS[language]);
+  const negative = fragmentsPattern(NEGATION_PATTERNS[language]);
+  const withUs = fragmentsPattern(WITH_US_PATTERNS[language]);
+  const elsewhere = fragmentsPattern(ELSEWHERE_PATTERNS[language]);
+  const parentSource = termsPattern([...kin.madre, ...kin.padre]).source;
+  const possessiveSource = termsPattern(POSSESSIVE_TERMS[language]).source;
+  const ownedParent =
+    language === "ar"
+      ? termsPattern(POSSESSIVE_TERMS.ar)
+      : new RegExp(
+          `(?:${possessiveSource})\\s+(?:${parentSource})|(?:${parentSource})\\s+(?:${possessiveSource})`,
+          "u",
+        );
+  const childContext = fragmentsPattern(CHILD_CONTEXT_PATTERNS[language]);
+  const relationTerms = Object.values(kin).flat();
+  const continuationWords = termsPattern(
+    [
+      ...relationTerms,
+      ...POSSESSIVE_TERMS[language],
+      ...Object.keys(numberWords),
+      ...(language === "bn" ? BENGALI_SUBJECT_TERMS : []),
+    ],
+    "gu",
+  );
+  const isRelationList = (clause: Clause) =>
+    clause.text.replace(continuationWords, "").replace(/[\s\d]+/gu, "") === "";
+  const livingClauses = clauses.map(
+    (clause) => !negative.test(clause.text) && living.test(clause.text),
+  );
+  // Bengali puts the living verb after the entire coordinated list.
+  if (language === "bn") {
+    for (let index = clauses.length - 1; index > 0; index--) {
+      if (
+        livingClauses[index] &&
+        clauses[index]!.coordinated &&
+        isRelationList(clauses[index - 1]!)
+      ) {
+        livingClauses[index - 1] = true;
+      }
+    }
+  }
+  const relations: Relation[] = [];
+  let sharedLiving = false;
+  for (const [index, clause] of clauses.entries()) {
+    const absent =
+      negative.test(clause.text) && (withUs.test(clause.text) || elsewhere.test(clause.text));
+    const parent = termsPattern([...kin.madre, ...kin.padre]).test(clause.text);
+    if (absent && parent) {
+      facts.nonresidentParent = true;
+      if (
+        ownedParent.test(clause.text) ||
+        (termsPattern(INFORMAL_PARENT_TERMS[language]).test(clause.text) &&
+          !childContext.test(clause.text))
+      ) {
+        answers.applicant_parent_nonresident = true;
+      } else if (fragmentsPattern(MINOR_CHILD_PATTERNS[language]).test(clause.text)) {
+        answers.nonresident_parent = true;
+      } else if (["uk", "ar", "bn"].includes(language)) {
+        answers.applicant_parent_nonresident = true;
+      }
+    }
+    const cohabiting: boolean =
+      !negative.test(clause.text) &&
+      (livingClauses[index] === true ||
+        (clause.coordinated && sharedLiving && isRelationList(clause)));
+    sharedLiving = cohabiting;
+    if (!cohabiting) continue;
+    const mentioned = (Object.keys(kin) as Relation[])
+      .flatMap((relation) => {
+        return Array.from(clause.text.matchAll(termsPattern(kin[relation], "gu")), (match) => ({
+          relation,
+          match,
+        }));
+      })
+      .sort((a, b) => a.match.index - b.match.index);
+    // A bare list can omit punctuation. Additional predicates instead introduce
+    // unrelated subjects, which must not become household members.
+    const bareList = isRelationList({ ...clause, text: clause.text.replace(living, "") });
+    const residents = bareList ? mentioned : mentioned.slice(0, 1);
+    for (const { relation, match } of residents) {
+      if (relation !== "figlio") {
+        if (!relations.includes(relation)) relations.push(relation);
+        continue;
+      }
+      const previous = clause.text.slice(0, match.index).trim().split(/\s+/u).at(-1) ?? "";
+      const pluralChildren = termsPattern(PLURAL_CHILD_TERMS[language]);
+      const count =
+        numericWord(previous) ??
+        (language === "ar" ? numericWord(match[0]) : undefined) ??
+        (pluralChildren.test(match[0]) ? 0 : 1);
+      if (count > 0 && count < 20) relations.push(...Array.from({ length: count }, () => relation));
+    }
+  }
+  if (relations.length) {
+    answers.household_roles = [
+      "richiedente",
+      ...relations.map((relation) =>
+        relation === "madre" || relation === "padre" ? "genitore" : relation,
+      ),
+    ];
+    answers.household_relations = relations;
+    answers.household_count = Math.max(
+      typeof answers.household_count === "number" ? answers.household_count : 0,
+      relations.length + 1,
+    );
+  }
+  if (typeof answers.household_count === "number") facts.householdCount = answers.household_count;
+}
 export function extractFacts(
   text: string,
-  _language: Language,
+  language: Language,
   selectedPractice?: PracticeId,
 ): { practiceId: PracticeId | null; confidence: number; answers: Answers; facts: ExtractedFacts } {
   const normalized = normalize(text);
@@ -259,98 +410,43 @@ export function extractFacts(
   const facts: ExtractedFacts = { institutions: [] };
   if (practiceId !== "isee_ordinario" && practiceId !== "assegno_unico")
     return { practiceId, confidence, answers, facts };
-  const explicitHousehold =
-    /(?:siamo|we are|nous sommes|somos|suntem|нас|نحن)\s+(?:in\s+)?(\d{1,2}|[\p{L}]+)/u.exec(
-      normalized,
-    );
+  const clauses = splitClauses(normalized, language);
+  const countPrefix = fragmentsPattern(HOUSEHOLD_COUNT_PATTERNS[language]).source;
+  const explicitHousehold = new RegExp(`${countPrefix}\\s+(\\d{1,2}|[\\p{L}\\p{M}]+)`, "u").exec(
+    normalized,
+  );
   const statedCount = explicitHousehold ? numericWord(explicitHousehold[1] ?? "") : undefined;
   if (statedCount && statedCount <= 20) answers.household_count = statedCount;
-  if (
-    hasPositive(
-      normalized,
-      /(?:vivo da sol[oa]|(?:i )?live alone|vis seul[e]?|vivo sol[oa]|locuiesc singur[a]?|живу сам[а]?|اعيش وحدي|একা থাকি)/u,
-    )
-  )
-    answers.household_count = 1;
-  const livingWith =
-    /(?:vivo con|abito con|live with|living with|vis avec|vivo con|locuiesc cu|живу з|اعيش مع|থাকি)/u.exec(
-      normalized,
-    );
-  if (livingWith) {
-    const householdClause =
-      normalized
-        .slice(livingWith.index)
-        .split(/[.;]|(?:mio padre|my father|mon pere|mi padre).{0,10}(?:non|not|ne |no )/u)[0] ??
-      "";
-    const relations = [
-      /(?:madre|mamma|mother|mere|mama|мам[ао]ю?|والدتي|امي|মা)/u,
-      /(?:padre|papa|father|pere|tata|батько|والد(?:ي)?|ابي|বাবা)/u,
-      /(?:moglie|marito|wife|husband|epouse|epoux|esposa|esposo|sot(?:ie|ia|ul|ul meu)|дружин[ао]ю?|чоловік(?:ом)?|زوج|স্ত্রী|স্বামী)/u,
-    ];
-    const roles = relations.flatMap((expression, index) => {
-      const bounded = new RegExp(
-        `(?<![\\p{L}\\p{M}])(?:${expression.source})(?![\\p{L}\\p{M}])`,
-        "u",
-      );
-      if (!hasPositive(householdClause, bounded)) return [];
-      return [index === 2 ? "coniuge" : "genitore"];
-    });
-    const known = roles.length;
-    if (known) {
-      answers.household_roles = ["richiedente", ...roles];
-      answers.household_relations = relations.flatMap((expression, index) => {
-        const bounded = new RegExp(
-          `(?<![\\p{L}\\p{M}])(?:${expression.source})(?![\\p{L}\\p{M}])`,
-          "u",
-        );
-        return hasPositive(householdClause, bounded) ? [["madre", "padre", "coniuge"][index]!] : [];
-      });
-    }
-    if (
-      answers.household_count === undefined &&
-      known > 0 &&
-      !/figli|children|enfants|hijos|copii|діт|اطفال|সন্তান/u.test(householdClause)
-    )
-      answers.household_count = 1 + known;
+  const alone = fragmentsPattern(ALONE_PATTERNS[language]);
+  if (clauses.some((clause) => hasPositive(clause.text, alone))) {
+    answers.household_count = Math.max(statedCount ?? 0, 1);
+    answers.household_roles = ["richiedente"];
   }
-  if (typeof answers.household_count === "number") facts.householdCount = answers.household_count;
-  const clauses = normalized.split(/[.,;!?]|\b(?:ma|but|mais|pero)\b/u);
-  const absentParent =
-    /(?:padre|madre|father|mother|pere|mere|tata|mama|батько|мати|الاب|الام)\s+(?:\p{L}+\s+){0,2}(?:non vive|non abita|does not live|doesn t live|not living|ne vit pas|no vive|nu locuieste|не живе|لا يعيش)/u;
-  facts.nonresidentParent = clauses.some((clause) => absentParent.test(clause)) || undefined;
-  if (
-    clauses.some(
-      (clause) =>
-        absentParent.test(clause) &&
-        /(?:mio padre|mia madre|my father|my mother|mon pere|ma mere|mi padre|mi madre)/u.test(
-          clause,
-        ),
-    )
-  )
-    answers.applicant_parent_nonresident = true;
-  if (
-    clauses.some(
-      (clause) =>
-        absentParent.test(clause) &&
-        /(?:figli[oa] minorenne|figli minorenni|minor child|underage child|enfant mineur|hijo menor|copil minor|неповнолітн.{0,4} дит|طفل قاصر|নাবালক সন্তান)/u.test(
-          clause,
-        ) &&
-        !/(?:mio padre|mia madre|my father|my mother|mon pere|ma mere|mi padre|mi madre)/u.test(
-          clause,
-        ),
-    )
-  )
-    answers.nonresident_parent = true;
+  extractHousehold(clauses, language, answers, facts);
   if (practiceId === "assegno_unico") return { practiceId, confidence, answers, facts };
-  const accounts = countNoun(normalized, accountNoun);
+  const accountNoun = termsPattern(ACCOUNT_TERMS[language]);
+  const accounts = countAssets(clauses, ACCOUNT_TERMS[language], language);
   if (accounts !== undefined) answers.accounts_count = accounts;
-  const vehicles = countNoun(normalized, vehicleNoun);
+  const vehicles = countAssets(clauses, VEHICLE_TERMS[language], language);
   if (vehicles !== undefined) answers.vehicles_count = vehicles;
   const properties = countNoun(normalized, propertyNoun);
   if (properties !== undefined) answers.properties_count = properties;
-  for (const bank of banks) {
-    const marker = new RegExp(`(?:^|[^\\p{L}\\p{N}])${normalize(bank)}(?:$|[^\\p{L}\\p{N}])`, "u");
-    if (hasPositive(normalized, marker)) facts.institutions.push(bank);
+  for (const bank of BANKS) {
+    // Latin boundaries allow Arabic, Ukrainian and Bengali affixes next to bank names.
+    const marker = new RegExp(
+      `(?<![\\p{Script=Latin}\\p{N}])(?:${alternatives([bank])})(?![\\p{Script=Latin}\\p{N}])`,
+      "u",
+    );
+    if (bank === "BPM" && facts.institutions.includes("Banco BPM")) continue;
+    if (
+      clauses.some(
+        (clause) =>
+          marker.test(clause.text) &&
+          !fragmentsPattern(ASSET_NEGATION_PATTERNS[language]).test(clause.text),
+      )
+    ) {
+      facts.institutions.push(bank);
+    }
   }
   if (facts.institutions.length && answers.accounts_count !== 0) {
     answers.accounts_count = Math.max(

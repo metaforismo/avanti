@@ -89,6 +89,33 @@ function slugPart(value: string) {
     .replace(/^-|-$/g, "");
 }
 
+async function ensureOfficeNameAvailable(
+  db: Database,
+  organizationId: string,
+  name: string,
+  currentId?: string,
+) {
+  const normalized = name.trim().toLowerCase();
+  const rows = await db
+    .select({ id: offices.id, name: offices.name })
+    .from(offices)
+    .where(eq(offices.organizationId, organizationId));
+  if (
+    rows.some(
+      (office) => office.id !== currentId && office.name.trim().toLowerCase() === normalized,
+    )
+  ) {
+    throw new ApiFailure("conflict", 409, "C'è già uno sportello con questo nome.");
+  }
+}
+function officeSlugBase(city: string, name: string): string {
+  const cityPart = slugPart(city) || "citta";
+  const namePart = slugPart(name) || "sportello";
+  const startsWithCity = namePart === cityPart || namePart.startsWith(`${cityPart}-`);
+  const base = startsWithCity ? namePart : `${cityPart}-${namePart}`;
+  return base.slice(0, 75).replace(/-$/, "");
+}
+
 export function mountAdministrationRoutes(app: App, s: Services) {
   app.get("/settings", async (c) => {
     const actor = c.get("operator");
@@ -223,9 +250,8 @@ export function mountAdministrationRoutes(app: App, s: Services) {
     requireAdmin(actor);
     const input = await body(c, OfficeInput);
     const row = await administer(s, actor, async (tx) => {
-      const base = `${slugPart(input.city) || "citta"}-${slugPart(input.name) || "sportello"}`
-        .slice(0, 75)
-        .replace(/-$/, "");
+      await ensureOfficeNameAvailable(tx, actor.organizationId, input.name);
+      const base = officeSlugBase(input.city, input.name);
       // The unique insert also handles simultaneous allocations by different organizations.
       for (let suffix = 1; suffix <= 1000; suffix++) {
         const [created] = await tx
@@ -259,6 +285,9 @@ export function mountAdministrationRoutes(app: App, s: Services) {
       );
       const [current] = await tx.select().from(offices).where(scope).for("update");
       if (!current) throw notFound();
+      if (input.name !== undefined) {
+        await ensureOfficeNameAvailable(tx, actor.organizationId, input.name, current.id);
+      }
       if (!Object.keys(input).length) return current;
       const [updated] = await tx.update(offices).set(input).where(scope).returning();
       if (!updated) throw notFound();
