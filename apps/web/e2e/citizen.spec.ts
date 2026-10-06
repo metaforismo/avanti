@@ -224,3 +224,30 @@ test("the review step fits a 320px phone in every language", async ({ page }) =>
     expect(await layoutProblems(page), language).toEqual([]);
   }
 });
+
+test("a failed upload can be retried without choosing the photo again", async ({ page }) => {
+  const token = await startCase(page, "Devo fare l'ISEE, vivo da solo");
+  await finishInterview(page, token);
+  await page.goto(`/pratica/${token}`);
+  await expect(page.getByRole("heading", { name: "I documenti da preparare" })).toBeVisible();
+
+  // The waiting-room Wi-Fi drops during the first attempt.
+  let attempts = 0;
+  await page.route(/\/documents$/, (route) =>
+    route.request().method() === "POST" && ++attempts === 1 ? route.abort() : route.fallback(),
+  );
+  await page
+    .locator('input[type="file"][multiple]')
+    .first()
+    .setInputFiles({
+      name: "documento.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+        "base64",
+      ),
+    });
+  await page.getByRole("button", { name: "Riprova" }).click();
+  await expect(page.getByText(/1 di \d+ pronti/)).toBeVisible();
+  expect(attempts).toBe(2);
+});
