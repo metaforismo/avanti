@@ -29,6 +29,13 @@
       "when": 1791241454203,
       "tag": "0003_stable_members",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791246760134,
+      "tag": "0004_happy_zombie",
+      "breakpoints": true
     }
   ]
 }

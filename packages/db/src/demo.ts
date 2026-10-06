@@ -137,6 +137,7 @@ export async function seedDemo(
         email: "admin@demo.avanti.local",
         passwordHash,
         role: "admin",
+        createdAt: options.now.toISOString(),
       },
       {
         id: "demo-operator",
@@ -145,6 +146,17 @@ export async function seedDemo(
         email: "operatore@demo.avanti.local",
         passwordHash,
         role: "operator",
+        createdAt: options.now.toISOString(),
+      },
+      {
+        id: "demo-inactive-operator",
+        organizationId,
+        name: "Operatore Demo Disattivato",
+        email: "disattivato@demo.avanti.local",
+        passwordHash,
+        role: "operator",
+        active: false,
+        createdAt: options.now.toISOString(),
       },
     ])
     .onConflictDoNothing();
@@ -333,6 +345,7 @@ export async function seedDemo(
           submittedAt,
           reviewStartedAt,
           reviewCompletedAt,
+          closedAt: status === "closed" ? reviewCompletedAt : null,
           expiresAt,
           firstSubmissionComplete: submittedAt ? complete : null,
         });

@@ -15,6 +15,15 @@ it("seed is idempotent, creates safe PDFs, and preserves operator edits", async 
     const options = { now: new Date("2027-01-15T10:00:00Z"), uploadsDir };
     expect(await seedDemo(db, options)).toEqual({ created: 10 });
     const before = await db.select().from(operators);
+    expect(before).toHaveLength(3);
+    expect(before.find((row) => row.id === "demo-admin")).toMatchObject({
+      active: true,
+      mustChangePassword: false,
+    });
+    expect(before.find((row) => row.id === "demo-inactive-operator")).toMatchObject({
+      active: false,
+      mustChangePassword: false,
+    });
     await db
       .update(cases)
       .set({ internalNotes: "Nota modificata" })

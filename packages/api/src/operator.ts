@@ -184,6 +184,9 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .update(cases)
         .set({
           ...input,
+          ...(input.status && input.status !== current.status
+            ? { closedAt: input.status === "closed" ? now.toISOString() : null }
+            : {}),
           ...(input.status === "in_review" && !current.reviewStartedAt
             ? { reviewStartedAt: now.toISOString() }
             : {}),

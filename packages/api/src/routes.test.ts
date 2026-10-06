@@ -30,6 +30,7 @@ const exampleCase: CaseRow = {
   submittedAt: "2027-01-05T10:10:00.000Z",
   reviewStartedAt: "2027-01-05T10:10:00.000Z",
   reviewCompletedAt: "2027-01-08T12:00:00.000Z",
+  closedAt: null,
   expiresAt: "2027-03-01T00:00:00.000Z",
   firstSubmissionComplete: false,
 };

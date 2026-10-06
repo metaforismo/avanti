@@ -67,6 +67,10 @@ export const operators = pgTable(
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
     role: text("role").$type<Operator["role"]>().notNull(),
+    active: boolean("active").notNull().default(true),
+    mustChangePassword: boolean("must_change_password").notNull().default(false),
+    lastLoginAt: instant("last_login_at"),
+    createdAt: instant("created_at").notNull().defaultNow(),
   },
   (t) => [
     unique("operators_id_org_unique").on(t.id, t.organizationId),
@@ -114,6 +118,7 @@ export const cases = pgTable(
     submittedAt: instant("submitted_at"),
     reviewStartedAt: instant("review_started_at"),
     reviewCompletedAt: instant("review_completed_at"),
+    closedAt: instant("closed_at"),
     expiresAt: instant("expires_at").notNull(),
     firstSubmissionComplete: boolean("first_submission_complete"),
   },
@@ -222,6 +227,8 @@ export const events = pgTable(
   {
     id: text("id").primaryKey(),
     caseId: text("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    // No FK: the erasure audit survives the removal of the case and its personal data.
+    deletedCaseId: text("deleted_case_id"),
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
