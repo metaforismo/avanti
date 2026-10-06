@@ -104,10 +104,12 @@
   --color-on-stamp: var(--on-stamp);
   --color-scrim: var(--scrim);
 
-  --font-sans:
-    var(--font-body), var(--font-bengali, system-ui), var(--font-arabic, system-ui), system-ui,
+  --font-sans: var(--font-body), "Noto Sans Bengali", "Noto Sans Arabic", system-ui, sans-serif;
+  /* Script fonts first: their unicode-range leaves Latin to Bricolage, whose generated
+     fallback face would otherwise draw Arabic headings in Arial. */
+  --font-display:
+    "Noto Sans Bengali", "Noto Sans Arabic", var(--font-display-face), var(--font-body), system-ui,
     sans-serif;
-  --font-display: var(--font-display-face), var(--font-body), system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
 
   --radius-xs: 4px;

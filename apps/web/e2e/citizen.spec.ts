@@ -139,3 +139,24 @@ test("a story about a practice Avanti can't prepare yet offers the others", asyn
   ).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("button", { name: /ISEE ordinario/ })).toBeEnabled();
 });
+
+test("Arabic and Bengali are drawn with their own fonts", async ({ browser }) => {
+  for (const [locale, family] of [
+    ["ar", "Noto Sans Arabic"],
+    ["bn", "Noto Sans Bengali"],
+  ] as const) {
+    const context = await browser.newContext({ locale });
+    const page = await context.newPage();
+    await page.goto("/s/demo-milano-centro");
+    await expect(page.locator("html")).toHaveAttribute("lang", locale);
+    // A generated fallback face covering every code point once drew Arabic in Arial.
+    const loaded = await page.evaluate(async () => {
+      await document.fonts.ready;
+      return [...document.fonts]
+        .filter((face) => face.status === "loaded")
+        .map((face) => face.family.replace(/["']/g, ""));
+    });
+    expect(loaded).toContain(family);
+    await context.close();
+  }
+});
