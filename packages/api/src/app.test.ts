@@ -1,3 +1,4 @@
+import { withCaseVersion } from "./test-case-version";
 import { createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { PDFDocument, StandardFonts } from "pdf-lib";
@@ -98,13 +99,14 @@ afterEach(async () => {
   await closeDatabase?.();
 });
 
-function request(
+async function request(
   path: string,
   method = "GET",
   input?: unknown,
   cookie?: string,
   requestOrigin = origin,
 ) {
+  input = await withCaseVersion(db, path, method, input);
   const headers = new Headers({ Origin: requestOrigin });
   if (cookie) headers.set("Cookie", cookie);
   if (input !== undefined) headers.set("Content-Type", "application/json");
@@ -1563,15 +1565,16 @@ it("B1: rollback tombstone logs insert error separately from storage error", asy
   storage.delete = async () => {
     throw new RangeError("storage private");
   };
+  const originalTransaction = db.transaction.bind(db);
   const transaction = vi
     .spyOn(db, "transaction")
+    .mockImplementationOnce(originalTransaction)
     .mockRejectedValueOnce(new Error("upload private"));
   const insert = db.insert.bind(db);
-  let deletionInserts = 0;
   const insertion = vi
     .spyOn(db, "insert")
     .mockImplementation((table: Parameters<typeof db.insert>[0]) => {
-      if (table === storageDeletions && ++deletionInserts > 1)
+      if (table === storageDeletions)
         return {
           values: () => ({
             onConflictDoUpdate: () => Promise.reject(new TypeError("insert private")),

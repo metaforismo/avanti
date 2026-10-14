@@ -146,6 +146,39 @@ test("a lost citizen link is replaced and the old one stops working", async ({ p
   await expect(citizen.getByRole("heading", { name: "Cosa devi fare?" })).toBeVisible();
 });
 
+test("two operators on the same case: the second one sees the change instead of overwriting it", async ({
+  browser,
+}) => {
+  const login = async (email: string) => {
+    const page = await (await browser.newContext({ locale: "it-IT" })).newPage();
+    await page.goto("/console/accedi");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
+    await page.getByRole("button", { name: "Accedi" }).click();
+    await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+    return page;
+  };
+  const first = await login(DEMO.email);
+  const second = await login(ADMIN.email);
+
+  // Both open the same case.
+  await first.getByRole("link", { name: /Persona Esempio 8/ }).click();
+  await expect(first.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+  await second.goto(first.url());
+  await expect(second.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+
+  // The first operator verifies an item; the second still has the old version on screen.
+  await first.getByRole("button", { name: "Verifica", exact: true }).first().click();
+  await expect(first.getByRole("button", { name: /^Annulla la decisione/ }).first()).toBeVisible();
+
+  await second.getByRole("button", { name: "Verifica", exact: true }).first().click();
+  await expect(
+    second.getByRole("alert").filter({ hasText: "La pratica è cambiata" }),
+  ).toBeVisible();
+  // …and now sees what the colleague did.
+  await expect(second.getByRole("button", { name: /^Annulla la decisione/ }).first()).toBeVisible();
+});
+
 test("the activity log shows a failed login to the administrator only", async ({ page }) => {
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(DEMO.email);

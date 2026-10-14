@@ -31,6 +31,9 @@ import { FindingsSummary } from "./findings-summary";
 import { RequestDialog } from "./request-dialog";
 import { AnswersSection, ConversationSection } from "./secondary-sections";
 
+const CONFLICT_MESSAGE =
+  "La pratica è cambiata nel frattempo (un collega, il cittadino o un'analisi appena conclusa). Ti mostriamo la versione aggiornata: controlla e ripeti l'azione se serve.";
+
 export type DossierActions = {
   review: (itemId: string, input: ReviewChecklistItemRequest) => Promise<boolean>;
   /** `key` separates background saves (notes) from button spinners. */
@@ -77,6 +80,13 @@ export function DossierView({ caseId }: { caseId: string }) {
       else await dossier.reload();
       return true;
     } catch (err) {
+      if (err instanceof ApiRequestError && err.code === "conflict") {
+        // Someone else (a colleague, the citizen, a finished analysis) changed the case since it
+        // was read: show the current state and let the operator decide again. Never retry blindly.
+        await dossier.reload();
+        setError(CONFLICT_MESSAGE);
+        return false;
+      }
       setError(err instanceof ApiRequestError ? err.message : "Operazione non riuscita. Riprova.");
       return false;
     } finally {
@@ -137,11 +147,15 @@ export function DossierView({ caseId }: { caseId: string }) {
   const openIssues = missingCount + blockerCount;
 
   // Opening a case is read-only. Review starts with the first real action, so the measured
-  // review time counts work, not glances at the queue.
-  const ensureInReview = async () => {
-    if (data.status === "submitted") {
-      await apiFetch(base, { method: "PATCH", body: { status: "in_review" } });
-    }
+  // review time counts work, not glances at the queue. Every write carries the version the
+  // operator saw; a chained write uses the version the previous one returned.
+  const startReview = async () => {
+    if (data.status !== "submitted") return data.updatedAt;
+    const started = await apiFetch<CaseDossier>(base, {
+      method: "PATCH",
+      body: { status: "in_review", expectedUpdatedAt: data.updatedAt },
+    });
+    return started.updatedAt;
   };
 
   const actions: DossierActions = {
@@ -149,26 +163,24 @@ export function DossierView({ caseId }: { caseId: string }) {
     openDocument: setViewing,
     review: (itemId, input) =>
       mutate(`review:${itemId}`, async () => {
-        await ensureInReview();
+        const expectedUpdatedAt = await startReview();
         return apiFetch(`${base}/checklist/${encodeURIComponent(itemId)}/review`, {
           method: "POST",
-          body: input,
+          body: { ...input, expectedUpdatedAt },
         });
       }),
     update: (input, key = "update") =>
       mutate(key, async () => {
         const needsReview =
           input.status === "ready" || input.status === "needs_citizen" || input.assigneeId;
-        if (needsReview) await ensureInReview();
-        return apiFetch(base, { method: "PATCH", body: input });
+        const expectedUpdatedAt = needsReview ? await startReview() : data.updatedAt;
+        return apiFetch(base, { method: "PATCH", body: { ...input, expectedUpdatedAt } });
       }),
   };
 
   const openRequest = async () => {
     if (data.status === "submitted") {
-      const ok = await mutate("update", () =>
-        apiFetch(base, { method: "PATCH", body: { status: "in_review" } }),
-      );
+      const ok = await mutate("update", startReview);
       if (!ok) return;
     }
     setRequesting(true);
@@ -411,6 +423,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           if (result) dossier.setData(result);
           else void dossier.reload();
         }}
+        onConflict={() => void dossier.reload()}
       />
     </div>
   );

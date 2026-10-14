@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt, like } from "drizzle-orm";
 import {
   cases,
   offices,
@@ -45,6 +45,8 @@ import { citizenView, audit, type CaseRow } from "./dossier";
 import { automaticAssistanceNotice } from "./disclosure";
 import { currentCitizenLink } from "./citizen-link";
 import { body, parse, mutableCitizen, type App, type Services, type ApiContext } from "./context";
+
+import { nextCaseUpdate } from "./case-version";
 
 export { assertStartable } from "./citizen-turn";
 export async function createCase(
@@ -99,7 +101,7 @@ async function lockCase(db: Database, row: CaseRow, now: Date) {
 async function touchCase(db: Database, row: CaseRow, now: Date) {
   const [updated] = await db
     .update(cases)
-    .set({ updatedAt: now.toISOString() })
+    .set({ updatedAt: nextCaseUpdate(row, now) })
     .where(eq(cases.id, row.id))
     .returning();
   if (!updated) throw notFound();
@@ -218,7 +220,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           answers,
           confirmedAnswers: confirmedAnswers(current, input, answers),
           editingQuestion: editingQuestion(input, answers),
-          updatedAt: s.clock().toISOString(),
+          updatedAt: nextCaseUpdate(current, s.clock()),
         })
         .where(eq(cases.id, current.id))
         .returning();
@@ -273,7 +275,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
       const current = await lockCase(tx, c.get("citizen"), s.clock());
       const [updated] = await tx
         .update(cases)
-        .set({ language: input.language, updatedAt: s.clock().toISOString() })
+        .set({ language: input.language, updatedAt: nextCaseUpdate(current, s.clock()) })
         .where(eq(cases.id, current.id))
         .returning();
       if (!updated) throw notFound();
@@ -285,56 +287,80 @@ export function mountCitizenRoutes(app: App, s: Services) {
   app.post("/c/:token/documents", async (c) => {
     const initial = c.get("citizen");
     mutableCitizen(initial);
-    let form: FormData;
-    try {
-      form = await c.req.formData();
-    } catch {
-      throw new ApiFailure("bad_request", 400, "Caricamento non valido.");
-    }
-    const file = form.get("file");
-    if (!(file instanceof File))
-      throw new ApiFailure("bad_request", 400, "Scegli un file da caricare.");
-    if (!file.size) throw new ApiFailure("unsupported_file", 415, "Il file è vuoto.");
-    if (form.getAll("file").length !== 1)
-      throw new ApiFailure("bad_request", 400, "Carica un solo file alla volta.");
-    if (file.size > UPLOAD_LIMITS.maxBytes)
-      throw new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
-    const fields = parse(UploadDocumentFields, {
-      checklistItemId: form.get("checklistItemId") ?? undefined,
-    });
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const mime = sniffMime(bytes);
-    if (!mime || !UPLOAD_LIMITS.mimeTypes.some((t) => t === mime))
-      throw new ApiFailure("unsupported_file", 415, "Carica un PDF o un'immagine supportata.");
-    if (file.type && file.type !== "application/octet-stream" && file.type !== mime)
-      throw new ApiFailure("unsupported_file", 415, "Il tipo dichiarato non corrisponde al file.");
-    assertImageSafe(bytes, mime);
-    const pages = await pdfPages(bytes, mime);
-    const view = await citizenView(s.db, initial, s.clock());
-    assertDocumentLimit(view.documents.length);
-    assertCaseBytes(view.documents, file.size);
-    if (fields.checklistItemId && !view.checklist.some((i) => i.id === fields.checklistItemId))
-      throw new ApiFailure("bad_request", 400, "Voce della checklist non valida.");
-    const fileName = sanitizeName(file.name, mime);
-    const requirements = [...new Set(view.checklist.map((i) => i.requirementId))];
-    const analysis = s.background
-      ? heuristicAnalysis(fileName, requirements)
-      : await s.ai.analyze(bytes, mime, fileName, requirements);
     const id = crypto.randomUUID();
+    const leaseId = `upload:${id}`;
     const requestedKey = `${initial.organizationId}/${initial.id}/${id}`;
-    // Persist cleanup before the external write; a terminated upload cannot leave an untracked file.
-    await s.db.insert(storageDeletions).values({
-      id,
-      caseId: initial.id,
-      storageKey: requestedKey,
-      createdAt: s.clock().toISOString(),
-      nextAttemptAt: new Date(s.clock().getTime() + 600000).toISOString(),
-    });
-    const key = await s.storage.put(requestedKey, bytes, mime);
+    let key = requestedKey;
+    let writeStarted = false;
+    let putSucceeded = false;
     let committed = false;
+    // Reserve before consuming the body. Submit and other instances share the case lock.
+    await s.db.transaction(async (tx) => {
+      await lockCase(tx, initial, s.clock());
+      await tx.insert(storageDeletions).values({
+        id: leaseId,
+        caseId: initial.id,
+        storageKey: requestedKey,
+        createdAt: s.clock().toISOString(),
+        nextAttemptAt: new Date(s.clock().getTime() + 600000).toISOString(),
+      });
+    });
     try {
+      let form: FormData;
+      try {
+        form = await c.req.formData();
+      } catch {
+        throw new ApiFailure("bad_request", 400, "Caricamento non valido.");
+      }
+      const file = form.get("file");
+      if (!(file instanceof File))
+        throw new ApiFailure("bad_request", 400, "Scegli un file da caricare.");
+      if (!file.size) throw new ApiFailure("unsupported_file", 415, "Il file è vuoto.");
+      if (form.getAll("file").length !== 1)
+        throw new ApiFailure("bad_request", 400, "Carica un solo file alla volta.");
+      if (file.size > UPLOAD_LIMITS.maxBytes)
+        throw new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
+      const fields = parse(UploadDocumentFields, {
+        checklistItemId: form.get("checklistItemId") ?? undefined,
+      });
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const mime = sniffMime(bytes);
+      if (!mime || !UPLOAD_LIMITS.mimeTypes.some((t) => t === mime))
+        throw new ApiFailure("unsupported_file", 415, "Carica un PDF o un'immagine supportata.");
+      if (file.type && file.type !== "application/octet-stream" && file.type !== mime)
+        throw new ApiFailure(
+          "unsupported_file",
+          415,
+          "Il tipo dichiarato non corrisponde al file.",
+        );
+      assertImageSafe(bytes, mime);
+      const pages = await pdfPages(bytes, mime);
+      const view = await citizenView(s.db, initial, s.clock());
+      assertDocumentLimit(view.documents.length);
+      assertCaseBytes(view.documents, file.size);
+      if (fields.checklistItemId && !view.checklist.some((i) => i.id === fields.checklistItemId))
+        throw new ApiFailure("bad_request", 400, "Voce della checklist non valida.");
+      const fileName = sanitizeName(file.name, mime);
+      const requirements = [...new Set(view.checklist.map((i) => i.requirementId))];
+      const analysis = s.background
+        ? heuristicAnalysis(fileName, requirements)
+        : await s.ai.analyze(bytes, mime, fileName, requirements);
+      writeStarted = true;
+      key = await s.storage.put(requestedKey, bytes, mime);
+      putSucceeded = true;
       const row = await s.db.transaction(async (tx) => {
         const current = await lockCase(tx, initial, s.clock());
+        const [lease] = await tx
+          .select()
+          .from(storageDeletions)
+          .where(
+            and(
+              eq(storageDeletions.id, leaseId),
+              gt(storageDeletions.nextAttemptAt, s.clock().toISOString()),
+            ),
+          );
+        if (!lease)
+          throw new ApiFailure("conflict", 409, "Il caricamento è scaduto. Riprova il file.");
         const fresh = await citizenView(tx, current, s.clock());
         assertDocumentLimit(fresh.documents.length);
         assertCaseBytes(fresh.documents, file.size);
@@ -364,7 +390,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           status: s.background ? "processing" : "analyzed",
           analysis: s.background ? null : analysis,
         });
-        await tx.delete(storageDeletions).where(eq(storageDeletions.id, id));
+        await tx.delete(storageDeletions).where(eq(storageDeletions.id, leaseId));
         const updated = await touchCase(tx, current, s.clock());
         await audit(tx, current, "citizen", "document.uploaded", s.clock(), null, {
           bytes: bytes.length,
@@ -390,14 +416,20 @@ export function mountCitizenRoutes(app: App, s: Services) {
       return c.json(response, 201);
     } catch (error) {
       if (committed) throw error;
+      if (!writeStarted) {
+        await s.db.delete(storageDeletions).where(eq(storageDeletions.id, leaseId));
+        throw error;
+      }
+      // A failed put can have an ambiguous remote result; retain its original cleanup deadline.
+      if (!putSucceeded) throw error;
       try {
         await s.storage.delete(key);
-        await s.db.delete(storageDeletions).where(eq(storageDeletions.id, id));
+        await s.db.delete(storageDeletions).where(eq(storageDeletions.id, leaseId));
       } catch (cleanupError) {
         await s.db
           .insert(storageDeletions)
           .values({
-            id,
+            id: leaseId,
             caseId: initial.id,
             storageKey: key,
             createdAt: s.clock().toISOString(),
@@ -493,6 +525,28 @@ export function mountCitizenRoutes(app: App, s: Services) {
     const input = await body(c, SubmitCaseRequest);
     const row = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, c.get("citizen"), s.clock());
+      const [upload] = await tx
+        .select({ id: storageDeletions.id })
+        .from(storageDeletions)
+        .where(
+          and(
+            eq(storageDeletions.caseId, current.id),
+            like(storageDeletions.id, "upload:%"),
+            gt(storageDeletions.nextAttemptAt, s.clock().toISOString()),
+          ),
+        )
+        .limit(1);
+      const [processing] = await tx
+        .select({ id: documents.id })
+        .from(documents)
+        .where(and(eq(documents.caseId, current.id), eq(documents.status, "processing")))
+        .limit(1);
+      if (upload || processing)
+        throw new ApiFailure(
+          "conflict",
+          409,
+          "Attendi la fine del caricamento e dell'analisi dei documenti prima di inviare.",
+        );
       const view = await citizenView(tx, current, s.clock(), current.language, true);
       if (!current.practiceId || view.nextQuestion)
         throw new ApiFailure("conflict", 409, "Completa le domande prima di inviare il fascicolo.");
@@ -505,7 +559,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           submittedAt: current.submittedAt ?? s.clock().toISOString(),
           firstSubmissionComplete:
             current.firstSubmissionComplete ?? view.findings.every((f) => f.severity !== "blocker"),
-          updatedAt: s.clock().toISOString(),
+          updatedAt: nextCaseUpdate(current, s.clock()),
         })
         .where(eq(cases.id, current.id))
         .returning();

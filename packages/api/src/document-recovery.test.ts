@@ -126,7 +126,9 @@ it("citizen and operator reads return processing then recover only the opened ca
   expect(
     (await db.select().from(documents).where(eq(documents.id, "operator-doc")))[0]?.status,
   ).toBe("analyzed");
-  expect((await db.select().from(cases).where(eq(cases.id, "case")))[0]).toEqual(before);
+  const after = (await db.select().from(cases).where(eq(cases.id, "case")))[0]!;
+  expect({ ...after, updatedAt: before!.updatedAt }).toEqual(before);
+  expect(Date.parse(after.updatedAt)).toBeGreaterThan(Date.parse(before!.updatedAt));
   expect((await app.request("/api/cases/other")).status).toBe(401);
   expect(jobs).toHaveLength(0);
 });

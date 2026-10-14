@@ -2,6 +2,7 @@ import { generateText, Output, createGateway } from "ai";
 import { z } from "zod";
 import {
   AnswerValue,
+  SafeText,
   DocumentAnalysis,
   PracticeId,
   type Language,
@@ -11,11 +12,12 @@ import { extractFacts, listPractices } from "@avanti/core";
 import { deadline } from "./deadline";
 import { citizenWritingInstructions } from "./citizen-copy-style";
 
+const TranslatedText = z.object({ text: SafeText.min(1).max(3000) });
 const Proposal = z.object({
   practiceId: PracticeId.nullable(),
   confidence: z.number().min(0).max(1),
   answers: z.record(z.string(), AnswerValue),
-  reply: z.string().max(300),
+  reply: SafeText.max(300),
 });
 export type IntakeProposal = z.infer<typeof Proposal> & { engine: "ai" | "heuristic" };
 export interface Intelligence {
@@ -233,7 +235,7 @@ export class GatewayIntelligence implements Intelligence {
               this.config.textModel ?? "anthropic/claude-sonnet-5.5",
             ),
             providerOptions: this.providerOptions(),
-            output: Output.object({ schema: z.object({ text: z.string().min(1).max(3000) }) }),
+            output: Output.object({ schema: TranslatedText }),
             timeout: 8000,
             maxRetries: 1,
             instructions:
@@ -244,7 +246,7 @@ export class GatewayIntelligence implements Intelligence {
           }),
           8000,
         );
-        return { text: output.text, engine: "ai" };
+        return { text: TranslatedText.parse(output).text, engine: "ai" };
       } catch (error) {
         this.fallback("translate", error);
         /* The original is preserved separately; the notice does not pretend to be a translation. */

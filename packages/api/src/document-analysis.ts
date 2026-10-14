@@ -4,6 +4,7 @@ import { DocumentAnalysis } from "@avanti/contracts";
 import { heuristicAnalysis } from "./ai";
 import { citizenView } from "./dossier";
 import { deadline } from "./deadline";
+import { nextCaseUpdate } from "./case-version";
 import type { Services } from "./context";
 
 export const ANALYSIS_LEASE_MS = 120_000;
@@ -50,10 +51,20 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
   const [row] = await s.db.select().from(cases).where(eq(cases.id, document.caseId));
   if (!row) return;
   if (row.status === "closed" || Date.parse(row.expiresAt) <= now.getTime()) {
-    await s.db
-      .update(documents)
-      .set({ status: "failed", analysisLeaseToken: null, analysisLeaseUntil: null })
-      .where(ownsLease);
+    await s.db.transaction(async (tx) => {
+      const [current] = await tx.select().from(cases).where(eq(cases.id, row.id)).for("update");
+      if (!current) return;
+      const changed = await tx
+        .update(documents)
+        .set({ status: "failed", analysisLeaseToken: null, analysisLeaseUntil: null })
+        .where(ownsLease)
+        .returning({ id: documents.id });
+      if (changed.length)
+        await tx
+          .update(cases)
+          .set({ updatedAt: nextCaseUpdate(current, s.clock()) })
+          .where(eq(cases.id, current.id));
+    });
     return;
   }
   const view = await citizenView(s.db, row, s.clock());
@@ -75,7 +86,7 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
     const [current] = await tx.select().from(cases).where(eq(cases.id, row.id)).for("update");
     if (!current) return;
     const finished = s.clock();
-    await tx
+    const changed = await tx
       .update(documents)
       .set({
         status:
@@ -92,7 +103,13 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
           eq(documents.caseId, current.id),
           gt(documents.analysisLeaseUntil, finished.toISOString()),
         ),
-      );
+      )
+      .returning({ id: documents.id });
+    if (changed.length)
+      await tx
+        .update(cases)
+        .set({ updatedAt: nextCaseUpdate(current, finished) })
+        .where(eq(cases.id, current.id));
   });
 }
 

@@ -113,7 +113,7 @@ al 31/12/2025, non il mutuo attuale.
 
 Upload massimo **4 MiB file**, richiesta multipart 4 MiB + 128 KiB (entro il limite Vercel
 4,5 MB). PDF leggibile dal parser o immagine riconosciuta da magic bytes, MIME dichiarato
-ignorato. Nome sanificato, SHA-256 sui byte originali. `checklistItemId` esplicito deve
+verificato se presente (mismatch: 415). Nome sanificato, SHA-256 sui byte originali. `checklistItemId` esplicito deve
 appartenere al fascicolo; auto-abbinamento solo a una singola voce candidata. In presenza
 di più membri/conti serve scelta umana. Riassegnare a null lascia il documento non abbinato.
 
@@ -121,9 +121,15 @@ Quando cambiano i requisiti, documenti conservati e restituiti non abbinati; rev
 persistono sugli ID rimasti applicabili. Modificare i file di una voce invalida la verifica
 precedente. I membri mantengono gli UUID in `answers.members`: rimandare `MemberInput.id`
 negli edit; i vecchi input senza ID restano accettati. La rimozione di un membro stacca i suoi
-documenti e annulla le revisioni relative. Download: PDF/immagini supportate inline;
-`?download=1` forza attachment, sempre `nosniff`. Storage key e URL Blob mai esposti.
+documenti e annulla le revisioni relative. Download sempre attachment, `filename*`
+UTF-8 e `nosniff`. Storage key e URL Blob mai esposti.
 Timeout/OOM del parser PDF restituiscono 503 con invito a riprovare, file non valido 415.
+
+L'invio restituisce 409 se esistono upload attivi o documenti ancora `processing`.
+Una reservation persistita prima di consumare il body impedisce l'invio anche
+tra istanze API. Il lease dura 10 minuti; upload tardivi sono rifiutati e i file
+recuperati dal cleanup. Doppio invio: un solo evento, la seconda richiesta riceve
+409 senza riscrivere contatti/data. PDF con `/Encrypt` e file vuoti: 415.
 
 ## Autenticazione e console
 
@@ -154,6 +160,16 @@ Ogni accesso è filtrato per organizzazione della sessione. Sedi, assegnatari e 
 di altri tenant restituiscono 404. Operatore vede sempre italiano nei testi di dominio;
 le risposte libere e i messaggi del cittadino conservano l'originale per non alterare prove.
 Il dossier non ricostruisce il token cittadino (`citizenLink:null`).
+
+Le scritture PATCH `/cases/:id`, POST revisione checklist e POST richieste di
+integrazione richiedono `expectedUpdatedAt` uguale alla versione letta nel dossier.
+La precondizione viene verificata sotto lock; mancanza o mismatch restituiscono
+409 `conflict` con invito a ricaricare e controllare le modifiche, senza applicare
+la scrittura. `updatedAt` cresce almeno di 1 ms anche a clock fermo o arretrato;
+le modifiche dei documenti e il completamento dell'analisi invalidano lo snapshot.
+Il campo resta opzionale nel tipo condiviso durante l'integrazione frontend, ma
+la sua omissione non consente una scrittura. Non recuperare una versione nuova
+per fare retry automatici: conserverebbe il rischio di sovrascrittura.
 
 La rigenerazione ruota subito il token e rinnova la scadenza dal clock corrente secondo
 `linkDays` del CAF (default 60 giorni). `RegenerateLinkResponse` contiene `{url, expiresAt}`;
@@ -190,7 +206,7 @@ localizzato con originale visibile (mai spacciato per traduzione). Header `X-Ava
 
 ## Metriche e limiti
 
-Date reali YYYY-MM-DD, entrambe incluse, giorni **UTC**, massimo 366 giorni. Sede opzionale;
+Date reali YYYY-MM-DD, entrambe incluse, giorni civili **Europe/Rome**, massimo 366 giorni. Sede opzionale;
 organizzazione sempre derivata dalla sessione. Avvii da createdAt, invii da primo submittedAt,
 pronti da eventi review.completed; aggregati per pratica/lingua e giorno. Completezza e
 tasso integrazioni riferiti ai fascicoli del cohort inviato nell'intervallo; nessun dato → null.

@@ -151,6 +151,9 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
   const [value, setValue] = useState(dossier.internalNotes ?? "");
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const saved = dossier.internalNotes ?? "";
+  // The notes this draft started from: if the saved ones moved on, a colleague edited them.
+  const [base, setBase] = useState(saved);
+  const colleagueEdited = state === "error" && saved !== base;
   const dirty = value !== saved;
   const latest = useRef(value);
   useEffect(() => {
@@ -160,6 +163,7 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
   const save = useCallback(async () => {
     const text = latest.current;
     if (text === saved) return;
+    setBase(saved);
     setState("saving");
     const ok = await actions.update({ internalNotes: text.trim() ? text : null }, "notes");
     setState(ok ? "saved" : "error");
@@ -167,10 +171,11 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
 
   // Autosave after a pause in typing, so leaving the page rarely loses anything.
   useEffect(() => {
-    if (!dirty) return;
+    // After a failure only the operator retries: an automatic save could overwrite a colleague.
+    if (!dirty || state === "error") return;
     const id = window.setTimeout(() => void save(), AUTOSAVE_MS);
     return () => window.clearTimeout(id);
-  }, [dirty, value, save]);
+  }, [dirty, value, save, state]);
 
   // …and if it would, the browser asks first.
   useEffect(() => {
@@ -207,16 +212,38 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
         placeholder="Visibili solo agli operatori del CAF…"
         className="w-full resize-y rounded-sm bg-paper p-2.5 text-[0.9375rem] ring-1 ring-line ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
       />
-      {state === "error" && (
-        <div
-          role="alert"
-          className="mt-2 flex items-center justify-between gap-2 text-sm text-danger"
-        >
-          Note non salvate.
-          <Button size="sm" variant="secondary" onClick={() => void save()}>
-            Riprova
-          </Button>
+      {colleagueEdited ? (
+        <div role="alert" className="mt-2 grid gap-2 rounded-md bg-warn-wash p-3 text-sm">
+          <p className="font-semibold text-warn">Un collega ha cambiato le note mentre scrivevi.</p>
+          <p className="whitespace-pre-line text-ink-2">{saved || "(note vuote)"}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => void save()}>
+              Tieni la mia versione
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setValue(saved);
+                setState("idle");
+              }}
+            >
+              Usa la sua
+            </Button>
+          </div>
         </div>
+      ) : (
+        state === "error" && (
+          <div
+            role="alert"
+            className="mt-2 flex items-center justify-between gap-2 text-sm text-danger"
+          >
+            Note non salvate.
+            <Button size="sm" variant="secondary" onClick={() => void save()}>
+              Riprova
+            </Button>
+          </div>
+        )
       )}
     </section>
   );

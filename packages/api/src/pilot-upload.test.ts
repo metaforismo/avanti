@@ -231,15 +231,16 @@ it("pilot: response failure after commit preserves the stored document and file"
   const remove = vi.spyOn(storage, "delete");
   const transaction = db.transaction.bind(db);
   let select: ReturnType<typeof vi.spyOn> | undefined;
-  const tx = vi.spyOn(db, "transaction").mockImplementationOnce(((
-    ...args: Parameters<typeof db.transaction>
-  ) =>
-    transaction(...args).then((result) => {
-      select = vi.spyOn(db, "select").mockImplementationOnce(() => {
-        throw new Error("Synthetic response failure");
-      });
-      return result;
-    })) as typeof db.transaction);
+  const tx = vi
+    .spyOn(db, "transaction")
+    .mockImplementationOnce(transaction)
+    .mockImplementationOnce(((...args: Parameters<typeof db.transaction>) =>
+      transaction(...args).then((result) => {
+        select = vi.spyOn(db, "select").mockImplementationOnce(() => {
+          throw new Error("Synthetic response failure");
+        });
+        return result;
+      })) as typeof db.transaction);
   try {
     expect((await upload(await (await pdf()).save())).status).toBe(500);
     expect(remove).not.toHaveBeenCalled();
