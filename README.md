@@ -48,6 +48,9 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 | `/console/pratiche/[id]` | Operatore | Fascicolo: problemi, verifica documenti, integrazioni, export |
 | `/console/metriche`      | Operatore | Tempi e completezza misurati                                  |
 | `/console/sportelli`     | Operatore | Link e QR degli sportelli, cartello A4 da stampare            |
+| `/console/impostazioni`  | Admin     | Operatori, parametri, avvisi via email                        |
+| `/console/registro`      | Admin     | Registro attività con export CSV                              |
+| `/console/stato`         | Admin     | Stato del sistema: database, archivio, AI, manutenzione, coda |
 
 ## Struttura
 
@@ -157,6 +160,10 @@ Il cookie è una sessione opaca casuale salvata come hash; non necessita di un s
 di firma condiviso. I parametri per organizzazione sono in `settings`: baseline
 manuale, durata link 60 giorni, retention 180 giorni. Il job cron applica la retention a lotti di 25 fascicoli; procedura, scheduler e prove
 di cancellazione nel deployment sono prerequisiti del pilota.
+Le preferenze email `notifyCitizenReady` e `notifyOperatorDigest` sono disattivate
+per default; le integrazioni sono notificate solo ai cittadini con email. Console
+simula senza indirizzi/contenuti nei log; Resend e chiave AES persistente sono
+configurabili secondo il [runbook notifiche](docs/DEPLOY.md#notifiche-email-e-outbox).
 
 Migrazioni SQL versionate in `packages/db/migrations`, generate con `pnpm db:generate`.
 Applicate idempotentemente all'avvio in sviluppo/test. In produzione eseguire
@@ -205,6 +212,7 @@ sotto 10 minuti dallo stesso IP, oltre a 10 operatori che accedono con un retry.
 - [Deploy e avvio CAF pilota: preflight, bootstrap, backup ed export](docs/DEPLOY.md)
 - [Ricerca ISEE 2027 e limiti annuali](docs/research/isee-2027.md)
 - [Decisioni backend](docs/decisions/backend.md)
+- [Stato del sistema: codici e soglie](docs/SYSTEM_STATUS.md)
 
 ISEE e 730 2027 sono preparati secondo le regole disponibili al 5–6 ottobre 2026:
 modelli e istruzioni annuali vanno ricontrollati prima del pilota. Avanti prepara
@@ -214,10 +222,13 @@ Le sessioni si rinnovano anche durante la consultazione: 30 minuti di inattivit�
 La manutenzione è separata dalle richieste utente: `GET /api/cron/maintenance`, con
 `Authorization: Bearer <CRON_SECRET>`, elimina sessioni e bucket scaduti, cancella i fascicoli oltre retention e ritenta le
 cancellazioni dei file. La pianificazione è in `apps/web/vercel.json` (Root Directory Vercel `apps/web`):
-`0 3 * * *`, giornaliero UTC, compatibile con Hobby. Per Pro si può scegliere
-`* * * * *` nel file prima del rilascio. Le letture autorizzate di un fascicolo
+`0 3 * * *`, giornaliero alle 03:00 UTC, compatibile con Hobby. Candidature,
+integrazioni e pratica pronta registrano l'invio in background dopo il commit,
+senza attendere il provider; il cron genera il digest giornaliero e recupera i retry.
+Su Pro/Enterprise si può passare a `* * * * *` per retry più rapidi.
+Le letture autorizzate di un fascicolo
 recuperano in background le analisi ferme oltre 2 minuti, sotto lease DB condiviso
-con upload e cron. Hobby resta soggetto alle condizioni d’uso del piano. Vercel invoca solo Production: lo staging
+con upload e cron. Vercel invoca solo Production: lo staging
 usa un progetto separato con dati fittizi; le Preview richiedono una chiamata manuale
 o uno scheduler esterno. La cadenza recupera fino a quattro analisi ferme da oltre due
 minuti per run e applica retention/retry a lotti. Configurazione, costi e prove in

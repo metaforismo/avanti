@@ -649,6 +649,93 @@ export const Metrics = z.object({
 });
 export type Metrics = z.infer<typeof Metrics>;
 
+/** Operational DTO: fixed codes/counts only, no identities or provider diagnostics. */
+export const SystemStatusLevel = z.enum(["ok", "attention", "problem"]);
+export type SystemStatusLevel = z.infer<typeof SystemStatusLevel>;
+export const SystemStatusCode = z.enum([
+  "available",
+  "unavailable",
+  "probe_unavailable",
+  "not_configured",
+  "no_observations",
+  "ai_fallback",
+  "ai_errors",
+  "never_run",
+  "running",
+  "stale",
+  "failed",
+  "backlog",
+  "recent_errors",
+  "not_supported",
+]);
+const StatusComponent = z.object({ status: SystemStatusLevel, code: SystemStatusCode }).strict();
+const StatusCounter = StatusComponent.extend({
+  count: z.number().int().nonnegative().nullable(),
+}).strict();
+const StatusJob = StatusComponent.extend({
+  lastStartedAt: IsoDateTime.nullable(),
+  lastFinishedAt: IsoDateTime.nullable(),
+  outcome: z.enum(["running", "ok", "failed"]).nullable(),
+}).strict();
+export const SystemStatus = z
+  .object({
+    schemaVersion: z.literal(1),
+    generatedAt: IsoDateTime,
+    status: SystemStatusLevel,
+    version: z
+      .object({
+        commit: z
+          .string()
+          .regex(/^[a-f0-9]{7,40}$/i)
+          .nullable(),
+        tag: z
+          .string()
+          .regex(/^v?\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/)
+          .max(80)
+          .nullable(),
+      })
+      .strict(),
+    components: z
+      .object({
+        database: StatusComponent,
+        storage: StatusComponent,
+        ai: StatusComponent.extend({
+          configured: z.boolean(),
+          mode: z.enum(["ai", "fallback", "unknown"]),
+          /** Current UTC hour plus the preceding 23 hours, scoped to the authenticated CAF. */
+          hourly: z
+            .array(
+              z
+                .object({
+                  hour: IsoDateTime,
+                  successes: z.number().int().nonnegative(),
+                  fallbacks: z.number().int().nonnegative(),
+                  errors: z.number().int().nonnegative(),
+                })
+                .strict(),
+            )
+            .length(24)
+            .nullable(),
+        }).strict(),
+        maintenance: StatusJob,
+        retention: StatusJob,
+      })
+      .strict(),
+    counters: z
+      .object({
+        documentsProcessingOver10Minutes: StatusCounter,
+        casesWaitingForCitizenOver7Days: StatusCounter,
+        linksExpiringWithin7Days: StatusCounter,
+        recentApiErrors24Hours: StatusCounter,
+        /** No notification queue currently exists; null must not be presented as zero. */
+        notificationsQueued: StatusComponent.extend({ count: z.null() }).strict(),
+      })
+      .strict(),
+  })
+  .strict();
+export type SystemStatus = z.infer<typeof SystemStatus>;
+export const SystemStatusQuery = z.object({}).strict();
+
 /* ------------------------------------------------------------------ */
 /* Administration (role "admin" only, scoped to the operator's organization) */
 /* ------------------------------------------------------------------ */
@@ -783,10 +870,18 @@ export const OrganizationSettings = z.object({
   linkDays: z.number().int().min(1).max(365),
   /** How long Avanti keeps closed or expired cases and their files, in days. */
   retentionDays: z.number().int().min(30).max(3650),
+  /** Service email when the operator marks a case ready. Off unless enabled by the CAF. */
+  notifyCitizenReady: z.boolean().default(false),
+  /** Daily UTC aggregate, sent to active operators. No citizen data. */
+  notifyOperatorDigest: z.boolean().default(false),
 });
 export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 
-export const UpdateSettingsRequest = OrganizationSettings.partial();
+// PATCH must preserve omitted preferences; Zod defaults would otherwise reset them.
+export const UpdateSettingsRequest = OrganizationSettings.partial().extend({
+  notifyCitizenReady: z.boolean().optional(),
+  notifyOperatorDigest: z.boolean().optional(),
+});
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
 export const OperatorSummary = z.object({

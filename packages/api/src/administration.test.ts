@@ -26,6 +26,7 @@ import {
   sessions,
   settings,
   storageDeletions,
+  systemJobs,
   type Database,
 } from "@avanti/db";
 import { createApp } from "./app";
@@ -143,6 +144,7 @@ beforeAll(async () => {
 });
 afterAll(async () => close?.());
 beforeEach(async () => {
+  await db.delete(systemJobs);
   await db.delete(events);
   await db.delete(organizations);
   await db.delete(storageDeletions);
@@ -548,7 +550,13 @@ describe("organization administration", () => {
     const current = OrganizationSettings.parse(
       await (await request("/settings", "GET", undefined, admin)).json(),
     );
-    expect(current).toEqual({ baselineMinutesPerCase: null, linkDays: 60, retentionDays: 180 });
+    expect(current).toEqual({
+      baselineMinutesPerCase: null,
+      linkDays: 60,
+      retentionDays: 180,
+      notifyCitizenReady: false,
+      notifyOperatorDigest: false,
+    });
     const createCase = () =>
       request(
         "/cases",
@@ -570,6 +578,8 @@ describe("organization administration", () => {
       baselineMinutesPerCase: 30,
       linkDays: 7,
       retentionDays: 90,
+      notifyCitizenReady: false,
+      notifyOperatorDigest: false,
     });
     const after = await createCase();
     expect(after.status).toBe(201);

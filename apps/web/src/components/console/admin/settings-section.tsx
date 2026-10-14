@@ -68,6 +68,8 @@ function SettingsForm({
         next[key] = `Un numero intero tra ${min} e ${max}.`;
       else values[key] = n;
     }
+    values.notifyCitizenReady = data.get("notifyCitizenReady") === "on";
+    values.notifyOperatorDigest = data.get("notifyOperatorDigest") === "on";
     setErrors(next);
     if (focusFirstError(event.currentTarget, next)) return;
     setState("saving");
@@ -138,6 +140,21 @@ function SettingsForm({
           />
         )}
       </Field>
+      <fieldset className="grid gap-3">
+        <legend className="mb-2 text-sm font-semibold">Avvisi via email</legend>
+        <Toggle
+          name="notifyCitizenReady"
+          defaultChecked={initial.notifyCitizenReady}
+          label="Avvisa il cittadino quando la pratica è pronta"
+          hint="Solo se ha lasciato l'email, nella sua lingua: gli dice di prendere appuntamento allo sportello. Le richieste di integrazione gli arrivano sempre."
+        />
+        <Toggle
+          name="notifyOperatorDigest"
+          defaultChecked={initial.notifyOperatorDigest}
+          label="Riepilogo giornaliero agli operatori"
+          hint="Quante pratiche aspettano la revisione, senza dati dei cittadini."
+        />
+      </fieldset>
       {formError && (
         <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
           {formError}
@@ -152,5 +169,32 @@ function SettingsForm({
         </span>
       </div>
     </form>
+  );
+}
+
+function Toggle({
+  name,
+  defaultChecked,
+  label,
+  hint,
+}: {
+  name: string;
+  defaultChecked: boolean;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-md p-3 ring-1 ring-line ring-inset has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp">
+      <input
+        type="checkbox"
+        name={name}
+        defaultChecked={defaultChecked}
+        className="mt-0.5 size-4.5 shrink-0 accent-stamp"
+      />
+      <span>
+        <span className="block font-semibold">{label}</span>
+        <span className="block text-sm text-ink-2">{hint}</span>
+      </span>
+    </label>
   );
 }

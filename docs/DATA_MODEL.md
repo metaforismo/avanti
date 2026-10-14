@@ -17,22 +17,40 @@ della directory. In produzione le migrazioni si applicano esplicitamente con
 
 ## Tabelle
 
-| Tabella              | Contenuto e vincoli principali                                                                                                                                   |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `organizations`      | Titolare CAF/patronato/studio; radice del tenant.                                                                                                                |
-| `offices`            | Sedi e slug pubblico univoco; appartenenza a un'organizzazione.                                                                                                  |
-| `operators`          | Operatori, ruolo e hash scrypt; email normalizzata dall'API e univoca.                                                                                           |
-| `sessions`           | Hash del token casuale, operatore e scadenza; nessun token in chiaro.                                                                                            |
-| `cases`              | Pratica, risposte tipizzate JSON, lingua, contatto, stato, link hash, assegnatario, note e istanti KPI.                                                          |
-| `checklist_reviews`  | Decisione e nota per coppia pratica/voce stabile; operatore e istante della revisione.                                                                           |
-| `storage_deletions`  | Tombstone e backoff per cancellazioni storage da ritentare tramite cron, senza nome o contenuto del file.                                                        |
-| `documents`          | Metadati, chiave storage, SHA-256 e analisi tipizzata; mai i byte nel database.                                                                                  |
-| `messages`           | Conversazione necessaria alla pratica e originale italiano delle traduzioni.                                                                                     |
-| `events`             | Audit strutturato: azione, attore/ID, account interessato, istante, riferimento pratica e metadata numerici/booleani/null; conservazione autonoma di 365 giorni. |
-| `leads`              | Richieste del pilota, contatto e data di accettazione dell'informativa.                                                                                          |
-| `settings`           | Baseline dichiarata, retention (default 180 giorni), durata link (default 60 giorni).                                                                            |
-| `rate_limits`        | Contatori e scadenze; la chiave deve essere un hash, senza IP in chiaro.                                                                                         |
-| `reference_counters` | Progressivo atomico per organizzazione e anno.                                                                                                                   |
+| Tabella              | Contenuto e vincoli principali                                                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `organizations`      | Titolare CAF/patronato/studio; radice del tenant.                                                                                                                             |
+| `offices`            | Sedi e slug pubblico univoco; appartenenza a un'organizzazione.                                                                                                               |
+| `operators`          | Operatori, ruolo e hash scrypt; email normalizzata dall'API e univoca.                                                                                                        |
+| `sessions`           | Hash del token casuale, operatore e scadenza; nessun token in chiaro.                                                                                                         |
+| `cases`              | Pratica, risposte tipizzate JSON, lingua, contatto, stato, link hash, assegnatario, note e istanti KPI.                                                                       |
+| `checklist_reviews`  | Decisione e nota per coppia pratica/voce stabile; operatore e istante della revisione.                                                                                        |
+| `storage_deletions`  | Tombstone e backoff per cancellazioni storage da ritentare tramite cron, senza nome o contenuto del file.                                                                     |
+| `documents`          | Metadati, chiave storage, SHA-256 e analisi tipizzata; mai i byte nel database.                                                                                               |
+| `messages`           | Conversazione necessaria alla pratica e originale italiano delle traduzioni.                                                                                                  |
+| `events`             | Audit strutturato: azione, attore/ID, account interessato, istante, riferimento pratica e metadata numerici/booleani/null; conservazione autonoma di 365 giorni.              |
+| `leads`              | Richieste del pilota, contatto e data di accettazione dell'informativa.                                                                                                       |
+| `settings`           | Baseline dichiarata, retention (default 180 giorni), durata link (default 60 giorni).                                                                                         |
+| `notifications`      | Outbox atomica degli eventi: tipo, lingua, ID tecnici, envelope AES-GCM con destinatario e messaggio minimo, stato, tentativi, prossimo tentativo, lease ed errore sintetico. |
+| `rate_limits`        | Contatori e scadenze; la chiave deve essere un hash, senza IP in chiaro.                                                                                                      |
+| `reference_counters` | Progressivo atomico per organizzazione e anno.                                                                                                                                |
+
+`settings` include `notifyCitizenReady` e `notifyOperatorDigest` (false per default),
+e `lastDigestDate` interno per l'unicità del riepilogo UTC. La migrazione 0010 aggiunge
+preferenze e outbox. `dedupe_key` è univoca per evento; l'ID della notifica è la chiave
+di idempotenza Resend.
+`first_attempt_at` conserva l'inizio della finestra di esito incerto: dopo un rifiuto
+temporaneo confermato può tornare null soltanto se non ci sono tentativi precedenti
+incerti. `attempts` e payload restano invariati, salvo incremento al nuovo tentativo.
+Stati: `pending`, `sending`, `sent` (accettata dal provider), `simulated` (console),
+`failed`, `cancelled`. Payload cancellato dopo conferma/annullamento
+o scadenza di 7 giorni; ricevute dopo 30 giorni dal completamento. FK cascade eliminano
+anche le notifiche con pratica/lead/operatore/organizzazione. Nessun indirizzo o contenuto
+è conservato in chiaro nell'outbox. [Runbook](DEPLOY.md#notifiche-email-e-outbox).
+
+La migrazione 0009 aggiunge `system_jobs` (ultimo run globale di manutenzione e
+retention) e `operational_counters` (conteggi orari per tenant, senza payload).
+Vincoli, retention della telemetria e semantica in [SYSTEM_STATUS.md](SYSTEM_STATUS.md).
 
 La reference è `AV-AAAA-NNNNNN`: un `INSERT … ON CONFLICT … UPDATE … RETURNING`
 incrementa il contatore senza leggere prima il valore. Le reference sono univoche dentro

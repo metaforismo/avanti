@@ -7,9 +7,11 @@ import type { CaseRow } from "./dossier";
 import { operators } from "@avanti/db";
 import type { z } from "zod";
 import { ApiFailure } from "./security";
+import type { NotificationOptions } from "./notification-config";
 
 export interface ApiOptions {
   db: Database;
+  notifications?: NotificationOptions;
   storage: FileStorage;
   ai?: Intelligence;
   clock?: () => Date;
@@ -26,6 +28,7 @@ export interface ApiOptions {
   rateLimitSecret?: string;
   vercel?: boolean;
   cronSecret?: string;
+  appVersion?: { commit?: string; tag?: string };
   background?: (work: () => Promise<void>) => void;
   transport?: "fetch" | "node";
   clientAddress?: (context: ApiContext) => string | null;
@@ -48,6 +51,7 @@ export interface ApiEnv {
 export type App = Hono<ApiEnv>;
 export type ApiContext = Context<ApiEnv>;
 export interface Services extends ApiOptions {
+  notifications: NotificationOptions;
   clock: () => Date;
   ai: Intelligence;
   publicUrl: string;

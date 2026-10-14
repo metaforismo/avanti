@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { defaultNotifications } from "./notification-config";
 import { boundedBody, uploadCapacity } from "./middleware/body";
 import { GatewayIntelligence } from "./ai";
 import type { ApiEnv, ApiOptions, Services } from "./context";
@@ -20,6 +21,7 @@ import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
 import { mountPilotReportRoutes } from "./routes/pilot-report";
 import { mountAuditRoutes } from "./audit-log";
+import { mountSystemStatus } from "./system-status";
 
 export function createApp(options: ApiOptions) {
   if (options.production && !options.publicUrl)
@@ -37,6 +39,7 @@ export function createApp(options: ApiOptions) {
     );
   const services: Services = {
     ...options,
+    notifications: options.notifications ?? defaultNotifications(),
     clock: options.clock ?? (() => new Date()),
     ai: options.ai ?? new GatewayIntelligence(),
     publicUrl: options.publicUrl ?? "http://localhost:3400",
@@ -47,7 +50,7 @@ export function createApp(options: ApiOptions) {
   app.use("*", requireOrigin(services));
   app.use("*", uploadCapacity(services));
   app.use("*", boundedBody());
-  registerErrors(app, options.errorLogger);
+  registerErrors(app, options.errorLogger, services);
   mountMaintenance(app, services);
   app.use("*", restrictTemporaryPassword(services));
   const limited = rateLimit(services);
@@ -60,6 +63,7 @@ export function createApp(options: ApiOptions) {
     "/cases/*",
     "/metrics",
     "/reports/*",
+    "/status",
     "/settings",
     "/operators/*",
     "/audit/*",
@@ -84,5 +88,6 @@ export function createApp(options: ApiOptions) {
   mountAdministrationRoutes(app, services);
   mountAuditRoutes(app, services);
   mountPilotReportRoutes(app, services);
+  mountSystemStatus(app, services);
   return app;
 }

@@ -47,6 +47,7 @@ test("an admin adds an operator, who must choose a password at first login", asy
   expect(temporary.length).toBeGreaterThanOrEqual(12);
   await issued.getByRole("button", { name: "Fatto" }).click();
   await page.getByRole("button", { name: "Esci" }).click();
+  await expect(page).toHaveURL(/\/console\/accedi/);
 
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(temporary);
@@ -219,4 +220,52 @@ test("slash jumps to the queue search and Escape clears it", async ({ page }) =>
   await page.keyboard.press("Escape");
   await expect(search).toHaveValue("");
   await expect(search).not.toBeFocused();
+});
+
+test("email notices are off by default and an administrator's choice survives a reload", async ({
+  page,
+}) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(ADMIN.email);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await page.getByRole("link", { name: "Impostazioni" }).click();
+
+  const digest = page.getByRole("checkbox", { name: /Riepilogo giornaliero agli operatori/ });
+  const ready = page.getByRole("checkbox", { name: /Avvisa il cittadino/ });
+  await expect(digest).not.toBeChecked();
+  await expect(ready).not.toBeChecked();
+
+  await digest.check();
+  await page.getByRole("button", { name: "Salva parametri" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Salvati" })).toBeVisible();
+  await page.reload();
+  await expect(digest).toBeChecked();
+  await expect(ready).not.toBeChecked();
+
+  // Leave the demo data as the seed made it for the other tests.
+  await digest.uncheck();
+  await page.getByRole("button", { name: "Salva parametri" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Salvati" })).toBeVisible();
+});
+
+test("system status is for administrators: operators get a plain refusal", async ({ page }) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Stato del sistema" })).toHaveCount(0);
+  await page.goto("/console/stato");
+  await expect(page.getByRole("heading", { name: "Stato riservato" })).toBeVisible();
+  await page.getByRole("button", { name: "Esci" }).click();
+
+  await page.getByLabel("Email").fill(ADMIN.email);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await page.getByRole("link", { name: "Stato del sistema" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Stato del sistema" })).toBeVisible();
+  const components = page.getByRole("region", { name: "Componenti" });
+  await expect(components.getByText("Database", { exact: true })).toBeVisible();
+  await expect(components.getByText("Archivio documenti", { exact: true })).toBeVisible();
 });
