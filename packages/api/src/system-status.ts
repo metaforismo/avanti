@@ -1,6 +1,13 @@
 import { SystemStatus, SystemStatusQuery, type SystemStatusLevel } from "@avanti/contracts";
-import { cases, documents, events, operationalCounters, systemJobs } from "@avanti/db";
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import {
+  cases,
+  documents,
+  events,
+  notifications,
+  operationalCounters,
+  systemJobs,
+} from "@avanti/db";
+import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { parse, type App, type Services } from "./context";
 import { ApiFailure } from "./security";
 import { deadline } from "./deadline";
@@ -84,6 +91,42 @@ export function aiStatus(
   return { ...base, status: "ok", code: "available", mode: "ai" };
 }
 
+type EmailCounts = {
+  queued: number;
+  queuedOver1Hour: number;
+  failed24Hours: number;
+  sent24Hours: number;
+};
+function emailStatus(
+  provider: SystemStatus["components"]["email"]["provider"],
+  counts: EmailCounts | null,
+): SystemStatus["components"]["email"] {
+  const fields = {
+    provider,
+    queuedOver1Hour: counts?.queuedOver1Hour ?? null,
+    failed24Hours: counts?.failed24Hours ?? null,
+    sent24Hours: counts?.sent24Hours ?? null,
+  };
+  if (!counts) return { ...fields, status: "problem", code: "unavailable" };
+  const backlog = countStatus(counts.queuedOver1Hour, 5);
+  const failed = countStatus(counts.failed24Hours, 5);
+  const status = worstStatus([
+    backlog.status,
+    failed.status,
+    provider === "console" ? "attention" : "ok",
+  ]);
+  // Prefer the cause at the worst level; failures win ties over backlog and simulation.
+  const code =
+    counts.failed24Hours > 0 && failed.status === status
+      ? "email_failed"
+      : counts.queuedOver1Hour > 0 && backlog.status === status
+        ? "email_backlog"
+        : provider === "console"
+          ? "email_simulated"
+          : "available";
+  return { ...fields, status, code };
+}
+
 async function snapshot(s: Services, organizationId: string, now: Date) {
   const currentHour = utcHour(now);
   const from = new Date(Date.parse(currentHour) - 23 * 3600000).toISOString();
@@ -107,6 +150,33 @@ async function snapshot(s: Services, organizationId: string, now: Date) {
         })
         .from(sql`(select 1) as status_counts`);
       if (!counts) throw new Error("Missing status counts");
+      const [queued] = await tx
+        .select({
+          queued: sql<number>`count(*)::int`,
+          queuedOver1Hour: sql<number>`(count(*) filter (where ${notifications.createdAt}
+            < ${new Date(now.getTime() - 3600000).toISOString()}::timestamptz))::int`,
+        })
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.organizationId, organizationId),
+            inArray(notifications.state, ["pending", "sending"]),
+          ),
+        );
+      const [completed] = await tx
+        .select({
+          failed24Hours: sql<number>`(count(*) filter (where ${notifications.state} = 'failed'))::int`,
+          sent24Hours: sql<number>`(count(*) filter (where ${notifications.state} = 'sent'))::int`,
+        })
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.organizationId, organizationId),
+            gte(notifications.completedAt, new Date(now.getTime() - DAY).toISOString()),
+            lte(notifications.completedAt, now.toISOString()),
+          ),
+        );
+      if (!queued || !completed) throw new Error("Missing email counts");
       const hourly = await tx
         .select()
         .from(operationalCounters)
@@ -118,7 +188,7 @@ async function snapshot(s: Services, organizationId: string, now: Date) {
           ),
         );
       const jobs = await tx.select().from(systemJobs);
-      return { counts, hourly, jobs, from };
+      return { counts, hourly, jobs, from, email: { ...queued, ...completed } };
     }),
     5000,
   );
@@ -187,6 +257,7 @@ export function mountSystemStatus(app: App, s: Services) {
             now,
           )
         : unknownJob,
+      email: emailStatus(s.notifications.adapter.mode, data?.email ?? null),
     };
     const counters: SystemStatus["counters"] = {
       documentsProcessingOver10Minutes: countStatus(data?.counts.processing ?? null, 5),
@@ -199,7 +270,10 @@ export function mountSystemStatus(app: App, s: Services) {
         5,
         "recent_errors",
       ),
-      notificationsQueued: { status: "ok", code: "not_supported", count: null },
+      notificationsQueued: {
+        ...countStatus(data?.email.queuedOver1Hour ?? null, 5),
+        count: data?.email.queued ?? null,
+      },
     };
     const version = SystemStatus.shape.version.safeParse({
       commit: s.appVersion?.commit ?? null,

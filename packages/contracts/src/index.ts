@@ -667,8 +667,16 @@ export const SystemStatusCode = z.enum([
   "backlog",
   "recent_errors",
   "not_supported",
+  "email_simulated",
+  "email_backlog",
+  "email_failed",
 ]);
-const StatusComponent = z.object({ status: SystemStatusLevel, code: SystemStatusCode }).strict();
+const StatusComponent = z
+  .object({
+    status: SystemStatusLevel,
+    code: SystemStatusCode.exclude(["email_simulated", "email_backlog", "email_failed"]),
+  })
+  .strict();
 const StatusCounter = StatusComponent.extend({
   count: z.number().int().nonnegative().nullable(),
 }).strict();
@@ -719,6 +727,19 @@ export const SystemStatus = z
         }).strict(),
         maintenance: StatusJob,
         retention: StatusJob,
+        email: StatusComponent.extend({
+          code: z.enum([
+            "available",
+            "unavailable",
+            "email_simulated",
+            "email_backlog",
+            "email_failed",
+          ]),
+          provider: z.enum(["console", "resend"]),
+          queuedOver1Hour: z.number().int().nonnegative().nullable(),
+          failed24Hours: z.number().int().nonnegative().nullable(),
+          sent24Hours: z.number().int().nonnegative().nullable(),
+        }).strict(),
       })
       .strict(),
     counters: z
@@ -727,8 +748,8 @@ export const SystemStatus = z
         casesWaitingForCitizenOver7Days: StatusCounter,
         linksExpiringWithin7Days: StatusCounter,
         recentApiErrors24Hours: StatusCounter,
-        /** No notification queue currently exists; null must not be presented as zero. */
-        notificationsQueued: StatusComponent.extend({ count: z.null() }).strict(),
+        /** All pending/sending notifications for the authenticated CAF, regardless of age. */
+        notificationsQueued: StatusCounter,
       })
       .strict(),
   })
