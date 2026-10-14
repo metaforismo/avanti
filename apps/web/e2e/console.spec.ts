@@ -269,3 +269,26 @@ test("system status is for administrators: operators get a plain refusal", async
   await expect(components.getByText("Database", { exact: true })).toBeVisible();
   await expect(components.getByText("Archivio documenti", { exact: true })).toBeVisible();
 });
+
+test("the pilot report is for administrators and downloads as a PDF", async ({ page }) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Rapporto del pilota" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Esci" }).click();
+  await expect(page).toHaveURL(/\/console\/accedi/);
+
+  await page.getByLabel("Email").fill(ADMIN.email);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await page.getByRole("link", { name: "Rapporto del pilota" }).click();
+  await expect(page.getByRole("heading", { name: "Le tre soglie del pilota" })).toBeVisible();
+  // Ten demo cases are far from the 50 the protocol requires: no threshold may claim an outcome.
+  await expect(page.getByText("Dati insufficienti")).toHaveCount(3);
+
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Scarica PDF" }).click();
+  expect((await download).suggestedFilename()).toMatch(/^rapporto-pilota-.*\.pdf$/);
+});

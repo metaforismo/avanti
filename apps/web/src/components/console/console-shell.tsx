@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ClipboardCheck,
   Activity,
   BarChart3,
   CircleHelp,
@@ -60,6 +61,13 @@ const NAV: NavItem[] = [
     label: "Impostazioni",
     icon: Settings,
     match: (p) => p.startsWith("/console/impostazioni"),
+    adminOnly: true,
+  },
+  {
+    href: "/console/rapporto",
+    label: "Rapporto del pilota",
+    icon: ClipboardCheck,
+    match: (p) => p.startsWith("/console/rapporto"),
     adminOnly: true,
   },
   {
