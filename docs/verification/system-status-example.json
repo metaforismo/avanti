@@ -180,6 +180,14 @@
       "lastStartedAt": null,
       "lastFinishedAt": null,
       "outcome": null
+    },
+    "email": {
+      "status": "attention",
+      "code": "email_simulated",
+      "provider": "console",
+      "queuedOver1Hour": 0,
+      "failed24Hours": 0,
+      "sent24Hours": 0
     }
   },
   "counters": {
@@ -205,8 +213,8 @@
     },
     "notificationsQueued": {
       "status": "ok",
-      "code": "not_supported",
-      "count": null
+      "code": "available",
+      "count": 0
     }
   }
 }

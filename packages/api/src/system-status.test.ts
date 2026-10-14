@@ -1,11 +1,12 @@
 import { mfaCipher } from "./mfa";
-import { defaultNotifications } from "./notification-config";
+import { defaultNotifications, seal } from "./notification-config";
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { SystemStatus, ApiError } from "@avanti/contracts";
 import {
   cases,
   createDatabase,
   documents,
+  notifications,
   events,
   offices,
   operators,
@@ -26,6 +27,9 @@ import { observeAi, recordOperationalCounters, utcHour } from "./operational-tel
 import type { Services } from "./context";
 import * as erasure from "./case-erasure";
 import { analyzePendingDocument } from "./document-analysis";
+import { sendNotifications } from "./notifications";
+import { ConsoleEmail } from "./email";
+import { readFile } from "node:fs/promises";
 
 vi.mock("ai", async () => ({
   ...(await vi.importActual<typeof import("ai")>("ai")),
@@ -51,6 +55,7 @@ beforeEach(async () => {
   vi.restoreAllMocks();
   vi.mocked(generateText).mockReset();
   now = new Date("2027-06-01T10:30:00.000Z");
+  await db.delete(notifications);
   await db.delete(events);
   await db.delete(cases);
   await db.delete(offices);
@@ -158,6 +163,157 @@ async function document(caseId: string, id: string, uploadedAt: string) {
 const cron = (target = app) =>
   target.request("/api/cron/maintenance", { headers: { Authorization: "Bearer secret-cron" } });
 
+async function notification(id: string, extra: Partial<typeof notifications.$inferInsert> = {}) {
+  await db.insert(notifications).values({
+    id,
+    dedupeKey: `PRIVATE-${id}`,
+    kind: "citizen_request",
+    language: "it",
+    organizationId: "a",
+    createdAt: now.toISOString(),
+    nextAttemptAt: now.toISOString(),
+    envelope: seal(services.notifications, `${id}:citizen_request:it`, {
+      to: "citizen@secret.test",
+      from: "sender@secret.test",
+      subject: "PII-SUBJECT",
+      text: "PII-BODY",
+    }),
+    lastError: "PII-PROVIDER-ERROR citizen@secret.test",
+    ...extra,
+  });
+}
+
+it("counts email only for the authenticated CAF at exact age and rolling 24-hour boundaries", async () => {
+  const send = vi.fn();
+  services.notifications.adapter = { mode: "resend", send };
+  const hourAgo = new Date(now.getTime() - 3600000).toISOString();
+  const older = new Date(now.getTime() - 3600001).toISOString();
+  const dayAgo = new Date(now.getTime() - 86400000).toISOString();
+  const outside = new Date(now.getTime() - 86400001).toISOString();
+  await notification("pending", { createdAt: older });
+  await notification("sending", {
+    state: "sending",
+    createdAt: older,
+    nextAttemptAt: "2027-06-02T10:30:00Z",
+  });
+  await notification("hour-boundary", { createdAt: hourAgo });
+  await notification("failed-boundary", { state: "failed", completedAt: dayAgo });
+  await notification("failed-now", { state: "failed", completedAt: now.toISOString() });
+  await notification("sent-boundary", { state: "sent", completedAt: dayAgo });
+  await notification("sent-now", { state: "sent", completedAt: now.toISOString() });
+  for (const state of ["sent", "failed"] as const) {
+    await notification(`${state}-old`, { state, completedAt: outside });
+    await notification(`${state}-future`, { state, completedAt: "2027-06-01T10:30:00.001Z" });
+    await notification(`${state}-foreign`, {
+      state,
+      organizationId: "b",
+      completedAt: now.toISOString(),
+    });
+    await notification(`${state}-lead`, {
+      state,
+      organizationId: null,
+      kind: "pilot_lead",
+      completedAt: now.toISOString(),
+    });
+  }
+  await notification("foreign-queue", { organizationId: "b", createdAt: older });
+  await notification("lead-queue", { organizationId: null, kind: "pilot_lead", createdAt: older });
+  for (const state of ["cancelled", "simulated"] as const)
+    await notification(state, { state, createdAt: older, completedAt: now.toISOString() });
+  const result = await status();
+  expect(result.components.email).toEqual({
+    provider: "resend",
+    status: "attention",
+    code: "email_failed",
+    queuedOver1Hour: 2,
+    failed24Hours: 2,
+    sent24Hours: 2,
+  });
+  expect(result.counters.notificationsQueued).toEqual({
+    count: 3,
+    status: "attention",
+    code: "backlog",
+  });
+  expect((await status(foreign)).components.email).toMatchObject({
+    queuedOver1Hour: 1,
+    failed24Hours: 1,
+    sent24Hours: 1,
+  });
+  expect(JSON.stringify(result)).not.toMatch(
+    /PII-|PRIVATE-|secret|@|envelope|lastError|dedupeKey|organizationId|subject/,
+  );
+  expect(send).not.toHaveBeenCalled();
+});
+
+it.each(["pending", "failed"] as const)(
+  "classifies email %s thresholds through the endpoint",
+  async (state) => {
+    services.notifications.adapter = { mode: "resend", send: vi.fn() };
+    expect((await status()).components.email).toMatchObject({ status: "ok", code: "available" });
+    for (let count = 1; count <= 5; count++) {
+      await notification(`threshold-${count}`, {
+        state,
+        createdAt: "2027-06-01T09:29:59Z",
+        completedAt: state === "failed" ? now.toISOString() : null,
+      });
+      const result = await status();
+      expect(result.components.email).toMatchObject({
+        status: count < 5 ? "attention" : "problem",
+        code: state === "failed" ? "email_failed" : "email_backlog",
+        [state === "failed" ? "failed24Hours" : "queuedOver1Hour"]: count,
+      });
+      if (count === 5) expect(result.status).toBe("problem");
+    }
+    // A severe backlog takes priority over a smaller number of failed sends.
+    if (state === "pending") {
+      await notification("one-failure", { state: "failed", completedAt: now.toISOString() });
+      expect((await status()).components.email.code).toBe("email_backlog");
+    }
+  },
+);
+
+it("reports console simulation without real sends and does not flag a fresh queue as backlog", async () => {
+  const logger = vi.fn();
+  services.notifications.adapter = new ConsoleEmail(logger);
+  for (let index = 0; index < 5; index++) await notification(`fresh-${index}`);
+  expect((await status()).counters.notificationsQueued).toEqual({
+    count: 5,
+    status: "ok",
+    code: "available",
+  });
+  expect(await sendNotifications(services, now)).toBe(5);
+  expect(logger).toHaveBeenCalledTimes(5);
+  const result = await status();
+  expect(result.components.email).toEqual({
+    provider: "console",
+    status: "attention",
+    code: "email_simulated",
+    queuedOver1Hour: 0,
+    failed24Hours: 0,
+    sent24Hours: 0,
+  });
+  expect(result.counters.notificationsQueued.count).toBe(0);
+  expect((await db.select().from(notifications)).every((row) => row.state === "simulated")).toBe(
+    true,
+  );
+  for (let index = 0; index < 5; index++)
+    await notification(`failed-${index}`, { state: "failed", completedAt: now.toISOString() });
+  expect((await status()).components.email).toMatchObject({
+    status: "problem",
+    code: "email_failed",
+  });
+});
+
+it("validates the documented status example against the current contract", async () => {
+  const example = JSON.parse(
+    await readFile(
+      new URL("../../../docs/verification/system-status-example.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  expect(SystemStatus.safeParse(example).success).toBe(true);
+});
+
 it("requires a live admin session; capabilities, operators and temporary passwords cannot access status", async () => {
   expect((await request("")).status).toBe(401);
   const rejected = await request(normal);
@@ -189,9 +345,17 @@ it("reports never-run jobs and unconfigured AI without contacting the provider",
     code: "not_configured",
   });
   expect(result.counters.notificationsQueued).toEqual({
-    count: null,
+    count: 0,
     status: "ok",
-    code: "not_supported",
+    code: "available",
+  });
+  expect(result.components.email).toEqual({
+    provider: "console",
+    status: "attention",
+    code: "email_simulated",
+    queuedOver1Hour: 0,
+    failed24Hours: 0,
+    sent24Hours: 0,
   });
   expect(generateText).not.toHaveBeenCalled();
 });
@@ -393,6 +557,15 @@ it("does not claim zero backlog when the authenticated status snapshot fails", a
   expect(result.components.maintenance.code).toBe("unavailable");
   expect(result.components.ai.hourly).toBeNull();
   expect(result.counters.documentsProcessingOver10Minutes.count).toBeNull();
+  expect(result.components.email).toEqual({
+    provider: "console",
+    status: "problem",
+    code: "unavailable",
+    queuedOver1Hour: null,
+    failed24Hours: null,
+    sent24Hours: null,
+  });
+  expect(result.counters.notificationsQueued.count).toBeNull();
   expect(JSON.stringify(result)).not.toContain("secret-query");
 });
 

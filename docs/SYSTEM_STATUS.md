@@ -8,7 +8,7 @@ l'organizzazione deriva dalla sessione. Un operatore riceve `403`; senza session
 Il contratto Zod **SystemStatus**, esportato da `@avanti/contracts`, è necessario perché
 backend e interfaccia devono condividere campi, codici e semantica dei valori mancanti.
 È uno schema rigoroso, senza campi liberi: `schemaVersion: 1`, `generatedAt`, stato
-aggregato, versione, cinque componenti e cinque contatori. Componenti e contatori hanno
+aggregato, versione, sei componenti e cinque contatori. Componenti e contatori hanno
 `status: ok | attention | problem` e un `code` enumerato. L'aggregato è il peggiore stato.
 L'[esempio JSON completo](verification/system-status-example.json) è sintetico e validabile
 con lo schema. Non contiene nomi, ID di pratiche/documenti/operatori/organizzazioni, URL,
@@ -48,8 +48,19 @@ non esegue comandi Git.
   elimina. Non certifica lo svuotamento completo della coda: i lotti possono lasciare
   file ancora non tentati. Il JSON del cron conserva `ok: true` per una chiamata
   completata con retry differiti; il DTO segnala il fallimento operativo.
-- **Notifiche**: non esiste oggi una coda di invio; `count: null`, `code: not_supported`
-  e stato `ok` (non aumenta l'aggregato). Non mostrare `0 notifiche`.
+- **Email**: `components.email` espone il provider effettivo (`console` o `resend`) e
+  tre conteggi del solo CAF autenticato: `queuedOver1Hour`, `failed24Hours` e
+  `sent24Hours`. `console` scrive solo log e non invia email reali: almeno
+  `attention/email_simulated`, anche con coda vuota. `resend` indica l'adattatore
+  configurato, non una verifica live del provider. `sent` significa accettazione
+  dell'invio dal provider, non ricezione nella casella del destinatario.
+  `simulated` e `cancelled` non contano come inviati o falliti.
+- **Coda email**: `counters.notificationsQueued.count` è il totale `pending/sending`
+  del CAF, di qualunque età; il suo livello dipende solo dal sottoinsieme più vecchio
+  di un'ora, così una coda appena creata non genera un allarme. Include i retry e
+  gli invii sotto lease, anche se `nextAttemptAt` è nel futuro. I lead al team senza
+  organizzazione sono esclusi da tutti i conteggi e dall'aggregato: l'endpoint non
+  ha un ambito globale email e un admin CAF non deve osservare attività del team.
 
 Se il DB fallisce dopo l'autenticazione, i dati non leggibili diventano `null` con
 `problem/unavailable`, mai zeri o `never_run`. Se fallisce prima di autenticare, l'API
@@ -73,7 +84,10 @@ Le soglie sono operative, non normative, e seguono il cron giornaliero UTC.
 | Pratiche in `needs_citizen` da **più di** 7 giorni | 0                                                       | 1–9                                                          | ≥10                                                                             |
 | Link validi in scadenza entro 7 giorni             | 0                                                       | 1–9                                                          | ≥10                                                                             |
 | Errori API recenti (HTTP 5xx)                      | 0                                                       | 1–4                                                          | ≥5                                                                              |
-| Notifiche in coda                                  | Non applicabile, `null/not_supported`                   | Non previsto                                                 | Non previsto                                                                    |
+| Email con provider `console`                       | Non previsto                                            | `email_simulated` se non ci sono anomalie più gravi          | Come coda/fallimenti; conteggi illeggibili                                      |
+| Email in `pending/sending` da **più di** 1 ora     | 0                                                       | 1–4, `email_backlog`                                         | ≥5, `email_backlog`                                                             |
+| Email definitivamente `failed` nelle ultime 24 h   | 0                                                       | 1–4, `email_failed`                                          | ≥5, `email_failed`                                                              |
+| Email `sent` nelle ultime 24 h                     | Qualunque conteggio leggibile                           | Non previsto                                                 | Conteggio illeggibile                                                           |
 
 Gli errori AI includono chiamate configurate degradate dal Gateway (anche input non
 supportati, output non valido e timeout) ed eccezioni della chiamata AI. Senza chiave,
@@ -87,6 +101,19 @@ fascicoli precedenti senza questi eventi si usa `updatedAt`; anche la scadenza d
 retention dell'audit può imporre questo ripiego. I link conteggiano fascicoli non chiusi,
 con `expiresAt > now` e `<= now + 7 giorni`: quelli già scaduti sono esclusi.
 I conteggi illeggibili sono sempre `null/problem`.
+
+Per la coda email si usa `createdAt < now - 1 ora`, mai l'ultimo retry: a un'ora
+esatta la riga è esclusa dal backlog. Per inviati/falliti si usa `completedAt` nella
+finestra mobile `[now - 24 ore, now]`, entrambi i confini inclusi; completamenti
+futuri e righe senza completamento sono esclusi. Un retry ancora `pending/sending`
+non è un fallimento definitivo. Il livello email è il peggiore fra backlog,
+fallimenti e simulazione; a parità di livello il codice dà precedenza a fallimenti,
+poi backlog, poi simulazione. Con `resend`, coda senza arretrati e zero fallimenti
+sono `ok/available` anche con zero inviati. Nessuna chiamata al provider o decifratura
+dell'outbox viene eseguita dalla dashboard; indirizzi, oggetti, contenuti ed errori
+non entrano nel DTO. Se lo snapshot DB fallisce, tutti e tre i conteggi email e il
+totale in coda diventano `null`, il componente è `problem/unavailable`; il provider
+configurato rimane visibile.
 
 ## Persistenza e migrazione
 
@@ -112,6 +139,12 @@ non deve bloccare una pratica altrimenti riuscita. Un fallimento può sottostima
 conteggi e produce solo `TelemetryUnavailable` nel logger configurato. Questo è un
 segnale operativo, non un audit completo delle chiamate. Nessuna dipendenza aggiunta.
 
+Per i conteggi email si riutilizza l'outbox esistente: la query della coda filtra
+`pending/sending` (indice parziale `notifications_due_idx`), quella dei completamenti
+limita `completedAt` alle ultime 24 ore (`notifications_completed_idx`). Entrambe
+filtrano `organization_id` nel DB e restituiscono solo aggregati, nello stesso
+snapshot read-only. Non serve una nuova migrazione per questo intervento.
+
 In produzione applicare la migrazione prima di distribuire il backend.
 La pianificazione e i segreti rimangono quelli del [runbook](DEPLOY.md).
 
@@ -121,6 +154,9 @@ La pianificazione e i segreti rimangono quelli del [runbook](DEPLOY.md).
 PII/segreti, fallback reale senza chiave e con provider simulato in errore, analisi,
 traduzioni, persistenza fra istanze, contatori concorrenti, timeout/probe assente,
 job mai eseguiti, fallimenti, guardia cron condivisa e recupero di un run abbandonato.
+Copre anche permessi email, cross-tenant e lead esclusi, confini a 1 ora/24 ore,
+soglie email 0/1/4/5, coda fresca, fallimenti definitivi distinti dai retry,
+simulazione console reale, precedenza dei codici, conteggi illeggibili ed esempio JSON.
 `packages/db/src/system-status-migration.test.ts` prova l'upgrade da 0008, i vincoli
 e la cancellazione in cascata. Le chiamate al provider sono simulate nei test:
 non sono una prova di disponibilità di AI/Blob/Postgres in produzione.
