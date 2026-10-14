@@ -48,6 +48,9 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 | `/console/pratiche/[id]` | Operatore | Fascicolo: problemi, verifica documenti, integrazioni, export |
 | `/console/metriche`      | Operatore | Tempi e completezza misurati                                  |
 | `/console/sportelli`     | Operatore | Link e QR degli sportelli, cartello A4 da stampare            |
+| `/console/impostazioni`  | Admin     | Operatori, parametri, avvisi via email                        |
+| `/console/registro`      | Admin     | Registro attività con export CSV                              |
+| `/console/stato`         | Admin     | Stato del sistema: database, archivio, AI, manutenzione, coda |
 
 ## Struttura
 
@@ -209,6 +212,7 @@ sotto 10 minuti dallo stesso IP, oltre a 10 operatori che accedono con un retry.
 - [Deploy e avvio CAF pilota: preflight, bootstrap, backup ed export](docs/DEPLOY.md)
 - [Ricerca ISEE 2027 e limiti annuali](docs/research/isee-2027.md)
 - [Decisioni backend](docs/decisions/backend.md)
+- [Stato del sistema: codici e soglie](docs/SYSTEM_STATUS.md)
 
 ISEE e 730 2027 sono preparati secondo le regole disponibili al 5–6 ottobre 2026:
 modelli e istruzioni annuali vanno ricontrollati prima del pilota. Avanti prepara
