@@ -1,5 +1,119 @@
 # Deploy Avanti: staging e avvio del pilota
 
+## Notifiche email e outbox
+
+Migrazione `0009_notifications`: outbox e preferenze dell'organizzazione.
+La richiesta API salva evento e outbox nella stessa transazione; dopo il commit
+registra con `services.background` l'invio del solo ID appena accodato, senza attendere
+il provider. Next usa `after()` come per l'analisi dei documenti. Il cron recupera
+retry e lavoro interrotto; un errore di scheduling/invio produce solo un log sintetico,
+senza indirizzi, contenuti o dettagli del provider. Gli host incorporati devono
+fornire `background` per l'invio immediato; senza questo hook resta il recupero cron.
+Configurare
+le variabili server (anche nella shell dei comandi amministrativi; mai `NEXT_PUBLIC_`):
+
+| Variabile               | Uso                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `NOTIFY_PROVIDER`       | `console` default; registra tipo e ID, simula senza inviare. `resend` abilita HTTP.               |
+| `NOTIFY_FROM`           | Indirizzo email semplice del mittente, con dominio verificato su Resend. Obbligatorio con Resend. |
+| `RESEND_API_KEY`        | Chiave privata Resend con permesso di invio. Obbligatoria con Resend.                             |
+| `LEADS_NOTIFY_EMAIL`    | Casella del team per candidature pilota; richiesta dal preflight con Resend.                      |
+| `NOTIFY_ENCRYPTION_KEY` | 32 byte casuali in hex, dedicati e stabili; obbligatoria in produzione anche con console.         |
+
+Generare la chiave con il gestore segreti o `openssl rand -hex 32` in terminale
+privato e conservarla separatamente dai backup del DB. Senza chiavi esterne in
+locale tutto funziona: console, PGlite e chiave AES generata in `.data/notify.key`
+(0600). Non cancellare quel file se ci sono righe pendenti. Il default di
+`createApp` è per DB di test isolati; host incorporati con DB persistente devono
+iniettare `notifications` con chiave persistente come il runtime Next.
+
+Resend è stato scelto per invio via `fetch` nativo con timeout 10 secondi e chiave
+di idempotenza HTTP: nessun SDK o dipendenza SMTP. Corpo solo testuale, senza HTML,
+allegati, link cittadino o tracking richiesto dal codice. Disabilitare click/open
+tracking nel dashboard del provider. [API invio](https://resend.com/docs/api-reference/emails/send-email).
+L'indirizzo mittente e il messaggio vengono congelati per i retry al primo tentativo;
+non cambiare provider/mittente durante un invio incerto. `sent` attesta accettazione
+HTTP del provider, senza garanzia di consegna: bounce e caselle spam vanno verificati
+operativamente.
+
+`GET /api/cron/maintenance`, autenticato con `CRON_SECRET`, genera al massimo 25
+riepiloghi di organizzazioni per run (uno per operatore attivo, una volta per giorno
+UTC), poi processa fino a 5 notifiche in ordine di scadenza del tentativo.
+Ogni nuovo digest registra anche un invio in background per ID dopo il commit:
+quelli oltre il lotto partono nello stesso run giornaliero. Il conteggio della risposta
+cron riguarda solo gli invii attesi dalla route, non quelli ancora in background.
+Conta le pratiche `submitted`/`in_review`,
+senza dati personali; un riepilogo arretrato viene annullato, il giorno corrente
+ne genera uno nuovo. Le due preferenze `notifyCitizenReady` e `notifyOperatorDigest`
+sono false per default e si aggiornano con `PATCH /api/settings` da admin. Le
+richieste di integrazione con email sono notifiche di servizio sempre attive.
+
+Ogni tentativo acquisisce una lease DB di 60 secondi e un lock durante l'I/O;
+worker concorrenti saltano righe occupate. Retry dopo 1, 2, 4, 8 minuti, massimo
+5 tentativi; errori permanenti HTTP passano subito a `failed`. Il payload e l'ID
+restano identici. Un rifiuto temporaneo confermato (HTTP 429) può essere recuperato
+anche dal cron del giorno dopo, senza azzerare il conteggio dei tentativi.
+Timeout, HTTP 409/5xx e risposte di successo non decodificabili mantengono invece
+l'esito incerto. Resend conserva l'idempotenza per 24 ore: entro 23 ore dal primo
+tentativo potenzialmente accettato si può recuperare una lease interrotta con lo stesso ID; oltre quel
+limite si marca `failed/retry_window_expired` per evitare duplicati dopo un esito
+incerto. Un successivo 429 non prolunga una finestra già incerta.
+[Finestra del provider](https://resend.com/docs/dashboard/emails/idempotency-keys),
+[errori HTTP](https://resend.com/docs/api-reference/errors).
+
+Il default del repo è `0 3 * * *` (03:00 UTC), compatibile con il cron giornaliero
+Hobby: candidature, integrazioni e pratica pronta partono in background dopo il
+commit; il digest viene generato e inviato nel run giornaliero. I retry attendono
+il prossimo cron, fino a circa 24 ore; gli esiti incerti fuori dalla finestra sicura
+richiedono verifica operativa. Su Pro/Enterprise si può impostare `* * * * *`
+per retry più rapidi, oppure usare uno scheduler esterno autenticato.
+Dimensionare cadenza/lotti sul volume e sulla durata massima della Function: cinque
+timeout email richiedono fino a 50 secondi, oltre alla restante manutenzione.
+Vercel invoca solo Production; per Preview/staging fare una chiamata manuale o
+usare un progetto/scheduler separato. Non distribuire dati reali nelle Preview.
+
+Prova locale con dati fittizi:
+
+1. Usare `NOTIFY_PROVIDER=console`, avviare `pnpm dev` con `CRON_SECRET` configurato.
+2. Inviare una candidatura dal modulo: insieme al record `leads` viene salvata
+   `pilot_lead/pending`, poi il background la porta a `simulated` senza cron.
+3. Da terminale privato chiamare la manutenzione (sostituire la porta se diversa):
+
+   ```sh
+   curl --fail -H "Authorization: Bearer $CRON_SECRET" http://localhost:3400/api/cron/maintenance
+   ```
+
+4. Il log deve contenere solo `kind` e `id`, la riga deve essere `simulated`, con
+   `envelope=null`. Ripetere dopo un minuto: nessun nuovo invio dello stesso evento.
+5. Creare una pratica con email fittizia e chiedere un'integrazione dalla console;
+   senza email nessuna notifica. Per provare “pronta”/riepilogo abilitare da admin
+   `{"notifyCitizenReady":true,"notifyOperatorDigest":true}`: “pronta” parte in
+   background, il riepilogo dal cron. Ripetere il cron il giorno UTC successivo:
+   deve arrivare un nuovo riepilogo, senza reinviare le notifiche già completate.
+6. Test automatizzati: `pnpm --filter @avanti/api exec vitest run src/notifications.test.ts`.
+   HTTP è iniettato/finto; nessun invio reale. Per verificare le caselle sullo staging,
+   usare solo indirizzi controllati e dati fittizi dopo configurazione del provider.
+
+Monitoraggio riservato nel DB: conteggi per `state/kind`, età del più vecchio
+`pending`, `attempts`, `next_attempt_at`, categorie fisse `last_error`. Non stampare
+`envelope`, indirizzi, corpi o risposte HTTP. `configuration_missing` attende un'ora
+senza consumare tentativi; configurare destinatario/mittente e richiamare il cron.
+La risposta cron riporta `queuedDigests` e `deliveredNotifications`; quest'ultimo
+include simulazioni quando il provider è console, non una ricevuta di recapito.
+
+Con `failed`/finestra scaduta, verificare l'ID nel dashboard Resend prima di qualunque
+reinvio manuale: mai azzerare tentativi o creare una nuova chiave alla cieca. Correggere
+la causa; una nuova azione dell'operatore costituisce un evento nuovo. Non è previsto
+un endpoint pubblico di replay. Console produce `simulated` e non viene riconvertito
+in invio reale cambiando configurazione: consultare il lead originale nel DB se serve
+il ricontatto. Payload pendenti/falliti scadono dopo 7 giorni; ricevute operative dopo
+30 giorni dal completamento, al passaggio cron. Cancellare una pratica elimina anche
+le sue notifiche; documentare separatamente backup e copie del provider.
+
+Prima del pilota: verifica DPA, dominio mittente, retention/trasferimenti del provider,
+restore della chiave AES, cadenza reale cron e gestione degli errori. Non sono attestati
+dal passaggio dei test locali. [Minimizzazione e basi giuridiche](SECURITY.md#email-di-servizio-e-candidature-pilota-14-ottobre-2026).
+
 Procedura verificata sulle fonti ufficiali il **6 ottobre 2026**. Lo staging usa solo
 persone e documenti fittizi, risorse separate e un dominio dedicato. Il deploy remoto,
 Postgres gestito, Blob e cron devono ancora essere provati: i test locali non li attestano.
@@ -39,15 +153,17 @@ Fonti: [Neon piani](https://neon.com/docs/introduction/plans)
 [Postgres via Marketplace](https://vercel.com/docs/postgres).
 
 Scelta proposta per il primo staging: Neon Launch a Frankfurt, compute iniziale 0,25 CU,
-restore window 7 giorni e budget/avvisi. Il default giornaliero consente lo scale-to-zero
-tra richieste; le stime di compute continuo in tabella sono un riferimento, non il costo
-garantito del nuovo default. Il cron al minuto tiene invece attivo il compute. Supabase Pro è un'alternativa
+restore window 7 giorni e budget/avvisi. La cadenza opzionale al minuto può tenere
+attivo il compute: le stime in tabella sono un riferimento, non una promessa di costo.
+Con il default giornaliero il DB può sospendersi fra richieste; gli invii immediati
+non dipendono dal cron, mentre il recupero degli esiti incerti conserva il limite
+di sicurezza descritto sopra. Supabase Pro è un'alternativa
 con costo base più prevedibile e backup giornalieri. I Free servono a prove fittizie:
 Neon ha una finestra di ripristino breve e Supabase Free non include backup automatici.
 Prima del pilota fare un restore su una risorsa isolata e definire RPO/RTO e responsabilità.
 Il backup DB non comprende i file nel Blob: serve una procedura distinta per questi.
 
-Il codice è compatibile con Hobby, incluso il cron giornaliero. Hobby è riservato
+Il default giornaliero permette le prove su Hobby senza modifiche allo schedule. Hobby è riservato
 all’uso personale non commerciale: per il servizio CAF usare il piano appropriato,
 normalmente Pro. [Condizioni Hobby](https://vercel.com/docs/plans/hobby).
 Aggiungere Vercel Pro (base $20/mese, più utilizzo), Blob, eventuale AI, dominio e imposte.
@@ -242,15 +358,18 @@ non equivale a garanzia che CDN, log, backup e subresponsabili restino tutti nel
 
 ## 7. Attivare e verificare manutenzione
 
-Il default in `apps/web/vercel.json` è **`0 3 * * *`**, giornaliero in UTC.
-È compatibile con Hobby, che ha precisione entro l’ora; Pro permette ogni minuto.
-Il default evita un fallimento al primo deploy Hobby e lascia sospendere Neon:
-il recupero delle pratiche aperte non dipende dalla frequenza del cron.
+Il default in `apps/web/vercel.json` è **`0 3 * * *`**, giornaliero alle 03:00 UTC.
+Hobby ammette questa cadenza con precisione entro l'ora. Le notifiche degli eventi
+partono in background dopo il commit; il cron genera i digest e recupera retry,
+analisi e pulizie. Su Pro/Enterprise si può passare a **`* * * * *`** per retry
+più rapidi; il compute DB può restare attivo: pianificare budget e monitoraggio.
+Il recupero delle analisi sulle
+pratiche aperte continua anche tramite letture autorizzate.
 [Cron e piani](https://vercel.com/docs/cron-jobs/usage-and-pricing).
 
-Per Pro cambiare solo `crons[0].schedule` in **`* * * * *`** prima del prossimo
-rilascio. Non è una variabile runtime: Vercel registra lo schedule dal file al deploy.
-Per tornare giornaliero ripristinare `0 3 * * *`. Su host Node configurare lo scheduler
+Non è una variabile runtime: Vercel registra lo schedule dal file al deploy.
+Per cambiare la cadenza su Pro modificare `crons[0].schedule` e rifare il deploy.
+Su host Node configurare `services.background` e lo scheduler
 esterno sulla medesima route. Vercel aggiunge `Authorization: Bearer <CRON_SECRET>`;
 segreto assente o errato dà 401. [Autenticazione](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
 
@@ -265,7 +384,7 @@ sul provider AI dopo una terminazione: vale il limite del lease e la scadenza AI
 
 Recupero: fino a 4 documenti per lettura/run, budget 45 secondi tra lavori, storage
 10 secondi e analisi 25 secondi massimi per lavoro; la route ha 120 secondi disponibili.
-Retention: fino a 25 fascicoli/run; retry file: fino a 100/run. Il cron giornaliero
+Retention: fino a 25 fascicoli/run; retry file: fino a 100/run. Il cron
 recupera anche le pratiche mai riaperte e fa le pulizie. Con backlog superiore ai
 lotti servono run ulteriori o cadenza Pro; la retention è un criterio di eleggibilità,
 non una promessa di cancellazione all’istante esatto. Monitorare conteggi e ritardi.
