@@ -145,3 +145,20 @@ test("a lost citizen link is replaced and the old one stops working", async ({ p
   await citizen.goto(newLink);
   await expect(citizen.getByRole("heading", { name: "Cosa devi fare?" })).toBeVisible();
 });
+
+test("slash jumps to the queue search and Escape clears it", async ({ page }) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+
+  const search = page.getByRole("searchbox", { name: "Cerca pratiche" });
+  await page.keyboard.press("/");
+  await expect(search).toBeFocused();
+  await page.keyboard.type("Persona");
+  await expect(search).toHaveValue("Persona");
+  await page.keyboard.press("Escape");
+  await expect(search).toHaveValue("");
+  await expect(search).not.toBeFocused();
+});
