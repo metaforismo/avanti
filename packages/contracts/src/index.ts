@@ -866,10 +866,18 @@ export const OrganizationSettings = z.object({
   linkDays: z.number().int().min(1).max(365),
   /** How long Avanti keeps closed or expired cases and their files, in days. */
   retentionDays: z.number().int().min(30).max(3650),
+  /** Service email when the operator marks a case ready. Off unless enabled by the CAF. */
+  notifyCitizenReady: z.boolean().default(false),
+  /** Daily UTC aggregate, sent to active operators. No citizen data. */
+  notifyOperatorDigest: z.boolean().default(false),
 });
 export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 
-export const UpdateSettingsRequest = OrganizationSettings.partial();
+// PATCH must preserve omitted preferences; Zod defaults would otherwise reset them.
+export const UpdateSettingsRequest = OrganizationSettings.partial().extend({
+  notifyCitizenReady: z.boolean().optional(),
+  notifyOperatorDigest: z.boolean().optional(),
+});
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
 export const OperatorSummary = z.object({

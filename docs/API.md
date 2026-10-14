@@ -243,7 +243,7 @@ richiedono aggiornamento normativo prepilota; beta non sostituisce la revisione 
 sessione operatore richiesta. Il job elimina sessioni e bucket scaduti e ritenta le
 cancellazioni storage; risponde `{ok:true}`, oppure `{ok:true,skipped:true}` entro il
 cooldown di un minuto. Un segreto assente o errato dà 401. Compatibile con Vercel Cron;
-è pianificato ogni minuto in `apps/web/vercel.json`, con Vercel Pro e `CRON_SECRET`
+è pianificato ogni giorno alle 03:00 UTC in `apps/web/vercel.json`, con `CRON_SECRET`
 in Production. Le Preview non hanno cron automatico; dettagli in [DEPLOY](DEPLOY.md). Nessun purge globale durante i POST utente.
 
 ## Amministrazione dei CAF pilota
@@ -291,6 +291,15 @@ la città non viene aggiunta di nuovo: «Milano Centro» a Milano diventa
 `milano-centro`. Lo slug resta unico nel sistema, con suffisso numerico in caso di
 collisione, e invariato dopo gli edit di nome o città.
 `linkDays` vale per nuovi link e rigenerazioni, senza cambiare la scadenza dei link esistenti.
+`OrganizationSettings` include
+anche `notifyCitizenReady` e `notifyOperatorDigest`, booleani false per default:
+email al cittadino al passaggio a “pronta” e riepilogo giornaliero per gli operatori
+attivi. `PATCH /settings` conserva le preferenze omesse; input non booleani sono
+rifiutati. Nessun nuovo endpoint è necessario per l'invio: outbox e dispatch in
+background dopo il commit, cron per digest e recupero dei retry.
+I testi email sono in otto lingue; destinatario assente significa nessuna notifica
+cittadino. [Configurazione e retry](DEPLOY.md#notifiche-email-e-outbox).
+
 `retentionDays` viene applicato dal cron ai
 fascicoli chiusi o scaduti da più del periodo configurato (25 per esecuzione).
 La cancellazione manuale richiede il riferimento, senza distinzione maiuscole/minuscole.

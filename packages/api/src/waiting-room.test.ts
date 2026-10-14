@@ -1,3 +1,4 @@
+import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
@@ -33,6 +34,7 @@ let now = new Date("2027-01-05T10:00:00Z");
 const origin = "https://avanti.example.test";
 const sharedIp = "192.0.2.1";
 const services = (): Services => ({
+  notifications: defaultNotifications(),
   db,
   storage: new MemoryStorage(),
   ai: new GatewayIntelligence(),

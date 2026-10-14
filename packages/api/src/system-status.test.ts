@@ -1,3 +1,4 @@
+import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { SystemStatus, ApiError } from "@avanti/contracts";
 import {
@@ -105,6 +106,7 @@ beforeEach(async () => {
     production: false,
     cronSecret: "secret-cron",
     errorLogger: vi.fn(),
+    notifications: defaultNotifications(),
   };
   app = createApp(services);
 });

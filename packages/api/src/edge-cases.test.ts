@@ -1,3 +1,4 @@
+import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { PDFDocument, PDFName, PDFNumber } from "pdf-lib";
@@ -633,7 +634,15 @@ it("operators: background analysis invalidates a previously read dossier", async
   const before = await dossier(intake.case.id);
   const { analyzePendingDocument } = await import("./document-analysis");
   await analyzePendingDocument(
-    { db, storage, ai, clock: () => now, publicUrl: origin, production: false },
+    {
+      db,
+      storage,
+      ai,
+      notifications: defaultNotifications(),
+      clock: () => now,
+      publicUrl: origin,
+      production: false,
+    },
     uploaded.documents[0]!.id,
   );
   await conflict(
@@ -781,6 +790,7 @@ it("documents: an upload past its durable lease cannot restore a file removed by
     now = new Date(Date.parse(initial) + 600001);
     const { retryStorageDeletions } = await import("./storage-cleanup");
     await retryStorageDeletions({
+      notifications: defaultNotifications(),
       db,
       storage,
       ai,

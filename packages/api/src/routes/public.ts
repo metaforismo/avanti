@@ -6,6 +6,7 @@ import { body, parse, type App, type Services } from "../context";
 import { healthCheck } from "../health";
 import { notFound } from "../security";
 import { officeView, organizationView } from "../views";
+import { enqueueLead, scheduleNotificationDelivery } from "../notifications";
 
 export function mountPublicRoutes(app: App, services: Services) {
   const healthy = healthCheck(services);
@@ -36,19 +37,25 @@ export function mountPublicRoutes(app: App, services: Services) {
   });
   app.post("/leads", async (context) => {
     const input = await body(context, PilotLeadRequest);
-    const now = services.clock().toISOString();
-    await services.db.insert(leads).values({
-      id: crypto.randomUUID(),
-      name: input.name,
-      organization: input.organization,
-      role: input.role ?? null,
-      email: input.email,
-      phone: input.phone ?? null,
-      offices: input.offices ?? null,
-      message: input.message ?? null,
-      privacyAcceptedAt: now,
-      createdAt: now,
+    const clock = services.clock();
+    const now = clock.toISOString();
+    const id = crypto.randomUUID();
+    const notificationId = await services.db.transaction(async (tx) => {
+      await tx.insert(leads).values({
+        id,
+        name: input.name,
+        organization: input.organization,
+        role: input.role ?? null,
+        email: input.email,
+        phone: input.phone ?? null,
+        offices: input.offices ?? null,
+        message: input.message ?? null,
+        privacyAcceptedAt: now,
+        createdAt: now,
+      });
+      return enqueueLead(tx, services, id, input, clock);
     });
+    scheduleNotificationDelivery(services, notificationId);
     return context.json({ ok: true }, 201);
   });
 }

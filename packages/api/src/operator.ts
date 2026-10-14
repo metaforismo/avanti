@@ -1,4 +1,5 @@
 import { and, eq, desc, lt, or, ilike, sql, count, gte } from "drizzle-orm";
+import { enqueueCitizen, scheduleNotificationDelivery } from "./notifications";
 import { observeAi } from "./operational-telemetry";
 import {
   cases,
@@ -221,6 +222,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
   app.patch("/cases/:id", async (c) => {
     const { expectedUpdatedAt, ...input } = await body(c, UpdateCaseRequest);
     const operator = c.get("operator");
+    let notificationId: string | undefined;
     const row = await s.db.transaction(async (tx) => {
       const current = await caseById(tx, c.req.param("id"), operator.organizationId, true);
       assertCaseVersion(current, expectedUpdatedAt);
@@ -277,6 +279,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .returning();
       if (!updated) throw notFound();
       if (input.status === "ready" && current.status !== "ready") {
+        notificationId = await enqueueCitizen(tx, s, updated, "citizen_ready");
         await audit(tx, updated, "operator", "review.completed", now, operator.id, {
           durationMinutes: minutes(updated.reviewStartedAt, updated.reviewCompletedAt),
         });
@@ -300,6 +303,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         await audit(tx, updated, "operator", "case.note_updated", now, operator.id);
       return updated;
     });
+    scheduleNotificationDelivery(s, notificationId);
     return c.json(await dossierView(s.db, row, s.clock()));
   });
   app.post("/cases/:id/checklist/:itemId/review", async (c) => {
@@ -371,6 +375,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
   app.post("/cases/:id/requests", async (c) => {
     const input = await body(c, RequestFromCitizenRequest);
     const operator = c.get("operator");
+    let notificationId: string | undefined;
     const initial = await caseById(s.db, c.req.param("id"), operator.organizationId);
     assertCaseVersion(initial, input.expectedUpdatedAt);
     const translated = await observeAi(s, initial.organizationId, () =>
@@ -446,8 +451,10 @@ export function mountOperatorRoutes(app: App, s: Services) {
         itemsCount: input.checklistItemIds.length,
         heuristic: translated.engine === "heuristic",
       });
+      notificationId = await enqueueCitizen(tx, s, updated, "citizen_request", selected);
       return updated;
     });
+    scheduleNotificationDelivery(s, notificationId);
     if (translated.engine) c.header("X-Avanti-Engine", translated.engine);
     return c.json(await dossierView(s.db, row, s.clock()));
   });

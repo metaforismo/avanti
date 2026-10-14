@@ -550,7 +550,13 @@ describe("organization administration", () => {
     const current = OrganizationSettings.parse(
       await (await request("/settings", "GET", undefined, admin)).json(),
     );
-    expect(current).toEqual({ baselineMinutesPerCase: null, linkDays: 60, retentionDays: 180 });
+    expect(current).toEqual({
+      baselineMinutesPerCase: null,
+      linkDays: 60,
+      retentionDays: 180,
+      notifyCitizenReady: false,
+      notifyOperatorDigest: false,
+    });
     const createCase = () =>
       request(
         "/cases",
@@ -572,6 +578,8 @@ describe("organization administration", () => {
       baselineMinutesPerCase: 30,
       linkDays: 7,
       retentionDays: 90,
+      notifyCitizenReady: false,
+      notifyOperatorDigest: false,
     });
     const after = await createCase();
     expect(after.status).toBe(201);

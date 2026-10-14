@@ -13,6 +13,7 @@ import { purgeRetainedCases } from "../case-erasure";
 import { retryStorageDeletions } from "../storage-cleanup";
 import { ApiFailure } from "../security";
 import { purgeAuditEvents } from "../audit-log";
+import { maintainNotifications } from "../notifications";
 import { startSystemJob, finishSystemJob } from "../operational-telemetry";
 
 export function mountMaintenance(app: App, s: Services) {
@@ -55,6 +56,7 @@ export function mountMaintenance(app: App, s: Services) {
           ),
         );
       await clearExpiredRateLimits(s.db, now);
+      const notificationResult = await maintainNotifications(s, now);
       await startSystemJob(s, "retention", runId);
       let deletedCases: number;
       let deletedAuditEvents: number;
@@ -79,7 +81,7 @@ export function mountMaintenance(app: App, s: Services) {
         .delete(operationalCounters)
         .where(lt(operationalCounters.hour, new Date(now.getTime() - 7 * 86400000).toISOString()));
       await finishSystemJob(s, "maintenance", runId, outcome);
-      return c.json({ ok: true, deletedCases, deletedAuditEvents });
+      return c.json({ ok: true, deletedCases, deletedAuditEvents, ...notificationResult });
     } catch (error) {
       await finishSystemJob(s, "maintenance", runId, "failed");
       throw error;

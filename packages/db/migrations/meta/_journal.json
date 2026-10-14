@@ -71,6 +71,13 @@
       "when": 1791987892482,
       "tag": "0009_loving_carmella_unuscione",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791992644995,
+      "tag": "0010_notifications",
+      "breakpoints": true
     }
   ]
 }

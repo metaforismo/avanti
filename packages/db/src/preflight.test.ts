@@ -12,6 +12,30 @@ const valid = () => ({
   PUBLIC_APP_URL: "https://avanti.example",
   RATE_LIMIT_SECRET: randomBytes(32).toString("hex"),
   CRON_SECRET: randomBytes(32).toString("hex"),
+  NOTIFY_ENCRYPTION_KEY: randomBytes(32).toString("hex"),
+});
+it("validates notification provider, configuration and a dedicated encryption secret", () => {
+  expect(
+    preflight({ ...valid(), NOTIFY_PROVIDER: "smtp" }).some(
+      (i) => i.level === "error" && i.message.includes("NOTIFY_PROVIDER"),
+    ),
+  ).toBe(true);
+  const missing = preflight({ ...valid(), NOTIFY_PROVIDER: "resend" });
+  for (const key of ["RESEND_API_KEY", "NOTIFY_FROM", "LEADS_NOTIFY_EMAIL"])
+    expect(missing.some((i) => i.level === "error" && i.message.includes(key))).toBe(true);
+  const env = valid();
+  expect(
+    preflight({ ...env, NOTIFY_ENCRYPTION_KEY: env.CRON_SECRET }).some(
+      (i) => i.level === "error" && i.message.includes("distinto"),
+    ),
+  ).toBe(true);
+  expect(
+    preflight({
+      ...env,
+      NOTIFY_FROM: "private-invalid",
+      LEADS_NOTIFY_EMAIL: "private-invalid",
+    }).filter((i) => i.level === "error"),
+  ).toHaveLength(2);
 });
 it("checks production without logging values or making network requests", () => {
   const env = valid();
@@ -24,6 +48,7 @@ it("checks production without logging values or making network requests", () => 
     env.BLOB_READ_WRITE_TOKEN,
     env.CRON_SECRET,
     env.RATE_LIMIT_SECRET,
+    env.NOTIFY_ENCRYPTION_KEY,
   ])
     expect(JSON.stringify(result)).not.toContain(secret);
 });
@@ -35,6 +60,7 @@ it("reports every missing obligation, permits local fallback, and does not requi
     "PUBLIC_APP_URL",
     "RATE_LIMIT_SECRET",
     "CRON_SECRET",
+    "NOTIFY_ENCRYPTION_KEY",
   ])
     expect(errors.some((issue) => issue.message.includes(key))).toBe(true);
   expect(preflight({}, false).every((issue) => issue.level !== "error")).toBe(true);
