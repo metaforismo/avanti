@@ -76,6 +76,12 @@ it("seed is idempotent, creates safe PDFs, and preserves operator edits", async 
     expect(file.subarray(0, 4).toString()).toBe("%PDF");
     expect(file.byteLength).toBe(document!.sizeBytes);
     const audit = await db.select().from(events);
+    expect(
+      audit.every(
+        (event) =>
+          event.caseReference === seededCases.find((row) => row.id === event.caseId)?.reference,
+      ),
+    ).toBe(true);
     expect(audit.filter((event) => event.type === "citizen.requested")).toHaveLength(2);
     expect(
       audit.every((event) =>

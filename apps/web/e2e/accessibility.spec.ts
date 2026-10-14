@@ -39,7 +39,7 @@ test("operator login and queue are accessible", async ({ page }) => {
   await expectNoSeriousViolations(page);
 
   await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
   await expectNoSeriousViolations(page);

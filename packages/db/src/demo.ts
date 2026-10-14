@@ -372,6 +372,7 @@ export async function seedDemo(
           {
             id: `${id}-created`,
             caseId: id,
+            caseReference: reference,
             organizationId,
             actor: "citizen" as const,
             actorId: null,
@@ -384,6 +385,7 @@ export async function seedDemo(
           audit.push({
             id: `${id}-submitted`,
             caseId: id,
+            caseReference: reference,
             organizationId,
             actor: "citizen",
             actorId: null,
@@ -396,6 +398,7 @@ export async function seedDemo(
           await tx.insert(events).values({
             id: `${id}-review-start`,
             caseId: id,
+            caseReference: reference,
             organizationId,
             actor: "operator",
             actorId: "demo-operator",
@@ -407,6 +410,7 @@ export async function seedDemo(
           await tx.insert(events).values({
             id: `${id}-review-complete`,
             caseId: id,
+            caseReference: reference,
             organizationId,
             actor: "operator",
             actorId: "demo-operator",
@@ -426,6 +430,7 @@ export async function seedDemo(
           await tx.insert(events).values({
             id: `${id}-requested`,
             caseId: id,
+            caseReference: reference,
             organizationId,
             actor: "operator",
             actorId: "demo-operator",

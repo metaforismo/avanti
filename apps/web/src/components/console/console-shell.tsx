@@ -8,6 +8,7 @@ import {
   Menu,
   Plus,
   QrCode,
+  ScrollText,
   Settings,
   X,
 } from "lucide-react";
@@ -58,6 +59,13 @@ const NAV: NavItem[] = [
     label: "Impostazioni",
     icon: Settings,
     match: (p) => p.startsWith("/console/impostazioni"),
+    adminOnly: true,
+  },
+  {
+    href: "/console/registro",
+    label: "Registro attività",
+    icon: ScrollText,
+    match: (p) => p.startsWith("/console/registro"),
     adminOnly: true,
   },
   {

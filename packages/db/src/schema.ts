@@ -243,12 +243,14 @@ export const events = pgTable(
   "events",
   {
     id: text("id").primaryKey(),
-    caseId: text("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    caseId: text("case_id").references(() => cases.id, { onDelete: "restrict" }),
     // No FK: the erasure audit survives the removal of the case and its personal data.
     deletedCaseId: text("deleted_case_id"),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
+    caseReference: text("case_reference"),
+    subjectOperatorId: text("subject_operator_id"),
+    organizationId: text("organization_id").references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
     actor: text("actor").$type<"citizen" | "operator" | "system" | "ai">().notNull(),
     actorId: text("actor_id"),
     type: text("type").notNull(),
@@ -260,7 +262,11 @@ export const events = pgTable(
       columns: [t.caseId, t.organizationId],
       foreignColumns: [cases.id, cases.organizationId],
       name: "events_case_org_fk",
-    }).onDelete("cascade"),
+    }).onDelete("restrict"),
+    check(
+      "events_scope_check",
+      sql`${t.organizationId} is not null or (${t.type} = 'auth.login_failed' and ${t.actor} = 'system' and ${t.actorId} is null and ${t.subjectOperatorId} is null and ${t.caseId} is null and ${t.deletedCaseId} is null and ${t.caseReference} is null)`,
+    ),
     check("events_actor_check", sql`${t.actor} in ('citizen', 'operator', 'system', 'ai')`),
     check(
       "events_metadata_check",
@@ -269,6 +275,11 @@ export const events = pgTable(
     index("events_case_type_time_idx").on(t.caseId, t.type, t.at),
     index("events_case_time_idx").on(t.caseId, t.at),
     index("events_org_type_time_idx").on(t.organizationId, t.type, t.at),
+    index("events_org_time_id_idx").on(t.organizationId, t.at, t.id),
+    index("events_at_id_idx").on(t.at, t.id),
+    index("events_org_reference_time_idx").on(t.organizationId, t.caseReference, t.at, t.id),
+    index("events_org_actor_time_idx").on(t.organizationId, t.actorId, t.at, t.id),
+    index("events_org_subject_time_idx").on(t.organizationId, t.subjectOperatorId, t.at, t.id),
   ],
 );
 

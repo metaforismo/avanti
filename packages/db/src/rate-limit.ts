@@ -8,7 +8,7 @@ export async function consumeRateLimit(
   now: Date,
   maxCount: number,
   windowSeconds: number,
-): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+): Promise<{ allowed: boolean; retryAfterSeconds: number; firstRejection: boolean }> {
   if (
     !key ||
     !Number.isInteger(maxCount) ||
@@ -36,6 +36,8 @@ export async function consumeRateLimit(
   const allowed = limit.count <= maxCount;
   return {
     allowed,
+    // Only the request that crosses the limit: callers log it once per window, not per attempt.
+    firstRejection: limit.count === maxCount + 1,
     retryAfterSeconds: allowed
       ? 0
       : Math.max(1, Math.ceil((new Date(limit.resetAt).getTime() - now.getTime()) / 1000)),

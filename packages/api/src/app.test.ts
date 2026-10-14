@@ -967,7 +967,7 @@ describe("authentication and tenant isolation", () => {
 });
 
 describe("second backend review", () => {
-  it("4: reading a submitted dossier leaves queue timestamp and history unchanged", async () => {
+  it("4: reading a submitted dossier preserves the queue timestamp and records only access events", async () => {
     const intake = await start();
     await db.update(cases).set({ status: "submitted" }).where(eq(cases.id, intake.case.id));
     const cookie = await login();
@@ -979,7 +979,11 @@ describe("second backend review", () => {
     );
     expect(view.status).toBe("submitted");
     expect(view.updatedAt).toBe(initialInstant);
-    expect(await db.select().from(events).where(eq(events.caseId, intake.case.id))).toEqual(before);
+    const after = await db.select().from(events).where(eq(events.caseId, intake.case.id));
+    expect(
+      after.filter((event) => !["case.viewed", "dsu_sheet.viewed"].includes(event.type)),
+    ).toEqual(before);
+    expect(after.filter((event) => event.type === "case.viewed")).toHaveLength(1);
     expect((await db.select().from(sessions))[0]?.id).toBe(sessionsBefore[0]?.id);
   });
   it.each(["intake", "submitted", "in_review", "needs_citizen", "ready"] as const)(

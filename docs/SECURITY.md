@@ -179,9 +179,12 @@ di `linkDays` si applica solo ai nuovi link; la retention aggiornata vale per le
 esecuzioni successive del job.
 
 La cancellazione rimuove insieme fascicolo, risposte (incluse le persone), contatti,
-note, messaggi, revisioni, metadati dei documenti e vecchi eventi collegati. Conserva
-un solo audit senza contenuti personali: organizzazione, operatore (o sistema),
-istante e id del fascicolo, senza riferimento, nomi o testo libero. I file locali o
+note, messaggi, revisioni e metadati dei documenti. Gli eventi vengono scollegati
+dal fascicolo nella stessa transazione e mantengono ID e riferimento tecnico della
+pratica, organizzazione, ID dell’operatore (o cittadino/sistema), istante, azione e
+conteggi/flag ammessi. I vincoli restrittivi impediscono una cancellazione accidentale
+della cronologia attraverso la pratica. Nessun nome, email, CF, testo libero, password,
+token, hash di credenziali o contenuto di documento è aggiunto all’audit. I file locali o
 Blob sono cancellati dopo il commit; un errore lascia una tombstone in
 `storage_deletions`, ritentata con backoff fino alla conferma dello storage. Il job
 ritenta al massimo 100 file per esecuzione ed è idempotente; i fascicoli in uso da
@@ -192,7 +195,49 @@ confermando il riferimento; usa la stessa cancellazione e lo stesso retry dei fi
 Restano manuali l’attivazione e la verifica dello scheduler nel deployment (giornaliero per il pilota; aumentare
 la frequenza o i run se il volume supera i lotti), il monitoraggio dei retry,
 l’identificazione del richiedente, la valutazione degli obblighi di conservazione,
-la gestione delle copie esportate/backup e la durata appropriata degli audit.
+la gestione delle copie esportate/backup e la valutazione della durata degli audit.
+
+### Registro attività e conservazione separata
+
+`GET /api/audit` e `GET /api/audit/export.csv` richiedono un amministratore attivo
+del CAF con password definitiva. Un controllo del ruolo sotto lock condiviso dura
+fino al commit; il filtro dell’organizzazione autenticata è obbligatorio in ogni
+query. Gli attori sono identificati con ID tecnici, senza esporre nomi o email nel
+registro. Per i tentativi falliti l’attore è «sistema»: l’account interessato, se
+esistente, non dimostra l’identità di chi ha tentato l’accesso. L’email è omessa
+anche nei fallimenti. Tentativi per account sconosciuti non hanno organizzazione:
+restano eventi di sicurezza riservati al gestore, non consultabili da alcun CAF.
+Anche i tentativi validati respinti dal rate limit sono registrati, con un flag.
+L’autenticazione per export organizzazione da CLI usa le stesse azioni e aggiunge
+il flag `cli=true`, senza registrare le credenziali.
+Richieste malformate/respinte prima dell’autenticazione restano errori di validazione,
+non accessi riusciti. I dettagli esposti hanno chiavi fisse e valori numerici/booleani;
+chiavi storiche sconosciute e categorie non riconosciute non vengono rese come testo.
+
+Gli audit durano **365 giorni dal proprio istante**, indipendentemente dai
+`retentionDays` delle pratiche. È una scelta tecnica iniziale per indagini,
+ricostruzione degli accessi e gestione dei diritti, **non un termine imposto dal
+GDPR**: il titolare deve documentarne necessità e proporzionalità prima del pilota.
+Il cron elimina al massimo 1.000 eventi scaduti per run, inclusi quelli senza tenant;
+all’esatto limite di età l’evento è ancora conservato. Il volume può richiedere run
+aggiuntivi; la scadenza è quindi applicata a lotti, non una garanzia di eliminazione
+esattamente al giorno 365. La cancellazione anticipata della pratica non anticipa
+quella dei suoi eventi; gli audit storici già eliminati non sono recuperabili.
+
+Gli ID e i riferimenti restano potenzialmente collegabili alle persone: il registro
+è minimizzato e pseudonimo, non anonimo. Le copie CSV sono riservate e il CAF deve
+gestirne accesso e cancellazione separatamente. Le letture del fascicolo da parte
+dell’operatore registrano l’accesso e, se restituito nel dossier, anche il prospetto
+DSU. Nessuna lettura cambia `updatedAt` o avvia la revisione. Gli export CSV hanno
+un limite di 5.000 eventi, una quota per operatore/IP e un evento dedicato con il
+solo conteggio delle righe; oltre il limite sono rifiutati senza consegna parziale.
+Se l’evento di audit non può essere scritto, l’export e le mutazioni sensibili
+falliscono. Login falliti sono committati prima della risposta 401, senza creare sessioni.
+
+Questo registro tecnico supporta l’accountability; non sostituisce il registro
+delle attività di trattamento né la procedura per rispondere all’interessato.
+[GDPR, artt. 5(1)(e), 5(2), 15 e 30](https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita).
+Contratto, filtri e testi delle azioni in [audit-log.md](verification/audit-log.md).
 
 Runbook da concordare prima del pilota:
 

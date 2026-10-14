@@ -146,8 +146,8 @@ describe("PostgreSQL schema on PGlite", () => {
       metadata: { count: 1, heuristic: true, optional: null },
     });
     expect(await db.select().from(events)).toHaveLength(1);
-    await db.delete(cases).where(eq(cases.id, "case-a"));
-    expect(await db.select().from(events)).toEqual([]);
+    await expect(db.delete(cases).where(eq(cases.id, "case-a"))).rejects.toThrow();
+    expect(await db.select().from(events)).toHaveLength(1);
   });
 
   it("rejects assignment to operators from another organization", async () => {

@@ -57,6 +57,13 @@
       "when": 1791290615629,
       "tag": "0007_acoustic_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791977729695,
+      "tag": "0008_motionless_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }

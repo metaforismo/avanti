@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { isEmail, text } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, PasswordInput } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { safeNext } from "@/lib/console/safe-next";
 
@@ -64,9 +64,7 @@ export function LoginForm() {
         )}
       </Field>
       <Field label="Password" error={fieldErrors.password}>
-        {(p) => (
-          <Input {...p} name="password" type="password" autoComplete="current-password" required />
-        )}
+        {(p) => <PasswordInput {...p} name="password" autoComplete="current-password" required />}
       </Field>
       {error && (
         <p
