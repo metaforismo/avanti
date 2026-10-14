@@ -7,3 +7,4 @@ pnpm-lock.yaml
 packages/api/assets/fonts
 packages/db/migrations/meta
 .claude/worktrees
+.worktrees
