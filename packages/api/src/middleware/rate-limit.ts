@@ -108,7 +108,9 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
           window.seconds,
         );
         if (!result.allowed) {
-          if (loginEmail) {
+          // One event when the limit is crossed: logging every rejected attempt would let an
+          // attacker flood the audit log and the database the limit is meant to protect.
+          if (loginEmail && result.firstRejection) {
             const [account] = await services.db
               .select()
               .from(operators)
