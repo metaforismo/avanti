@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { openFirstReadyCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const ADMIN = { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -24,7 +25,7 @@ async function seriousViolations(page: Page) {
 async function logIn(page: Page) {
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password").fill(ADMIN.password);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
 }
@@ -40,9 +41,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     expect((r + g + b) / 3 < 128).toBe(colorScheme === "dark");
     const found: string[] = [];
 
-    await page.getByRole("button", { name: /^Pronte/ }).click();
-    await page.locator('a[href^="/console/pratiche/"]').first().click();
-    await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+    await openFirstReadyCase(page);
     found.push(...(await seriousViolations(page)));
 
     for (const { path, heading } of PAGES) {

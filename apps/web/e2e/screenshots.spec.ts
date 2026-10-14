@@ -71,7 +71,7 @@ test("console", async ({ page }) => {
   await page.setViewportSize({ width: 1360, height: 900 });
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
   await page.screenshot({ path: `${OUT}/console-coda.png` });
