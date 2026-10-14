@@ -3,7 +3,12 @@ import type { ApiEnv, ApiOptions } from "../context";
 
 function category(path: string) {
   if (path.startsWith("/api/c/")) return "citizen";
-  if (path.startsWith("/api/cases") || path.startsWith("/api/metrics")) return "operator";
+  if (
+    path.startsWith("/api/cases") ||
+    path.startsWith("/api/metrics") ||
+    path.startsWith("/api/reports")
+  )
+    return "operator";
   if (path.startsWith("/api/auth/")) return "auth";
   return "public";
 }

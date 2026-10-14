@@ -395,3 +395,128 @@ Il registro include inoltre `auth.mfa_enabled`, `auth.mfa_disabled`,
 Anche `pnpm admin:export` richiede un codice se l'admin ha MFA attiva; il prompt è
 nascosto e non accetta credenziali negli argomenti. `OrganizationExportRequest.login`
 aggiunge `code` opzionale; l'obbligo MFA senza configurazione nega l'export.
+
+## Rapporto del pilota
+
+`GET /api/reports/pilot?from=2027-01-01&to=2027-03-31&office=<id>&format=json`
+richiede una sessione **admin attiva del CAF**. `from` e `to` sono date valide
+`YYYY-MM-DD`, incluse, in **Europe/Rome**; massimo un anno di calendario
+(1 gennaio–31 dicembre ammesso, 1 gennaio–1 gennaio successivo escluso).
+`office` è facoltativo e indica l'ID, non lo slug. Uno sportello inesistente o di
+un altro CAF restituisce 404; operatore ordinario 403, sessione assente/scaduta 401,
+periodo/formato/parametri non validi 400. Le chiavi query sconosciute sono rifiutate.
+
+`format=json` (default), `csv` o `pdf` esportano lo stesso rapporto, con
+`Content-Disposition: attachment` e `Cache-Control: private, no-store`. CSV UTF-8
+con BOM, righe CRLF e neutralizzazione delle formule condivisa con il registro
+attività: anche nomi di sportello preceduti da spazi/controlli e `=`, `+`, `-`, `@`
+sono resi testo. Il CSV è in forma lunga: sezione, sportello, percorso del campo,
+valore; conserva anche metodo, campioni e motivi degli esiti. PDF A4 multipagina,
+font Unicode locali, metodo incluso. Ogni esportazione riuscita, incluso JSON e
+le richieste ripetute, registra `pilot_report.exported` senza ID pratica o dati
+personali; dettagli `reportJson`, `reportCsv`, `reportPdf`. Letture ed evento sono
+nella stessa transazione con snapshot coerente e controllo admin. Si applica il
+limite export esistente: 20/minuto per operatore, 200/minuto per IP fidato.
+
+### Contratto e denominatori
+
+Nuovi schemi/tipi condivisi `PilotReportQuery`, `PilotReport`, `PilotReportGroup`,
+`PilotThreshold`, `PilotCount` in `@avanti/contracts`. Sono necessari perché il
+rapporto condivisibile applica soppressione e soglie che il DTO `Metrics` non
+esprime; l'endpoint `/metrics` conserva il suo contratto. Nessuna migrazione o
+nuova baseline inventata. Il rapporto versione 1 contiene:
+
+| Campo                                  | Significato                                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `generatedAt`, `period`                | Data di generazione, date locali, fuso, inizio UTC incluso, fine UTC esclusa, osservazione fino al minore fra fine e clock            |
+| `baseline`                             | Minuti manuali nelle impostazioni attuali del CAF, etichetta della fonte; numerosità e completezza verificata non registrate (`null`) |
+| `method`                               | Definizioni e limiti in italiano, identici nel PDF                                                                                    |
+| `total`, `offices[]`                   | Aggregati del CAF/sportelli selezionati, nessun dettaglio cittadino                                                                   |
+| `starts`, `deliveries`, `deliveryRate` | Avvii nel periodo, loro primo invio entro fine periodo, quota e campione                                                              |
+| `completeness`                         | Quota senza blocchi al primo invio sui valori conosciuti, conteggio completi, campione e valori mancanti                              |
+| `integrations`                         | Richieste successive al primo invio entro il periodo e pratiche interessate, senza testo dei messaggi                                 |
+| `times[]`                              | Media, campione, unità minuti, ID e descrizione dell'intervallo realmente misurato                                                    |
+| `byLanguage`, `byPractice`             | Conteggi avvii secondo lingua/tipo attualmente salvati; tipo `null` = non classificato                                                |
+| `thresholds[]`                         | ID, obiettivo/unità, minimo campione, campione osservato/baseline, valore, esito e motivo                                             |
+
+**Coorte:** tutte le pratiche create nel periodo, compresi abbandoni, chiusure e
+pratiche non classificate. Consegne e tempi riguardano quella stessa coorte;
+un avvio precedente con invio nel periodo è escluso. `submittedAt` è il **primo**
+invio, quindi i reinvii non gonfiano la conversione. La fine del periodo è la
+mezzanotte locale successiva a `to`; i giorni di cambio ora possono durare 23 o
+25 ore. Periodi futuri/in corso mostrano quanto osservato, con conversione
+`dati_insufficienti`. Retention e cancellazioni possono ridurre i dati conservati;
+il rapporto non è un archivio immutabile degli avvii cancellati. Include tutti i
+tipi, quindi non dimostra da solo il risultato della coorte ISEE ordinario.
+
+**Completezza:** `firstSubmissionComplete` fotografa assenza di segnalazioni
+bloccanti automatiche; i valori `null` sono dichiarati e non trattati come
+incompleti. Non attesta completezza verificata al primo appuntamento.
+**Tempi:** `creation_to_submission` misura creazione–primo invio;
+`review_to_ready` usa `durationMinutes` dell'ultimo evento `review.completed`
+nel periodo per pratica consegnata. Eventi senza durata sono esclusi: il campo
+corrente `reviewStartedAt` può riferirsi a una revisione successiva. Entrambi gli
+intervalli comprendono pause/attese e non sono lavoro attivo netto.
+
+**Soglie:** ≥5 minuti netti, +15 punti percentuali di completezza verificata,
+≥70% consegne/avvii. Minimo operativo **50 casi per gruppo e 50 nel confronto**,
+coerente con l'obiettivo di circa 50 casi per percorso del playbook, senza
+significatività statistica garantita. Per conversione: almeno 50 avvii, periodo
+concluso, celle pubblicabili, confronto esatto senza arrotondamento.
+`outcome` è `raggiunta`, `non_raggiunta` o `dati_insufficienti`.
+Le prime due soglie restano insufficienti: non esistono timer attivi netti,
+numerosità della baseline, baseline di completezza o misura verificata al primo
+appuntamento. Anche una differenza esattamente pari a cinque fra baseline e
+intervallo di calendario non dimostra il risparmio. La baseline minuti resta
+visibile, con confronto dichiarato non valutabile.
+
+**Riservatezza:** `PilotCount = number | "<5" | null`. Zero resta zero;
+conteggi 1–4 diventano `"<5"`; `null` indica dato non misurato o soppressione
+complementare. In una distribuzione con celle piccole, anche gli altri conteggi
+positivi sono oscurati. Quote e tempi sono `null` con campioni sotto 5; quote
+con numeratore/complemento piccolo sono oscurate. Campioni ripetuti e totali
+ricostruibili sono oscurati insieme, compresi tempi ponderabili fra sportelli.
+Per questo un totale può essere oscurato anche con molti casi. Il testo del
+metodo spiega questa scelta; non pubblicare rapporti sovrapposti per tentare di
+ricostruire celle. Non è una garanzia di anonimato contro query ripetute.
+
+Esempio **sintetico, estratto** dal rapporto di un unico sportello, 50 avvii,
+35 consegne, tutte senza blocchi; non è un risultato del pilota:
+
+```json
+{
+  "version": 1,
+  "baseline": {
+    "manualMinutesPerCase": 30,
+    "sample": null,
+    "completeAtFirstAppointment": null,
+    "label": "Baseline manuale dichiarata dal CAF nelle impostazioni attuali; campione e periodo non registrati"
+  },
+  "total": {
+    "starts": 50,
+    "deliveries": 35,
+    "deliveryRate": {
+      "label": "Primi invii della coorte / avvii",
+      "value": 0.7,
+      "sample": 50
+    },
+    "thresholds": [
+      {
+        "id": "delivery_rate",
+        "target": 0.7,
+        "unit": "ratio",
+        "minimumSample": 50,
+        "sample": 50,
+        "baselineSample": null,
+        "observed": 0.7,
+        "outcome": "raggiunta",
+        "reason": "Consegne della stessa coorte / avvii; confronto esatto con 70%. Risultato operativo, non prova causale."
+      }
+    ]
+  }
+}
+```
+
+Il JSON completo include sempre le tre soglie, i gruppi per sportello, il periodo,
+i tempi con etichette/campioni, le distribuzioni e il metodo. L'estratto sopra non
+sostituisce lo schema completo.
