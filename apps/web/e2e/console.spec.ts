@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openFirstReadyCase } from "./helpers";
+import { logIn, openFirstReadyCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -30,9 +30,7 @@ test("the console redirects to login and back after the session expires", async 
 test("an admin adds an operator, who must choose a password at first login", async ({ page }) => {
   const email = `e2e.${Date.now()}@demo.avanti.local`;
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, ADMIN);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
 
   await page.getByRole("link", { name: "Impostazioni" }).click();
@@ -65,9 +63,7 @@ test("an admin adds an operator, who must choose a password at first login", asy
 
 test("marking a case ready with missing documents asks first", async ({ page }) => {
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, DEMO);
   await page.getByRole("link", { name: /Persona Esempio 8/ }).click();
   await expect(page.getByText(/Mancano \d+ documenti obbligatori/).first()).toBeVisible();
 
@@ -93,9 +89,7 @@ test("a CAF's first day shows how to get the first dossier", async ({ page }) =>
     }),
   );
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, ADMIN);
 
   const steps = page.getByRole("region", { name: "Per iniziare" });
   await expect(steps.getByRole("listitem")).toHaveCount(5);
@@ -107,9 +101,7 @@ test("a ready case opens the DSU sheet, ready to copy into the CAF's software", 
   page,
 }) => {
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, DEMO);
   await openFirstReadyCase(page);
 
   const sheet = page.locator("details", { hasText: "Prospetto DSU" });
@@ -121,9 +113,7 @@ test("a ready case opens the DSU sheet, ready to copy into the CAF's software", 
 
 test("a lost citizen link is replaced and the old one stops working", async ({ page, browser }) => {
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, DEMO);
   await page.getByRole("button", { name: "Nuova pratica" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /Crea/ }).click();
   const oldLink = (await page.getByRole("dialog").locator("[translate=no]").innerText()).trim();
@@ -193,9 +183,7 @@ test("the activity log shows a failed login to the administrator only", async ({
   await expect(page.getByRole("link", { name: "Registro attività" })).toHaveCount(0);
   await page.getByRole("button", { name: "Esci" }).click();
 
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, ADMIN);
   await page.getByRole("link", { name: "Registro attività" }).click();
   await page.getByLabel("Cosa cerchi").selectOption({ label: "Accessi non riusciti" });
   await expect(page.getByText(/Tentativo di accesso operatore fallito/).first()).toBeVisible();
@@ -207,9 +195,7 @@ test("the activity log shows a failed login to the administrator only", async ({
 
 test("slash jumps to the queue search and Escape clears it", async ({ page }) => {
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
 
   const search = page.getByRole("searchbox", { name: "Cerca pratiche" });
@@ -226,9 +212,7 @@ test("email notices are off by default and an administrator's choice survives a 
   page,
 }) => {
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, ADMIN);
   await page.getByRole("link", { name: "Impostazioni" }).click();
 
   const digest = page.getByRole("checkbox", { name: /Riepilogo giornaliero agli operatori/ });
@@ -251,18 +235,14 @@ test("email notices are off by default and an administrator's choice survives a 
 
 test("system status is for administrators: operators get a plain refusal", async ({ page }) => {
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Stato del sistema" })).toHaveCount(0);
   await page.goto("/console/stato");
   await expect(page.getByRole("heading", { name: "Stato riservato" })).toBeVisible();
   await page.getByRole("button", { name: "Esci" }).click();
 
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, ADMIN);
   await page.getByRole("link", { name: "Stato del sistema" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Stato del sistema" })).toBeVisible();
   const components = page.getByRole("region", { name: "Componenti" });
@@ -272,17 +252,13 @@ test("system status is for administrators: operators get a plain refusal", async
 
 test("the pilot report is for administrators and downloads as a PDF", async ({ page }) => {
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Rapporto del pilota" })).toHaveCount(0);
   await page.getByRole("button", { name: "Esci" }).click();
   await expect(page).toHaveURL(/\/console\/accedi/);
 
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, ADMIN);
   await page.getByRole("link", { name: "Rapporto del pilota" }).click();
   await expect(page.getByRole("heading", { name: "Le tre soglie del pilota" })).toBeVisible();
   // Ten demo cases are far from the 50 the protocol requires: no threshold may claim an outcome.

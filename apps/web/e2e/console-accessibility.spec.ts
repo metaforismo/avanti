@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { openFirstReadyCase } from "./helpers";
+import { logIn, openFirstReadyCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const ADMIN = { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -25,11 +25,8 @@ async function seriousViolations(page: Page) {
     .map((v) => `${page.url()} ${v.id}: ${v.nodes.length} × ${v.help}`);
 }
 
-async function logIn(page: Page) {
-  await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+async function logInAsAdmin(page: Page) {
+  await logIn(page, ADMIN);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
 }
 
@@ -37,7 +34,7 @@ async function logIn(page: Page) {
 for (const colorScheme of ["light", "dark"] as const) {
   test(`console pages are accessible (${colorScheme})`, async ({ page }) => {
     await page.emulateMedia({ colorScheme });
-    await logIn(page);
+    await logInAsAdmin(page);
     // Guard against a silent pass: the palette under test must really be the one applied.
     const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     const [r = 0, g = 0, b = 0] = background.match(/\d+/g)?.map(Number) ?? [];
