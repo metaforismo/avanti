@@ -13,6 +13,7 @@ import {
 } from "../security";
 import { SESSION_COOKIE, SESSION_SECONDS, setSessionCookie } from "../middleware/auth";
 import { officeView, organizationView } from "../views";
+import { recordActivity } from "../audit-log";
 
 const dummyPassword = hashPassword(newToken());
 
@@ -51,9 +52,20 @@ export function mountAuthRoutes(app: App, services: Services) {
         input.password,
         current?.passwordHash ?? (await dummyPassword),
       );
-      if (!current || !valid || !current.active)
-        throw new ApiFailure("unauthorized", 401, "Email o password non corrette.");
       const now = services.clock();
+      if (!current || !valid || !current.active) {
+        // Return the rejection after commit: throwing here would roll back the failed-login event.
+        // Unknown accounts have no tenant; never guess an organization from client input.
+        await recordActivity(
+          tx,
+          current?.organizationId ?? null,
+          null,
+          "auth.login_failed",
+          now,
+          current?.id ?? null,
+        );
+        return null;
+      }
       const [updated] = await tx
         .update(operators)
         .set({ lastLoginAt: now.toISOString() })
@@ -74,8 +86,10 @@ export function mountAuthRoutes(app: App, services: Services) {
         tokenHash: hashToken(token),
         expiresAt: new Date(now.getTime() + SESSION_SECONDS * 1000).toISOString(),
       });
+      await recordActivity(tx, current.organizationId, current.id, "auth.login_succeeded", now);
       return updated;
     });
+    if (!operator) throw new ApiFailure("unauthorized", 401, "Email o password non corrette.");
     setSessionCookie(context, token, services.production);
     return context.json(await operatorView(services, operator));
   });
@@ -122,6 +136,7 @@ export function mountAuthRoutes(app: App, services: Services) {
         createdAt: now.toISOString(),
         expiresAt: new Date(now.getTime() + SESSION_SECONDS * 1000).toISOString(),
       });
+      await recordActivity(tx, current.organizationId, current.id, "auth.password_changed", now);
       return updated;
     });
     setSessionCookie(context, replacementToken, services.production);
@@ -129,14 +144,18 @@ export function mountAuthRoutes(app: App, services: Services) {
   });
   app.post("/auth/logout", async (context) => {
     const token = getCookie(context, SESSION_COOKIE) ?? "";
-    await services.db
-      .delete(sessions)
-      .where(
-        and(
-          eq(sessions.operatorId, context.get("operator").id),
-          eq(sessions.tokenHash, hashToken(token)),
-        ),
-      );
+    await services.db.transaction(async (tx) => {
+      await tx
+        .delete(sessions)
+        .where(
+          and(
+            eq(sessions.operatorId, context.get("operator").id),
+            eq(sessions.tokenHash, hashToken(token)),
+          ),
+        );
+      const actor = context.get("operator");
+      await recordActivity(tx, actor.organizationId, actor.id, "auth.logged_out", services.clock());
+    });
     deleteCookie(context, SESSION_COOKIE, { path: "/api", secure: services.production });
     return context.json({ ok: true });
   });

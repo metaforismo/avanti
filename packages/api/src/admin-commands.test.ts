@@ -78,6 +78,7 @@ it("requires confirmation, refuses repeats, hashes the credential and enforces f
     .where(eq(operators.id, adminId));
 });
 it("exports a consistent organization only, includes raw answers/events/hashes and omits access secrets", async () => {
+  const failuresBefore = await db.select().from(events).where(eq(events.type, "auth.login_failed"));
   await db.insert(organizations).values({ id: "other", name: "CAF esterno", kind: "caf" });
   await db.insert(offices).values({
     id: "other-office",
@@ -142,6 +143,14 @@ it("exports a consistent organization only, includes raw answers/events/hashes a
   expect(data.cases[0]!.answers).toEqual({ household_size: 2 });
   expect(data.documents).toMatchObject([{ sha256: "a".repeat(64) }]);
   expect(data.events.some((event) => event.type === "organization.exported")).toBe(true);
+  expect(
+    data.events.find(
+      (event) => event.type === "auth.login_succeeded" && event.metadata.cli === true,
+    ),
+  ).toMatchObject({
+    actorId: adminId,
+    metadata: { cli: true },
+  });
   const json = JSON.stringify(data);
   for (const omitted of [
     "private-capability",
@@ -161,6 +170,18 @@ it("exports a consistent organization only, includes raw answers/events/hashes a
     "Accesso negato",
   );
   await expect(bootstrapOrganization(db, input, now)).rejects.toThrow("esiste già");
+  const failures = await db.select().from(events).where(eq(events.type, "auth.login_failed"));
+  expect(failures).toHaveLength(failuresBefore.length + 4);
+  expect(
+    failures.every(
+      (event) =>
+        event.organizationId === organizationId &&
+        event.subjectOperatorId === adminId &&
+        event.actorId === null &&
+        event.metadata.cli === true,
+    ),
+  ).toBe(true);
+  expect(JSON.stringify(failures)).not.toMatch(/admin@example\.test|PasswordDefinitiva2027|wrong/);
 });
 it("CLI production guard never falls back to local data or accepts a non-TLS URL", () => {
   for (const env of [

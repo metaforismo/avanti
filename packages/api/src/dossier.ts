@@ -64,6 +64,7 @@ export async function audit(
   await db.insert(events).values({
     id: crypto.randomUUID(),
     caseId: row.id,
+    caseReference: row.reference,
     organizationId: row.organizationId,
     actor,
     actorId,

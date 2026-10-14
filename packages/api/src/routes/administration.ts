@@ -17,6 +17,7 @@ import { iso, caseById } from "../dossier";
 import { eraseCase } from "../case-erasure";
 import { retryStorageDeletions } from "../storage-cleanup";
 import { officeView } from "../views";
+import { recordActivity } from "../audit-log";
 
 type OperatorRow = typeof operators.$inferSelect;
 const forbidden = () =>
@@ -147,6 +148,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
         .set(input)
         .where(eq(settings.organizationId, actor.organizationId))
         .returning();
+      await recordActivity(tx, actor.organizationId, actor.id, "settings.updated", s.clock());
       return updated;
     });
     return c.json(settingsView(row));
@@ -186,6 +188,14 @@ export function mountAdministrationRoutes(app: App, s: Services) {
           409,
           "Questa email è già associata a un operatore. Usa un indirizzo diverso.",
         );
+      await recordActivity(
+        tx,
+        actor.organizationId,
+        actor.id,
+        "operator.created",
+        s.clock(),
+        created.id,
+      );
       return created;
     });
     return c.json({ operator: operatorSummary(row), temporaryPassword: password }, 201);
@@ -222,6 +232,27 @@ export function mountAdministrationRoutes(app: App, s: Services) {
       if (!updated) throw notFound();
       if (input.active === false)
         await tx.delete(sessions).where(eq(sessions.operatorId, current.id));
+      if (input.active !== undefined && input.active !== current.active)
+        await recordActivity(
+          tx,
+          actor.organizationId,
+          actor.id,
+          input.active ? "operator.activated" : "operator.deactivated",
+          s.clock(),
+          current.id,
+        );
+      if (
+        (input.role !== undefined && input.role !== current.role) ||
+        (input.name !== undefined && input.name !== current.name)
+      )
+        await recordActivity(
+          tx,
+          actor.organizationId,
+          actor.id,
+          "operator.updated",
+          s.clock(),
+          current.id,
+        );
       return updated;
     });
     return c.json(operatorSummary(row));
@@ -241,6 +272,14 @@ export function mountAdministrationRoutes(app: App, s: Services) {
         .returning();
       if (!updated) throw notFound();
       await tx.delete(sessions).where(eq(sessions.operatorId, current.id));
+      await recordActivity(
+        tx,
+        actor.organizationId,
+        actor.id,
+        "operator.password_reset",
+        s.clock(),
+        current.id,
+      );
       return { operator: operatorSummary(updated), temporaryPassword: password };
     });
     return c.json(row);
@@ -264,7 +303,10 @@ export function mountAdministrationRoutes(app: App, s: Services) {
           })
           .onConflictDoNothing({ target: offices.slug })
           .returning();
-        if (created) return created;
+        if (created) {
+          await recordActivity(tx, actor.organizationId, actor.id, "office.created", s.clock());
+          return created;
+        }
       }
       throw new ApiFailure(
         "conflict",
@@ -291,6 +333,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
       if (!Object.keys(input).length) return current;
       const [updated] = await tx.update(offices).set(input).where(scope).returning();
       if (!updated) throw notFound();
+      await recordActivity(tx, actor.organizationId, actor.id, "office.updated", s.clock());
       return updated;
     });
     return c.json(officeView(row));

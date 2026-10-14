@@ -6,6 +6,7 @@ import type { App, Services } from "../context";
 import { purgeRetainedCases } from "../case-erasure";
 import { retryStorageDeletions } from "../storage-cleanup";
 import { ApiFailure } from "../security";
+import { purgeAuditEvents } from "../audit-log";
 
 export function mountMaintenance(app: App, s: Services) {
   let nextRun = 0;
@@ -31,8 +32,9 @@ export function mountMaintenance(app: App, s: Services) {
       );
     await clearExpiredRateLimits(s.db, now);
     const deletedCases = await purgeRetainedCases(s, now);
+    const deletedAuditEvents = await purgeAuditEvents(s.db, now);
     await retryStorageDeletions(s);
     await recoverDocumentAnalysis(s);
-    return c.json({ ok: true, deletedCases });
+    return c.json({ ok: true, deletedCases, deletedAuditEvents });
   });
 }

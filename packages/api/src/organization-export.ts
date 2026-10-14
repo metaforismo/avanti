@@ -17,6 +17,7 @@ import {
 import { OrganizationExportRequest } from "@avanti/contracts";
 import { verifyPassword } from "./security";
 import { AdminCommandFailure } from "./admin-bootstrap";
+import { recordActivity } from "./audit-log";
 
 export async function exportOrganization(
   db: Database,
@@ -34,9 +35,23 @@ export async function exportOrganization(
   const input = parsed.data;
   const key = createHmac("sha256", rateLimitSecret).update(input.login.email).digest("hex");
   const limit = await consumeRateLimit(db, `cli-export:${key}`, now, 10, 60);
-  if (!limit.allowed)
+  if (!limit.allowed) {
+    const [account] = await db
+      .select()
+      .from(operators)
+      .where(eq(operators.email, input.login.email));
+    await recordActivity(
+      db,
+      account?.organizationId ?? null,
+      null,
+      "auth.login_failed",
+      now,
+      account?.id ?? null,
+      { cli: true, rateLimited: true },
+    );
     throw new AdminCommandFailure("Troppi tentativi CLI. Attendi un minuto e riprova.");
-  return db.transaction(async (tx) => {
+  }
+  const result = await db.transaction(async (tx) => {
     await tx.execute(sql`set transaction isolation level repeatable read`);
     const [admin] = await tx
       .select()
@@ -50,10 +65,21 @@ export async function exportOrganization(
       admin.mustChangePassword ||
       admin.organizationId !== input.organizationId ||
       !(await verifyPassword(input.login.password, admin.passwordHash))
-    )
-      throw new AdminCommandFailure(
-        "Accesso negato. Serve un admin attivo del CAF con password definitiva.",
+    ) {
+      await recordActivity(
+        tx,
+        admin?.organizationId ?? null,
+        null,
+        "auth.login_failed",
+        now,
+        admin?.id ?? null,
+        { cli: true },
       );
+      return null;
+    }
+    await recordActivity(tx, admin.organizationId, admin.id, "auth.login_succeeded", now, null, {
+      cli: true,
+    });
     const [organization] = await tx
       .select()
       .from(organizations)
@@ -142,4 +168,9 @@ export async function exportOrganization(
         .orderBy(events.at, events.id),
     };
   });
+  if (!result)
+    throw new AdminCommandFailure(
+      "Accesso negato. Serve un admin attivo del CAF con password definitiva.",
+    );
+  return result;
 }
