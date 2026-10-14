@@ -93,6 +93,7 @@ beforeAll(async () => {
     clock: () => at,
     publicUrl: origin,
     production: true,
+    mfaEncryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     clientAddress: () => "127.0.0.1",
     rateLimitSecret: "synthetic-secret",
     logger: (r) => logs.push(r),
@@ -298,6 +299,7 @@ it("pilot: export and operator translation enforce per-operator and trusted-IP q
     clock: () => at,
     publicUrl: origin,
     production: true,
+    mfaEncryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     trustProxy: true,
     rateLimitSecret: "synthetic-limit",
   });

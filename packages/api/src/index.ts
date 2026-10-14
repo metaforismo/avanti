@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { createDatabase, repoRoot } from "@avanti/db";
 import { resolve } from "node:path";
+import { parseMfaKey } from "./mfa";
 import { createApp } from "./app";
 import { DiskStorage, BlobStorage } from "./storage";
 import { GatewayIntelligence } from "./ai";
@@ -38,6 +39,11 @@ async function initialize() {
     throw new Error("PUBLIC_APP_URL required in production");
   if (process.env.NODE_ENV === "production" && !process.env.RATE_LIMIT_SECRET?.trim())
     throw new Error("RATE_LIMIT_SECRET required in production");
+  if (process.env.NODE_ENV === "production") {
+    if (!process.env.MFA_ENCRYPTION_KEY)
+      throw new Error("MFA_ENCRYPTION_KEY required in production");
+    parseMfaKey(process.env.MFA_ENCRYPTION_KEY);
+  }
   // The database is shared; a failed app setup leaves it open for the next attempt.
   const { db } = await database();
   return createApp({
@@ -73,6 +79,7 @@ async function initialize() {
     publicUrl: process.env.PUBLIC_APP_URL ?? "http://localhost:3400",
     production: process.env.NODE_ENV === "production",
     rateLimitSecret: process.env.RATE_LIMIT_SECRET,
+    mfaEncryptionKey: process.env.MFA_ENCRYPTION_KEY,
     vercel: process.env.VERCEL === "1",
     cronSecret: process.env.CRON_SECRET,
     appVersion: {

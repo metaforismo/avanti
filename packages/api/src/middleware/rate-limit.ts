@@ -7,6 +7,7 @@ import type { MiddlewareHandler } from "hono";
 import type { ApiContext, ApiEnv, Services } from "../context";
 import { ApiFailure } from "../security";
 import { limitLanguage, limitMessage } from "./limit-message";
+import { recordMfaFailure } from "../mfa";
 import { recordActivity } from "../audit-log";
 
 interface WindowLimit {
@@ -21,6 +22,7 @@ interface Policy {
 const minute = (limit: number): WindowLimit => ({ limit, seconds: 60 });
 const hour = (limit: number): WindowLimit => ({ limit, seconds: 3600 });
 export const RATE_POLICIES = {
+  mfa: { category: "mfa", primary: [minute(10)], ip: [minute(100)] },
   login: { category: "login", primary: [minute(10)], ip: [minute(100)] },
   intake: { category: "intake", primary: [], ip: [minute(40), hour(60)] },
   // Answers are quick taps (a large family can give 30 in a minute) and only free text reaches
@@ -39,6 +41,7 @@ function policy(path: string, method: string): Policy | null {
   if (method !== "POST") return null;
   if (/^\/api\/cases\/[^/]+\/link$/.test(path)) return RATE_POLICIES.link;
   if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return RATE_POLICIES.translate;
+  if (path.startsWith("/api/auth/mfa/")) return RATE_POLICIES.mfa;
   if (["/api/auth/login", "/api/auth/password"].includes(path)) return RATE_POLICIES.login;
   if (path === "/api/intake") return RATE_POLICIES.intake;
   if (path === "/api/leads") return RATE_POLICIES.leads;
@@ -66,7 +69,11 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
   return async (context, next) => {
     const rule = policy(context.req.path, context.req.method);
     // Password attempts use the authenticated email, never a client-supplied identity.
-    if (context.req.path === "/api/auth/password" && !context.get("operator")) return next();
+    if (
+      (context.req.path === "/api/auth/password" || rule?.category === "mfa") &&
+      !context.get("operator")
+    )
+      return next();
     if (
       rule &&
       (!["export", "link", "translate"].includes(rule.category) || context.get("operator"))
@@ -81,6 +88,8 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       const capability = /^\/api\/c\/([^/]+)/.exec(context.req.path)?.[1];
       if (capability) identities.push(`capability:${capability}`);
       if (context.req.path === "/api/auth/password") {
+        identities.push(`email:${context.get("operator").email}`);
+      } else if (rule.category === "mfa") {
         identities.push(`email:${context.get("operator").email}`);
       } else if (rule.category === "login") {
         let raw: unknown;
@@ -111,6 +120,8 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
         if (!result.allowed) {
           // One event when the limit is crossed: logging every rejected attempt would let an
           // attacker flood the audit log and the database the limit is meant to protect.
+          if (rule.category === "mfa" && result.firstRejection)
+            await recordMfaFailure(services.db, context.get("operator"), services.clock(), true);
           if (loginEmail && result.firstRejection) {
             const [account] = await services.db
               .select()

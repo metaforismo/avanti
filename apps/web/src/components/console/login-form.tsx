@@ -2,11 +2,13 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import type { LoginResponse } from "@avanti/contracts";
 import { isEmail, text } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Field, Input, PasswordInput } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { safeNext } from "@/lib/console/safe-next";
+import { MfaVerifyForm } from "./mfa/verify-form";
 
 export function LoginForm() {
   const router = useRouter();
@@ -16,6 +18,12 @@ export function LoginForm() {
     params.get("motivo") === "sessione" ? "La sessione è scaduta. Accedi di nuovo." : null,
   );
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [challenged, setChallenged] = useState(false);
+
+  const enter = () => {
+    router.replace(safeNext(params.get("next")));
+    router.refresh();
+  };
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,13 +45,38 @@ export function LoginForm() {
     setPending(true);
     setError(null);
     try {
-      await apiFetch("/api/auth/login", { method: "POST", body: { email, password } });
-      router.replace(safeNext(params.get("next")));
-      router.refresh();
+      const result = await apiFetch<LoginResponse>("/api/auth/login", {
+        method: "POST",
+        body: { email, password },
+      });
+      if ("mfaRequired" in result) {
+        setPending(false);
+        setChallenged(true);
+        return;
+      }
+      enter();
     } catch (err) {
       setPending(false);
       setError(err instanceof ApiRequestError ? err.message : "Accesso non riuscito. Riprova.");
     }
+  }
+
+  if (challenged) {
+    return (
+      <div className="mt-8 grid gap-5">
+        <p className="text-ink-2">
+          Password corretta. Ora apri l&apos;app di autenticazione sul telefono e scrivi il codice
+          di Avanti.
+        </p>
+        <MfaVerifyForm
+          onVerified={enter}
+          onCancel={() => {
+            void apiFetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+            setChallenged(false);
+          }}
+        />
+      </div>
+    );
   }
 
   return (

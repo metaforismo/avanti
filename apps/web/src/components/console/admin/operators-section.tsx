@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, UserPlus } from "lucide-react";
+import { KeyRound, ShieldOff, UserPlus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { OperatorSummary, TemporaryPasswordResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export function OperatorsSection() {
   const [adding, setAdding] = useState(false);
   const [issued, setIssued] = useState<TemporaryPasswordResponse | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const [unlocking, setUnlocking] = useState<OperatorSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function act(key: string, run: () => Promise<unknown>) {
@@ -42,6 +43,12 @@ export function OperatorsSection() {
           method: "POST",
         }),
       );
+    });
+
+  const resetMfa = (operator: OperatorSummary) =>
+    act(`mfa:${operator.id}`, async () => {
+      await apiFetch(`/api/operators/${operator.id}/reset-mfa`, { method: "POST", body: {} });
+      setUnlocking(null);
     });
 
   const update = (
@@ -92,6 +99,7 @@ export function OperatorsSection() {
                     {isMe && <span className="text-sm font-normal text-ink-3">(tu)</span>}
                     {operator.role === "admin" && <Pill tone="stamp">Amministratore</Pill>}
                     {!operator.active && <Pill tone="muted">Disattivato</Pill>}
+                    {operator.mfaEnabled && <Pill tone="ok">Verifica in due passaggi</Pill>}
                   </p>
                   <p className="truncate text-sm text-ink-3">
                     {operator.email},{" "}
@@ -112,6 +120,19 @@ export function OperatorsSection() {
                       <KeyRound className="size-4" aria-hidden />
                       Nuova password
                     </Button>
+                    {operator.mfaEnabled && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setError(null);
+                          setUnlocking(operator);
+                        }}
+                      >
+                        <ShieldOff className="size-4" aria-hidden />
+                        Azzera verifica
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -152,6 +173,35 @@ export function OperatorsSection() {
             list.reload();
           }}
         />
+      </Dialog>
+
+      <Dialog
+        open={unlocking !== null}
+        onOpenChange={(open) => !open && setUnlocking(null)}
+        title="Azzerare la verifica in due passaggi?"
+        description="Fallo solo se hai riconosciuto la persona: per esempio ha perso il telefono e i codici di recupero."
+      >
+        {unlocking && (
+          <div className="grid gap-4">
+            <p className="text-ink-2">
+              <span className="font-semibold text-ink">{unlocking.name}</span> entrerà con la sola
+              password e, se il CAF la richiede, dovrà riattivarla subito. L&apos;azione finisce nel
+              registro attività.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="danger"
+                loading={pending === `mfa:${unlocking.id}`}
+                onClick={() => void resetMfa(unlocking)}
+              >
+                Azzera verifica
+              </Button>
+              <Button variant="ghost" onClick={() => setUnlocking(null)}>
+                Annulla
+              </Button>
+            </div>
+          </div>
+        )}
       </Dialog>
 
       <Dialog

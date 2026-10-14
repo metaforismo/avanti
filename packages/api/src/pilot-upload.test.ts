@@ -1,3 +1,4 @@
+import { mfaCipher } from "./mfa";
 import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
@@ -148,10 +149,11 @@ it("pilot: returns processing before AI; persisted jobs recover after restart an
       db,
       storage,
       ai,
-      notifications: defaultNotifications(),
       clock: () => now,
       publicUrl: origin,
       production: false,
+      mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
+      notifications: defaultNotifications(),
     },
     id,
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PasswordForm } from "@/components/console/admin/password-form";
+import { MfaAccountSection } from "@/components/console/mfa/account-section";
 import { useOperator } from "@/lib/console/operator-context";
 
 export default function AccountPage() {
@@ -40,6 +41,8 @@ export default function AccountPage() {
         )}
         <PasswordForm submitLabel="Aggiorna password" onChanged={() => setChanged(true)} />
       </section>
+
+      <MfaAccountSection />
     </div>
   );
 }

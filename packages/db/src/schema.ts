@@ -11,6 +11,7 @@ import type {
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  bigint,
   check,
   foreignKey,
   index,
@@ -69,6 +70,10 @@ export const operators = pgTable(
     role: text("role").$type<Operator["role"]>().notNull(),
     active: boolean("active").notNull().default(true),
     mustChangePassword: boolean("must_change_password").notNull().default(false),
+    mfaSecret: text("mfa_secret"),
+    mfaEnabledAt: instant("mfa_enabled_at"),
+    mfaLastUsedStep: bigint("mfa_last_used_step", { mode: "number" }),
+    mfaRecoveryHashes: jsonb("mfa_recovery_hashes").$type<string[]>().notNull().default([]),
     lastLoginAt: instant("last_login_at"),
     createdAt: instant("created_at").notNull().defaultNow(),
   },
@@ -87,10 +92,19 @@ export const sessions = pgTable(
       .notNull()
       .references(() => operators.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull().unique(),
+    state: text("state")
+      .$type<"authenticated" | "mfa_pending" | "mfa_setup">()
+      .notNull()
+      .default("authenticated"),
+    mfaSetupSecret: text("mfa_setup_secret"),
+    mfaSetupExpiresAt: instant("mfa_setup_expires_at"),
     expiresAt: instant("expires_at").notNull(),
     createdAt: instant("created_at").notNull().defaultNow(),
   },
-  (t) => [index("sessions_expires_idx").on(t.expiresAt)],
+  (t) => [
+    index("sessions_expires_idx").on(t.expiresAt),
+    check("sessions_state_check", sql`${t.state} in ('authenticated', 'mfa_pending', 'mfa_setup')`),
+  ],
 );
 
 export const cases = pgTable(
@@ -302,6 +316,7 @@ export const settings = pgTable(
     organizationId: text("organization_id")
       .primaryKey()
       .references(() => organizations.id, { onDelete: "cascade" }),
+    mfaRequired: boolean("mfa_required").notNull().default(false),
     baselineMinutesPerCase: integer("baseline_minutes_per_case"),
     retentionDays: integer("retention_days").notNull().default(180),
     linkDays: integer("link_days").notNull().default(60),

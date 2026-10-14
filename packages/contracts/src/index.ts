@@ -412,6 +412,8 @@ export const Operator = z.object({
   offices: z.array(Office),
   /** True after an admin set a temporary password: the console asks for a new one first. */
   mustChangePassword: z.boolean().default(false),
+  mfaEnabled: z.boolean().default(false),
+  mustSetupMfa: z.boolean().default(false),
 });
 export type Operator = z.infer<typeof Operator>;
 
@@ -420,6 +422,57 @@ export const LoginRequest = z.object({
   password: z.string().min(1).max(200),
 });
 export type LoginRequest = z.infer<typeof LoginRequest>;
+
+/** Password accepted; only MFA verification, me and logout are available. */
+export const MfaChallenge = z.object({
+  mfaRequired: z.literal(true),
+  expiresAt: IsoDateTime,
+});
+export type MfaChallenge = z.infer<typeof MfaChallenge>;
+export const LoginResponse = z.union([Operator, MfaChallenge]);
+export type LoginResponse = z.infer<typeof LoginResponse>;
+export const MfaCode = z
+  .string()
+  .trim()
+  .regex(/^(?:[0-9]{6}|[a-fA-F0-9]{8}-[a-fA-F0-9]{8}-[a-fA-F0-9]{8}-[a-fA-F0-9]{8})$/);
+export const MfaVerifyRequest = z.object({ code: MfaCode }).strict();
+export type MfaVerifyRequest = z.infer<typeof MfaVerifyRequest>;
+export const MfaSetupStartRequest = z
+  .object({ currentPassword: z.string().min(1).max(200) })
+  .strict();
+export const MfaSetupConfirmRequest = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .regex(/^[0-9]{6}$/),
+  })
+  .strict();
+export const MfaSensitiveRequest = MfaVerifyRequest.extend({
+  currentPassword: z.string().min(1).max(200),
+}).strict();
+export const MfaResetRequest = z.object({}).strict();
+export type MfaCode = z.infer<typeof MfaCode>;
+export type MfaSetupStartRequest = z.infer<typeof MfaSetupStartRequest>;
+export type MfaSetupConfirmRequest = z.infer<typeof MfaSetupConfirmRequest>;
+export type MfaSensitiveRequest = z.infer<typeof MfaSensitiveRequest>;
+export type MfaResetRequest = z.infer<typeof MfaResetRequest>;
+
+export const MfaSetupResponse = z.object({
+  secret: z.string().regex(/^[A-Z2-7]{32}$/),
+  otpauthUri: z.string().startsWith("otpauth://totp/"),
+  expiresAt: IsoDateTime,
+});
+export type MfaSetupResponse = z.infer<typeof MfaSetupResponse>;
+export const MfaRecoveryCodesResponse = z.object({ recoveryCodes: z.array(MfaCode).length(10) });
+export type MfaRecoveryCodesResponse = z.infer<typeof MfaRecoveryCodesResponse>;
+export const MfaStatus = z.object({
+  enabled: z.boolean(),
+  required: z.boolean(),
+  recoveryCodesRemaining: z.number().int().min(0).max(10),
+  setupPending: z.boolean(),
+});
+export type MfaStatus = z.infer<typeof MfaStatus>;
 
 export const CaseListItem = z.object({
   id: Id,
@@ -779,6 +832,12 @@ export const AuditAction = z.enum([
   "auth.login_failed",
   "auth.password_changed",
   "auth.logged_out",
+  "auth.mfa_enabled",
+  "auth.mfa_disabled",
+  "auth.mfa_failed",
+  "auth.mfa_recovery_used",
+  "auth.mfa_recovery_regenerated",
+  "operator.mfa_reset",
   "operator.created",
   "operator.updated",
   "operator.deactivated",
@@ -864,6 +923,7 @@ export const ChangePasswordRequest = z.object({
 export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequest>;
 
 export const OrganizationSettings = z.object({
+  mfaRequired: z.boolean().default(false),
   /** Minutes per case measured by the CAF before Avanti; null until measured. */
   baselineMinutesPerCase: z.number().int().min(1).max(600).nullable(),
   /** Validity of citizen links, in days. */
@@ -877,14 +937,17 @@ export const OrganizationSettings = z.object({
 });
 export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 
-// PATCH must preserve omitted preferences; Zod defaults would otherwise reset them.
+// PATCH must preserve omitted preferences: Zod defaults would otherwise reset them
+// (an unrelated PATCH would turn off required MFA or the email notices).
 export const UpdateSettingsRequest = OrganizationSettings.partial().extend({
+  mfaRequired: z.boolean().optional(),
   notifyCitizenReady: z.boolean().optional(),
   notifyOperatorDigest: z.boolean().optional(),
 });
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
 export const OperatorSummary = z.object({
+  mfaEnabled: z.boolean().default(false),
   id: Id,
   name: z.string(),
   email: z.string().email(),
@@ -945,7 +1008,7 @@ export const BootstrapOrganizationRequest = z.object({
 
 export const OrganizationExportRequest = z.object({
   organizationId: Id,
-  login: LoginRequest,
+  login: LoginRequest.extend({ code: MfaCode.optional() }),
 });
 
 export const UpdateOfficeRequest = OfficeInput.partial();
