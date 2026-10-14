@@ -19,6 +19,7 @@ import { mountPublicRoutes } from "./routes/public";
 import { mountCitizenRoutes } from "./citizen";
 import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
+import { mountPilotReportRoutes } from "./routes/pilot-report";
 import { mountAuditRoutes } from "./audit-log";
 import { mountSystemStatus } from "./system-status";
 
@@ -61,6 +62,7 @@ export function createApp(options: ApiOptions) {
     "/auth/password",
     "/cases/*",
     "/metrics",
+    "/reports/*",
     "/status",
     "/settings",
     "/operators/*",
@@ -85,6 +87,7 @@ export function createApp(options: ApiOptions) {
   mountOperatorRoutes(app, services);
   mountAdministrationRoutes(app, services);
   mountAuditRoutes(app, services);
+  mountPilotReportRoutes(app, services);
   mountSystemStatus(app, services);
   return app;
 }

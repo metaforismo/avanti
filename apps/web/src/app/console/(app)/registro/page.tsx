@@ -20,6 +20,7 @@ const QUESTIONS: { label: string; action?: AuditAction }[] = [
   { label: "Accessi", action: "auth.login_succeeded" },
   { label: "Esportazioni di fascicoli", action: "case.exported" },
   { label: "Prospetti DSU consultati", action: "dsu_sheet.viewed" },
+  { label: "Rapporti del pilota", action: "pilot_report.exported" },
   { label: "Documenti scaricati", action: "document.downloaded" },
   { label: "Link rigenerati", action: "case.link_regenerated" },
   { label: "Cancellazioni definitive", action: "case.deleted" },
