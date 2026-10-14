@@ -188,3 +188,65 @@ describe("PDF dossier", () => {
     if (proofDir) await writeFile(join(proofDir, "long.pdf"), bytes);
   }, 15_000);
 });
+
+it.each([
+  ["ar", "محمد علي"],
+  ["bn", "রহিম উদাহরণ"],
+] as const)(
+  "edge PDF: %s, 20 members, long words, emoji and embedded glyphs stay inside A4",
+  async (language, name) => {
+    const dossier = sample(language, name);
+    dossier.household = Array.from({ length: 20 }, (_, i) => ({
+      id: `member-${i}`,
+      role: i === 0 ? "richiedente" : "figlio",
+      firstName: name,
+      lastName: `${i}`,
+    }));
+    dossier.citizenNote = `${name} `.repeat(100) + "🙂🧑🏽‍💻🚀";
+    dossier.internalNotes = name.replaceAll(" ", "").repeat(120);
+    const draw = vi.spyOn(PDFPage.prototype, "drawText");
+    try {
+      const bytes = await exportPdf(dossier);
+      const pdf = await PDFDocument.load(bytes);
+      expect(pdf.getPageCount()).toBeGreaterThan(1);
+      const drawn = draw.mock.calls.map(([text]) => text).join("");
+      expect(drawn).toContain(name);
+      expect(drawn).toContain("[U+1F642]");
+      for (const [text, options] of draw.mock.calls) {
+        const font = options?.font;
+        if (!font) throw new Error("Font must be embedded explicitly");
+        const supported = new Set(font.getCharacterSet());
+        for (const char of text) expect(supported.has(char.codePointAt(0)!)).toBe(true);
+        expect(options!.x! + font.widthOfTextAtSize(text, options!.size!)).toBeLessThanOrEqual(
+          595.28 - 46 + 0.05,
+        );
+        expect(options!.x).toBeGreaterThanOrEqual(46 - 0.05);
+        expect(options!.y).toBeGreaterThanOrEqual(27);
+        expect(options!.y).toBeLessThanOrEqual(841.89 - 46 + 0.05);
+      }
+      const proofDir = process.env.AVANTI_PDF_PROOF_DIR;
+      if (proofDir) {
+        await mkdir(proofDir, { recursive: true });
+        await writeFile(join(proofDir, `edge-${language}.pdf`), bytes);
+      }
+    } finally {
+      draw.mockRestore();
+    }
+  },
+  15_000,
+);
+
+it("edge PDF: newline remains a paragraph break and tabs remain whitespace", async () => {
+  const dossier = sample("it", "Persona Esempio");
+  dossier.citizenNote = "PRIMA_RIGA\nSECONDA_RIGA\tCON_TAB";
+  const draw = vi.spyOn(PDFPage.prototype, "drawText");
+  try {
+    await exportPdf(dossier);
+    const lines = draw.mock.calls.map(([text]) => text);
+    expect(lines).toContain("PRIMA_RIGA");
+    expect(lines).toContain("SECONDA_RIGA CON_TAB");
+    expect(lines.join("")).not.toMatch(/\[U\+(A|9)\]/);
+  } finally {
+    draw.mockRestore();
+  }
+});

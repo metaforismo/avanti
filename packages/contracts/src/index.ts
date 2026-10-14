@@ -18,10 +18,18 @@ export {
 /* Primitives                                                          */
 /* ------------------------------------------------------------------ */
 
+// Preserve Indic joiners and Unicode names; reject storage-invalid controls and bidi overrides.
+export const SafeText = z
+  .string()
+  .regex(
+    /^[^\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u202A-\u202E\u2066-\u2069\p{Surrogate}]*$/u,
+  );
+const SafeName = SafeText.regex(/^[^\r\n\t]*$/u);
+
 export const Language = z.enum(LANGUAGES);
 export type Language = z.infer<typeof Language>;
 
-export const Id = z.string().min(1).max(64);
+export const Id = SafeName.min(1).max(64);
 export const IsoDateTime = z.string().datetime({ offset: true });
 export const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -103,8 +111,8 @@ export type MemberRole = z.infer<typeof MemberRole>;
 export const MemberInput = z.object({
   id: Id.optional(),
   role: MemberRole,
-  firstName: z.string().trim().min(1).max(80),
-  lastName: z.string().trim().max(80).optional(),
+  firstName: SafeName.trim().min(1).max(80),
+  lastName: SafeName.trim().max(80).optional(),
   birthYear: z.number().int().min(1900).max(2100).optional(),
 });
 export type MemberInput = z.infer<typeof MemberInput>;
@@ -113,10 +121,10 @@ export const Member = MemberInput.extend({ id: Id });
 export type Member = z.infer<typeof Member>;
 
 export const AnswerValue = z.union([
-  z.string().max(2000),
+  SafeText.max(2000),
   z.number(),
   z.boolean(),
-  z.array(z.string().max(200)).max(50),
+  z.array(SafeText.max(200)).max(50),
   z.array(MemberInput).max(20),
 ]);
 export type AnswerValue = z.infer<typeof AnswerValue>;
@@ -134,9 +142,9 @@ export const Finding = z.object({
   /** Stable machine code, e.g. "document.expired", "checklist.missing". */
   code: z.string(),
   /** Localized, human readable. */
-  message: z.string(),
+  message: SafeText,
   /** Italian review instructions; optional for findings persisted before this field existed. */
-  operatorMessage: z.string().min(1).optional(),
+  operatorMessage: SafeText.min(1).optional(),
   checklistItemId: Id.nullable(),
   documentId: Id.nullable(),
   memberId: Id.nullable(),
@@ -189,9 +197,9 @@ export const DocumentAnalysis = z.object({
   engine: z.enum(["ai", "heuristic"]),
   /** Catalog requirement id the document most likely satisfies. */
   detectedRequirementId: z.string().nullable(),
-  detectedLabel: z.string().nullable(),
+  detectedLabel: SafeText.nullable(),
   confidence: z.number().min(0).max(1),
-  ownerName: z.string().nullable(),
+  ownerName: SafeName.nullable(),
   referenceYear: z.number().int().nullable(),
   expiresOn: IsoDate.nullable(),
   legible: z.boolean(),
@@ -246,10 +254,10 @@ export const ChatRole = z.enum(["citizen", "assistant", "operator", "system"]);
 export const ChatMessage = z.object({
   id: Id,
   role: ChatRole,
-  text: z.string(),
+  text: SafeText,
   createdAt: IsoDateTime,
   /** Original text before translation, for operator messages shown in another language. */
-  originalText: z.string().nullable(),
+  originalText: SafeText.nullable(),
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
@@ -283,9 +291,9 @@ export const Progress = z.object({
 export type Progress = z.infer<typeof Progress>;
 
 export const CitizenContact = z.object({
-  firstName: z.string().trim().min(1).max(80),
-  lastName: z.string().trim().min(1).max(80),
-  phone: z.string().trim().max(30).optional(),
+  firstName: SafeName.trim().min(1).max(80),
+  lastName: SafeName.trim().min(1).max(80),
+  phone: SafeName.trim().max(30).optional(),
   email: z.string().trim().email().max(200).optional(),
 });
 export type CitizenContact = z.infer<typeof CitizenContact>;
@@ -336,7 +344,7 @@ export type CitizenCase = z.infer<typeof CitizenCase>;
 
 export const StartIntakeRequest = z.object({
   /** Office public slug (from the CAF's link / QR code). */
-  officeSlug: z.string().min(1).max(80),
+  officeSlug: SafeName.min(1).max(80),
   language: Language.default("it"),
   practiceId: PracticeId.optional(),
   /** Explicit consent to the privacy notice, required. */
@@ -352,7 +360,7 @@ export const StartIntakeResponse = z.object({
 export type StartIntakeResponse = z.infer<typeof StartIntakeResponse>;
 
 export const IntakeTurn = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("text"), text: z.string().trim().min(1).max(2000) }),
+  z.object({ type: z.literal("text"), text: SafeText.trim().min(1).max(2000) }),
   z.object({ type: z.literal("answer"), questionId: z.string(), value: AnswerValue }),
   z.object({ type: z.literal("skip"), questionId: z.string() }),
   z.object({ type: z.literal("choose_practice"), practiceId: PracticeId }),
@@ -377,7 +385,7 @@ export const SubmitCaseRequest = z.object({
   /** Citizen confirms the info is truthful and accepts sending it to the CAF. */
   confirmed: z.literal(true),
   /** Free note to the operator. */
-  note: z.string().trim().max(1000).optional(),
+  note: SafeText.trim().max(1000).optional(),
 });
 export type SubmitCaseRequest = z.infer<typeof SubmitCaseRequest>;
 
@@ -436,7 +444,7 @@ export const CaseListQuery = z.object({
   practiceId: PracticeId.optional(),
   officeId: Id.optional(),
   assignee: z.union([Id, z.literal("me"), z.literal("none")]).optional(),
-  q: z.string().trim().max(100).optional(),
+  q: SafeText.trim().max(100).optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
@@ -523,8 +531,8 @@ export const DsuSheetResponse = DsuSheet.nullable();
 /** Full dossier for operators. Everything is in Italian regardless of the citizen language. */
 export const CaseDossier = CaseListItem.extend({
   citizen: z.object({
-    firstName: z.string().nullable(),
-    lastName: z.string().nullable(),
+    firstName: SafeName.nullable(),
+    lastName: SafeName.nullable(),
     phone: z.string().nullable(),
     email: z.string().nullable(),
   }),
@@ -581,22 +589,28 @@ export const RegenerateLinkResponse = z.object({
 export type RegenerateLinkResponse = z.infer<typeof RegenerateLinkResponse>;
 
 export const UpdateCaseRequest = z.object({
+  /** Required by the API for writes; use updatedAt from the dossier and reload on 409. */
+  expectedUpdatedAt: IsoDateTime.optional(),
   status: CaseStatus.optional(),
   assigneeId: Id.nullable().optional(),
-  internalNotes: z.string().max(5000).nullable().optional(),
+  internalNotes: SafeText.max(5000).nullable().optional(),
 });
 export type UpdateCaseRequest = z.infer<typeof UpdateCaseRequest>;
 
 export const ReviewChecklistItemRequest = z.object({
+  /** Required by the API for writes; use updatedAt from the dossier and reload on 409. */
+  expectedUpdatedAt: IsoDateTime.optional(),
   decision: z.enum(["verified", "rejected", "waived", "reset"]),
-  note: z.string().trim().max(500).optional(),
+  note: SafeText.trim().max(500).optional(),
 });
 export type ReviewChecklistItemRequest = z.infer<typeof ReviewChecklistItemRequest>;
 
 export const RequestFromCitizenRequest = z.object({
+  /** Required by the API for writes; use updatedAt from the dossier and reload on 409. */
+  expectedUpdatedAt: IsoDateTime.optional(),
   checklistItemIds: z.array(Id).max(50),
   /** Italian text; translated to the citizen language by the server. */
-  message: z.string().trim().min(1).max(1000),
+  message: SafeText.trim().min(1).max(1000),
 });
 export type RequestFromCitizenRequest = z.infer<typeof RequestFromCitizenRequest>;
 
@@ -670,7 +684,7 @@ export const OperatorSummary = z.object({
 export type OperatorSummary = z.infer<typeof OperatorSummary>;
 
 export const CreateOperatorRequest = z.object({
-  name: z.string().trim().min(2).max(120),
+  name: SafeName.trim().min(2).max(120),
   email: z.string().trim().toLowerCase().email().max(200),
   role: OperatorRole.default("operator"),
 });
@@ -685,25 +699,25 @@ export type TemporaryPasswordResponse = z.infer<typeof TemporaryPasswordResponse
 
 /** An admin cannot demote or deactivate themselves (the API answers `conflict`). */
 export const UpdateOperatorRequest = z.object({
-  name: z.string().trim().min(2).max(120).optional(),
+  name: SafeName.trim().min(2).max(120).optional(),
   role: OperatorRole.optional(),
   active: z.boolean().optional(),
 });
 export type UpdateOperatorRequest = z.infer<typeof UpdateOperatorRequest>;
 
 export const OfficeInput = z.object({
-  name: z.string().trim().min(2).max(120),
-  address: z.string().trim().min(2).max(200),
-  city: z.string().trim().min(2).max(120),
-  phone: z.string().trim().max(30).nullable().optional(),
-  openingHours: z.string().trim().max(200).nullable().optional(),
+  name: SafeName.trim().min(2).max(120),
+  address: SafeName.trim().min(2).max(200),
+  city: SafeName.trim().min(2).max(120),
+  phone: SafeName.trim().max(30).nullable().optional(),
+  openingHours: SafeText.trim().max(200).nullable().optional(),
 });
 export type OfficeInput = z.infer<typeof OfficeInput>;
 
 /** Interactive CLI provisioning; never exposed as an unauthenticated API. */
 export const BootstrapOrganizationRequest = z.object({
   organization: z.object({
-    name: z.string().trim().min(2).max(160),
+    name: SafeName.trim().min(2).max(160),
     kind: OrganizationKind,
   }),
   office: OfficeInput.extend({
@@ -737,13 +751,13 @@ export type DeleteCaseRequest = z.infer<typeof DeleteCaseRequest>;
 /* ------------------------------------------------------------------ */
 
 export const PilotLeadRequest = z.object({
-  name: z.string().trim().min(2).max(120),
-  organization: z.string().trim().min(2).max(160),
-  role: z.string().trim().max(120).optional(),
+  name: SafeName.trim().min(2).max(120),
+  organization: SafeName.trim().min(2).max(160),
+  role: SafeName.trim().max(120).optional(),
   email: z.string().trim().email().max(200),
-  phone: z.string().trim().max(30).optional(),
+  phone: SafeName.trim().max(30).optional(),
   offices: z.coerce.number().int().min(1).max(5000).optional(),
-  message: z.string().trim().max(2000).optional(),
+  message: SafeText.trim().max(2000).optional(),
   privacyAccepted: z.literal(true),
   /** Honeypot: must stay empty. */
   website: z.string().max(0).optional(),
@@ -774,7 +788,7 @@ export const ApiError = z.object({
   error: z.object({
     code: ErrorCode,
     /** Safe to show; domain errors may use the citizen language. Never contains internals. */
-    message: z.string(),
+    message: SafeText,
     /** Field-level validation issues, keyed by dotted path. */
     fields: z.record(z.string(), z.string()).optional(),
     requestId: z.string().optional(),

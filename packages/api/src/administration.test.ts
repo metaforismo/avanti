@@ -1,3 +1,4 @@
+import { withCaseVersion } from "./test-case-version";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, sql } from "drizzle-orm";
 import {
@@ -46,13 +47,14 @@ let normal: string;
 let foreign: string;
 let logs: unknown[];
 
-function request(
+async function request(
   path: string,
   method = "GET",
   input?: unknown,
   cookie?: string,
   requestOrigin: string | null = origin,
 ) {
+  input = await withCaseVersion(db, path, method, input);
   const headers = new Headers();
   if (requestOrigin) headers.set("Origin", requestOrigin);
   if (cookie) headers.set("Cookie", cookie);

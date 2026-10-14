@@ -38,6 +38,8 @@ import { exportPdf } from "./export";
 import { scheduleDocumentRecovery } from "./document-analysis";
 import { calculateMetrics, metricsRange } from "./operator-metrics";
 
+import { assertCaseVersion, nextCaseUpdate } from "./case-version";
+
 const transitions: Record<CaseRow["status"], CaseRow["status"][]> = {
   intake: ["closed"],
   submitted: ["in_review", "closed"],
@@ -186,7 +188,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .set({
           tokenHash: hashToken(token),
           expiresAt: new Date(now.getTime() + (config?.linkDays ?? 60) * 86400000).toISOString(),
-          updatedAt: now.toISOString(),
+          updatedAt: nextCaseUpdate(current, now),
         })
         .where(eq(cases.id, current.id))
         .returning();
@@ -211,10 +213,11 @@ export function mountOperatorRoutes(app: App, s: Services) {
     return c.json(sheet);
   });
   app.patch("/cases/:id", async (c) => {
-    const input = await body(c, UpdateCaseRequest);
+    const { expectedUpdatedAt, ...input } = await body(c, UpdateCaseRequest);
     const operator = c.get("operator");
     const row = await s.db.transaction(async (tx) => {
       const current = await caseById(tx, c.req.param("id"), operator.organizationId, true);
+      assertCaseVersion(current, expectedUpdatedAt);
       if (input.assigneeId) {
         const [assignee] = await tx
           .select()
@@ -262,7 +265,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
           ...(input.status === "ready" && current.status !== "ready"
             ? { reviewCompletedAt: now.toISOString() }
             : {}),
-          updatedAt: now.toISOString(),
+          updatedAt: nextCaseUpdate(current, now),
         })
         .where(and(eq(cases.id, current.id), eq(cases.organizationId, operator.organizationId)))
         .returning();
@@ -298,6 +301,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     const row = await s.db.transaction(async (tx) => {
       const current = await caseById(tx, c.req.param("id"), operator.organizationId, true);
+      assertCaseVersion(current, input.expectedUpdatedAt);
       if (!["in_review", "needs_citizen"].includes(current.status))
         throw new ApiFailure(
           "conflict",
@@ -307,6 +311,17 @@ export function mountOperatorRoutes(app: App, s: Services) {
       const view = await citizenView(tx, current, s.clock(), "it", true);
       const item = view.checklist.find((i) => i.id === c.req.param("itemId"));
       if (!item) throw notFound();
+      if (
+        input.decision === "verified" &&
+        view.documents.some(
+          (document) => item.documentIds.includes(document.id) && document.status === "processing",
+        )
+      )
+        throw new ApiFailure(
+          "conflict",
+          409,
+          "Attendi la fine dell'analisi prima di verificare il documento.",
+        );
       if (input.decision === "verified" && !item.documentIds.length)
         throw new ApiFailure("conflict", 409, "Carica il documento prima della verifica.");
       if ((input.decision === "rejected" || input.decision === "waived") && !input.note)
@@ -338,7 +353,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
           });
       const [updated] = await tx
         .update(cases)
-        .set({ updatedAt: s.clock().toISOString() })
+        .set({ updatedAt: nextCaseUpdate(current, s.clock()) })
         .where(and(eq(cases.id, current.id), eq(cases.organizationId, operator.organizationId)))
         .returning();
       if (!updated) throw notFound();
@@ -351,9 +366,11 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const input = await body(c, RequestFromCitizenRequest);
     const operator = c.get("operator");
     const initial = await caseById(s.db, c.req.param("id"), operator.organizationId);
+    assertCaseVersion(initial, input.expectedUpdatedAt);
     const translated = await s.ai.translate(input.message, initial.language);
     const row = await s.db.transaction(async (tx) => {
       const current = await caseById(tx, initial.id, operator.organizationId, true);
+      assertCaseVersion(current, input.expectedUpdatedAt);
       if (current.language !== initial.language) {
         throw new ApiFailure(
           "conflict",
@@ -413,7 +430,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       });
       const [updated] = await tx
         .update(cases)
-        .set({ status: "needs_citizen", updatedAt: s.clock().toISOString() })
+        .set({ status: "needs_citizen", updatedAt: nextCaseUpdate(current, s.clock()) })
         .where(and(eq(cases.id, current.id), eq(cases.organizationId, operator.organizationId)))
         .returning();
       if (!updated) throw notFound();

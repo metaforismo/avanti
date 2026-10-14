@@ -144,3 +144,13 @@ it("pilot: a nonresponding provider hits the hard deadline and keeps the citizen
     vi.useRealTimers();
   }
 });
+
+it("edge: unsafe controls in model translations fall back before message persistence", async () => {
+  vi.mocked(generateText).mockResolvedValue({ output: { text: "Copia\u0000chiara" } } as Awaited<
+    ReturnType<typeof generateText>
+  >);
+  const ai = new GatewayIntelligence({ key: "test-key", logger: vi.fn() });
+  const result = await ai.translate("Copia chiara", "bn");
+  expect(result.engine).toBe("heuristic");
+  expect(result.text).not.toContain("\u0000");
+});

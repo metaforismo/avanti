@@ -59,6 +59,26 @@ function runs(text: string, fonts: Fonts): Array<{ text: string; font: PDFFont }
   return output;
 }
 
+const characterSets = new WeakMap<PDFFont, Set<number>>();
+function printableText(text: string, fonts: Fonts): string {
+  return runs(text, fonts)
+    .map((run) => {
+      let supported = characterSets.get(run.font);
+      if (!supported) {
+        supported = new Set(run.font.getCharacterSet());
+        characterSets.set(run.font, supported);
+      }
+      return [...run.text]
+        .map((character) => {
+          if (character === "\n" || character === "\t") return character;
+          const point = character.codePointAt(0)!;
+          return supported.has(point) ? character : `[U+${point.toString(16).toUpperCase()}]`;
+        })
+        .join("");
+    })
+    .join("");
+}
+
 async function loadFonts(pdf: PDFDocument, dossier: CaseDossier): Promise<Fonts> {
   pdf.registerFontkit(fontkit);
   const content = JSON.stringify(dossier);
@@ -116,13 +136,16 @@ class DossierPrinter {
   private addPage(): PDFPage {
     this.page = this.pdf.addPage(PageSizes.A4);
     const top = this.page.getHeight() - margin;
-    const header = `Avanti - ${this.dossier.office?.name ?? "Fascicolo operatore"}`;
+    const header = printableText(
+      `Avanti - ${this.dossier.office?.name ?? "Fascicolo operatore"}`,
+      this.fonts,
+    );
     const headerSize = Math.min(
       9,
       (9 * this.width) / Math.max(this.width, this.measure(header, 9)),
     );
     this.draw(header, margin, top, headerSize, headingColor);
-    this.draw(this.dossier.reference, margin, top - 17, 9, mutedColor);
+    this.draw(printableText(this.dossier.reference, this.fonts), margin, top - 17, 9, mutedColor);
     this.page.drawLine({
       start: { x: margin, y: top - 27 },
       end: { x: this.page.getWidth() - margin, y: top - 27 },
@@ -144,9 +167,15 @@ class DossierPrinter {
   }
 
   paragraph(text: string, size = 10, color = textColor, gap = 5): void {
-    const printable = text
-      .replace(/\r\n?/g, "\n")
-      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+    const printable = printableText(
+      text
+        .replace(/\r\n?/g, "\n")
+        .replace(
+          /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u202A-\u202E\u2066-\u2069]/g,
+          "",
+        ),
+      this.fonts,
+    );
     const lineHeight = size * 1.6;
     const line = (value: string) => {
       this.space(lineHeight);

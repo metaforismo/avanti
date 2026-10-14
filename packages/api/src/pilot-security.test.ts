@@ -1,3 +1,4 @@
+import { withCaseVersion } from "./test-case-version";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
@@ -101,13 +102,14 @@ beforeAll(async () => {
 afterAll(async () => {
   await close?.();
 });
-function request(
+async function request(
   path: string,
   method = "GET",
   body?: unknown,
   session = cookie,
   requestOrigin: string | null = origin,
 ) {
+  body = await withCaseVersion(db, path, method, body);
   const headers = new Headers();
   if (requestOrigin) headers.set("Origin", requestOrigin);
   if (session) headers.set("Cookie", session);
@@ -317,7 +319,12 @@ it("pilot: export and operator translation enforce per-operator and trusted-IP q
         await limited.request("/api/cases/case-b/requests", {
           method: "POST",
           headers: { ...proxyHeaders, "Content-Type": "application/json" },
-          body: JSON.stringify({ checklistItemIds: [], message: "Esempio" }),
+          body: JSON.stringify(
+            await withCaseVersion(db, "/api/cases/case-b/requests", "POST", {
+              checklistItemIds: [],
+              message: "Esempio",
+            }),
+          ),
         })
       ).status,
     ).toBe(200);
@@ -326,7 +333,12 @@ it("pilot: export and operator translation enforce per-operator and trusted-IP q
       await limited.request("/api/cases/case-b/requests", {
         method: "POST",
         headers: { ...proxyHeaders, "Content-Type": "application/json" },
-        body: JSON.stringify({ checklistItemIds: [], message: "Esempio" }),
+        body: JSON.stringify(
+          await withCaseVersion(db, "/api/cases/case-b/requests", "POST", {
+            checklistItemIds: [],
+            message: "Esempio",
+          }),
+        ),
       })
     ).status,
   ).toBe(429);
