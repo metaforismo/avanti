@@ -135,6 +135,8 @@ export const Finding = z.object({
   code: z.string(),
   /** Localized, human readable. */
   message: z.string(),
+  /** Italian review instructions; optional for findings persisted before this field existed. */
+  operatorMessage: z.string().min(1).optional(),
   checklistItemId: Id.nullable(),
   documentId: Id.nullable(),
   memberId: Id.nullable(),
@@ -570,6 +572,13 @@ export const CreateCaseResponse = z.object({
   citizenLink: z.string(),
 });
 export type CreateCaseResponse = z.infer<typeof CreateCaseResponse>;
+
+export const RegenerateLinkResponse = z.object({
+  /** Secret capability URL, returned only by the regeneration request. */
+  url: z.string().url(),
+  expiresAt: IsoDateTime,
+});
+export type RegenerateLinkResponse = z.infer<typeof RegenerateLinkResponse>;
 
 export const UpdateCaseRequest = z.object({
   status: CaseStatus.optional(),

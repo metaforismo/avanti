@@ -140,6 +140,7 @@ anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è ac
 | GET    | `/auth/me`                               | —                            | `Operator`                                        |
 | GET    | `/cases`                                 | `CaseListQuery`              | `CaseListResponse`                                |
 | POST   | `/cases`                                 | `CreateCaseRequest`          | 201 `CreateCaseResponse`, link mostrato una volta |
+| POST   | `/cases/:id/link`                        | `Id` (path), nessun body     | `RegenerateLinkResponse`, URL mostrato una volta  |
 | GET    | `/cases/:id`                             | —                            | `CaseDossier`, senza transizione di stato         |
 | GET    | `/cases/:id/dsu-sheet`                   | `Id`                         | `DsuSheet` o `null`, audit `dsu_sheet.viewed`     |
 | PATCH  | `/cases/:id`                             | `UpdateCaseRequest`          | `CaseDossier`                                     |
@@ -153,6 +154,21 @@ Ogni accesso è filtrato per organizzazione della sessione. Sedi, assegnatari e 
 di altri tenant restituiscono 404. Operatore vede sempre italiano nei testi di dominio;
 le risposte libere e i messaggi del cittadino conservano l'originale per non alterare prove.
 Il dossier non ricostruisce il token cittadino (`citizenLink:null`).
+
+La rigenerazione ruota subito il token e rinnova la scadenza dal clock corrente secondo
+`linkDays` del CAF (default 60 giorni). `RegenerateLinkResponse` contiene `{url, expiresAt}`;
+solo SHA-256 del nuovo token viene salvato. Audit `case.link_regenerated` senza dati personali.
+Pratica chiusa o cancellata nello stesso CAF: 409 `conflict` con messaggio esplicito;
+inesistente o di altro CAF: 404. Il vecchio token restituisce 404, perché il suo hash
+non identifica più una pratica. Richieste già autenticate, incluse upload in corso,
+ricontrollano l’hash e falliscono con 410 `link_expired` se il link è stato sostituito;
+l’upload annulla il salvataggio e rimuove il file o lo mette nel retry di cancellazione.
+
+`Finding.operatorMessage` è il testo italiano di revisione, opzionale per compatibilità
+con le analisi persistite precedenti. Tutti i findings generati lo valorizzano.
+Nel dossier e negli export anche `message` usa questo testo, per renderlo disponibile ai
+client esistenti. Nel flusso cittadino `message` resta localizzato e `operatorMessage`
+viene omesso. [Inventario completo prima/dopo](verification/link-regeneration.md).
 
 Il dossier e gli export JSON/PDF includono `dsuSheet`: solo ISEE ordinario, valori
 con fonte per campo e riferimenti al modello DSU 2026. Gli importi/date documentali
@@ -188,7 +204,8 @@ Rate limit persistente su HMAC di identità/categoria/finestra. Capability come 
 principale per turni (60/minuto, 400/ora) e upload (30/minuto, 120/ora); tetti IP
 rispettivamente 1.500/minuto e 15.000/ora, 400/minuto e 4.000/ora. Nuove pratiche pubbliche:
 40/minuto e 60/ora per IP. Login/password: 10/minuto per email, 100/minuto per IP;
-password anche per operatore. Export: 20/minuto per operatore, 200 per IP; integrazioni:
+password anche per operatore. Export e rigenerazione link: ciascuno 20/minuto per operatore,
+200 per IP, in bucket separati; integrazioni:
 30/minuto per operatore, 300 per IP. Lead: 5/minuto per IP. Finestre fisse dalla prima
 richiesta; la guardia al minuto consente il burst senza attendere una ricarica continua.
 429 `rate_limited` con `Retry-After` in secondi e messaggio localizzato per la pratica
@@ -253,7 +270,8 @@ normalizzato coincide con la città o inizia con la città seguita da un separat
 la città non viene aggiunta di nuovo: «Milano Centro» a Milano diventa
 `milano-centro`. Lo slug resta unico nel sistema, con suffisso numerico in caso di
 collisione, e invariato dopo gli edit di nome o città.
-`linkDays` vale solo per nuovi link. `retentionDays` viene applicato dal cron ai
+`linkDays` vale per nuovi link e rigenerazioni, senza cambiare la scadenza dei link esistenti.
+`retentionDays` viene applicato dal cron ai
 fascicoli chiusi o scaduti da più del periodo configurato (25 per esecuzione).
 La cancellazione manuale richiede il riferimento, senza distinzione maiuscole/minuscole.
 Entrambe rimuovono DB e file, con tombstone/retry e audit senza contenuti personali:

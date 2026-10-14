@@ -215,15 +215,20 @@ export async function citizenView(
       createdAt: iso(m.createdAt),
     })),
     findings: operatorView
-      ? evaluation.findings
-      : evaluation.findings.filter(
-          (f) =>
-            citizenCodes.has(f.code) &&
-            !checklist.some(
-              (item) =>
-                item.id === f.checklistItemId && ["verified", "waived"].includes(item.status),
-            ),
-        ),
+      ? evaluation.findings.map((finding) => ({
+          ...finding,
+          message: finding.operatorMessage ?? finding.message,
+        }))
+      : evaluation.findings
+          .filter(
+            (f) =>
+              citizenCodes.has(f.code) &&
+              !checklist.some(
+                (item) =>
+                  item.id === f.checklistItemId && ["verified", "waived"].includes(item.status),
+              ),
+          )
+          .map(({ operatorMessage: _operatorMessage, ...finding }) => finding),
     submittedAt: row.submittedAt ? iso(row.submittedAt) : null,
     expiresAt: iso(row.expiresAt),
   };

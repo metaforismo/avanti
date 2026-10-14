@@ -267,6 +267,54 @@ const messages = {
   ],
 } as const satisfies Record<string, Text>;
 type FindingCode = keyof typeof messages;
+const operatorMessages = {
+  "practice.household_review":
+    "Verifica coniugi e figli a carico non conviventi: il nucleo ISEE può differire dai conviventi.",
+  "checklist.missing": "Richiedi {title}: manca il documento obbligatorio.",
+  "checklist.rejected":
+    "Richiedi una nuova copia di {title}: la voce è stata rifiutata in revisione.",
+  "document.expired": "{file}: verifica la scadenza letta e richiedi un documento valido.",
+  "document.expiring": "{file}: verifica la scadenza letta; il documento scade entro 90 giorni.",
+  "document.wrong_year": "{file}: verifica l’anno dei dati; per questa voce serve il {year}.",
+  "document.wrong_owner":
+    "{file}: confronta l’intestatario con {owner} e verifica l’abbinamento; il nome letto non coincide.",
+  "document.illegible":
+    "{file}: controlla la leggibilità; l’analisi segnala un file illeggibile. Se confermato, chiedi una copia più chiara.",
+  "document.missing_pages":
+    "{file}: controlla le pagine; l’analisi segnala un documento incompleto. Se confermato, chiedi la copia completa.",
+  "document.duplicate":
+    "{file}: verifica il duplicato nella stessa voce; i file hanno contenuto identico.",
+  "document.unmatched":
+    "{file}: identifica il documento e abbinalo alla voce corretta; non ha un abbinamento.",
+  "document.other_practice":
+    "{file}: verifica tipo e abbinamento; il tipo rilevato non corrisponde alla voce o alla pratica.",
+  "document.unchecked":
+    "{file}: controlla a vista intestatario, anno, scadenza e pagine: il controllo automatico non sostituisce la verifica.",
+  "document.failed": "{file}: controlla a vista il documento; l’analisi automatica non è riuscita.",
+  "practice.provisional_year":
+    "Verifica modello e istruzioni 2027 prima della presentazione: la preparazione usa le regole vigenti.",
+  "practice.parent_review":
+    "Valuta attrazione, componente aggiuntiva o esclusione del genitore non convivente: dipendono dal caso.",
+  "practice.university_review":
+    "Completa il quadro C MB.2; verifica genitori non conviventi, autonomia e dottorato (possibile nucleo ristretto). Il solo ISEE ordinario non basta per l’Università.",
+  "practice.foreign_institution_review":
+    "Verifica paese e tipo del rapporto, poi i documenti per patrimoni esteri: il nome della banca o del wallet non li prova.",
+  "practice.mortgage_review":
+    "Verifica proprietà, acquisto/costruzione e capitale residuo al 31/12/2025: il racconto sul mutuo non conferma il residuo a quella data.",
+  "practice.full_dsu":
+    "Verifica i moduli della DSU integrale necessari: la situazione può richiederli.",
+  "practice.savings_exclusion":
+    "Verifica gli strumenti ammessi e il limite di 50.000 € per nucleo per titoli di Stato, buoni fruttiferi e libretti postali; non escludere altri investimenti.",
+  "practice.auu_review":
+    "Verifica regole familiari vigenti, figli e continuità della domanda accolta; l’ISEE è facoltativo per l’Assegno unico.",
+  "practice.permit_review":
+    "Verifica motivo, primo rilascio/rinnovo, percorso competente e documenti aggiuntivi: la checklist non copre tutti i permessi.",
+  "practice.joint_ownership":
+    "Verifica tutti gli intestatari e le quote: è stata dichiarata una cointestazione di un rapporto o immobile.",
+  "practice.outdated_catalog":
+    "Aggiorna anno e regole prima di usare il fascicolo: il catalogo è fermo al 2027.",
+} as const satisfies Record<FindingCode, string>;
+
 export type DossierInput = {
   practiceId: PracticeId | null;
   answers: Answers;
@@ -299,16 +347,20 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
   ) {
     const id = `${code}:${document?.id ?? item?.id ?? "case"}`;
     if (findings.some((existing) => existing.id === id)) return;
+    const variables: Record<string, string | number> = {
+      file: document?.fileName ?? "",
+      title: [item?.title, item?.memberName].filter(Boolean).join(" · "),
+      owner: item?.memberName ?? "",
+      ...vars,
+    };
     findings.push({
       id,
       severity,
       code,
-      message: localize(language, messages[code], {
-        file: document?.fileName ?? "",
-        title: [item?.title, item?.memberName].filter(Boolean).join(" · "),
-        owner: item?.memberName ?? "",
-        ...vars,
-      }),
+      message: localize(language, messages[code], variables),
+      operatorMessage: operatorMessages[code].replace(/\{(\w+)\}/g, (_, name: string) =>
+        String(variables[name] ?? `{${name}}`),
+      ),
       documentId: document?.id ?? null,
       checklistItemId: item?.id ?? null,
       memberId: item?.memberId ?? document?.memberId ?? null,

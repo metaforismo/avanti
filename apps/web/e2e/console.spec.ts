@@ -120,3 +120,31 @@ test("a ready case opens the DSU sheet, ready to copy into the CAF's software", 
   await expect(sheet.getByRole("button", { name: /^Copia Nome$/ }).first()).toBeVisible();
   await expect(sheet.getByText("Manca", { exact: true })).toHaveCount(0);
 });
+
+test("a lost citizen link is replaced and the old one stops working", async ({ page, browser }) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await page.getByRole("button", { name: "Nuova pratica" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /Crea/ }).click();
+  const oldLink = (await page.getByRole("dialog").locator("[translate=no]").innerText()).trim();
+  await page.getByRole("link", { name: "Apri il fascicolo" }).click();
+
+  await page.getByRole("button", { name: "Altro" }).click();
+  await page.getByRole("menuitem", { name: "Nuovo link per il cittadino…" }).click();
+  await page.getByRole("button", { name: "Crea il nuovo link" }).click();
+  const issued = page.getByRole("dialog", { name: "Nuovo link creato" });
+  const newLink = (await issued.locator("[translate=no]").innerText()).trim();
+  expect(newLink).not.toBe(oldLink);
+  await expect(issued.getByRole("link", { name: "WhatsApp" })).toHaveAttribute(
+    "href",
+    /nuovo%20link/,
+  );
+
+  const citizen = await (await browser.newContext({ locale: "it-IT" })).newPage();
+  await citizen.goto(oldLink);
+  await expect(citizen.getByRole("heading", { level: 1 })).toContainText(/non valido|scadut/i);
+  await citizen.goto(newLink);
+  await expect(citizen.getByRole("heading", { name: "Cosa devi fare?" })).toBeVisible();
+});

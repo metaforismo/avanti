@@ -26,6 +26,7 @@ import { DeleteCaseDialog } from "./delete-case-dialog";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
 import { DsuSheetSection } from "./dsu-sheet-section";
+import { NewLinkDialog } from "./new-link-dialog";
 import { FindingsSummary } from "./findings-summary";
 import { RequestDialog } from "./request-dialog";
 import { AnswersSection, ConversationSection } from "./secondary-sections";
@@ -46,6 +47,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmReady, setConfirmReady] = useState(false);
+  const [newLink, setNewLink] = useState(false);
   const readyButton = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
   // The open document lives in the URL: shareable with a colleague, closed by the Back button.
@@ -264,6 +266,9 @@ export function DossierView({ caseId }: { caseId: string }) {
                         Torna in revisione
                       </MenuItem>
                     )}
+                    <MenuItem onSelect={() => setNewLink(true)}>
+                      Nuovo link per il cittadino…
+                    </MenuItem>
                     <MenuItem onSelect={() => setConfirmClose(true)}>Chiudi e archivia…</MenuItem>
                   </>
                 )}
@@ -386,6 +391,12 @@ export function DossierView({ caseId }: { caseId: string }) {
           </Button>
         </div>
       </Dialog>
+      <NewLinkDialog
+        open={newLink}
+        onOpenChange={setNewLink}
+        dossier={data}
+        returnFocusTo={moreButton}
+      />
       <DeleteCaseDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
