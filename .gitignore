@@ -27,3 +27,6 @@ test-results
 
 # Temporary worktrees of local agents
 .claude/worktrees/
+
+# Parallel work sessions (git worktrees)
+.worktrees/
