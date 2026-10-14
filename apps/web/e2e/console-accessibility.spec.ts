@@ -7,10 +7,12 @@ const ADMIN = { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" };
 
 const PAGES = [
   { path: "/console/metriche", heading: "Metriche" },
+  { path: "/console/stato", heading: "Stato del sistema" },
   { path: "/console/sportelli", heading: "Sportelli e QR" },
   { path: "/console/impostazioni", heading: "Impostazioni" },
   { path: "/console/account", heading: "Account" },
   { path: "/console/aiuto", heading: "Aiuto" },
+  { path: "/console/registro", heading: "Registro attività" },
 ] as const;
 
 async function seriousViolations(page: Page) {

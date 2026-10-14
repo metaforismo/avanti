@@ -415,3 +415,41 @@ export const notifications = pgTable(
     }).onDelete("cascade"),
   ],
 );
+
+export const systemJobs = pgTable(
+  "system_jobs",
+  {
+    kind: text("kind").$type<"maintenance" | "retention">().primaryKey(),
+    runId: text("run_id").notNull(),
+    startedAt: instant("started_at").notNull(),
+    finishedAt: instant("finished_at"),
+    outcome: text("outcome").$type<"running" | "ok" | "failed">().notNull(),
+  },
+  (t) => [
+    check("system_jobs_kind_check", sql`${t.kind} in ('maintenance','retention')`),
+    check("system_jobs_outcome_check", sql`${t.outcome} in ('running','ok','failed')`),
+  ],
+);
+
+export const operationalCounters = pgTable(
+  "operational_counters",
+  {
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    hour: instant("hour").notNull(),
+    metric: text("metric")
+      .$type<"ai_success" | "ai_fallback" | "ai_error" | "api_error">()
+      .notNull(),
+    count: integer("count").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.organizationId, t.hour, t.metric] }),
+    index("operational_counters_hour_idx").on(t.hour),
+    check(
+      "operational_counters_metric_check",
+      sql`${t.metric} in ('ai_success','ai_fallback','ai_error','api_error')`,
+    ),
+    check("operational_counters_count_check", sql`${t.count} > 0`),
+  ],
+);

@@ -2,7 +2,7 @@
 
 ## Notifiche email e outbox
 
-Migrazione `0009_notifications`: outbox e preferenze dell'organizzazione.
+Migrazione `0010_notifications`: outbox e preferenze dell'organizzazione.
 La richiesta API salva evento e outbox nella stessa transazione; dopo il commit
 registra con `services.background` l'invio del solo ID appena accodato, senza attendere
 il provider. Next usa `after()` come per l'analisi dei documenti. Il cron recupera

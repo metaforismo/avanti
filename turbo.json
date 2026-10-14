@@ -24,6 +24,9 @@
         "LEADS_NOTIFY_EMAIL",
         "VERCEL",
         "VERCEL_ENV",
+        "VERCEL_GIT_COMMIT_SHA",
+        "APP_COMMIT",
+        "APP_TAG",
         "NEXT_PUBLIC_DEMO_OFFICE_SLUG"
       ]
     },

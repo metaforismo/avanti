@@ -5,6 +5,10 @@ Base path `/api`, JSON UTF-8, backend Hono in Next runtime Node. Schemi request/
 `ApiError`: messaggio sicuro, codice stabile e request ID; niente stack o SQL. Gli errori
 di dominio dell'intervista sono nella lingua cittadino, gli errori infrastrutturali in italiano.
 
+`GET /api/status` restituisce `SystemStatus` solo agli admin del CAF autenticato:
+componenti, contatori senza dati personali, job e versione. Contratto, esempio JSON,
+scope e soglie in [SYSTEM_STATUS.md](SYSTEM_STATUS.md).
+
 ## Pubblico
 
 | Metodo | Percorso             | Input                  | Risposta                                                                             |

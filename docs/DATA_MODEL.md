@@ -36,7 +36,7 @@ della directory. In produzione le migrazioni si applicano esplicitamente con
 | `reference_counters` | Progressivo atomico per organizzazione e anno.                                                                                                                                |
 
 `settings` include `notifyCitizenReady` e `notifyOperatorDigest` (false per default),
-e `lastDigestDate` interno per l'unicità del riepilogo UTC. La migrazione 0009 aggiunge
+e `lastDigestDate` interno per l'unicità del riepilogo UTC. La migrazione 0010 aggiunge
 preferenze e outbox. `dedupe_key` è univoca per evento; l'ID della notifica è la chiave
 di idempotenza Resend.
 `first_attempt_at` conserva l'inizio della finestra di esito incerto: dopo un rifiuto
@@ -47,6 +47,10 @@ Stati: `pending`, `sending`, `sent` (accettata dal provider), `simulated` (conso
 o scadenza di 7 giorni; ricevute dopo 30 giorni dal completamento. FK cascade eliminano
 anche le notifiche con pratica/lead/operatore/organizzazione. Nessun indirizzo o contenuto
 è conservato in chiaro nell'outbox. [Runbook](DEPLOY.md#notifiche-email-e-outbox).
+
+La migrazione 0009 aggiunge `system_jobs` (ultimo run globale di manutenzione e
+retention) e `operational_counters` (conteggi orari per tenant, senza payload).
+Vincoli, retention della telemetria e semantica in [SYSTEM_STATUS.md](SYSTEM_STATUS.md).
 
 La reference è `AV-AAAA-NNNNNN`: un `INSERT … ON CONFLICT … UPDATE … RETURNING`
 incrementa il contatore senza leggere prima il valore. Le reference sono univoche dentro

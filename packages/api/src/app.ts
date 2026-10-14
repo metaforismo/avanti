@@ -20,6 +20,7 @@ import { mountCitizenRoutes } from "./citizen";
 import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
 import { mountAuditRoutes } from "./audit-log";
+import { mountSystemStatus } from "./system-status";
 
 export function createApp(options: ApiOptions) {
   if (options.production && !options.publicUrl)
@@ -48,7 +49,7 @@ export function createApp(options: ApiOptions) {
   app.use("*", requireOrigin(services));
   app.use("*", uploadCapacity(services));
   app.use("*", boundedBody());
-  registerErrors(app, options.errorLogger);
+  registerErrors(app, options.errorLogger, services);
   mountMaintenance(app, services);
   app.use("*", restrictTemporaryPassword(services));
   const limited = rateLimit(services);
@@ -60,6 +61,7 @@ export function createApp(options: ApiOptions) {
     "/auth/password",
     "/cases/*",
     "/metrics",
+    "/status",
     "/settings",
     "/operators/*",
     "/audit/*",
@@ -83,5 +85,6 @@ export function createApp(options: ApiOptions) {
   mountOperatorRoutes(app, services);
   mountAdministrationRoutes(app, services);
   mountAuditRoutes(app, services);
+  mountSystemStatus(app, services);
   return app;
 }

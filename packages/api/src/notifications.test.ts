@@ -67,7 +67,8 @@ afterAll(async () => {
   await close?.();
 });
 beforeEach(async () => {
-  await db.execute(sql`truncate organizations, leads, notifications cascade`);
+  // system_jobs holds the cron lock: every test restarts the clock, so a stale run would skip it.
+  await db.execute(sql`truncate organizations, leads, notifications, system_jobs cascade`);
   now = new Date(initial);
   logs = [];
   send = vi.fn(async (_delivery: Delivery) => {});

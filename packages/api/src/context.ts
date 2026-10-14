@@ -28,6 +28,7 @@ export interface ApiOptions {
   rateLimitSecret?: string;
   vercel?: boolean;
   cronSecret?: string;
+  appVersion?: { commit?: string; tag?: string };
   background?: (work: () => Promise<void>) => void;
   transport?: "fetch" | "node";
   clientAddress?: (context: ApiContext) => string | null;
