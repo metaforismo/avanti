@@ -71,6 +71,8 @@ condivise.
 - **Pronte**: verificate, da inserire nel gestionale.
 - **In compilazione**: il cittadino non ha ancora inviato. Puoi guardarle, non revisionarle.
 
+Premi **/** per andare subito alla ricerca (nome o codice pratica); **Esc** la svuota.
+
 I filtri restano nell'indirizzo della pagina: puoi mandare a un collega il link a "le mie
 pratiche ISEE da revisionare".
 
