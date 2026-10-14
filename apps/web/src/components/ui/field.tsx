@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-import { useId, type ComponentProps, type ReactNode } from "react";
+import { ChevronDown, Eye, EyeOff } from "lucide-react";
+import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 const control =
@@ -11,6 +11,65 @@ const control =
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(control, "h-11 text-base", className)} {...props} />;
+}
+
+/**
+ * Password with a show/hide toggle (temporary passwords are long and typed by hand) and a
+ * Caps Lock warning, the most common reason for a failed login.
+ */
+export function PasswordInput({
+  className,
+  onKeyUp,
+  onBlur,
+  "aria-describedby": describedBy,
+  ...props
+}: Omit<ComponentProps<"input">, "type">) {
+  const [visible, setVisible] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+  const capsId = useId();
+  return (
+    <span className="grid gap-1.5">
+      <span className="relative flex">
+        <input
+          {...props}
+          type={visible ? "text" : "password"}
+          spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
+          aria-describedby={
+            [describedBy, capsLock ? capsId : undefined].filter(Boolean).join(" ") || undefined
+          }
+          onKeyUp={(event) => {
+            setCapsLock(event.getModifierState("CapsLock"));
+            onKeyUp?.(event);
+          }}
+          onBlur={(event) => {
+            setCapsLock(false);
+            onBlur?.(event);
+          }}
+          className={cn(control, "h-11 pe-12 text-base", className)}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((shown) => !shown)}
+          aria-pressed={visible}
+          aria-label={visible ? "Nascondi password" : "Mostra password"}
+          className="absolute end-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-sm text-ink-3 hover:bg-sunk hover:text-ink"
+        >
+          {visible ? (
+            <EyeOff className="size-4.5" aria-hidden />
+          ) : (
+            <Eye className="size-4.5" aria-hidden />
+          )}
+        </button>
+      </span>
+      {capsLock && (
+        <span id={capsId} role="status" className="text-sm font-medium text-warn">
+          Il tasto Bloc Maiusc è attivo.
+        </span>
+      )}
+    </span>
+  );
 }
 
 /** Native select (keyboard and screen readers for free) styled like the other controls. */
