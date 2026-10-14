@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s · Avanti",
   },
   description:
-    "Il cittadino racconta cosa deve fare, nella sua lingua. Avanti prepara checklist, controlla i documenti e consegna all'operatore un fascicolo pronto.",
+    "Il cittadino racconta cosa deve fare, nella sua lingua. Avanti prepara la checklist, ordina i documenti e consegna all'operatore un fascicolo con ciò che va verificato in cima.",
   applicationName: "Avanti",
   openGraph: { type: "website", locale: "it_IT", siteName: "Avanti" },
 };

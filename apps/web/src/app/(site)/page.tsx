@@ -42,7 +42,7 @@ const STEPS = [
   },
   {
     title: "Carica",
-    body: "Foto o PDF dal telefono. Ogni file viene riconosciuto, abbinato alla voce giusta e controllato. Se non va, lo dice subito e spiega perché.",
+    body: "Foto o PDF dal telefono. Avanti li analizza, propone la voce giusta e segnala subito cosa non torna. Quando il controllo è incerto lo dice: la verifica resta all'operatore.",
   },
   {
     title: "Consegna",
@@ -136,7 +136,8 @@ export default function HomePage() {
           </h1>
           <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-ink-2 sm:text-xl">
             Avanti è il front office AI per CAF e patronati. Ascolta il cittadino nella sua lingua,
-            prepara la checklist, controlla i documenti. Allo sportello resta il lavoro che conta.
+            prepara la checklist, ordina i documenti e segnala cosa va verificato. L&apos;operatore
+            controlla il fascicolo e prosegue nel gestionale.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild size="lg">
@@ -238,7 +239,7 @@ export default function HomePage() {
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-white/75">
               Prima i problemi bloccanti, poi gli avvisi, poi tutto il resto. Ogni voce si verifica
-              con un clic; le integrazioni si chiedono al cittadino senza telefonate.
+              con un clic; le integrazioni si chiedono nel link del cittadino, nella sua lingua.
             </p>
             <ul className="mt-10 grid gap-5">
               {[
@@ -252,11 +253,11 @@ export default function HomePage() {
                 },
                 {
                   icon: Languages,
-                  text: "Tutto in italiano, qualunque lingua abbia usato il cittadino",
+                  text: "Console in italiano; il cittadino usa una delle otto lingue e l'originale resta consultabile",
                 },
                 {
                   icon: Clock3,
-                  text: "Tempi misurati pratica per pratica, per sapere quanto si risparmia davvero",
+                  text: "Tempi, mancanti e integrazioni misurati pratica per pratica: nel pilota li confrontiamo con il vostro flusso abituale",
                 },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex gap-3.5 text-white/90">
@@ -267,6 +268,37 @@ export default function HomePage() {
             </ul>
           </div>
           <DossierPreview />
+        </div>
+      </section>
+
+      {/* Handoff to the CAF's software */}
+      <section aria-labelledby="gestionale-title" className="border-b border-line bg-surface">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+          <h2
+            id="gestionale-title"
+            className="font-display text-[clamp(1.75rem,3.4vw,2.5rem)] leading-[1.05] font-bold tracking-[-0.025em] [font-stretch:90%]"
+          >
+            Il lavoro prosegue nel vostro gestionale.
+          </h2>
+          <ol className="mt-8 grid gap-6 md:grid-cols-3">
+            {[
+              "L'operatore verifica documenti e mancanti, voce per voce.",
+              "Consulta il prospetto DSU, nell'ordine del modello, con la fonte di ogni campo; scarica il riepilogo PDF o i dati JSON.",
+              "Copia i dati e carica gli originali nel software del CAF, con la procedura provata insieme durante l'avvio.",
+            ].map((text, i) => (
+              <li key={text} className="flex gap-4">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-stamp font-display font-bold text-on-stamp">
+                  {i + 1}
+                </span>
+                <p className="text-ink-2">{text}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-8 max-w-3xl text-sm text-ink-3">
+            Avanti non legge gli importi dai documenti e non invia nulla agli enti: saldi e redditi
+            li legge l&apos;operatore nel documento indicato. Le integrazioni dirette con i
+            gestionali si definiscono con i piloti.
+          </p>
         </div>
       </section>
 
@@ -432,6 +464,11 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
+            <h3 className="mt-10 font-semibold">La prova che stiamo cercando</h3>
+            <p className="mt-3 text-ink-2">
+              Con i primi sportelli misureremo minuti di lavoro, completezza al primo invio e tempo
+              di copia nel gestionale. Pubblicheremo metodo, campione e limiti del risultato.
+            </p>
           </div>
           <PilotForm />
         </div>
