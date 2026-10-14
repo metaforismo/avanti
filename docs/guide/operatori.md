@@ -142,6 +142,10 @@ _Impostazioni_ compare solo agli amministratori.
   sportello ha il suo link e il suo QR in _Sportelli e QR_.
 - **Parametri**: minuti per pratica prima di Avanti (la baseline per le metriche), validità dei
   link per i cittadini e per quanti giorni Avanti conserva i fascicoli chiusi o scaduti.
+- **Registro attività**: chi ha fatto cosa e quando (accessi, anche falliti, consultazioni,
+  esportazioni, cancellazioni, modifiche agli operatori), con filtri per periodo, operatore e
+  codice pratica ed esportazione CSV. Serve per rispondere a un interessato o a un controllo; non
+  contiene dati personali dei cittadini. Gli eventi si conservano 365 giorni.
 - **Cancellazione definitiva**: dal fascicolo, _Altro_ → _Elimina definitivamente…_, scrivendo
   il codice della pratica per conferma. Serve per le richieste di cancellazione degli
   interessati: verifica prima gli obblighi di conservazione del CAF. Non si può annullare.

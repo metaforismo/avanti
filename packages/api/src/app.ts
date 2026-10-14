@@ -18,6 +18,7 @@ import { mountPublicRoutes } from "./routes/public";
 import { mountCitizenRoutes } from "./citizen";
 import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
+import { mountAuditRoutes } from "./audit-log";
 
 export function createApp(options: ApiOptions) {
   if (options.production && !options.publicUrl)
@@ -59,6 +60,7 @@ export function createApp(options: ApiOptions) {
     "/metrics",
     "/settings",
     "/operators/*",
+    "/audit/*",
   ]) {
     app.use(path, authenticated);
     if (!path.startsWith("/auth/")) app.use(path, limited);
@@ -78,5 +80,6 @@ export function createApp(options: ApiOptions) {
   mountCitizenRoutes(app, services);
   mountOperatorRoutes(app, services);
   mountAdministrationRoutes(app, services);
+  mountAuditRoutes(app, services);
   return app;
 }

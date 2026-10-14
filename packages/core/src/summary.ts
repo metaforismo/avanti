@@ -74,6 +74,7 @@ const timelineLabels: Record<string, string> = {
   "review.completed": "Revisione completata dall'operatore",
   "citizen.requested": "Integrazione richiesta al cittadino",
   "case.created": "Fascicolo aperto",
+  "case.viewed": "Fascicolo consultato dall’operatore",
   "document.uploaded": "Documento caricato",
   "document.analyzed": "Analisi documento completata",
   "document.reassigned": "Abbinamento documento modificato",

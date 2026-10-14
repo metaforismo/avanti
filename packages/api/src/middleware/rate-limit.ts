@@ -1,11 +1,13 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { isIP } from "node:net";
-import { consumeRateLimit } from "@avanti/db";
+import { consumeRateLimit, operators } from "@avanti/db";
+import { eq } from "drizzle-orm";
 import { LoginRequest } from "@avanti/contracts";
 import type { MiddlewareHandler } from "hono";
 import type { ApiContext, ApiEnv, Services } from "../context";
 import { ApiFailure } from "../security";
 import { limitLanguage, limitMessage } from "./limit-message";
+import { recordActivity } from "../audit-log";
 
 interface WindowLimit {
   limit: number;
@@ -31,6 +33,7 @@ export const RATE_POLICIES = {
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
+  if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
   if (method !== "POST") return null;
   if (/^\/api\/cases\/[^/]+\/link$/.test(path)) return RATE_POLICIES.link;
@@ -68,6 +71,7 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       (!["export", "link", "translate"].includes(rule.category) || context.get("operator"))
     ) {
       const identities: string[] = [];
+      let loginEmail: string | undefined;
       const address = remoteAddress(context, services);
       if (services.production && !address)
         throw new ApiFailure("bad_request", 400, "Richiesta non valida.");
@@ -87,6 +91,7 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
         const parsed = LoginRequest.safeParse(raw);
         if (!parsed.success) throw new ApiFailure("bad_request", 400, "Controlla i dati inseriti.");
         identities.push(`email:${parsed.data.email}`);
+        loginEmail = parsed.data.email;
       }
       // A busy or abusive capability must exhaust its own quota before charging the shared Wi-Fi.
       const buckets = identities.flatMap((identity) =>
@@ -103,6 +108,22 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
           window.seconds,
         );
         if (!result.allowed) {
+          if (loginEmail) {
+            const [account] = await services.db
+              .select()
+              .from(operators)
+              .where(eq(operators.email, loginEmail))
+              .limit(1);
+            await recordActivity(
+              services.db,
+              account?.organizationId ?? null,
+              null,
+              "auth.login_failed",
+              services.clock(),
+              account?.id ?? null,
+              { rateLimited: true },
+            );
+          }
           context.header("Retry-After", String(result.retryAfterSeconds));
           throw new ApiFailure(
             "rate_limited",

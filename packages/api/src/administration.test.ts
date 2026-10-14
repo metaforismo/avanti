@@ -141,6 +141,7 @@ beforeAll(async () => {
 });
 afterAll(async () => close?.());
 beforeEach(async () => {
+  await db.delete(events);
   await db.delete(organizations);
   await db.delete(storageDeletions);
   await db.delete(rateLimits);
@@ -730,7 +731,7 @@ it("a reset racing with login cannot leave a session authenticated by the old pa
 });
 
 describe("erasure and automatic retention", () => {
-  it("requires a matching reference, cascades all personal data, removes files and preserves anonymous audit", async () => {
+  it("requires a matching reference, cascades personal content, removes files and preserves technical audit", async () => {
     const row = await caseFixture("erase", {
       answers: { members: [{ role: "richiedente", firstName: "Segreto" }] },
       citizenNote: "Segreto",
@@ -781,17 +782,23 @@ describe("erasure and automatic retention", () => {
     await expect(storage.get(key)).rejects.toThrow();
     expect(await db.select().from(storageDeletions)).toHaveLength(0);
     const audit = await db.select().from(events);
-    expect(audit).toHaveLength(1);
-    expect(audit[0]).toMatchObject({
+    expect(audit).toHaveLength(2);
+    expect(audit.find((event) => event.type === "case.deleted")).toMatchObject({
       organizationId: "org-a",
       actor: "operator",
       actorId: "admin-a",
       caseId: null,
       deletedCaseId: row.id,
+      caseReference: row.reference,
       type: "case.deleted",
       metadata: {},
     });
-    expect(JSON.stringify(audit)).not.toMatch(/Segreto|Nome-Personale|AV-2027/);
+    expect(audit.find((event) => event.id === "old-event")).toMatchObject({
+      caseId: null,
+      deletedCaseId: row.id,
+      caseReference: row.reference,
+    });
+    expect(JSON.stringify(audit)).not.toMatch(/Segreto|Nome-Personale/);
     expect(JSON.stringify(logs)).not.toMatch(/Segreto|Nome-Personale|AV-2027/);
     await fails(
       await request(`/cases/${row.id}`, "DELETE", { confirmReference: row.reference }, admin),
@@ -884,7 +891,7 @@ describe("erasure and automatic retention", () => {
       "reopened",
     ]);
     await expect(storage.get(key)).rejects.toThrow();
-    const audit = await db.select().from(events);
+    const audit = await db.select().from(events).where(eq(events.type, "case.retention_deleted"));
     expect(audit).toHaveLength(2);
     expect(
       audit.every(
@@ -900,7 +907,9 @@ describe("erasure and automatic retention", () => {
     expect(await (await cron()).json()).toMatchObject({ deletedCases: 1 });
     now = new Date(now.getTime() + 61000);
     expect(await (await cron()).json()).toMatchObject({ deletedCases: 0 });
-    expect(await db.select().from(events)).toHaveLength(3);
+    expect(
+      await db.select().from(events).where(eq(events.type, "case.retention_deleted")),
+    ).toHaveLength(3);
   });
   it("limits each cron to one batch, has no user-request purge, and retries failed retention files", async () => {
     for (let index = 0; index <= RETENTION_BATCH_SIZE; index++)
@@ -920,7 +929,9 @@ describe("erasure and automatic retention", () => {
     expect(await (await cron()).json()).toMatchObject({ deletedCases: 1 });
     expect(await db.select().from(cases)).toHaveLength(0);
     expect(await db.select().from(storageDeletions)).toHaveLength(0);
-    expect(await db.select().from(events)).toHaveLength(RETENTION_BATCH_SIZE + 1);
+    expect(
+      await db.select().from(events).where(eq(events.type, "case.retention_deleted")),
+    ).toHaveLength(RETENTION_BATCH_SIZE + 1);
   });
   it("tracks closure time and clears it when the operator reopens a case", async () => {
     const row = await caseFixture("close-time");
