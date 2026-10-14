@@ -313,3 +313,72 @@ Gli eventi hanno `at` con l’offset Europe/Rome al momento dell’azione, attor
 ID tecnico, etichetta italiana, riferimento pratica anche dopo cancellazione e
 dettagli limitati a conteggi/flag. Nessun nome o email nel DTO. Catalogo completo,
 contratti e verifiche in [verification/audit-log.md](verification/audit-log.md).
+
+## Verifica in due passaggi degli operatori
+
+I nuovi contratti in `@avanti/contracts` servono a distinguere la sessione limitata
+nel login e a condividere con l'interfaccia Account richieste, risposte e impostazione
+obbligatoria. `LoginResponse` è `Operator | MfaChallenge`; `Operator` aggiunge
+`mfaEnabled` e `mustSetupMfa`, `OperatorSummary` aggiunge `mfaEnabled`.
+Le API mantengono il cookie `avanti_session`, HttpOnly e Secure in produzione.
+Tutte le POST/PATCH richiedono `Origin` autorizzata; nessun token nel JSON.
+
+| Metodo e percorso                              | Corpo                                                  | Risposta 200                                                                                                                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/auth/login`                         | `{ "email": "operatore@example.it", "password": "…" }` | `Operator`, oppure `{ "mfaRequired": true, "expiresAt": "2027-01-05T10:05:00.000Z" }`                                                                                              |
+| `GET /api/auth/me`                             | —                                                      | stesso tipo `LoginResponse`; sessione limitata restituisce solo il challenge                                                                                                       |
+| `POST /api/auth/mfa/verify`                    | `{ "code": "123456" }` oppure codice di recupero       | `Operator`; cookie ruotato                                                                                                                                                         |
+| `GET /api/auth/mfa/status`                     | —                                                      | `{ "enabled": true, "required": false, "recoveryCodesRemaining": 10, "setupPending": false }`                                                                                      |
+| `POST /api/auth/mfa/setup/start`               | `{ "currentPassword": "…" }`                           | `{ "secret": "<32 caratteri base32>", "otpauthUri": "otpauth://totp/Avanti%3Aoperatore%40example.it?secret=…&issuer=Avanti&algorithm=SHA1&digits=6&period=30", "expiresAt": "…" }` |
+| `POST /api/auth/mfa/setup/confirm`             | `{ "code": "123456" }`                                 | `{ "recoveryCodes": ["01234567-89abcdef-01234567-89abcdef", "… altri nove …"] }`; cookie ruotato                                                                                   |
+| `POST /api/auth/mfa/disable`                   | `{ "currentPassword": "…", "code": "123456" }`         | `{ "ok": true }`; cookie ruotato                                                                                                                                                   |
+| `POST /api/auth/mfa/recovery-codes/regenerate` | `{ "currentPassword": "…", "code": "123456" }`         | `{ "recoveryCodes": ["… dieci nuovi codici …"] }`                                                                                                                                  |
+| `PATCH /api/settings`                          | `{ "mfaRequired": true }`                              | `OrganizationSettings`, ora con `mfaRequired` (solo admin)                                                                                                                         |
+| `POST /api/operators/:id/reset-mfa`            | `{}`                                                   | `OperatorSummary` con `mfaEnabled: false` (solo admin dello stesso CAF)                                                                                                            |
+
+Schemi delle richieste: `MfaVerifyRequest`, `MfaSetupStartRequest`,
+`MfaSetupConfirmRequest`, `MfaSensitiveRequest`, `MfaResetRequest`.
+Schemi delle risposte: `MfaChallenge`, `MfaStatus`, `MfaSetupResponse`,
+`MfaRecoveryCodesResponse`. I codici di recupero contengono quattro gruppi di otto
+cifre esadecimali, senza distinzione maiuscole/minuscole. I TOTP hanno sei cifre,
+inclusi eventuali zeri iniziali: conservarli come stringhe.
+
+Dopo la sola password, chi ha MFA attiva dispone per cinque minuti esclusivamente
+di `/auth/me`, `/auth/mfa/verify`, `/auth/logout` e di un nuovo login. Anche le API
+pubbliche sono bloccate se ricevono quel cookie. `/auth/me` non rinnova la scadenza.
+Solo il successo del secondo fattore aggiorna `lastLoginAt` e registra l'accesso
+riuscito. Verifica fallita: `401 unauthorized`, «Verifica non riuscita. Controlla le
+credenziali e riprova.»; superamento del limite: `429 rate_limited` con `Retry-After`.
+Dieci richieste POST MFA/minuto per account (condivise fra operazioni e sessioni),
+cento/minuto per IP fidato, bucket separati dal login password.
+
+Quando MFA è obbligatoria e non attiva, il login restituisce `Operator` con
+`mustSetupMfa: true` e crea una sessione `mfa_setup` di cinque minuti. Sono ammessi
+solo me, logout, login, cambio password, stato MFA, avvio e conferma configurazione.
+Se `mustChangePassword` è true, il cambio password precede la configurazione MFA;
+la rotazione conserva il limite di cinque minuti e lo stato limitato. Anche le
+sessioni precedenti senza MFA sono bloccate appena l'organizzazione la richiede.
+Un `403 forbidden` indica il passo necessario; non apre la console. Una sessione
+già emessa come `mfa_setup` resta limitata fino alla conferma o a un nuovo login,
+anche se nel frattempo viene tolto l’obbligo nell’organizzazione.
+
+La conferma consuma già il TOTP: attendere un nuovo codice per un login successivo.
+Avvio e conferma devono usare la stessa sessione; un secondo avvio sostituisce il
+segreto ancora non confermato. Configurazione scaduta: avviare di nuovo, oppure
+rifare il login se è scaduta anche la sessione. Dopo conferma non esiste un endpoint
+per rileggere segreto o codici di recupero. Le risposte di conferma e rigenerazione
+vanno mostrate una volta, senza salvataggio nei log, URL, analytics o storage browser.
+La perdita della risposta richiede rigenerazione autenticata o reset admin.
+
+Attivazione, disattivazione e reset revocano tutte le sessioni precedenti, incluse
+quelle in attesa. Disattivazione: `409 conflict` se MFA è obbligatoria. Reset:
+`409 conflict` sul proprio account, `404 not_found` per operatore inesistente o di
+altro CAF. Il reset elimina entrambi i fattori alternativi (TOTP e recupero); con
+obbligo attivo il prossimo login richiede una nuova configurazione.
+`auth.mfa_failed` produce al massimo un evento per account/finestra di 60 secondi.
+Il registro include inoltre `auth.mfa_enabled`, `auth.mfa_disabled`,
+`auth.mfa_recovery_used`, `auth.mfa_recovery_regenerated`, `operator.mfa_reset`.
+
+Anche `pnpm admin:export` richiede un codice se l'admin ha MFA attiva; il prompt è
+nascosto e non accetta credenziali negli argomenti. `OrganizationExportRequest.login`
+aggiunge `code` opzionale; l'obbligo MFA senza configurazione nega l'export.

@@ -1,3 +1,4 @@
+import { mfaCipher } from "./mfa";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { PDFDocument, PDFName, PDFNumber } from "pdf-lib";
@@ -633,7 +634,15 @@ it("operators: background analysis invalidates a previously read dossier", async
   const before = await dossier(intake.case.id);
   const { analyzePendingDocument } = await import("./document-analysis");
   await analyzePendingDocument(
-    { db, storage, ai, clock: () => now, publicUrl: origin, production: false },
+    {
+      db,
+      storage,
+      ai,
+      clock: () => now,
+      publicUrl: origin,
+      production: false,
+      mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
+    },
     uploaded.documents[0]!.id,
   );
   await conflict(
@@ -787,6 +796,7 @@ it("documents: an upload past its durable lease cannot restore a file removed by
       clock: () => now,
       publicUrl: origin,
       production: false,
+      mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
     });
     pending.release();
     await conflict(await uploading);

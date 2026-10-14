@@ -48,6 +48,7 @@ export function preflight(
     "PUBLIC_APP_URL",
     "RATE_LIMIT_SECRET",
     "CRON_SECRET",
+    "MFA_ENCRYPTION_KEY",
   ];
   for (const key of required)
     if (!env[key]?.trim())
@@ -123,6 +124,19 @@ export function preflight(
         `${key}: forza insufficiente; genera almeno 32 byte casuali (64 cifre esadecimali).`,
       );
   }
+  if (
+    env.MFA_ENCRYPTION_KEY?.trim() &&
+    (!/^[a-fA-F0-9]{64}$/.test(env.MFA_ENCRYPTION_KEY) || !strongSecret(env.MFA_ENCRYPTION_KEY))
+  )
+    add(
+      production ? "error" : "warning",
+      "MFA_ENCRYPTION_KEY: genera 32 byte casuali, in 64 cifre esadecimali.",
+    );
+  if (
+    env.MFA_ENCRYPTION_KEY &&
+    [env.RATE_LIMIT_SECRET, env.CRON_SECRET].includes(env.MFA_ENCRYPTION_KEY)
+  )
+    add("error", "MFA_ENCRYPTION_KEY: usa una chiave diversa dai segreti cron e rate limit.");
   if (env.RATE_LIMIT_SECRET && env.RATE_LIMIT_SECRET === env.CRON_SECRET)
     add("error", "RATE_LIMIT_SECRET e CRON_SECRET: usa due segreti diversi.");
   if (!env.AI_GATEWAY_API_KEY?.trim())

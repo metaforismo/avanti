@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { offices, operators, organizations, sessions } from "@avanti/db";
+import { offices, operators, organizations, sessions, settings } from "@avanti/db";
 import { ChangePasswordRequest, LoginRequest, type Operator } from "@avanti/contracts";
 import { deleteCookie, getCookie } from "hono/cookie";
 import { body, type App, type Services } from "../context";
@@ -13,17 +13,20 @@ import {
 } from "../security";
 import { SESSION_COOKIE, SESSION_SECONDS, setSessionCookie } from "../middleware/auth";
 import { officeView, organizationView } from "../views";
+import { MFA_PENDING_SECONDS } from "../mfa";
 import { recordActivity } from "../audit-log";
 
 const dummyPassword = hashPassword(newToken());
 
-async function operatorView(
+export async function operatorView(
   services: Services,
   operator: typeof operators.$inferSelect,
+  setupPending = false,
 ): Promise<Operator> {
-  const [[organization], rows] = await Promise.all([
+  const [[organization], rows, [policy]] = await Promise.all([
     services.db.select().from(organizations).where(eq(organizations.id, operator.organizationId)),
     services.db.select().from(offices).where(eq(offices.organizationId, operator.organizationId)),
+    services.db.select().from(settings).where(eq(settings.organizationId, operator.organizationId)),
   ]);
   if (!organization) throw notFound();
   return {
@@ -32,6 +35,8 @@ async function operatorView(
     email: operator.email,
     role: operator.role,
     mustChangePassword: operator.mustChangePassword,
+    mfaEnabled: operator.mfaEnabledAt !== null,
+    mustSetupMfa: setupPending || ((policy?.mfaRequired ?? false) && !operator.mfaEnabledAt),
     organization: organizationView(organization),
     offices: rows.map(officeView),
   };
@@ -41,7 +46,7 @@ export function mountAuthRoutes(app: App, services: Services) {
   app.post("/auth/login", async (context) => {
     const input = await body(context, LoginRequest);
     const token = newToken();
-    const operator = await services.db.transaction(async (tx) => {
+    const result = await services.db.transaction(async (tx) => {
       // Reset, deactivation and login share this lock: an old password cannot create a new session.
       const [current] = await tx
         .select()
@@ -66,9 +71,20 @@ export function mountAuthRoutes(app: App, services: Services) {
         );
         return null;
       }
+      const [policy] = await tx
+        .select()
+        .from(settings)
+        .where(eq(settings.organizationId, current.organizationId));
+      const state = current.mfaEnabledAt
+        ? "mfa_pending"
+        : policy?.mfaRequired
+          ? "mfa_setup"
+          : "authenticated";
+      const seconds = state === "authenticated" ? SESSION_SECONDS : MFA_PENDING_SECONDS;
+      const expiresAt = new Date(now.getTime() + seconds * 1000).toISOString();
       const [updated] = await tx
         .update(operators)
-        .set({ lastLoginAt: now.toISOString() })
+        .set({ lastLoginAt: state === "authenticated" ? now.toISOString() : current.lastLoginAt })
         .where(eq(operators.id, current.id))
         .returning();
       if (!updated) throw notFound();
@@ -84,18 +100,29 @@ export function mountAuthRoutes(app: App, services: Services) {
         operatorId: current.id,
         createdAt: now.toISOString(),
         tokenHash: hashToken(token),
-        expiresAt: new Date(now.getTime() + SESSION_SECONDS * 1000).toISOString(),
+        expiresAt,
+        state,
       });
-      await recordActivity(tx, current.organizationId, current.id, "auth.login_succeeded", now);
-      return updated;
+      if (state === "authenticated")
+        await recordActivity(tx, current.organizationId, current.id, "auth.login_succeeded", now);
+      return { operator: updated, state, expiresAt, seconds };
     });
-    if (!operator) throw new ApiFailure("unauthorized", 401, "Email o password non corrette.");
-    setSessionCookie(context, token, services.production);
-    return context.json(await operatorView(services, operator));
+    if (!result) throw new ApiFailure("unauthorized", 401, "Email o password non corrette.");
+    setSessionCookie(context, token, services.production, result.seconds);
+    return context.json(
+      result.state === "mfa_pending"
+        ? { mfaRequired: true as const, expiresAt: result.expiresAt }
+        : await operatorView(services, result.operator, result.state === "mfa_setup"),
+    );
   });
-  app.get("/auth/me", async (context) =>
-    context.json(await operatorView(services, context.get("operator"))),
-  );
+  app.get("/auth/me", async (context) => {
+    const session = context.get("session");
+    return context.json(
+      session.state === "mfa_pending"
+        ? { mfaRequired: true as const, expiresAt: new Date(session.expiresAt).toISOString() }
+        : await operatorView(services, context.get("operator"), session.state === "mfa_setup"),
+    );
+  });
   app.post("/auth/password", async (context) => {
     const input = await body(context, ChangePasswordRequest);
     const replacementToken = newToken();
@@ -115,7 +142,12 @@ export function mountAuthRoutes(app: App, services: Services) {
             eq(sessions.tokenHash, tokenHash),
           ),
         );
-      if (!current?.active || !session)
+      if (
+        !current?.active ||
+        !session ||
+        session.state === "mfa_pending" ||
+        Date.parse(session.expiresAt) <= services.clock().getTime()
+      )
         throw new ApiFailure("unauthorized", 401, "Accedi per continuare.");
       if (!(await verifyPassword(input.currentPassword, current.passwordHash)))
         throw new ApiFailure("unauthorized", 401, "Password attuale non corretta.");
@@ -132,15 +164,33 @@ export function mountAuthRoutes(app: App, services: Services) {
       await tx.insert(sessions).values({
         id: crypto.randomUUID(),
         operatorId: current.id,
+        state: session.state,
         tokenHash: hashToken(replacementToken),
         createdAt: now.toISOString(),
-        expiresAt: new Date(now.getTime() + SESSION_SECONDS * 1000).toISOString(),
+        expiresAt:
+          session.state === "authenticated"
+            ? new Date(now.getTime() + SESSION_SECONDS * 1000).toISOString()
+            : session.expiresAt,
       });
       await recordActivity(tx, current.organizationId, current.id, "auth.password_changed", now);
       return updated;
     });
-    setSessionCookie(context, replacementToken, services.production);
-    return context.json(await operatorView(services, operator));
+    setSessionCookie(
+      context,
+      replacementToken,
+      services.production,
+      context.get("session").state === "authenticated"
+        ? SESSION_SECONDS
+        : Math.max(
+            1,
+            Math.ceil(
+              (Date.parse(context.get("session").expiresAt) - services.clock().getTime()) / 1000,
+            ),
+          ),
+    );
+    return context.json(
+      await operatorView(services, operator, context.get("session").state === "mfa_setup"),
+    );
   });
   app.post("/auth/logout", async (context) => {
     const token = getCookie(context, SESSION_COOKIE) ?? "";

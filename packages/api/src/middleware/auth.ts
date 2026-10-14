@@ -1,5 +1,5 @@
 import { and, eq, gt, sql } from "drizzle-orm";
-import { cases, operators, sessions } from "@avanti/db";
+import { cases, operators, sessions, settings } from "@avanti/db";
 import { getCookie, setCookie } from "hono/cookie";
 import type { MiddlewareHandler } from "hono";
 import type { ApiContext, ApiEnv, Services } from "../context";
@@ -11,13 +11,18 @@ export const SESSION_SECONDS = 30 * 60;
 export const SESSION_COOKIE = "avanti_session";
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
 
-export function setSessionCookie(context: ApiContext, token: string, production: boolean) {
+export function setSessionCookie(
+  context: ApiContext,
+  token: string,
+  production: boolean,
+  maxAge = SESSION_SECONDS,
+) {
   setCookie(context, SESSION_COOKIE, token, {
     httpOnly: true,
     secure: production,
     sameSite: "Lax",
     path: "/api",
-    maxAge: SESSION_SECONDS,
+    maxAge,
   });
 }
 
@@ -44,15 +49,20 @@ export function authenticateOperator(services: Services): MiddlewareHandler<ApiE
         await services.db.delete(sessions).where(eq(sessions.id, session.id));
       throw new ApiFailure("unauthorized", 401, "Sessione scaduta. Accedi di nuovo.");
     }
-    const [operator] = await services.db
-      .select()
+    const [account] = await services.db
+      .select({ operator: operators, required: settings.mfaRequired })
       .from(operators)
+      .leftJoin(settings, eq(settings.organizationId, operators.organizationId))
       .where(eq(operators.id, session.operatorId))
       .limit(1);
+    const operator = account?.operator;
     if (!operator?.active) throw new ApiFailure("unauthorized", 401, "Accedi per continuare.");
-    if (operator.mustChangePassword && !passwordRoutes.has(context.req.path))
-      throw new ApiFailure("forbidden", 403, "Cambia la password per continuare.");
-    if (!["/api/auth/password", "/api/auth/logout"].includes(context.req.path)) {
+    enforceSessionRestrictions(context.req.path, session, operator, account?.required ?? false);
+    if (
+      session.state === "authenticated" &&
+      !context.req.path.startsWith("/api/auth/mfa/") &&
+      !["/api/auth/password", "/api/auth/logout"].includes(context.req.path)
+    ) {
       await services.db
         .update(sessions)
         .set({
@@ -66,6 +76,7 @@ export function authenticateOperator(services: Services): MiddlewareHandler<ApiE
         .where(eq(sessions.id, session.id));
       setSessionCookie(context, token, services.production);
     }
+    context.set("session", session);
     context.set("operator", operator);
     await next();
   };
@@ -97,27 +108,70 @@ export function authenticateCitizen(services: Services): MiddlewareHandler<ApiEn
 
 const passwordRoutes = new Set(["/api/auth/me", "/api/auth/password", "/api/auth/logout"]);
 
-// Even public API routes cannot be used to bypass the temporary-password gate with a live session.
+const challengeRoutes = new Set([
+  "/api/auth/me",
+  "/api/auth/mfa/verify",
+  "/api/auth/logout",
+  "/api/auth/login",
+]);
+const setupRoutes = new Set([
+  ...passwordRoutes,
+  "/api/auth/login",
+  "/api/auth/mfa/status",
+  "/api/auth/mfa/setup/start",
+  "/api/auth/mfa/setup/confirm",
+]);
+function enforceSessionRestrictions(
+  path: string,
+  session: typeof sessions.$inferSelect,
+  operator: typeof operators.$inferSelect,
+  required: boolean,
+) {
+  if (session.state === "mfa_pending") {
+    if (!challengeRoutes.has(path))
+      throw new ApiFailure(
+        "forbidden",
+        403,
+        "Completa la verifica in due passaggi per continuare.",
+      );
+    return;
+  }
+  if (operator.mustChangePassword && !passwordRoutes.has(path))
+    throw new ApiFailure("forbidden", 403, "Cambia la password per continuare.");
+  if (
+    (session.state === "mfa_setup" || (required && !operator.mfaEnabledAt)) &&
+    !setupRoutes.has(path)
+  )
+    throw new ApiFailure("forbidden", 403, "Configura la verifica in due passaggi per continuare.");
+}
+
+// Public routes must obey the same gates as operator routes when a live restricted cookie is sent.
 export function restrictTemporaryPassword(services: Services): MiddlewareHandler<ApiEnv> {
   return async (context, next) => {
     const token = getCookie(context, SESSION_COOKIE);
-    if (token && tokenPattern.test(token) && !passwordRoutes.has(context.req.path)) {
+    if (token && tokenPattern.test(token)) {
       const now = services.clock().toISOString();
-      const [pending] = await services.db
-        .select({ id: operators.id })
+      const [row] = await services.db
+        .select({ session: sessions, operator: operators, required: settings.mfaRequired })
         .from(sessions)
         .innerJoin(operators, eq(operators.id, sessions.operatorId))
+        .leftJoin(settings, eq(settings.organizationId, operators.organizationId))
         .where(
           and(
             eq(sessions.tokenHash, hashToken(token)),
             eq(operators.active, true),
-            eq(operators.mustChangePassword, true),
             gt(sessions.expiresAt, now),
             sql`${sessions.createdAt} + interval '12 hours' > ${now}::timestamptz`,
           ),
         )
         .limit(1);
-      if (pending) throw new ApiFailure("forbidden", 403, "Cambia la password per continuare.");
+      if (row)
+        enforceSessionRestrictions(
+          context.req.path,
+          row.session,
+          row.operator,
+          row.required ?? false,
+        );
     }
     await next();
   };

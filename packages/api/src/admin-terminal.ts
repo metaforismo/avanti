@@ -52,8 +52,8 @@ export async function prompt(question: string): Promise<string> {
     readline.close();
   }
 }
-export async function passwordPrompt(): Promise<string> {
-  process.stdout.write("Password admin (input nascosto): ");
+export async function passwordPrompt(label = "Password admin (input nascosto): "): Promise<string> {
+  process.stdout.write(label);
   const input = process.stdin;
   const wasRaw = input.isRaw;
   input.setRawMode(true);

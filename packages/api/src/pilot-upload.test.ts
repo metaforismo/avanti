@@ -1,3 +1,4 @@
+import { mfaCipher } from "./mfa";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
@@ -143,7 +144,15 @@ it("pilot: returns processing before AI; persisted jobs recover after restart an
   );
   expect(analyze).toHaveBeenCalledTimes(1);
   await analyzePendingDocument(
-    { db, storage, ai, clock: () => now, publicUrl: origin, production: false },
+    {
+      db,
+      storage,
+      ai,
+      clock: () => now,
+      publicUrl: origin,
+      production: false,
+      mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
+    },
     id,
   );
   expect(analyze).toHaveBeenCalledTimes(1);

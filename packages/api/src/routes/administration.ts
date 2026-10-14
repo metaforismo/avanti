@@ -2,6 +2,8 @@ import { randomInt } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { offices, operators, organizations, sessions, settings, type Database } from "@avanti/db";
 import {
+  MfaResetRequest,
+  Id,
   CreateOperatorRequest,
   DeleteCaseRequest,
   OfficeInput,
@@ -11,7 +13,7 @@ import {
   type OperatorSummary,
   type OrganizationSettings,
 } from "@avanti/contracts";
-import { body, type App, type Services } from "../context";
+import { parse, body, type App, type Services } from "../context";
 import { ApiFailure, hashPassword, notFound } from "../security";
 import { iso, caseById } from "../dossier";
 import { eraseCase } from "../case-erasure";
@@ -57,12 +59,14 @@ function operatorSummary(row: OperatorRow): OperatorSummary {
     email: row.email,
     role: row.role,
     active: row.active,
+    mfaEnabled: row.mfaEnabledAt !== null,
     lastLoginAt: row.lastLoginAt ? iso(row.lastLoginAt) : null,
     createdAt: iso(row.createdAt),
   };
 }
 function settingsView(row?: typeof settings.$inferSelect): OrganizationSettings {
   return {
+    mfaRequired: row?.mfaRequired ?? false,
     baselineMinutesPerCase: row?.baselineMinutesPerCase ?? null,
     linkDays: row?.linkDays ?? 60,
     retentionDays: row?.retentionDays ?? 180,
@@ -283,6 +287,57 @@ export function mountAdministrationRoutes(app: App, s: Services) {
       return { operator: operatorSummary(updated), temporaryPassword: password };
     });
     return c.json(row);
+  });
+  app.post("/operators/:id/reset-mfa", async (c) => {
+    const actor = c.get("operator");
+    requireAdmin(actor);
+    await body(c, MfaResetRequest);
+    const id = parse(Id, c.req.param("id"));
+    const row = await administer(s, actor, async (tx) => {
+      const [actorSession] = await tx
+        .select()
+        .from(sessions)
+        .where(
+          and(
+            eq(sessions.id, c.get("session").id),
+            eq(sessions.operatorId, actor.id),
+            eq(sessions.state, "authenticated"),
+          ),
+        );
+      const [policy] = await tx
+        .select()
+        .from(settings)
+        .where(eq(settings.organizationId, actor.organizationId));
+      if (
+        !actorSession ||
+        Date.parse(actorSession.expiresAt) <= s.clock().getTime() ||
+        (policy?.mfaRequired && !actor.mfaEnabledAt)
+      )
+        throw forbidden();
+      const current = await tenantOperator(tx, id, actor.organizationId);
+      if (current.id === actor.id)
+        throw new ApiFailure(
+          "conflict",
+          409,
+          "Non puoi azzerare la verifica in due passaggi del tuo account.",
+        );
+      const [updated] = await tx
+        .update(operators)
+        .set({ mfaSecret: null, mfaEnabledAt: null, mfaLastUsedStep: null, mfaRecoveryHashes: [] })
+        .where(eq(operators.id, current.id))
+        .returning();
+      await tx.delete(sessions).where(eq(sessions.operatorId, current.id));
+      await recordActivity(
+        tx,
+        actor.organizationId,
+        actor.id,
+        "operator.mfa_reset",
+        s.clock(),
+        current.id,
+      );
+      return updated!;
+    });
+    return c.json(operatorSummary(row));
   });
   app.post("/offices", async (c) => {
     const actor = c.get("operator");

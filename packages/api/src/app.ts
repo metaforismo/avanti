@@ -1,3 +1,5 @@
+import { mfaCipher } from "./mfa";
+import { mountMfaRoutes } from "./routes/mfa";
 import { Hono } from "hono";
 import { boundedBody, uploadCapacity } from "./middleware/body";
 import { GatewayIntelligence } from "./ai";
@@ -36,6 +38,11 @@ export function createApp(options: ApiOptions) {
     );
   const services: Services = {
     ...options,
+    mfa: mfaCipher({
+      key: options.mfaEncryptionKey,
+      production: options.production,
+      localKeyPath: options.mfaLocalKeyPath,
+    }),
     clock: options.clock ?? (() => new Date()),
     ai: options.ai ?? new GatewayIntelligence(),
     publicUrl: options.publicUrl ?? "http://localhost:3400",
@@ -47,8 +54,8 @@ export function createApp(options: ApiOptions) {
   app.use("*", uploadCapacity(services));
   app.use("*", boundedBody());
   registerErrors(app, options.errorLogger);
-  mountMaintenance(app, services);
   app.use("*", restrictTemporaryPassword(services));
+  mountMaintenance(app, services);
   const limited = rateLimit(services);
   app.use("*", limited);
   const authenticated = authenticateOperator(services);
@@ -56,6 +63,7 @@ export function createApp(options: ApiOptions) {
     "/auth/me",
     "/auth/logout",
     "/auth/password",
+    "/auth/mfa/*",
     "/cases/*",
     "/metrics",
     "/settings",
@@ -66,6 +74,7 @@ export function createApp(options: ApiOptions) {
     if (!path.startsWith("/auth/")) app.use(path, limited);
   }
   app.use("/auth/password", limited);
+  app.use("/auth/mfa/*", limited);
   // The slug lookup stays public; only office mutations use operator authentication.
   app.use("/offices/*", async (context, next) => {
     if (["GET", "HEAD", "OPTIONS"].includes(context.req.method)) return next();
@@ -77,6 +86,7 @@ export function createApp(options: ApiOptions) {
   app.use("/c/:token/*", citizen);
   mountPublicRoutes(app, services);
   mountAuthRoutes(app, services);
+  mountMfaRoutes(app, services);
   mountCitizenRoutes(app, services);
   mountOperatorRoutes(app, services);
   mountAdministrationRoutes(app, services);

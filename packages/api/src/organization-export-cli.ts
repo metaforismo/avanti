@@ -22,9 +22,12 @@ async function main() {
     const organizationId = await prompt("organizationId del CAF: ");
     const email = await prompt("Email amministratore: ");
     const password = await passwordPrompt();
+    const code = await passwordPrompt(
+      "Codice TOTP/recupero (input nascosto, Invio se MFA non attiva): ",
+    );
     const data = await exportOrganization(
       database.db,
-      { organizationId, login: { email, password } },
+      { organizationId, login: { email, password, ...(code ? { code } : {}) } },
       new Date(),
       process.env.RATE_LIMIT_SECRET ?? "",
     );

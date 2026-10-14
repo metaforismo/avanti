@@ -153,6 +153,11 @@ il login usa il limite per email e i turni/upload quello per link cittadino.
 I proxy devono fornire l’header fidato; gli header client non sono usati quando
 `TRUST_PROXY=0`.
 
+`MFA_ENCRYPTION_KEY` è obbligatoria in produzione (32 byte casuali in 64 cifre hex,
+diversa da cron/rate limit). In locale la chiave di cifratura TOTP viene creata in
+`.data/mfa-encryption.key`, con permessi 0600. La demo resta senza MFA. Flussi e
+contratti in [API.md](docs/API.md), gestione in [guida operatori](docs/guide/operatori.md).
+
 Il cookie è una sessione opaca casuale salvata come hash; non necessita di un segreto
 di firma condiviso. I parametri per organizzazione sono in `settings`: baseline
 manuale, durata link 60 giorni, retention 180 giorni. Il job cron applica la retention a lotti di 25 fascicoli; procedura, scheduler e prove

@@ -1,3 +1,4 @@
+import { mfaCipher } from "./mfa";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
@@ -75,6 +76,7 @@ beforeAll(async () => {
     clock: () => now,
     publicUrl: "http://localhost:3400",
     production: false,
+    mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
     background: (job) => jobs.push(job),
   };
   app = createApp(services);

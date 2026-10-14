@@ -1,3 +1,4 @@
+import { mfaCipher } from "./mfa";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
@@ -38,6 +39,8 @@ const services = (): Services => ({
   ai: new GatewayIntelligence(),
   clock: () => now,
   production: true,
+  mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
+  mfaEncryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   publicUrl: origin,
   clientAddress: () => sharedIp,
   rateLimitSecret: "waiting-room-synthetic-secret",

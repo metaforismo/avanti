@@ -4,7 +4,8 @@ import type { Database } from "@avanti/db";
 import type { FileStorage } from "./storage";
 import type { Intelligence } from "./ai";
 import type { CaseRow } from "./dossier";
-import { operators } from "@avanti/db";
+import type { mfaCipher } from "./mfa";
+import { sessions, operators } from "@avanti/db";
 import type { z } from "zod";
 import { ApiFailure } from "./security";
 
@@ -24,6 +25,8 @@ export interface ApiOptions {
     errorName: string;
   }) => void;
   rateLimitSecret?: string;
+  mfaEncryptionKey?: string;
+  mfaLocalKeyPath?: string;
   vercel?: boolean;
   cronSecret?: string;
   background?: (work: () => Promise<void>) => void;
@@ -40,6 +43,7 @@ export interface ApiEnv {
   Bindings: { incoming?: { socket: { remoteAddress?: string } } };
   Variables: {
     operator: typeof operators.$inferSelect;
+    session: typeof sessions.$inferSelect;
     citizen: CaseRow;
     requestId: string;
     bodyTooLarge: boolean;
@@ -48,6 +52,7 @@ export interface ApiEnv {
 export type App = Hono<ApiEnv>;
 export type ApiContext = Context<ApiEnv>;
 export interface Services extends ApiOptions {
+  mfa: ReturnType<typeof mfaCipher>;
   clock: () => Date;
   ai: Intelligence;
   publicUrl: string;
