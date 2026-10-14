@@ -73,6 +73,10 @@ async function initialize() {
     rateLimitSecret: process.env.RATE_LIMIT_SECRET,
     vercel: process.env.VERCEL === "1",
     cronSecret: process.env.CRON_SECRET,
+    appVersion: {
+      commit: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.APP_COMMIT,
+      tag: process.env.APP_TAG,
+    },
     errorLogger: (record) => console.error(JSON.stringify(record)),
     storageLogger: (record) => console.error(JSON.stringify(record)),
     trustProxy: process.env.VERCEL === "1" || process.env.TRUST_PROXY === "1",

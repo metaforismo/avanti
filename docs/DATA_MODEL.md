@@ -17,6 +17,10 @@ della directory. In produzione le migrazioni si applicano esplicitamente con
 
 ## Tabelle
 
+La migrazione 0009 aggiunge `system_jobs` (ultimo run globale di manutenzione e
+retention) e `operational_counters` (conteggi orari per tenant, senza payload).
+Vincoli, retention della telemetria e semantica in [SYSTEM_STATUS.md](SYSTEM_STATUS.md).
+
 | Tabella              | Contenuto e vincoli principali                                                                                                                                   |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `organizations`      | Titolare CAF/patronato/studio; radice del tenant.                                                                                                                |

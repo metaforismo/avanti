@@ -1,10 +1,11 @@
 import { DomainValidationError } from "@avanti/core";
 import { safeError } from "../logging";
-import type { App, ApiOptions } from "../context";
+import type { App, ApiOptions, Services } from "../context";
+import { recordOperationalCounters } from "../operational-telemetry";
 import { ApiFailure } from "../security";
 
-export function registerErrors(app: App, logger: ApiOptions["errorLogger"]) {
-  app.onError((error, context) => {
+export function registerErrors(app: App, logger: ApiOptions["errorLogger"], s?: Services) {
+  app.onError(async (error, context) => {
     let failure: ApiFailure;
     if (context.get("bodyTooLarge"))
       failure = new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
@@ -20,6 +21,10 @@ export function registerErrors(app: App, logger: ApiOptions["errorLogger"]) {
     }
     if (failure.status === 500)
       (logger ?? console.error)({ requestId: context.get("requestId"), ...safeError(error) });
+    const organizationId =
+      context.get("operator")?.organizationId ?? context.get("citizen")?.organizationId;
+    if (failure.status >= 500 && organizationId && s)
+      await recordOperationalCounters(s, organizationId, ["api_error"]);
     return context.json(
       {
         error: {

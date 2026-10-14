@@ -1,4 +1,5 @@
 import { and, eq, desc, lt, or, ilike, sql, count, gte } from "drizzle-orm";
+import { observeAi } from "./operational-telemetry";
 import {
   cases,
   offices,
@@ -372,7 +373,9 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     const initial = await caseById(s.db, c.req.param("id"), operator.organizationId);
     assertCaseVersion(initial, input.expectedUpdatedAt);
-    const translated = await s.ai.translate(input.message, initial.language);
+    const translated = await observeAi(s, initial.organizationId, () =>
+      s.ai.translate(input.message, initial.language),
+    );
     const row = await s.db.transaction(async (tx) => {
       const current = await caseById(tx, initial.id, operator.organizationId, true);
       assertCaseVersion(current, input.expectedUpdatedAt);

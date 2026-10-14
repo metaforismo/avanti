@@ -21,6 +21,7 @@ const Proposal = z.object({
 });
 export type IntakeProposal = z.infer<typeof Proposal> & { engine: "ai" | "heuristic" };
 export interface Intelligence {
+  readonly configured?: boolean;
   readonly fallbackCount?: number;
   intake(
     text: string,
@@ -97,6 +98,9 @@ export type AiFallbackRecord = {
 };
 export class GatewayIntelligence implements Intelligence {
   fallbackCount = 0;
+  get configured() {
+    return Boolean(this.config.key);
+  }
   constructor(
     private config: {
       key?: string;

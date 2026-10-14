@@ -220,3 +220,24 @@ test("slash jumps to the queue search and Escape clears it", async ({ page }) =>
   await expect(search).toHaveValue("");
   await expect(search).not.toBeFocused();
 });
+
+test("system status is for administrators: operators get a plain refusal", async ({ page }) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Stato del sistema" })).toHaveCount(0);
+  await page.goto("/console/stato");
+  await expect(page.getByRole("heading", { name: "Stato riservato" })).toBeVisible();
+  await page.getByRole("button", { name: "Esci" }).click();
+
+  await page.getByLabel("Email").fill(ADMIN.email);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await page.getByRole("link", { name: "Stato del sistema" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Stato del sistema" })).toBeVisible();
+  const components = page.getByRole("region", { name: "Componenti" });
+  await expect(components.getByText("Database", { exact: true })).toBeVisible();
+  await expect(components.getByText("Archivio documenti", { exact: true })).toBeVisible();
+});
