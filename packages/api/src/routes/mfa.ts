@@ -51,15 +51,13 @@ async function lockedSession(tx: Database, c: ApiContext, now: Date) {
 async function issueSession(tx: Database, operatorId: string, now: Date, revokeAll: boolean) {
   if (revokeAll) await tx.delete(sessions).where(eq(sessions.operatorId, operatorId));
   const token = newToken();
-  await tx
-    .insert(sessions)
-    .values({
-      id: crypto.randomUUID(),
-      operatorId,
-      tokenHash: hashToken(token),
-      createdAt: now.toISOString(),
-      expiresAt: new Date(now.getTime() + SESSION_SECONDS * 1000).toISOString(),
-    });
+  await tx.insert(sessions).values({
+    id: crypto.randomUUID(),
+    operatorId,
+    tokenHash: hashToken(token),
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + SESSION_SECONDS * 1000).toISOString(),
+  });
   return token;
 }
 export function mountMfaRoutes(app: App, s: Services) {

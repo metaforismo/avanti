@@ -33,7 +33,7 @@ Misure, comandi, integrazione web e limiti in
 
 **Aperto prima del trattamento reale:** header/CSP delle pagine, nonce per una CSP
 senza unsafe-inline, redazione dei log proxy, polling UI durante processing e
-compatibilità della preview dopo attachment; scheduler giornaliero/configurabile e recupero su lettura
+compatibilità della preview dopo attachment; invio notifiche in background, cron giornaliero e recupero su lettura
 su deployment; lifecycle Node/serverless e prova PostgreSQL/Blob reali con dati
 sintetici. Mancano scansione malware e decodifica isolata completa: i controlli
 sui contenitori/dimensioni non attestano la sicurezza di tutti i payload.
@@ -87,8 +87,11 @@ cittadino e `Retry-After` in secondi; quota upload simultanei per pratica manten
 non globale. Prove in `waiting-room.test.ts` e `pilot-upload.test.ts`.
 
 Con Root Directory Vercel `apps/web`, la pianificazione in
-[`apps/web/vercel.json`](../apps/web/vercel.json) è `0 3 * * *` UTC, giornaliera,
-compatibile con Hobby. Su Pro si può scegliere `* * * * *` al prossimo deploy.
+[`apps/web/vercel.json`](../apps/web/vercel.json) è `0 3 * * *`, alle 03:00 UTC,
+compatibile con Hobby. Gli eventi registrano l'invio in background dopo il commit;
+il cron genera il digest giornaliero e recupera i retry. Su Pro/Enterprise si può
+passare al minuto per retry più rapidi. Gli esiti incerti oltre la finestra di
+idempotenza richiedono verifica manuale prima del reinvio.
 Le letture autorizzate del fascicolo registrano con `after()` il recupero dei
 `processing` vecchi oltre 2 minuti: solo quel fascicolo, senza cambiare stato/data
 pratica. Upload, cron e lettura acquisiscono atomicamente un lease DB di 2 minuti;
@@ -192,8 +195,8 @@ una transazione vengono saltati. Le richieste utente non eseguono il purge.
 
 L’amministratore può anticipare la cancellazione con `DELETE /api/cases/:id`,
 confermando il riferimento; usa la stessa cancellazione e lo stesso retry dei file.
-Restano manuali l’attivazione e la verifica dello scheduler nel deployment (giornaliero per il pilota; aumentare
-la frequenza o i run se il volume supera i lotti), il monitoraggio dei retry,
+Restano manuali l’attivazione e la verifica dello scheduler nel deployment (giornaliero
+di default, al minuto su Pro per retry più rapidi; dimensionare i lotti sul volume), il monitoraggio dei retry,
 l’identificazione del richiedente, la valutazione degli obblighi di conservazione,
 la gestione delle copie esportate/backup e la valutazione della durata degli audit.
 
@@ -258,6 +261,75 @@ specifiche; la portabilità non vale indiscriminatamente per tutte le basi giuri
 Il titolare risponde normalmente entro un mese, con estensione motivata nei casi previsti;
 Avanti lo assiste. L'interessato può reclamare al Garante.
 [Garante, diritti degli interessati](https://www.garanteprivacy.it/Regolamentoue/diritti-degli-interessati).
+
+## Email di servizio e candidature pilota (14 ottobre 2026)
+
+Le email al cittadino sono comunicazioni operative del flusso CAF: integrazione
+dei documenti e, solo se l'organizzazione lo abilita, disponibilità per prenotare
+allo sportello. L'indirizzo è facoltativo; senza email nel contatto non si crea
+alcuna notifica. Non si ricava un indirizzo da documenti o risposte. Prima di
+inviare si ricontrollano indirizzo, lingua, validità del link e stato della pratica;
+rimuovere/modificare il contatto annulla le notifiche pendenti. Disattivare la
+preferenza “pronta” o il riepilogo annulla anche i relativi invii pendenti.
+
+Il CAF, titolare sui fascicoli, deve documentare la base giuridica pertinente al
+servizio concreto: art. 6(1)(b) per un servizio richiesto dall'interessato quando
+ricorrono le condizioni, oppure art. 6(1)(c)/(e) se applicabili obbligo o compito
+pubblico. Inserire l'email non è un consenso generale e non autorizza promozioni.
+Gli eventuali dati ex art. 9 richiedono una distinta condizione: non si assume che
+la sola base ex art. 6 basti. I titoli dei documenti possono comunque rivelare
+informazioni sulla pratica; informativa e valutazione del rischio devono includere
+il canale email e la possibilità di usare soltanto il link/sportello.
+
+Per le candidature della landing Avanti è titolare del ricontatto; il modulo
+richiede l'accettazione al ricontatto secondo l'informativa del sito. Il team
+riceve esclusivamente i campi del modulo, compresa l'accettazione, senza
+enrichment o dati dei cittadini. Questa finalità è distinta dal trattamento CAF;
+la richiesta di contatto non iscrive a una newsletter. Informativa e procedura
+devono chiarire la base del ricontatto richiesto (art. 6(1)(a) ove basato su consenso,
+o 6(1)(b) per misure precontrattuali richieste, quando applicabile), senza dedurla
+dal solo nome del campo tecnico `privacyAccepted`.
+Il riepilogo agli operatori attivi contiene solo il numero di pratiche
+`submitted`/`in_review` del CAF, senza nomi, riferimenti o altri dati del fascicolo.
+[GDPR, artt. 5, 6, 9, 13 e 28](https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita).
+
+Le email cittadino contengono nome del CAF e, per le integrazioni, solo titoli
+localizzati del catalogo: nessun nome di familiare, banca, importo, testo libero
+dell'operatore, allegato o link-capability. Anche i titoli con suffissi personali
+sono ricostruiti dal catalogo. Senza voci selezionate l'email invita a leggere la
+richiesta nel link salvato. Perdere il link richiede un nuovo link allo sportello.
+
+Non è previsto un link di disiscrizione perché queste comunicazioni servono a
+gestire il servizio richiesto e non contengono promozioni. Il cittadino può chiedere
+allo sportello di rimuovere l'email dal contatto e proseguire tramite link. Questo
+non esenta da informativa, diritti e gestione dell'opposizione ove applicabile;
+prima di aggiungere marketing occorrono finalità, base e gestione della disiscrizione
+separate. La classificazione come “servizio” non copre messaggi promozionali o
+ricontatti ulteriori.
+
+L'outbox cifra insieme destinatario, mittente, oggetto e corpo minimo con
+AES-256-GCM, IV casuale e AAD legata a ID/tipo/lingua. Un hash non basta a
+recapitare l'email: nessuna copia in chiaro o hash dell'indirizzo nell'outbox.
+Tipo, lingua, ID tecnici, stato, tentativi e categorie fisse di errore restano
+leggibili per la manutenzione. Nessuna risposta del provider è salvata o registrata.
+Console registra soltanto tipo e ID e marca `simulated`, senza attestare un invio.
+`sent` significa accettazione del provider, non ricezione nella casella.
+Il payload viene eliminato alla conferma o all'annullamento; payload falliti/pendenti
+scadono dopo 7 giorni e ricevute tecniche dopo 30 giorni dal completamento, al
+passaggio del cron (per un payload scaduto il completamento è la sua cancellazione).
+La cancellazione di pratica, operatore, lead o organizzazione elimina anche le
+relative notifiche tramite FK; gli audit mantengono la propria retention.
+
+`NOTIFY_ENCRYPTION_KEY` è un segreto dedicato, richiesto in produzione anche con
+console. In locale si genera `.data/notify.key` con permessi 0600, da conservare
+per i retry dopo riavvio. L'API incorporata con `createApp` deve ricevere
+`notifications` con chiave persistente per usare un DB persistente: il default
+è console con chiave di processo, destinato ai test isolati. La chiave non ha
+rotazione automatica: drenare l'outbox o ricifrare le righe prima di sostituirla e
+verificare i restore. Resend riceve email e contenuto minimo; prima di abilitarlo
+con dati reali verificare DPA, subresponsabili, retention, trasferimenti e dominio.
+La sola API key non garantisce regione o conformità. Chiavi e backup DB devono
+avere accessi e cicli di vita separati. [Runbook](DEPLOY.md#notifiche-email-e-outbox).
 
 ## Fornitori AI, storage e incidenti
 

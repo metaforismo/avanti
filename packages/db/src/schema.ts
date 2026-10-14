@@ -320,6 +320,9 @@ export const settings = pgTable(
     baselineMinutesPerCase: integer("baseline_minutes_per_case"),
     retentionDays: integer("retention_days").notNull().default(180),
     linkDays: integer("link_days").notNull().default(60),
+    notifyCitizenReady: boolean("notify_citizen_ready").notNull().default(false),
+    notifyOperatorDigest: boolean("notify_operator_digest").notNull().default(false),
+    lastDigestDate: text("last_digest_date"),
   },
   (t) => [
     check("settings_days_check", sql`${t.retentionDays} > 0 and ${t.linkDays} > 0`),
@@ -366,3 +369,102 @@ export const storageDeletions = pgTable("storage_deletions", {
   attempts: integer("attempts").notNull().default(0),
   nextAttemptAt: instant("next_attempt_at").notNull(),
 });
+
+export type NotificationKind =
+  "pilot_lead" | "citizen_request" | "citizen_ready" | "operator_digest";
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id").primaryKey(),
+    dedupeKey: text("dedupe_key").notNull().unique(),
+    kind: text("kind").$type<NotificationKind>().notNull(),
+    language: text("language").$type<Language>().notNull(),
+    organizationId: text("organization_id").references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+    caseId: text("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+    operatorId: text("operator_id").references(() => operators.id, { onDelete: "cascade" }),
+    // AES-GCM envelope contains only recipient, sender and the rendered minimal email.
+    envelope: text("envelope"),
+    state: text("state")
+      .$type<"pending" | "sending" | "sent" | "simulated" | "failed" | "cancelled">()
+      .notNull()
+      .default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: instant("next_attempt_at").notNull(),
+    firstAttemptAt: instant("first_attempt_at"),
+    leaseToken: text("lease_token"),
+    lastError: text("last_error"),
+    createdAt: instant("created_at").notNull(),
+    completedAt: instant("completed_at"),
+  },
+  (t) => [
+    index("notifications_due_idx")
+      .on(t.nextAttemptAt, t.id)
+      .where(sql`${t.state} = 'pending' or ${t.state} = 'sending'`),
+    index("notifications_case_idx").on(t.caseId),
+    index("notifications_completed_idx").on(t.completedAt),
+    check(
+      "notifications_kind_check",
+      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'operator_digest')`,
+    ),
+    check(
+      "notifications_language_check",
+      sql`${t.language} in ('it', 'en', 'fr', 'es', 'ro', 'uk', 'ar', 'bn')`,
+    ),
+    check(
+      "notifications_state_check",
+      sql`${t.state} in ('pending', 'sending', 'sent', 'simulated', 'failed', 'cancelled')`,
+    ),
+    check("notifications_attempts_check", sql`${t.attempts} between 0 and 5`),
+    foreignKey({
+      columns: [t.caseId, t.organizationId],
+      foreignColumns: [cases.id, cases.organizationId],
+      name: "notifications_case_org_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.operatorId, t.organizationId],
+      foreignColumns: [operators.id, operators.organizationId],
+      name: "notifications_operator_org_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const systemJobs = pgTable(
+  "system_jobs",
+  {
+    kind: text("kind").$type<"maintenance" | "retention">().primaryKey(),
+    runId: text("run_id").notNull(),
+    startedAt: instant("started_at").notNull(),
+    finishedAt: instant("finished_at"),
+    outcome: text("outcome").$type<"running" | "ok" | "failed">().notNull(),
+  },
+  (t) => [
+    check("system_jobs_kind_check", sql`${t.kind} in ('maintenance','retention')`),
+    check("system_jobs_outcome_check", sql`${t.outcome} in ('running','ok','failed')`),
+  ],
+);
+
+export const operationalCounters = pgTable(
+  "operational_counters",
+  {
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    hour: instant("hour").notNull(),
+    metric: text("metric")
+      .$type<"ai_success" | "ai_fallback" | "ai_error" | "api_error">()
+      .notNull(),
+    count: integer("count").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.organizationId, t.hour, t.metric] }),
+    index("operational_counters_hour_idx").on(t.hour),
+    check(
+      "operational_counters_metric_check",
+      sql`${t.metric} in ('ai_success','ai_fallback','ai_error','api_error')`,
+    ),
+    check("operational_counters_count_check", sql`${t.count} > 0`),
+  ],
+);

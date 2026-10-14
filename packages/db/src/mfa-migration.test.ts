@@ -20,7 +20,7 @@ it("adds MFA without changing existing passwords, sessions, settings or demo acc
       INSERT INTO sessions (id,operator_id,token_hash,expires_at) VALUES ('session','admin','preserved-token-hash','2027-01-05T11:00:00Z');
       INSERT INTO settings (organization_id,link_days,retention_days) VALUES ('org',45,90);
     `);
-    await client.exec(await migration("0009_eager_random"));
+    await client.exec(await migration("0011_mfa"));
     expect(
       (
         await client.query(

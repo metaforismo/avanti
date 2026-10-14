@@ -1,4 +1,5 @@
 import { mfaCipher } from "./mfa";
+import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
@@ -70,6 +71,7 @@ beforeAll(async () => {
       expiresAt: "2027-03-01T00:00:00Z",
     });
   services = {
+    notifications: defaultNotifications(),
     db,
     storage,
     ai,

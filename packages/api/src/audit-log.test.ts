@@ -10,6 +10,7 @@ import {
   organizations,
   rateLimits,
   sessions,
+  systemJobs,
   type Database,
 } from "@avanti/db";
 import { createApp } from "./app";
@@ -77,6 +78,7 @@ beforeAll(async () => {
 });
 afterAll(async () => close());
 beforeEach(async () => {
+  await db.delete(systemJobs);
   await db.delete(events);
   await db.delete(rateLimits);
   await db.delete(organizations);

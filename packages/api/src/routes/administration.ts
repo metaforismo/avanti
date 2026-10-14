@@ -70,6 +70,8 @@ function settingsView(row?: typeof settings.$inferSelect): OrganizationSettings 
     baselineMinutesPerCase: row?.baselineMinutesPerCase ?? null,
     linkDays: row?.linkDays ?? 60,
     retentionDays: row?.retentionDays ?? 180,
+    notifyCitizenReady: row?.notifyCitizenReady ?? false,
+    notifyOperatorDigest: row?.notifyOperatorDigest ?? false,
   };
 }
 function temporaryPassword(): string {

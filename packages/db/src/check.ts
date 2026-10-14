@@ -15,7 +15,7 @@ function indexDefinition(value: string): string {
         : part
             .replaceAll('"', "")
             .replace(/::[a-zA-Z_][\w.]*/g, "")
-            .replace(/\b(?:public|documents)\./g, "")
+            .replace(/\b(?:public|documents|notifications)\./g, "")
             .replace(/[\s();]/g, "")
             .toLowerCase(),
     )

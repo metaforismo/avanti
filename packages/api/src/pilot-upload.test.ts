@@ -1,4 +1,5 @@
 import { mfaCipher } from "./mfa";
+import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
@@ -152,6 +153,7 @@ it("pilot: returns processing before AI; persisted jobs recover after restart an
       publicUrl: origin,
       production: false,
       mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
+      notifications: defaultNotifications(),
     },
     id,
   );

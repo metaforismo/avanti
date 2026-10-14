@@ -1,4 +1,5 @@
 import { demoSeedAllowed } from "./seed-guard";
+import { PilotLeadRequest } from "@avanti/contracts";
 
 export type PreflightIssue = { level: "error" | "warning" | "ok"; message: string };
 
@@ -49,6 +50,7 @@ export function preflight(
     "RATE_LIMIT_SECRET",
     "CRON_SECRET",
     "MFA_ENCRYPTION_KEY",
+    "NOTIFY_ENCRYPTION_KEY",
   ];
   for (const key of required)
     if (!env[key]?.trim())
@@ -116,7 +118,7 @@ export function preflight(
       );
     }
   }
-  for (const key of ["RATE_LIMIT_SECRET", "CRON_SECRET"]) {
+  for (const key of ["RATE_LIMIT_SECRET", "CRON_SECRET", "NOTIFY_ENCRYPTION_KEY"]) {
     const value = env[key];
     if (value?.trim() && !strongSecret(value))
       add(
@@ -139,6 +141,27 @@ export function preflight(
     add("error", "MFA_ENCRYPTION_KEY: usa una chiave diversa dai segreti cron e rate limit.");
   if (env.RATE_LIMIT_SECRET && env.RATE_LIMIT_SECRET === env.CRON_SECRET)
     add("error", "RATE_LIMIT_SECRET e CRON_SECRET: usa due segreti diversi.");
+  if (env.NOTIFY_ENCRYPTION_KEY && !/^[a-f\d]{64}$/i.test(env.NOTIFY_ENCRYPTION_KEY))
+    add("error", "NOTIFY_ENCRYPTION_KEY: usa 32 byte casuali in hex (64 cifre).");
+  if (
+    env.NOTIFY_ENCRYPTION_KEY &&
+    [env.CRON_SECRET, env.RATE_LIMIT_SECRET].includes(env.NOTIFY_ENCRYPTION_KEY)
+  )
+    add("error", "NOTIFY_ENCRYPTION_KEY: usa un segreto distinto da cron e rate limit.");
+  const notifyProvider = env.NOTIFY_PROVIDER?.trim() || "console";
+  if (!["console", "resend"].includes(notifyProvider))
+    add("error", "NOTIFY_PROVIDER: usa console o resend.");
+  if (notifyProvider === "console")
+    add("warning", "NOTIFY_PROVIDER: console simula l'invio e registra solo tipo e ID.");
+  if (notifyProvider === "resend") {
+    for (const key of ["RESEND_API_KEY", "NOTIFY_FROM", "LEADS_NOTIFY_EMAIL"])
+      if (!env[key]?.trim())
+        add("error", `${key}: obbligatoria per le notifiche Resend del pilota.`);
+  }
+  for (const key of ["NOTIFY_FROM", "LEADS_NOTIFY_EMAIL"]) {
+    if (env[key]?.trim() && !PilotLeadRequest.shape.email.safeParse(env[key]?.trim()).success)
+      add("error", `${key}: usa un indirizzo email valido, senza nome display.`);
+  }
   if (!env.AI_GATEWAY_API_KEY?.trim())
     add(
       "warning",

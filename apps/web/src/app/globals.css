@@ -38,6 +38,9 @@
   /* Validated chart pair (dataviz validator, light surface). */
   --chart-started: #b86e00;
   --chart-submitted: #2440b3;
+  /* AI calls by outcome; validated with the dataviz checker on both surfaces. */
+  --chart-ai: #1d7448;
+  --chart-fallback: #9a5500;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -75,6 +78,8 @@
     --scrim: rgb(0 0 0 / 0.6);
     --chart-started: #b97f22;
     --chart-submitted: #6f86ff;
+    --chart-ai: #2f9a66;
+    --chart-fallback: #c98322;
   }
 }
 
@@ -270,5 +275,16 @@
   .font-display:lang(ar) {
     font-family:
       "Noto Sans Arabic", var(--font-display-face), var(--font-body), system-ui, sans-serif;
+  }
+}
+
+/* Secondary encoding for chart fills that colour alone can't separate (see dataviz checks). */
+@layer utilities {
+  .hatch {
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent 0 3px,
+      rgb(255 255 255 / 0.45) 3px 4.5px
+    );
   }
 }

@@ -8,9 +8,11 @@ import type { mfaCipher } from "./mfa";
 import { sessions, operators } from "@avanti/db";
 import type { z } from "zod";
 import { ApiFailure } from "./security";
+import type { NotificationOptions } from "./notification-config";
 
 export interface ApiOptions {
   db: Database;
+  notifications?: NotificationOptions;
   storage: FileStorage;
   ai?: Intelligence;
   clock?: () => Date;
@@ -29,6 +31,7 @@ export interface ApiOptions {
   mfaLocalKeyPath?: string;
   vercel?: boolean;
   cronSecret?: string;
+  appVersion?: { commit?: string; tag?: string };
   background?: (work: () => Promise<void>) => void;
   transport?: "fetch" | "node";
   clientAddress?: (context: ApiContext) => string | null;
@@ -53,6 +56,7 @@ export type App = Hono<ApiEnv>;
 export type ApiContext = Context<ApiEnv>;
 export interface Services extends ApiOptions {
   mfa: ReturnType<typeof mfaCipher>;
+  notifications: NotificationOptions;
   clock: () => Date;
   ai: Intelligence;
   publicUrl: string;

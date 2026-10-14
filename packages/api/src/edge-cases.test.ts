@@ -1,4 +1,5 @@
 import { mfaCipher } from "./mfa";
+import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { PDFDocument, PDFName, PDFNumber } from "pdf-lib";
@@ -642,6 +643,7 @@ it("operators: background analysis invalidates a previously read dossier", async
       publicUrl: origin,
       production: false,
       mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
+      notifications: defaultNotifications(),
     },
     uploaded.documents[0]!.id,
   );
@@ -790,6 +792,7 @@ it("documents: an upload past its durable lease cannot restore a file removed by
     now = new Date(Date.parse(initial) + 600001);
     const { retryStorageDeletions } = await import("./storage-cleanup");
     await retryStorageDeletions({
+      notifications: defaultNotifications(),
       db,
       storage,
       ai,

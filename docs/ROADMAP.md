@@ -1,6 +1,6 @@
 # Stato e roadmap
 
-Aggiornato al 6 ottobre 2026. Obiettivo: 2–3 CAF pilota in uso reale durante il picco ISEE di
+Aggiornato al 14 ottobre 2026. Obiettivo: 2–3 CAF pilota in uso reale durante il picco ISEE di
 gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 
 ## Cosa c'è
@@ -37,6 +37,7 @@ gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
   disattivazione; sportelli; parametri (baseline, validità dei link, conservazione).
 - Cancellazione definitiva su richiesta dell'interessato e pulizia automatica a fine
   conservazione.
+- Registro attività con export CSV, stato del sistema e avvisi via email (facoltativi).
 
 **Pratiche**: ISEE ordinario completo; assegno unico, 730 e permesso di soggiorno in beta; le
 altre elencate come "in arrivo" (vedi `docs/research/`).
@@ -65,6 +66,12 @@ nelle PR.
 - Ricerca go-to-market in `docs/gtm/`; landing più precisa su cosa fa Avanti e su come il
   lavoro prosegue nel gestionale.
 - Campo password con mostra/nascondi e avviso Bloc Maiusc; "/" per cercare in coda.
+- Stato del sistema per l'amministratore: database, archivio, AI (con le ultime 24 ore),
+  manutenzione e coda spiegati in parole semplici, senza dati dei cittadini.
+- Avvisi via email con outbox cifrata: richiesta d'integrazione al cittadino nella sua lingua,
+  candidature pilota al team, e su scelta del CAF pratica pronta e riepilogo giornaliero agli
+  operatori. Senza chiavi esterne restano nel log, senza dati personali.
+- I pulsanti in caricamento mantengono il nome per i lettori di schermo.
 
 ## Fatto di recente (6 ottobre)
 

@@ -1,5 +1,5 @@
 {
-  "id": "97e66c02-8cd0-4ff6-9d7c-2d8b635f2951",
+  "id": "01143483-0530-468b-b0ba-eb4a2c5145e8",
   "prevId": "2abc08ad-40fe-4d4e-aa82-79b2b571fb7c",
   "version": "7",
   "dialect": "postgresql",
@@ -1486,6 +1486,91 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.operational_counters": {
+      "name": "operational_counters",
+      "schema": "",
+      "columns": {
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hour": {
+          "name": "hour",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metric": {
+          "name": "metric",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "operational_counters_hour_idx": {
+          "name": "operational_counters_hour_idx",
+          "columns": [
+            {
+              "expression": "hour",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "operational_counters_organization_id_organizations_id_fk": {
+          "name": "operational_counters_organization_id_organizations_id_fk",
+          "tableFrom": "operational_counters",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "operational_counters_organization_id_hour_metric_pk": {
+          "name": "operational_counters_organization_id_hour_metric_pk",
+          "columns": [
+            "organization_id",
+            "hour",
+            "metric"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "operational_counters_metric_check": {
+          "name": "operational_counters_metric_check",
+          "value": "\"operational_counters\".\"metric\" in ('ai_success','ai_fallback','ai_error','api_error')"
+        },
+        "operational_counters_count_check": {
+          "name": "operational_counters_count_check",
+          "value": "\"operational_counters\".\"count\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.operators": {
       "name": "operators",
       "schema": "",
@@ -1539,31 +1624,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "mfa_secret": {
-          "name": "mfa_secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "mfa_enabled_at": {
-          "name": "mfa_enabled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "mfa_last_used_step": {
-          "name": "mfa_last_used_step",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "mfa_recovery_hashes": {
-          "name": "mfa_recovery_hashes",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
         },
         "last_login_at": {
           "name": "last_login_at",
@@ -1806,25 +1866,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'authenticated'"
-        },
-        "mfa_setup_secret": {
-          "name": "mfa_setup_secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "mfa_setup_expires_at": {
-          "name": "mfa_setup_expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "expires_at": {
           "name": "expires_at",
           "type": "timestamp with time zone",
@@ -1882,12 +1923,7 @@
         }
       },
       "policies": {},
-      "checkConstraints": {
-        "sessions_state_check": {
-          "name": "sessions_state_check",
-          "value": "\"sessions\".\"state\" in ('authenticated', 'mfa_pending', 'mfa_setup')"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.settings": {
@@ -1899,13 +1935,6 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true
-        },
-        "mfa_required": {
-          "name": "mfa_required",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "baseline_minutes_per_case": {
           "name": "baseline_minutes_per_case",
@@ -2007,6 +2036,58 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.system_jobs": {
+      "name": "system_jobs",
+      "schema": "",
+      "columns": {
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "system_jobs_kind_check": {
+          "name": "system_jobs_kind_check",
+          "value": "\"system_jobs\".\"kind\" in ('maintenance','retention')"
+        },
+        "system_jobs_outcome_check": {
+          "name": "system_jobs_outcome_check",
+          "value": "\"system_jobs\".\"outcome\" in ('running','ok','failed')"
+        }
+      },
       "isRLSEnabled": false
     }
   },

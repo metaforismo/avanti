@@ -18,5 +18,5 @@ la scadenza. Il core non cambia: crittografia, chiavi e transazioni sono I/O del
 La CLI export usa lo stesso consumo del fattore per non offrire un accesso con la
 sola password ai dati protetti. Nessun segreto viene aggiunto agli export.
 
-La migrazione 0009 è additiva, generata con Drizzle e applicata nei test PGlite;
+La migrazione 0011 è additiva, generata con Drizzle e applicata nei test PGlite;
 i default mantengono seed e login demo invariati. Nessuna nuova dipendenza.

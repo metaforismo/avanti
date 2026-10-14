@@ -1,6 +1,7 @@
 import { mfaCipher } from "./mfa";
 import { mountMfaRoutes } from "./routes/mfa";
 import { Hono } from "hono";
+import { defaultNotifications } from "./notification-config";
 import { boundedBody, uploadCapacity } from "./middleware/body";
 import { GatewayIntelligence } from "./ai";
 import type { ApiEnv, ApiOptions, Services } from "./context";
@@ -21,6 +22,7 @@ import { mountCitizenRoutes } from "./citizen";
 import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
 import { mountAuditRoutes } from "./audit-log";
+import { mountSystemStatus } from "./system-status";
 
 export function createApp(options: ApiOptions) {
   if (options.production && !options.publicUrl)
@@ -43,6 +45,7 @@ export function createApp(options: ApiOptions) {
       production: options.production,
       localKeyPath: options.mfaLocalKeyPath,
     }),
+    notifications: options.notifications ?? defaultNotifications(),
     clock: options.clock ?? (() => new Date()),
     ai: options.ai ?? new GatewayIntelligence(),
     publicUrl: options.publicUrl ?? "http://localhost:3400",
@@ -53,9 +56,9 @@ export function createApp(options: ApiOptions) {
   app.use("*", requireOrigin(services));
   app.use("*", uploadCapacity(services));
   app.use("*", boundedBody());
-  registerErrors(app, options.errorLogger);
-  app.use("*", restrictTemporaryPassword(services));
+  registerErrors(app, options.errorLogger, services);
   mountMaintenance(app, services);
+  app.use("*", restrictTemporaryPassword(services));
   const limited = rateLimit(services);
   app.use("*", limited);
   const authenticated = authenticateOperator(services);
@@ -66,6 +69,7 @@ export function createApp(options: ApiOptions) {
     "/auth/mfa/*",
     "/cases/*",
     "/metrics",
+    "/status",
     "/settings",
     "/operators/*",
     "/audit/*",
@@ -91,5 +95,6 @@ export function createApp(options: ApiOptions) {
   mountOperatorRoutes(app, services);
   mountAdministrationRoutes(app, services);
   mountAuditRoutes(app, services);
+  mountSystemStatus(app, services);
   return app;
 }

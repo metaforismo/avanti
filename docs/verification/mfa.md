@@ -15,7 +15,7 @@ Worktree `.worktrees/mfa`, branch `codex/mfa`. Nessun commit, push o modifica a
   obbligo organizzativo, cambio password preliminare, reset cross-tenant/self,
   rate limit condiviso, errori uniformi, credenziali assenti da log/risposte successive.
   Verificati anche PATCH parziali che preservano l'obbligo e rollback se l'audit fallisce.
-- **PASS** test DB dedicato alla migrazione 0009: password/hash sessioni/impostazioni
+- **PASS** test DB dedicato alla migrazione 0011: password/hash sessioni/impostazioni
   precedenti preservati, MFA inizialmente spenta, vincolo stati sessione attivo.
   Test seed demo e controllo dei dieci hash migrazione passati nella suite DB.
 - **PASS** export CLI: senza fattore rifiutato quando necessario, recupero consumato

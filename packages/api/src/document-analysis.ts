@@ -2,6 +2,7 @@ import { and, eq, gt, isNull, lt, lte, or } from "drizzle-orm";
 import { cases, documents } from "@avanti/db";
 import { DocumentAnalysis } from "@avanti/contracts";
 import { heuristicAnalysis } from "./ai";
+import { observeAi, recordOperationalCounters } from "./operational-telemetry";
 import { citizenView } from "./dossier";
 import { deadline } from "./deadline";
 import { nextCaseUpdate } from "./case-version";
@@ -72,14 +73,17 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
   const bytes = await deadline(s.storage.get(document.storageKey), 10_000);
   let analysis: DocumentAnalysis;
   try {
-    analysis = DocumentAnalysis.parse(
-      await deadline(
-        s.ai.analyze(bytes, document.mimeType, document.fileName, requirements),
-        25_000,
+    analysis = await observeAi(s, row.organizationId, async () =>
+      DocumentAnalysis.parse(
+        await deadline(
+          s.ai.analyze(bytes, document.mimeType, document.fileName, requirements),
+          25_000,
+        ),
       ),
     );
   } catch {
     analysis = heuristicAnalysis(document.fileName, requirements);
+    await recordOperationalCounters(s, row.organizationId, ["ai_fallback"]);
   }
   await s.db.transaction(async (tx) => {
     // Share the erasure/review boundary; a stale or late worker cannot restore deleted data.
