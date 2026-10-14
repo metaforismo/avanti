@@ -108,11 +108,12 @@ for (const engine of ["pglite", "postgres"] as const) {
           Array.from({ length: 30 }, () => consumeRateLimit(db, id, now, 20, 3600)),
         );
         expect(results.filter((r) => r.allowed)).toHaveLength(20);
+        expect(results.filter((r) => r.firstRejection)).toHaveLength(1);
         expect(results.filter((r) => !r.allowed).every((r) => r.retryAfterSeconds === 3600)).toBe(
           true,
         );
         expect(await consumeRateLimit(db, id, new Date(now.getTime() + 3600000), 20, 3600)).toEqual(
-          { allowed: true, retryAfterSeconds: 0 },
+          { allowed: true, retryAfterSeconds: 0, firstRejection: false },
         );
       });
     },

@@ -352,7 +352,12 @@ it("commits successful and failed login events without credentials, including un
     true,
   );
   expect(rows.some((e) => e.type === "auth.login_failed" && e.organizationId === null)).toBe(true);
-  expect(rows.some((e) => e.metadata.rateLimited === true)).toBe(true);
+  expect(rows.filter((e) => e.metadata.rateLimited === true)).toHaveLength(1);
+  // Hammering past the limit adds no rows.
+  for (let i = 0; i < 20; i++) await login("admin-a@example.test", "wrongpassword");
+  const afterFlood = await db.select().from(events);
+  expect(afterFlood.filter((e) => e.metadata.rateLimited === true)).toHaveLength(1);
+  expect(afterFlood).toHaveLength(rows.length);
   expect(JSON.stringify(rows)).not.toMatch(
     /@example\.test|wrongpassword|TestAvantiPassword|Nome-Personale/,
   );
