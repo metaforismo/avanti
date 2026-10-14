@@ -70,6 +70,9 @@ export function Button({
               <Spinner className="size-4" />
             </span>
           )}
+          {/* The visible label is hidden to keep the width; hidden text drops out of the
+              accessible name, so screen readers get this copy while loading. */}
+          {loading && <span className="sr-only">{children}</span>}
           <span className={cn("contents", loading && "invisible")}>{children}</span>
         </>
       )}
