@@ -48,10 +48,23 @@ nelle PR.
 
 ## In corso
 
-- Rigenerare e rimandare il link al cittadino che l'ha perso; testi dei controlli scritti per
-  l'operatore.
-- Staging su Vercel secondo `docs/DEPLOY.md` (in attesa del via libera: il cron di manutenzione
-  al minuto richiede il piano Pro), con Postgres e Blob in UE e `pnpm db:check` sul database reale.
+- Staging su Vercel secondo `docs/DEPLOY.md`, in attesa del via libera (funziona anche sul piano
+  Hobby con manutenzione giornaliera).
+- Decisioni commerciali del fondatore in `docs/gtm/README.md` (sedi, budget pilota, soglie,
+  prezzo da testare, promesse in landing).
+
+## Fatto di recente (14 ottobre)
+
+- Rigenerare e rimandare il link al cittadino che l'ha perso; controlli scritti per l'operatore.
+- Registro attività per l'amministratore (accessi anche falliti, esportazioni, cancellazioni),
+  con CSV sicuro; un solo evento per finestra quando scatta il limite di accesso.
+- Due operatori sulla stessa pratica non si sovrascrivono: la console mostra il cambiamento e
+  lascia decidere; note e bozze non si perdono.
+- PDF con nomi e testi in arabo e bengalese verificati; testi salvati senza caratteri di
+  controllo né override bidirezionali.
+- Ricerca go-to-market in `docs/gtm/`; landing più precisa su cosa fa Avanti e su come il
+  lavoro prosegue nel gestionale.
+- Campo password con mostra/nascondi e avviso Bloc Maiusc; "/" per cercare in coda.
 
 ## Fatto di recente (6 ottobre)
 
