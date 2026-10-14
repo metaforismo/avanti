@@ -12,6 +12,7 @@ const PAGES = [
   { path: "/console/impostazioni", heading: "Impostazioni" },
   { path: "/console/account", heading: "Account" },
   { path: "/console/aiuto", heading: "Aiuto" },
+  { path: "/console/registro", heading: "Registro attività" },
 ] as const;
 
 async function seriousViolations(page: Page) {
