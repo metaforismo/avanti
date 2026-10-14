@@ -59,7 +59,7 @@ export default function OpenGraphImage() {
         </div>
         <div style={{ fontSize: 34, color: "#485067", maxWidth: 900, lineHeight: 1.35 }}>
           Il front office AI per CAF e patronati: ascolta il cittadino nella sua lingua, prepara la
-          checklist e controlla i documenti.
+          checklist e ordina i documenti per l&apos;operatore.
         </div>
       </div>
     </div>,

@@ -1,0 +1,50 @@
+# Avanti — go-to-market per il pilota ISEE 2027
+
+**Ricerca e proposte al 14 ottobre 2026.** Sette documenti per decidere chi reclutare, che cosa offrire e quale prova chiedere prima di vendere. Nessun cliente, deployment o risultato pilota attestato da questa ricerca; nessun messaggio esterno inviato. Modifiche limitate a `docs/gtm/`.
+
+## Indice
+
+| Documento                     | Uso                                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [Mercato](mercato.md)         | Conteggi CAF/patronati, DSU/730 annuali e stagionalità, lacune mensili, compratori e calendario commerciale |
+| [Concorrenza](concorrenza.md) | Gestionali, portali, prenotazioni e front office AI; prezzi dichiarati e differenziazione da verificare     |
+| [Prezzi](prezzi.md)           | Tre modelli, costi AI/storage/hosting, margini per piccolo/medio/rete, picco stagionale e budget pilota     |
+| [Pilota](pilota.md)           | Una pagina per il CAF, dieci giorni di onboarding, protocollo/metriche, supporto e uscita                   |
+| [Obiezioni](obiezioni.md)     | Dieci risposte con prove nel prodotto, limiti e dimostrazioni da raccogliere                                |
+| [Landing](landing.md)         | Nove priorità concrete per chi implementerà, copy e criteri di accettazione; nessuna modifica al sito       |
+
+## Tesi da validare
+
+Avanti prepara un fascicolo ISEE multilingue per l'operatore e si colloca **davanti al gestionale**. Il vantaggio commerciale da dimostrare è meno lavoro netto di preparazione, inclusa la copia nel software CAF. I front office AI esistono già: [TeamSystem Centro Servizi](https://www.teamsystem.com/media/files/1671_TS_BROCHURE_LIGHT_TeamSystem_Centro_Servizi_2026.pdf) documenta chat, raccolta e handoff nativo. Il solo uso dell'AI non differenzia Avanti.
+
+Partire con **tre sportelli in 2–3 organizzazioni**, almeno due gestionali, responsabile raggiungibile e autorizzazione al fornitore. Una sede verifica il percorso assistito e una lingua già supportata. Formazione entro dicembre, test e confronto nelle stesse settimane gennaio–marzo. La concentrazione ISEE è documentata: [INPS, 71% DSU nel primo trimestre 2025](https://www.inps.it/it/it/inps-comunica/notizie/dettaglio-news-page.news.2026.02.osservatorio-su-dsu-e-isee-i-dati-2016-2025.html).
+
+**Stato del prodotto usato nella ricerca:** [README](../../README.md), [architettura](../ARCHITECTURE.md), [roadmap](../ROADMAP.md), [ricerca normativa](../research/README.md) e sorgente landing. Il brief considera Avanti pronto ai primi piloti; la documentazione distingue implementazione/prove interne da configurazione remota, accordi, lingue e normativa ancora da verificare. Queste verifiche restano condizioni di avvio, non una ragione per fermare il reclutamento o le demo sintetiche. Dove i documenti precedenti divergono su scheduler/sessioni, non usarli come promessa contrattuale: verificare configurazione attuale e deployment.
+
+## Le cinque decisioni del fondatore
+
+| Decisione                                                         | Raccomandazione                                                                                                                                                                                      | Alternativa / costo della scelta                                                                                                | Evidenza richiesta e scadenza proposta                                                                                                                    |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Chi scegliamo e chi può firmare?**                           | Tre sportelli ISEE, 2–3 organizzazioni autorizzate, due gestionali, almeno un percorso assistito. Sponsor locale/provinciale con decisore identificato                                               | Una sola rete nazionale facilita standardizzazione, ma dipende da acquisti/IT centrali e riduce varietà della prova             | Tre schede sede con titolare, firmatario, budget, gestionale, referente. Scelta entro **15 novembre 2026**; [mercato](mercato.md)                         |
+| **2. Quanto investiamo nel pilota e quale servizio promettiamo?** | Gratis fino al 31/03, cap 1.500 consegne/2.000 avvii, tre sedi, una formazione + supporto concordato. Accantonare **3.000–4.000 €**, legale/traduzioni/viaggi/condizioni provider da quotare a parte | Cap più alto e supporto intensivo aumentano apprendimento e costo; gratis illimitato impedisce di controllare il budget         | Budget approvato, referente candidature/supporto, condizioni di risposta e cap. Prima della proposta; [prezzi](prezzi.md), [pilota](pilota.md)            |
+| **3. Cosa deve dimostrare il test per proseguire?**               | ≥5 minuti netti/caso, +15 punti di completezza, ≥70% consegne/avvii; valore CAF ≥2× prezzo. Controllo contemporaneo, tutti gli inviti inclusi, verifica umana e stop per criticità                   | Soglie più deboli accettano un prodotto meno utile; più alte riducono la conversione. Campione piccolo resta esplorativo        | Protocollo firmato prima del primo dato; timer attivo distinto dai tempi console, gestione abbandoni/incidenti; [pilota](pilota.md)                       |
+| **4. Quale prezzo mettiamo alla prova dopo?**                     | Testare **129 €/sportello/mese + 150 inclusi + 0,75 € extra**, e **1,50 €/consegna** per sedi stagionali. Non pubblicare lo sconto rete prima dei costi reali                                        | Solo consumo rende il prezzo stagionale e riduce la prevedibilità dei ricavi; canone da solo può penalizzare una sede solo ISEE | Consumi/costo consegna e supporto misurati, offerta al pagatore entro **15 marzo**, scelta entro 31 marzo. [Prezzi](prezzi.md)                            |
+| **5. Quali prove e promesse portiamo in landing?**                | Offerta pilota, handoff reale, esempio sintetico e metodo di misura; nessun cliente/ROI inventato. Prezzo definitivo solo dopo la scelta commerciale                                                 | Prezzo indicativo subito qualifica prima, ma richiede quota/extra e può ancorare male la trattativa                             | Copy allineato a funzioni/stato; autorizzazione separata a nome/logo e risultati. Priorità **1–3 prima del reclutamento pubblico**, [landing](landing.md) |
+
+Cinque decisioni operative, non cinque permessi da chiedere di nuovo. Nessuna scelta è stata attribuita al fondatore senza risposta; i valori sono raccomandazioni da approvare prima di diventare offerte pubbliche o contratti.
+
+## Qualità e limiti della ricerca
+
+- **Fonti istituzionali:** INPS, MLPS, AdE, MEF; unità e anno indicati vicino al numero. L'albo AdE letto contiene 73 iscrizioni dipendenti e 97 imprese; è una fotografia di pagine d'archivio senza data certa, non 170 aziende uniche. Il MEF conta 25.244.659 contribuenti con 730 nelle dichiarazioni 2025, **tutti i canali**. [Dettaglio e metodo](mercato.md).
+- **Fonti di associazioni e fornitori:** sedi/volumi Consulta e funzioni/prezzi vendor attribuiti. Nessun audit indipendente dei concorrenti, classifica di quote o verifica clienti delle startup.
+- **Lacune esplicite:** totale nazionale distinto dei centri di raccolta, dodici conteggi mensili CAF DSU/730 omogenei, calendario standard dei budget, costi reali Avanti e disponibilità a pagare. Le fonti parziali non vengono trasformate in serie mensili inventate; [mercato](mercato.md), [prezzi](prezzi.md).
+- **Scenari economici:** volumi piccolo/medio/rete, token, tasso abbandono, cambio 0,92 €/USD, ore e costo lavoro sono ipotesi, non misure. Tariffe cloud osservate non attestano condizioni UE/ZDR. Margine contributivo distinto da utile.
+- **Prima dei dati reali:** trattamento/fornitori, prove remote e di restituzione, revisione lingue e regole ISEE 2027. [Sicurezza](../SECURITY.md), [deploy](../DEPLOY.md), [base ISEE](../research/isee-2027.md). Le condizioni legali vengono approfondite nella ricerca esistente; qui non si certifica conformità.
+
+## Prossimi passi
+
+Entro ottobre: dieci colloqui mirati organizzati dal fondatore tramite introduzioni, con demo sintetica e domanda esplicita su decisore/budget. Entro metà novembre: tre sedi selezionate e handoff provato. Due settimane di onboarding concluse entro il 18 dicembre; confronto gennaio–marzo e offerta a marzo. Questi numeri sono un piano, non contatti già eseguiti. Il risultato desiderato è una scelta d'acquisto fondata su beneficio e costo netti; l'interesse gratuito non basta.
+
+## Verifica del worktree
+
+Il 14 ottobre 2026: **PASS** formattazione dei sette documenti, collegamenti locali/ancore e controllo aritmetico delle simulazioni. **PASS `pnpm check`**: 15 task riusciti, 12 recuperati dalla cache Turbo; lint, typecheck e test web eseguiti in questa sessione. Il report DB recuperato dalla cache include cinque test saltati: nessuna nuova verifica di Postgres remoto. **PASS `pnpm build`**, una sola invocazione, due task riusciti senza cache. Turbo ha emesso warning di permessi/cache e sull'assenza di output del build API (che esegue `tsc --noEmit`), senza errori dei comandi. Rimossi `apps/web/.next`, le cartelle `.turbo` locali e i log temporanei. Stato finale: sette nuovi Markdown in `docs/gtm/`, nessuna modifica a file tracciati preesistenti, nessun commit.
