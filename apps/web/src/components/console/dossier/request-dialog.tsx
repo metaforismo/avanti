@@ -14,11 +14,14 @@ export function RequestDialog({
   onOpenChange,
   dossier,
   onSent,
+  onConflict,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dossier: CaseDossier;
   onSent: (result: CaseDossier | null) => void;
+  /** The case changed since it was read: reload it, keeping this draft. */
+  onConflict: () => void;
 }) {
   const edited = useRef(false);
   return (
@@ -42,6 +45,7 @@ export function RequestDialog({
         <RequestForm
           dossier={dossier}
           onEdited={() => (edited.current = true)}
+          onConflict={onConflict}
           onDone={(result) => {
             edited.current = false;
             onSent(result);
@@ -71,10 +75,12 @@ function RequestForm({
   dossier,
   onDone,
   onEdited,
+  onConflict,
 }: {
   dossier: CaseDossier;
   onEdited: () => void;
   onDone: (result: CaseDossier | null) => void;
+  onConflict: () => void;
 }) {
   const candidates = dossier.checklist.filter((item) => NEEDS_ACTION.has(item.status));
   const others = dossier.checklist.filter((item) => !NEEDS_ACTION.has(item.status));
@@ -112,12 +118,24 @@ function RequestForm({
         `/api/cases/${dossier.id}/requests`,
         {
           method: "POST",
-          body: { checklistItemIds: selected, message: message.trim() },
+          body: {
+            checklistItemIds: selected,
+            message: message.trim(),
+            expectedUpdatedAt: dossier.updatedAt,
+          },
         },
       );
       onDone(result && "checklist" in result ? result : null);
     } catch (err) {
       setPending(false);
+      if (err instanceof ApiRequestError && err.code === "conflict") {
+        // The draft stays: the case is reloaded and the operator checks before sending again.
+        onConflict();
+        setError(
+          "La pratica è cambiata mentre scrivevi (per esempio è arrivato un documento). Abbiamo aggiornato il fascicolo: controlla le voci e invia di nuovo.",
+        );
+        return;
+      }
       setError(err instanceof ApiRequestError ? err.message : "Invio non riuscito. Riprova.");
     }
   }
