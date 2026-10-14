@@ -37,7 +37,8 @@ gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
   disattivazione; sportelli; parametri (baseline, validità dei link, conservazione).
 - Cancellazione definitiva su richiesta dell'interessato e pulizia automatica a fine
   conservazione.
-- Registro attività con export CSV, stato del sistema e avvisi via email (facoltativi).
+- Registro attività con export CSV, stato del sistema, avvisi via email (facoltativi), rapporto
+  del pilota e verifica in due passaggi (anche obbligatoria).
 
 **Pratiche**: ISEE ordinario completo; assegno unico, 730 e permesso di soggiorno in beta; le
 altre elencate come "in arrivo" (vedi `docs/research/`).
@@ -72,6 +73,11 @@ nelle PR.
   candidature pilota al team, e su scelta del CAF pratica pronta e riepilogo giornaliero agli
   operatori. Senza chiavi esterne restano nel log, senza dati personali.
 - I pulsanti in caricamento mantengono il nome per i lettori di schermo.
+- Verifica in due passaggi per gli operatori (app di autenticazione e codici di recupero),
+  obbligatoria su scelta del CAF; l'amministratore sblocca chi perde il telefono.
+- Rapporto del pilota per il responsabile del CAF: le tre soglie con esito onesto («dati
+  insufficienti» sotto i 50 casi), numeri aggregati senza celle sotto 5, PDF e CSV.
+- Lo stato del sistema dice anche se gli avvisi email partono davvero.
 
 ## Fatto di recente (6 ottobre)
 

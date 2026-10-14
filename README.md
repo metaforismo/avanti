@@ -48,7 +48,8 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 | `/console/pratiche/[id]` | Operatore | Fascicolo: problemi, verifica documenti, integrazioni, export |
 | `/console/metriche`      | Operatore | Tempi e completezza misurati                                  |
 | `/console/sportelli`     | Operatore | Link e QR degli sportelli, cartello A4 da stampare            |
-| `/console/impostazioni`  | Admin     | Operatori, parametri, avvisi via email                        |
+| `/console/impostazioni`  | Admin     | Operatori, parametri, avvisi email, verifica obbligatoria     |
+| `/console/rapporto`      | Admin     | Rapporto del pilota: soglie, numeri, PDF e CSV                |
 | `/console/registro`      | Admin     | Registro attività con export CSV                              |
 | `/console/stato`         | Admin     | Stato del sistema: database, archivio, AI, manutenzione, coda |
 
