@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { defaultNotifications } from "./notification-config";
 import { boundedBody, uploadCapacity } from "./middleware/body";
 import { GatewayIntelligence } from "./ai";
 import type { ApiEnv, ApiOptions, Services } from "./context";
@@ -36,6 +37,7 @@ export function createApp(options: ApiOptions) {
     );
   const services: Services = {
     ...options,
+    notifications: options.notifications ?? defaultNotifications(),
     clock: options.clock ?? (() => new Date()),
     ai: options.ai ?? new GatewayIntelligence(),
     publicUrl: options.publicUrl ?? "http://localhost:3400",

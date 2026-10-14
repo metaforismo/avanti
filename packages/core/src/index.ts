@@ -19,7 +19,7 @@ export { buildChecklist } from "./checklist";
 export { buildDsuSheet, formatDsuDate, formatDsuAmount } from "./dsu-sheet";
 export { evaluateDossier, ownerMatches, type DossierInput } from "./evaluation";
 export { dossierSummary, timelineLabel } from "./summary";
-export { requirements, type RequirementId } from "./requirements";
+export { requirements, requirementText, type RequirementId } from "./requirements";
 
 export { calendarDate, calendarYear } from "./calendar";
 

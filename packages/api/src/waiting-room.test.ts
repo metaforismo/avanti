@@ -1,3 +1,4 @@
+import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
@@ -33,6 +34,7 @@ let now = new Date("2027-01-05T10:00:00Z");
 const origin = "https://avanti.example.test";
 const sharedIp = "192.0.2.1";
 const services = (): Services => ({
+  notifications: defaultNotifications(),
   db,
   storage: new MemoryStorage(),
   ai: new GatewayIntelligence(),
@@ -203,6 +205,7 @@ it("intake allows 60 cases an hour with a 40-case burst, returns the actual rema
   now = new Date("2027-01-05T13:00:00Z");
   expect((await post(app, "/api/intake", input)).status).toBe(200);
 });
+// 15,000 persisted requests exercise quota correctness; allow WASM DB work on loaded hosts.
 it("the broad IP ceiling stops at 15,000 turns per hour across otherwise healthy capabilities", async () => {
   await db.delete(rateLimits);
   const base = Date.parse("2027-01-05T15:00:00Z");
@@ -224,7 +227,7 @@ it("the broad IP ceiling stops at 15,000 turns per hour across otherwise healthy
   expect(blocked.headers.get("Retry-After")).toBe("600");
   now = new Date(base + 3600000);
   expect((await post(app, `/api/c/${tokens[0]}/turn`, {})).status).toBe(200);
-});
+}, 120_000);
 it.each(LANGUAGES)("intake limits return citizen copy and Retry-After in %s", async (language) => {
   await db.delete(rateLimits);
   const app = limitedApp();

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { createApp } from "./app";
 import { DiskStorage, BlobStorage } from "./storage";
 import { GatewayIntelligence } from "./ai";
+import { loadNotifications } from "./notification-config";
 
 export { createApp } from "./app";
 export { MemoryStorage, DiskStorage, BlobStorage } from "./storage";
@@ -41,6 +42,7 @@ async function initialize() {
   const { db } = await database();
   return createApp({
     db,
+    notifications: await loadNotifications(process.env, resolve(repoRoot, ".data")),
     background: (work) => {
       const schedule = backgroundStore[backgroundKey];
       if (!schedule) throw new Error("Background scheduler unavailable");

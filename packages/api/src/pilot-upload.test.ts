@@ -1,3 +1,4 @@
+import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
@@ -143,7 +144,15 @@ it("pilot: returns processing before AI; persisted jobs recover after restart an
   );
   expect(analyze).toHaveBeenCalledTimes(1);
   await analyzePendingDocument(
-    { db, storage, ai, clock: () => now, publicUrl: origin, production: false },
+    {
+      db,
+      storage,
+      ai,
+      notifications: defaultNotifications(),
+      clock: () => now,
+      publicUrl: origin,
+      production: false,
+    },
     id,
   );
   expect(analyze).toHaveBeenCalledTimes(1);
