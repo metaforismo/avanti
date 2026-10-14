@@ -17,22 +17,22 @@ della directory. In produzione le migrazioni si applicano esplicitamente con
 
 ## Tabelle
 
-| Tabella              | Contenuto e vincoli principali                                                                                |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `organizations`      | Titolare CAF/patronato/studio; radice del tenant.                                                             |
-| `offices`            | Sedi e slug pubblico univoco; appartenenza a un'organizzazione.                                               |
-| `operators`          | Operatori, ruolo e hash scrypt; email normalizzata dall'API e univoca.                                        |
-| `sessions`           | Hash del token casuale, operatore e scadenza; nessun token in chiaro.                                         |
-| `cases`              | Pratica, risposte tipizzate JSON, lingua, contatto, stato, link hash, assegnatario, note e istanti KPI.       |
-| `checklist_reviews`  | Decisione e nota per coppia pratica/voce stabile; operatore e istante della revisione.                        |
-| `storage_deletions`  | Tombstone e backoff per cancellazioni storage da ritentare tramite cron, senza nome o contenuto del file.     |
-| `documents`          | Metadati, chiave storage, SHA-256 e analisi tipizzata; mai i byte nel database.                               |
-| `messages`           | Conversazione necessaria alla pratica e originale italiano delle traduzioni.                                  |
-| `events`             | Audit strutturato: categoria di azione, attore, identificatore e istante; metadata solo numeri/booleani/null. |
-| `leads`              | Richieste del pilota, contatto e data di accettazione dell'informativa.                                       |
-| `settings`           | Baseline dichiarata, retention (default 180 giorni), durata link (default 60 giorni).                         |
-| `rate_limits`        | Contatori e scadenze; la chiave deve essere un hash, senza IP in chiaro.                                      |
-| `reference_counters` | Progressivo atomico per organizzazione e anno.                                                                |
+| Tabella              | Contenuto e vincoli principali                                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `organizations`      | Titolare CAF/patronato/studio; radice del tenant.                                                                                                                |
+| `offices`            | Sedi e slug pubblico univoco; appartenenza a un'organizzazione.                                                                                                  |
+| `operators`          | Operatori, ruolo e hash scrypt; email normalizzata dall'API e univoca.                                                                                           |
+| `sessions`           | Hash del token casuale, operatore e scadenza; nessun token in chiaro.                                                                                            |
+| `cases`              | Pratica, risposte tipizzate JSON, lingua, contatto, stato, link hash, assegnatario, note e istanti KPI.                                                          |
+| `checklist_reviews`  | Decisione e nota per coppia pratica/voce stabile; operatore e istante della revisione.                                                                           |
+| `storage_deletions`  | Tombstone e backoff per cancellazioni storage da ritentare tramite cron, senza nome o contenuto del file.                                                        |
+| `documents`          | Metadati, chiave storage, SHA-256 e analisi tipizzata; mai i byte nel database.                                                                                  |
+| `messages`           | Conversazione necessaria alla pratica e originale italiano delle traduzioni.                                                                                     |
+| `events`             | Audit strutturato: azione, attore/ID, account interessato, istante, riferimento pratica e metadata numerici/booleani/null; conservazione autonoma di 365 giorni. |
+| `leads`              | Richieste del pilota, contatto e data di accettazione dell'informativa.                                                                                          |
+| `settings`           | Baseline dichiarata, retention (default 180 giorni), durata link (default 60 giorni).                                                                            |
+| `rate_limits`        | Contatori e scadenze; la chiave deve essere un hash, senza IP in chiaro.                                                                                         |
+| `reference_counters` | Progressivo atomico per organizzazione e anno.                                                                                                                   |
 
 La reference è `AV-AAAA-NNNNNN`: un `INSERT … ON CONFLICT … UPDATE … RETURNING`
 incrementa il contatore senza leggere prima il valore. Le reference sono univoche dentro
@@ -50,6 +50,15 @@ composte impediscono anche di collegare una pratica a una sede o a un assegnatar
 altro tenant. Gli eventi associati a un caso hanno a loro volta una foreign key composta
 per imporre che il tenant dell’audit corrisponda a quello della pratica. Indici coprono tenant/stato/aggiornamento, tenant/sede/creazione,
 assegnatario, hash token, documenti per pratica e audit per tenant/tipo/istante.
+
+La migrazione `0008_motionless_thunderbolt_ross` aggiunge il riferimento tecnico
+agli eventi esistenti, l’ID dell’account interessato e gli indici per paginazione,
+attore e riferimento. Le FK degli eventi verso le pratiche sono restrittive:
+la cancellazione deve prima scollegarli (`caseId=null`, `deletedCaseId=id`) nella
+stessa transazione. Il tenant è nullable soltanto per tentativi di login falliti
+di account sconosciuti, senza attore/risorsa identificabile; un CHECK limita questa
+eccezione. Nessun admin può consultarli. Gli audit già privi di pratica prima della
+migrazione non possono recuperare un riferimento che non è più nel DB.
 
 I membri sono salvati soltanto in `cases.answers.members`, con UUID persistenti;
 la vecchia tabella `members` è stata rimossa. `confirmed_answers` conserva le chiavi

@@ -146,7 +146,7 @@ export function PilotForm() {
       <Field
         label="Cosa vi fa perdere più tempo oggi?"
         optional="facoltativo"
-        hint="Ci aiuta a preparare la prima chiamata."
+        hint="Ci aiuta a preparare la prima chiamata. Non inserire nomi o documenti dei cittadini."
       >
         {(p) => <Textarea {...p} name="message" rows={3} maxLength={2000} />}
       </Field>

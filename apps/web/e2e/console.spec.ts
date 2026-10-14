@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openFirstReadyCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -9,17 +10,15 @@ test("an operator logs in, opens a dossier and sees what to check", async ({ pag
   await page.waitForURL(/\/console\/accedi/);
 
   await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password").fill("password-sbagliata");
+  await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
 
-  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
 
-  await page.getByRole("button", { name: /^Pronte/ }).click();
-  await page.locator('a[href^="/console/pratiche/"]').first().click();
-  await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+  await openFirstReadyCase(page);
   await expect(page.getByText("Cronologia")).toBeVisible();
 });
 
@@ -32,7 +31,7 @@ test("an admin adds an operator, who must choose a password at first login", asy
   const email = `e2e.${Date.now()}@demo.avanti.local`;
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password").fill(ADMIN.password);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
 
@@ -50,7 +49,7 @@ test("an admin adds an operator, who must choose a password at first login", asy
   await page.getByRole("button", { name: "Esci" }).click();
 
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(temporary);
+  await page.getByLabel("Password", { exact: true }).fill(temporary);
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Scegli la tua password" })).toBeVisible();
 
@@ -66,7 +65,7 @@ test("an admin adds an operator, who must choose a password at first login", asy
 test("marking a case ready with missing documents asks first", async ({ page }) => {
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
   await page.getByRole("button", { name: "Accedi" }).click();
   await page.getByRole("link", { name: /Persona Esempio 8/ }).click();
   await expect(page.getByText(/Mancano \d+ documenti obbligatori/).first()).toBeVisible();
@@ -94,7 +93,7 @@ test("a CAF's first day shows how to get the first dossier", async ({ page }) =>
   );
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Password").fill(ADMIN.password);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
   await page.getByRole("button", { name: "Accedi" }).click();
 
   const steps = page.getByRole("region", { name: "Per iniziare" });
@@ -108,11 +107,9 @@ test("a ready case opens the DSU sheet, ready to copy into the CAF's software", 
 }) => {
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
   await page.getByRole("button", { name: "Accedi" }).click();
-  await page.getByRole("button", { name: /^Pronte/ }).click();
-  await page.waitForURL(/stato=ready/);
-  await page.locator('a[href^="/console/pratiche/"]').first().click();
+  await openFirstReadyCase(page);
 
   const sheet = page.locator("details", { hasText: "Prospetto DSU" });
   await expect(sheet.getByRole("region", { name: "Quadro A" }).first()).toBeVisible();
@@ -124,7 +121,7 @@ test("a ready case opens the DSU sheet, ready to copy into the CAF's software", 
 test("a lost citizen link is replaced and the old one stops working", async ({ page, browser }) => {
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password").fill(DEMO.password);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
   await page.getByRole("button", { name: "Accedi" }).click();
   await page.getByRole("button", { name: "Nuova pratica" }).click();
   await page.getByRole("dialog").getByRole("button", { name: /Crea/ }).click();
@@ -180,4 +177,46 @@ test("two operators on the same case: the second one sees the change instead of 
   ).toBeVisible();
   // …and now sees what the colleague did.
   await expect(second.getByRole("button", { name: /^Annulla la decisione/ }).first()).toBeVisible();
+});
+
+test("the activity log shows a failed login to the administrator only", async ({ page }) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+  // Operators don't see it.
+  await expect(page.getByRole("link", { name: "Registro attività" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Esci" }).click();
+
+  await page.getByLabel("Email").fill(ADMIN.email);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await page.getByRole("link", { name: "Registro attività" }).click();
+  await page.getByLabel("Cosa cerchi").selectOption({ label: "Accessi non riusciti" });
+  await expect(page.getByText(/Tentativo di accesso operatore fallito/).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Esporta CSV" })).toHaveAttribute(
+    "href",
+    /action=auth\.login_failed/,
+  );
+});
+
+test("slash jumps to the queue search and Escape clears it", async ({ page }) => {
+  await page.goto("/console/accedi");
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+
+  const search = page.getByRole("searchbox", { name: "Cerca pratiche" });
+  await page.keyboard.press("/");
+  await expect(search).toBeFocused();
+  await page.keyboard.type("Persona");
+  await expect(search).toHaveValue("Persona");
+  await page.keyboard.press("Escape");
+  await expect(search).toHaveValue("");
+  await expect(search).not.toBeFocused();
 });

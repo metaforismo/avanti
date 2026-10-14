@@ -147,6 +147,11 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     const row = await caseById(s.db, c.req.param("id"), operator.organizationId);
     const view = await dossierView(s.db, row, s.clock());
+    await s.db.transaction(async (tx) => {
+      await audit(tx, row, "operator", "case.viewed", s.clock(), operator.id);
+      if (view.dsuSheet)
+        await audit(tx, row, "operator", "dsu_sheet.viewed", s.clock(), operator.id);
+    });
     scheduleDocumentRecovery(s, row.id);
     return c.json(view);
   });

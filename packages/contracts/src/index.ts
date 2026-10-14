@@ -653,6 +653,119 @@ export type Metrics = z.infer<typeof Metrics>;
 /* Administration (role "admin" only, scoped to the operator's organization) */
 /* ------------------------------------------------------------------ */
 
+export const AuditAction = z.enum([
+  "privacy.accepted",
+  "case.created",
+  "case.viewed",
+  "case.link_created",
+  "case.link_regenerated",
+  "answer.updated",
+  "answer.edited",
+  "language.updated",
+  "review.started",
+  "review.completed",
+  "citizen.requested",
+  "document.uploaded",
+  "document.analyzed",
+  "document.reassigned",
+  "document.deleted",
+  "document.downloaded",
+  "case.submitted",
+  "checklist.reviewed",
+  "case.requested",
+  "case.in_review",
+  "case.needs_citizen",
+  "case.reopened",
+  "case.assigned",
+  "case.note_updated",
+  "checklist.verified",
+  "checklist.rejected",
+  "checklist.waived",
+  "checklist.reset",
+  "case.ready",
+  "case.closed",
+  "case.exported",
+  "dsu_sheet.viewed",
+  "case.deleted",
+  "case.retention_deleted",
+  "auth.login_succeeded",
+  "auth.login_failed",
+  "auth.password_changed",
+  "auth.logged_out",
+  "operator.created",
+  "operator.updated",
+  "operator.deactivated",
+  "operator.activated",
+  "operator.password_reset",
+  "settings.updated",
+  "office.created",
+  "office.updated",
+  "organization.bootstrapped",
+  "organization.exported",
+  "audit.exported",
+  "activity.recorded",
+]);
+export type AuditAction = z.infer<typeof AuditAction>;
+
+/** Fixed keys only: never citizen text, names, email, document names or credential hashes. */
+export const AuditDetails = z.object({
+  answersCount: z.number().int().nonnegative().optional(),
+  heuristic: z.boolean().optional(),
+  bytes: z.number().int().nonnegative().optional(),
+  blockers: z.number().int().nonnegative().optional(),
+  first: z.boolean().optional(),
+  itemsCount: z.number().int().nonnegative().optional(),
+  durationMinutes: z.number().nonnegative().nullable().optional(),
+  cases: z.number().int().nonnegative().optional(),
+  documents: z.number().int().nonnegative().optional(),
+  rows: z.number().int().nonnegative().optional(),
+  rateLimited: z.boolean().optional(),
+  cli: z.boolean().optional(),
+});
+export type AuditDetails = z.infer<typeof AuditDetails>;
+
+export const AuditQuery = z
+  .object({
+    /** Inclusive lower bound and exclusive upper bound, with explicit UTC offset. */
+    from: IsoDateTime.optional(),
+    to: IsoDateTime.optional(),
+    operatorId: Id.optional(),
+    reference: z.string().trim().min(1).max(64).optional(),
+    action: AuditAction.optional(),
+    cursor: z
+      .string()
+      .min(1)
+      .max(1024)
+      .regex(/^[A-Za-z0-9_-]+$/)
+      .optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .strict()
+  .refine((q) => !q.from || !q.to || Date.parse(q.from) < Date.parse(q.to), {
+    message: "Il periodo non è valido.",
+  });
+export type AuditQuery = z.infer<typeof AuditQuery>;
+
+export const AuditEvent = z.object({
+  id: Id,
+  /** ISO instant with the Europe/Rome offset at that instant (including daylight saving). */
+  at: IsoDateTime,
+  timeZone: z.literal("Europe/Rome"),
+  actor: z.object({ type: z.enum(["operator", "citizen", "system"]), id: Id.nullable() }),
+  /** Account affected by a reset/deactivation or attempted login; not proof of identity. */
+  subjectOperatorId: Id.nullable(),
+  action: AuditAction,
+  label: z.string(),
+  case: z.object({ id: Id, reference: z.string().nullable(), deleted: z.boolean() }).nullable(),
+  details: AuditDetails,
+});
+export type AuditEvent = z.infer<typeof AuditEvent>;
+export const AuditPage = z.object({
+  items: z.array(AuditEvent),
+  nextCursor: z.string().nullable(),
+});
+export type AuditPage = z.infer<typeof AuditPage>;
+
 export const ChangePasswordRequest = z.object({
   currentPassword: z.string().min(1).max(200),
   newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(200),

@@ -1,4 +1,4 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { cases, documents, events, settings, storageDeletions, type Database } from "@avanti/db";
 import type { Services } from "./context";
 import type { CaseRow } from "./dossier";
@@ -21,11 +21,17 @@ export async function eraseCase(db: Database, row: CaseRow, now: Date, actorId: 
         })),
       )
       .onConflictDoNothing();
+  // Audit has its own lifetime. Detach before erasure; restrictive FKs prevent accidental loss.
+  await db
+    .update(events)
+    .set({ caseId: null, deletedCaseId: row.id, caseReference: row.reference })
+    .where(and(eq(events.caseId, row.id), eq(events.organizationId, row.organizationId)));
   await db.delete(cases).where(eq(cases.id, row.id));
   await db.insert(events).values({
     id: crypto.randomUUID(),
     caseId: null,
     deletedCaseId: row.id,
+    caseReference: row.reference,
     organizationId: row.organizationId,
     actor: actorId ? "operator" : "system",
     actorId,

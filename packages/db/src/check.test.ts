@@ -40,7 +40,7 @@ for (const engine of ["pglite", "postgres"] as const) {
         await close?.();
       });
       it("accepts every migration hash and index definition, including pg_trgm", async () => {
-        expect(await checkDatabase(db)).toEqual({ migrations: 8, indexes: 25 });
+        expect(await checkDatabase(db)).toEqual({ migrations: 9, indexes: 30 });
         const [result] = await db
           .select({ similarity: sql<number>`similarity('Avanti', 'Avanti')` })
           .from(sql`(select 1) as trgm_check`);
@@ -108,11 +108,12 @@ for (const engine of ["pglite", "postgres"] as const) {
           Array.from({ length: 30 }, () => consumeRateLimit(db, id, now, 20, 3600)),
         );
         expect(results.filter((r) => r.allowed)).toHaveLength(20);
+        expect(results.filter((r) => r.firstRejection)).toHaveLength(1);
         expect(results.filter((r) => !r.allowed).every((r) => r.retryAfterSeconds === 3600)).toBe(
           true,
         );
         expect(await consumeRateLimit(db, id, new Date(now.getTime() + 3600000), 20, 3600)).toEqual(
-          { allowed: true, retryAfterSeconds: 0 },
+          { allowed: true, retryAfterSeconds: 0, firstRejection: false },
         );
       });
     },

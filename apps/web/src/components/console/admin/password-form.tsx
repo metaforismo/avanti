@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import type { Operator } from "@avanti/contracts";
 import { PASSWORD_MIN_LENGTH } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, PasswordInput } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
 type Errors = { current?: string; next?: string; repeat?: string };
@@ -70,19 +70,17 @@ export function PasswordForm({
   return (
     <form onSubmit={onSubmit} noValidate className="grid max-w-md gap-4">
       <Field label="Password attuale" error={errors.current}>
-        {(p) => (
-          <Input {...p} name="currentPassword" type="password" autoComplete="current-password" />
-        )}
+        {(p) => <PasswordInput {...p} name="currentPassword" autoComplete="current-password" />}
       </Field>
       <Field
         label="Nuova password"
         hint={`Almeno ${PASSWORD_MIN_LENGTH} caratteri. Una frase lunga è più sicura e più facile da ricordare.`}
         error={errors.next}
       >
-        {(p) => <Input {...p} name="newPassword" type="password" autoComplete="new-password" />}
+        {(p) => <PasswordInput {...p} name="newPassword" autoComplete="new-password" />}
       </Field>
       <Field label="Ripeti la nuova password" error={errors.repeat}>
-        {(p) => <Input {...p} name="repeat" type="password" autoComplete="new-password" />}
+        {(p) => <PasswordInput {...p} name="repeat" autoComplete="new-password" />}
       </Field>
       {formError && (
         <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">

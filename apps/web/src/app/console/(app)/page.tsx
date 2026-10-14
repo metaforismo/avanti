@@ -3,7 +3,7 @@
 import { AlertTriangle, CheckCircle2, Inbox, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "next";
 import type { CaseListItem, CaseListResponse, CaseStatus } from "@avanti/contracts";
 import { PRACTICE_IDS } from "@avanti/contracts/constants";
@@ -39,6 +39,19 @@ function Queue() {
   // Set by the dossier after a permanent deletion, which leaves nothing else to show.
   const deleted = params.get("eliminata");
   const [search, setSearch] = useState(params.get("q") ?? "");
+  const searchRef = useRef<HTMLInputElement>(null);
+  // "/" jumps to the search, as in most work tools, unless the operator is typing elsewhere.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [debouncedSearch, setDebouncedSearch] = useState(search.trim());
   // One request per pause in typing, not per keystroke.
   useEffect(() => {
@@ -184,8 +197,16 @@ function Queue() {
             aria-hidden
           />
           <input
+            ref={searchRef}
             type="search"
             name="q"
+            aria-keyshortcuts="/"
+            onKeyDown={(event) => {
+              if (event.key !== "Escape") return;
+              setSearch("");
+              setParam("q", "");
+              event.currentTarget.blur();
+            }}
             autoComplete="off"
             spellCheck={false}
             value={search}
@@ -193,8 +214,16 @@ function Queue() {
             onBlur={() => setParam("q", search.trim())}
             placeholder="Cerca per nome o codice pratica…"
             aria-label="Cerca pratiche"
-            className="h-10 w-full rounded-sm bg-surface ps-9 pe-9 text-[0.9375rem] ring-1 ring-line-strong ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
+            className="peer h-10 w-full rounded-sm bg-surface ps-9 pe-9 text-[0.9375rem] ring-1 ring-line-strong ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
           />
+          {!search && (
+            <kbd
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded-xs px-1.5 font-mono text-xs text-ink-3 ring-1 ring-line-strong peer-focus:hidden md:block"
+            >
+              /
+            </kbd>
+          )}
           {search && (
             <button
               type="button"

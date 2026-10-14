@@ -292,3 +292,24 @@ fascicoli chiusi o scaduti da più del periodo configurato (25 per esecuzione).
 La cancellazione manuale richiede il riferimento, senza distinzione maiuscole/minuscole.
 Entrambe rimuovono DB e file, con tombstone/retry e audit senza contenuti personali:
 vedi [SECURITY.md](SECURITY.md#retention-e-diritti).
+
+## Registro attività (solo admin del CAF)
+
+| Metodo | Endpoint            | Input        | Risultato                                                |
+| ------ | ------------------- | ------------ | -------------------------------------------------------- |
+| GET    | `/audit`            | `AuditQuery` | `AuditPage`, eventi in ordine decrescente per istante/ID |
+| GET    | `/audit/export.csv` | `AuditQuery` | CSV sicuro, massimo 5.000 righe; evento `audit.exported` |
+
+Filtri: `from` incluso e `to` escluso (timestamp ISO con offset esplicito),
+`operatorId` per attore o account interessato, `reference` per codice pratica esatto,
+`action` per categoria. `limit=50` di default (1–100), `cursor` opaco restituito da
+`nextCursor`. Un cursore con tenant/filtri diversi è rifiutato con 400. L’export
+ignora `limit` e usa il cursore come posizione iniziale; oltre il limite di righe
+restituisce 400, chiedendo filtri più stretti. Entrambe le rotte rispondono 401 senza
+sessione valida, 403 per operatori non admin/password temporanea; non accettano un
+tenant client. Valori di operatori/pratiche estranei non rivelano la loro esistenza.
+
+Gli eventi hanno `at` con l’offset Europe/Rome al momento dell’azione, attore con
+ID tecnico, etichetta italiana, riferimento pratica anche dopo cancellazione e
+dettagli limitati a conteggi/flag. Nessun nome o email nel DTO. Catalogo completo,
+contratti e verifiche in [verification/audit-log.md](verification/audit-log.md).
