@@ -1,4 +1,5 @@
 import { and, eq, gt, like } from "drizzle-orm";
+import { observeAi } from "./operational-telemetry";
 import {
   cases,
   offices,
@@ -198,14 +199,16 @@ export function mountCitizenRoutes(app: App, s: Services) {
     mutableCitizen(initial);
     const proposal =
       input.type === "text"
-        ? await s.ai.intake(
-            input.text,
-            initial.language,
-            initial.practiceId,
-            initial.practiceId
-              ? getQuestions(initial.practiceId, initial.answers, initial.language)
-              : [],
-            s.clock(),
+        ? await observeAi(s, initial.organizationId, () =>
+            s.ai.intake(
+              input.text,
+              initial.language,
+              initial.practiceId,
+              initial.practiceId
+                ? getQuestions(initial.practiceId, initial.answers, initial.language)
+                : [],
+              s.clock(),
+            ),
           )
         : null;
     const result = await s.db.transaction(async (tx) => {
