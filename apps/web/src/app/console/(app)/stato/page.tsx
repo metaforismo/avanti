@@ -11,7 +11,8 @@ import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 
-type SystemStatusCode = SystemStatus["components"]["database"]["code"];
+type SystemStatusCode =
+  SystemStatus["components"]["database"]["code"] | SystemStatus["components"]["email"]["code"];
 
 const LEVEL: Record<
   SystemStatusLevel,
@@ -50,7 +51,20 @@ const CODES: Record<SystemStatusCode, string> = {
   backlog: "C'è dell'arretrato.",
   recent_errors: "Ci sono stati errori nelle ultime 24 ore.",
   not_supported: "Non disponibile.",
+  email_simulated:
+    "Nessun servizio di invio configurato: gli avvisi restano nel registro tecnico e non arrivano a nessuno.",
+  email_backlog:
+    "Alcuni avvisi aspettano da più di un'ora: il servizio di invio potrebbe essere lento.",
+  email_failed:
+    "Alcuni avvisi non sono partiti dopo 5 tentativi. Controlla la configurazione del servizio di invio.",
 };
+
+const emailSummary = (email: SystemStatus["components"]["email"]) =>
+  email.provider === "console"
+    ? "Solo registro"
+    : email.sent24Hours === null
+      ? null
+      : `${email.sent24Hours} inviati nelle ultime 24 ore`;
 
 export default function SystemStatusPage() {
   const operator = useOperator();
@@ -105,7 +119,7 @@ function StatusView() {
 
 function StatusBody({ data }: { data: SystemStatus }) {
   const overall = LEVEL[data.status];
-  const { database, storage, ai, maintenance, retention } = data.components;
+  const { database, storage, ai, maintenance, retention, email } = data.components;
   const counters = data.counters;
 
   return (
@@ -153,6 +167,12 @@ function StatusBody({ data }: { data: SystemStatus }) {
             code={retention.code}
             extra={lastRun(retention.lastFinishedAt)}
           />
+          <ComponentRow
+            name="Avvisi via email"
+            level={email.status}
+            code={email.code}
+            extra={emailSummary(email)}
+          />
         </ul>
       </section>
 
@@ -183,7 +203,12 @@ function StatusBody({ data }: { data: SystemStatus }) {
             count={counters.recentApiErrors24Hours.count}
           />
           <Counter
-            label="Notifiche in coda"
+            label="Avvisi email non partiti nelle ultime 24 ore"
+            level={email.failed24Hours ? email.status : "ok"}
+            count={email.failed24Hours}
+          />
+          <Counter
+            label="Avvisi email in coda"
             level={counters.notificationsQueued.status}
             count={counters.notificationsQueued.count}
           />
