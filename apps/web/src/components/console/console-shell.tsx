@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   BarChart3,
   CircleHelp,
   Inbox,
@@ -66,6 +67,13 @@ const NAV: NavItem[] = [
     label: "Registro attività",
     icon: ScrollText,
     match: (p) => p.startsWith("/console/registro"),
+    adminOnly: true,
+  },
+  {
+    href: "/console/stato",
+    label: "Stato del sistema",
+    icon: Activity,
+    match: (p) => p.startsWith("/console/stato"),
     adminOnly: true,
   },
   {
