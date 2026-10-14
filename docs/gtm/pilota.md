@@ -78,3 +78,44 @@ Le soglie sono proposte di **decisione**, non promesse di risultato. Se una metr
 Stop ai nuovi inviti; inventario delle pratiche aperte e passaggio al flusso CAF; restituzione autenticata all'admin autorizzato. Export amministrativo JSON contiene risposte, eventi, note interne e riferimenti/hash: **i binari devono essere consegnati separatamente**. Non chiamare questo JSON «backup completo dei documenti». Prova di lettura e conteggio dal CAF, poi cancellazione delle copie Avanti secondo DPA e policy di backup, con registrazione dei retry. Archivio ufficiale CAF e obblighi di conservazione restano distinti. [Runbook deploy/export](../DEPLOY.md), [portabilità/restituzione](../research/data-portability.md).
 
 Per il report pubblico: aggregati che non identifichino persone, niente celle piccole riconoscibili; autorizzazione distinta per nome/logo e citazioni. I report interni pseudonimi restano dati personali. [GDPR artt. 5, 25, 28](https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita).
+
+## Rapporto
+
+L'admin del CAF può esportare il rapporto aggregato con
+`GET /api/reports/pilot?from=2027-01-01&to=2027-03-31`, aggiungendo
+`office=<id>` per una sede e `format=csv` o `format=pdf` per foglio di calcolo o
+stampa A4. JSON è il formato predefinito. Date incluse in Europe/Rome, massimo
+un anno; ogni export entra nel registro attività. Nessun nominativo, contatto,
+risposta o documento cittadino. [Contratto, esempio e metodo](../API.md#rapporto-del-pilota).
+
+Per sede e totale sono dichiarati avvii, loro prime consegne, conversione,
+completezza alla consegna, integrazioni, tempi con campione, lingue e tipi.
+Abbandoni restano fra gli avvii; reinvii non aggiungono consegne. Il rapporto
+include tutti i tipi di pratica e non filtra la sola coorte ISEE ordinario:
+la distribuzione per tipo serve a dichiarare questa differenza dal protocollo.
+Inviti mai aperti, percorso di controllo, assistenza fuori app e dati cancellati
+non sono ricostruiti dal rapporto. Il totale riguarda gli sportelli selezionati.
+
+La baseline è il tempo manuale dichiarato nelle impostazioni correnti del CAF.
+La soglia ≥70% è valutabile con almeno **50 avvii**, periodo concluso e dati
+pubblicabili, senza arrotondamenti. Il minimo operativo riprende l'obiettivo di
+circa 50 casi per percorso; non è un calcolo di potenza statistica. Sotto il
+minimo o con dati oscurati, esito «dati insufficienti», non «fallimento».
+
+Per ≥5 minuti netti e +15 punti al primo appuntamento, il rapporto dichiara
+«dati insufficienti»: creazione–invio e revisione–pronto includono attese, mentre
+completezza automatica al primo invio non equivale alla verifica dell'operatore.
+Non sono registrati campione/periodo della baseline, timer attivi, handoff e
+baseline di completezza. Allegare al confronto il registro del protocollo con
+pause, assistenza, copia nel gestionale e giudizio umano; il rapporto non importa
+né inventa queste misure. Anche una baseline presente non basta a dimostrare
+risparmio netto. Le tre soglie e il motivo dell'esito compaiono nei tre formati.
+
+Celle positive sotto 5 mostrate come **<5**; zero resta zero. Quote, medie,
+campioni e totali che permetterebbero di ricostruire celle piccole sono oscurati
+(`null` in JSON, «Non misurato / oscurato» in CSV/PDF). Può quindi mancare anche
+un totale numeroso. Il metodo è incluso nel rapporto in parole semplici;
+conservare questa spiegazione quando lo si condivide. Rapporti sovrapposti non
+vanno usati per aggirare la soppressione; la protezione non equivale a una prova
+formale di anonimato. Nome/logo del CAF e risultati pubblici richiedono comunque
+l'autorizzazione distinta prevista dal pilota.

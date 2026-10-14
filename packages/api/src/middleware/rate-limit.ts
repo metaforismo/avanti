@@ -33,6 +33,7 @@ export const RATE_POLICIES = {
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
+  if (method === "GET" && path === "/api/reports/pilot") return RATE_POLICIES.export;
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
   if (method !== "POST") return null;

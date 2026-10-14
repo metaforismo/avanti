@@ -703,6 +703,7 @@ export const AuditAction = z.enum([
   "organization.bootstrapped",
   "organization.exported",
   "audit.exported",
+  "pilot_report.exported",
   "activity.recorded",
 ]);
 export type AuditAction = z.infer<typeof AuditAction>;
@@ -721,6 +722,9 @@ export const AuditDetails = z.object({
   rows: z.number().int().nonnegative().optional(),
   rateLimited: z.boolean().optional(),
   cli: z.boolean().optional(),
+  reportJson: z.boolean().optional(),
+  reportCsv: z.boolean().optional(),
+  reportPdf: z.boolean().optional(),
 });
 export type AuditDetails = z.infer<typeof AuditDetails>;
 
@@ -908,3 +912,5 @@ export const ApiError = z.object({
   }),
 });
 export type ApiError = z.infer<typeof ApiError>;
+
+export * from "./pilot-report";

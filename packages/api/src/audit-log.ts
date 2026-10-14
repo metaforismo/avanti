@@ -35,6 +35,7 @@ const labels: Partial<Record<AuditAction, string>> = {
   "office.updated": "Sportello aggiornato",
   "organization.bootstrapped": "Organizzazione e primo amministratore creati",
   "organization.exported": "Dati dell’organizzazione esportati",
+  "pilot_report.exported": "Rapporto del pilota esportato",
   "audit.exported": "Registro attività esportato in CSV",
   "activity.recorded": "Attività registrata",
 };
@@ -149,7 +150,7 @@ function eventFilter(org: string, query: AuditQuery) {
   return and(...filters);
 }
 
-function csvCell(value: string) {
+export function csvCell(value: string) {
   // Strip controls before checking the first non-space character; quoting alone does not stop formulas.
   const clean = value.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ");
   const safe = /^[\s\uFEFF]*[=+\-@]/u.test(clean) ? `'${clean}` : clean;

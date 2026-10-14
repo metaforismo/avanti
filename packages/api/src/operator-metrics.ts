@@ -134,7 +134,7 @@ export function calculateMetrics(
   };
 }
 
-function romeMidnight(date: string): Date {
+export function romeMidnight(date: string): Date {
   const utc = Date.parse(`${date}T00:00:00Z`);
   const formatter = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Rome",
