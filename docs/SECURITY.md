@@ -400,3 +400,59 @@ Il pilota gennaio 2027 non è un'esenzione GDPR né una prova di classificazione
 Formare gli operatori sulle analisi incerte, disponibilità beta e correzione degli errori;
 mostrare al cittadino che interagisce con un sistema automatico e come raggiungere il
 CAF. Le scadenze e la qualificazione vanno ricontrollate prima del rilascio reale.
+
+## Verifica in due passaggi degli operatori
+
+TOTP secondo [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238), HMAC-SHA-1,
+sei cifre, 30 secondi, finestra ±1 passo, segreti casuali da 160 bit.
+La suite controlla tutti i vettori SHA-1 ufficiali dell'Appendice B a otto cifre e
+la riduzione a sei cifre. Il passo accettato deve superare quello già consumato;
+lock e transazione rendono monouso TOTP e recupero anche tra sessioni concorrenti.
+La conferma iniziale consuma il codice. Non si accettano passi precedenti dopo un
+codice futuro valido: attendere il passo successivo se l'orologio del telefono è avanti.
+
+`MFA_ENCRYPTION_KEY` è una chiave server di 32 byte casuali rappresentati come 64
+cifre hex, obbligatoria e validata in produzione, distinta dai segreti cron/rate limit.
+Nessuna dipendenza nuova: `node:crypto` per TOTP e AES-256-GCM, IV casuale da 96 bit,
+tag da 128 bit e AAD con versione/ID operatore. Copiare una riga cifrata su un altro
+operatore non permette di usarla. In locale, senza variabile, la chiave viene
+creata atomicamente in `.data/mfa-encryption.key` (0600, directory 0700); sopravvive
+ai riavvii. Conservare questa chiave insieme al DB locale per continuare a usare MFA.
+Il seed demo resta senza MFA. Nessuna chiave viene scaricata o inviata a un provider.
+
+I dieci codici di recupero hanno ciascuno 128 bit casuali: il DB conserva solo
+SHA-256 con dominio separato; l'entropia rende inutile un salt per resistere alla
+ricerca offline. Sono visualizzati soltanto nella risposta di conferma/rigenerazione.
+Il secondo fattore consente di accedere anche con telefono perso; un codice consumato
+viene rimosso. Disattivazione e rigenerazione richiedono password attuale e un TOTP
+nuovo o un codice di recupero. L'avvio della configurazione richiede la password;
+non basta rubare una sessione di Account per impostare un nuovo segreto.
+
+La sessione dopo password dura cinque minuti e non si rinnova. Può usare solo i
+passi indispensabili del login, senza API fascicoli, amministrazione, export o API
+pubbliche. La verifica ruota il cookie e distrugge la sessione in attesa. Attivazione,
+disattivazione e reset revocano tutte le sessioni precedenti. MFA obbligatoria blocca
+anche le sessioni già esistenti senza configurazione; il cambio password obbligatorio
+non aggira il secondo fattore. Il comando CLI di export applica la stessa verifica.
+
+Rate limit persistente: dieci POST MFA/minuto per operatore/email, cento per IP fidato,
+HMAC dei bucket, quota condivisa tra sessioni e operazioni. Il limite password resta
+separato. Un tentativo fallito produce al massimo un evento MFA per finestra/account,
+anche sotto flood. Errori uniformi in italiano, senza indicare quale credenziale è
+errata; il login password non rivela l'esistenza dell'account. Nessun segreto, codice,
+URI, email o password nei log applicativi o negli eventi MFA.
+
+Reset riservato agli admin del CAF, impossibile sul proprio account: elimina segreto,
+stato replay e recupero, revoca sessioni, registra attore e soggetto. Prima di un reset
+l'organizzazione deve identificare l'operatore mediante il proprio canale interno;
+se l'obbligo è attivo, il prossimo accesso deve configurare di nuovo MFA.
+
+Operazioni: sincronizzare il clock server; tenere la chiave separata dagli export e
+in un secret manager; includerla nelle procedure di ripristino protette. Cambiare
+soltanto la variabile non ricifra i segreti esistenti: la rotazione richiede un piano
+controllato di ricifratura oppure reset e nuova configurazione. Perdita della chiave
+rende i segreti non decifrabili; non usare fallback di produzione.
+TOTP non resiste al phishing in tempo reale; resta necessaria la protezione della
+sessione. È una misura nel quadro di sicurezza richiesto dall'
+[art. 32 GDPR](https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita), che richiede misure
+adeguate al rischio: questa implementazione da sola non certifica la conformità.

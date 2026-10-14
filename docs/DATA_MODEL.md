@@ -138,3 +138,26 @@ Bootstrap registra `organization.bootstrapped`, export `organization.exported`,
 senza credenziali o dati personali nei metadata. L’export versione 1 include dati
 CAF/pratiche, risposte, messaggi, revisioni, eventi e documenti con SHA-256, senza
 capability, sessioni, hash password, chiavi storage o binari. Runbook in DEPLOY.md.
+
+## MFA operatori (migrazione 0011)
+
+- `operators.mfa_secret`: segreto base32 cifrato AES-256-GCM (`v1:iv:tag:ciphertext`),
+  associato crittograficamente all'ID operatore; null quando MFA è disattivata.
+- `operators.mfa_enabled_at`: istante di conferma, null per account senza MFA.
+- `operators.mfa_last_used_step`: bigint, massimo passo TOTP consumato; verifica
+  atomica sotto lock operatore, condivisa con conferma, API e CLI. I passi uguali o
+  precedenti sono respinti anche se il clock torna indietro.
+- `operators.mfa_recovery_hashes`: JSONB con soli hash SHA-256 con dominio separato
+  dei codici casuali da 128 bit, default `[]`; il consumo rimuove un hash sotto lock.
+- `sessions.state`: `authenticated` (default per le sessioni preesistenti),
+  `mfa_pending` (sola password) oppure `mfa_setup` (obbligo da configurare), con CHECK.
+- `sessions.mfa_setup_secret`, `mfa_setup_expires_at`: configurazione cifrata
+  temporanea legata alla sessione iniziatrice, al massimo cinque minuti. La conferma
+  revoca tutte le sessioni precedenti: il segreto provvisorio viene eliminato.
+- `settings.mfa_required`: boolean NOT NULL default false; nessuna modifica al seed.
+
+TOTP e codici di recupero non entrano nel modello pubblico dell'operatore, negli
+export o nei metadati degli eventi. I nuovi eventi MFA usano solo tipo, timestamp,
+organizzazione, attore/soggetto e l'eventuale boolean `rateLimited`/`cli`.
+La manutenzione delle sessioni scadute elimina anche configurazioni provvisorie;
+non serve una nuova tabella o un job separato.

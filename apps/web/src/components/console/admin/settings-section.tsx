@@ -5,6 +5,7 @@ import type { OrganizationSettings } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { focusFirstError } from "@/lib/validation";
 
@@ -48,6 +49,8 @@ function SettingsForm({
   const [errors, setErrors] = useState<Partial<Record<Key, string>>>({});
   const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
   const [formError, setFormError] = useState<string | null>(null);
+  // Requiring it before having it would lock the admin out of the console until set up.
+  const canRequireMfa = useOperator().mfaEnabled;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,6 +73,8 @@ function SettingsForm({
     }
     values.notifyCitizenReady = data.get("notifyCitizenReady") === "on";
     values.notifyOperatorDigest = data.get("notifyOperatorDigest") === "on";
+    // A disabled checkbox is not submitted: leave the policy untouched rather than turning it off.
+    if (canRequireMfa) values.mfaRequired = data.get("mfaRequired") === "on";
     setErrors(next);
     if (focusFirstError(event.currentTarget, next)) return;
     setState("saving");
@@ -155,6 +160,20 @@ function SettingsForm({
           hint="Quante pratiche aspettano la revisione, senza dati dei cittadini."
         />
       </fieldset>
+      <fieldset className="grid gap-3">
+        <legend className="mb-2 text-sm font-semibold">Sicurezza degli accessi</legend>
+        <Toggle
+          name="mfaRequired"
+          defaultChecked={initial.mfaRequired}
+          disabled={!canRequireMfa}
+          label="Verifica in due passaggi obbligatoria per tutti"
+          hint={
+            canRequireMfa
+              ? "Al prossimo accesso chi non l'ha ancora attivata dovrà farlo prima di entrare. Chi perde il telefono lo sblocchi tu da Operatori."
+              : "Prima attivala per te dalla pagina Account: poi potrai richiederla a tutti."
+          }
+        />
+      </fieldset>
       {formError && (
         <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
           {formError}
@@ -177,19 +196,22 @@ function Toggle({
   defaultChecked,
   label,
   hint,
+  disabled = false,
 }: {
   name: string;
   defaultChecked: boolean;
   label: string;
   hint: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-md p-3 ring-1 ring-line ring-inset has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp">
+    <label className="flex cursor-pointer items-start gap-3 rounded-md p-3 ring-1 ring-line ring-inset has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp">
       <input
         type="checkbox"
         name={name}
         defaultChecked={defaultChecked}
-        className="mt-0.5 size-4.5 shrink-0 accent-stamp"
+        disabled={disabled}
+        className="mt-0.5 size-4.5 shrink-0 accent-stamp disabled:opacity-50"
       />
       <span>
         <span className="block font-semibold">{label}</span>

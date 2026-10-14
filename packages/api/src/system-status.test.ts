@@ -1,3 +1,4 @@
+import { mfaCipher } from "./mfa";
 import { defaultNotifications, seal } from "./notification-config";
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { SystemStatus, ApiError } from "@avanti/contracts";
@@ -112,6 +113,7 @@ beforeEach(async () => {
     cronSecret: "secret-cron",
     errorLogger: vi.fn(),
     notifications: defaultNotifications(),
+    mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
   };
   app = createApp(services);
 });

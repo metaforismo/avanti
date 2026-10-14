@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ClipboardCheck,
   Activity,
   BarChart3,
   CircleHelp,
@@ -17,7 +18,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Route } from "next";
-import type { Operator } from "@avanti/contracts";
+import type { LoginResponse, Operator } from "@avanti/contracts";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -26,6 +27,8 @@ import { OperatorProvider } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 import { PasswordForm } from "./admin/password-form";
+import { MfaSetupFlow } from "./mfa/setup-flow";
+import { MfaVerifyForm } from "./mfa/verify-form";
 import { NewCaseDialog } from "./new-case-dialog";
 
 type NavItem = {
@@ -63,6 +66,13 @@ const NAV: NavItem[] = [
     adminOnly: true,
   },
   {
+    href: "/console/rapporto",
+    label: "Rapporto del pilota",
+    icon: ClipboardCheck,
+    match: (p) => p.startsWith("/console/rapporto"),
+    adminOnly: true,
+  },
+  {
     href: "/console/registro",
     label: "Registro attività",
     icon: ScrollText,
@@ -85,7 +95,8 @@ const NAV: NavItem[] = [
 ];
 
 export function ConsoleShell({ children }: { children: ReactNode }) {
-  const me = useResource<Operator>("/api/auth/me");
+  const me = useResource<LoginResponse>("/api/auth/me");
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const pathname = usePathname();
@@ -131,7 +142,28 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const operator = me.data!;
+  const account = me.data!;
+
+  // A reload between password and code keeps the half-open session: finish it here.
+  if ("mfaRequired" in account) {
+    return (
+      <Gate
+        title="Verifica in due passaggi"
+        intro="Apri l'app di autenticazione sul telefono e scrivi il codice di Avanti."
+      >
+        <MfaVerifyForm
+          onVerified={me.setData}
+          onCancel={() => {
+            void apiFetch("/api/auth/logout", { method: "POST" })
+              .catch(() => undefined)
+              .finally(() => router.replace("/console/accedi"));
+          }}
+        />
+      </Gate>
+    );
+  }
+
+  const operator = account;
 
   if (operator.mustChangePassword) {
     return (
@@ -147,6 +179,18 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
           <PasswordForm submitLabel="Salva ed entra" onChanged={me.setData} />
         </main>
       </OperatorProvider>
+    );
+  }
+
+  if (operator.mustSetupMfa) {
+    return (
+      <Gate
+        title="Attiva la verifica in due passaggi"
+        intro={`${operator.organization.name} la richiede per entrare nella console: oltre alla password servirà un codice dall'app sul tuo telefono.`}
+        wide
+      >
+        <MfaSetupFlow doneLabel="Entra nella console" onDone={() => void me.reload()} />
+      </Gate>
     );
   }
 
@@ -280,5 +324,31 @@ function OperatorCard({ operator }: { operator: Operator }) {
         <LogOut className="rtl-flip size-4" />
       </Button>
     </div>
+  );
+}
+
+function Gate({
+  title,
+  intro,
+  wide = false,
+  children,
+}: {
+  title: string;
+  intro: string;
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <main
+      className={cn(
+        "mx-auto grid min-h-dvh content-center px-4 py-12",
+        wide ? "max-w-2xl" : "max-w-md",
+      )}
+    >
+      <Logo />
+      <h1 className="mt-8 font-display text-3xl font-bold tracking-[-0.025em]">{title}</h1>
+      <p className="mt-2 mb-6 text-ink-2">{intro}</p>
+      {children}
+    </main>
   );
 }

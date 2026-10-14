@@ -551,6 +551,7 @@ describe("organization administration", () => {
       await (await request("/settings", "GET", undefined, admin)).json(),
     );
     expect(current).toEqual({
+      mfaRequired: false,
       baselineMinutesPerCase: null,
       linkDays: 60,
       retentionDays: 180,
@@ -575,6 +576,7 @@ describe("organization administration", () => {
     );
     expect(edited.status).toBe(200);
     expect(OrganizationSettings.parse(await edited.json())).toEqual({
+      mfaRequired: false,
       baselineMinutesPerCase: 30,
       linkDays: 7,
       retentionDays: 90,

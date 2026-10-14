@@ -1,3 +1,4 @@
+import { consumeMfaCode, mfaCipher, recordMfaFailure } from "./mfa";
 import { createHmac } from "node:crypto";
 import { eq, getTableColumns, sql } from "drizzle-orm";
 import {
@@ -57,7 +58,7 @@ export async function exportOrganization(
       .select()
       .from(operators)
       .where(eq(operators.email, input.login.email))
-      .for("share");
+      .for("update");
     if (
       !admin ||
       !admin.active ||
@@ -76,6 +77,39 @@ export async function exportOrganization(
         { cli: true },
       );
       return null;
+    }
+    const [policy] = await tx
+      .select()
+      .from(settings)
+      .where(eq(settings.organizationId, admin.organizationId));
+    if (admin.mfaEnabledAt || policy?.mfaRequired) {
+      const patch =
+        admin.mfaEnabledAt && input.login.code
+          ? await consumeMfaCode(
+              admin,
+              input.login.code,
+              now,
+              mfaCipher({
+                key: process.env.MFA_ENCRYPTION_KEY,
+                production: process.env.NODE_ENV === "production",
+              }),
+            )
+          : null;
+      if (!patch) {
+        await recordMfaFailure(tx, admin, now);
+        return null;
+      }
+      await tx.update(operators).set(patch).where(eq(operators.id, admin.id));
+      if ("mfaRecoveryHashes" in patch)
+        await recordActivity(
+          tx,
+          admin.organizationId,
+          admin.id,
+          "auth.mfa_recovery_used",
+          now,
+          null,
+          { cli: true },
+        );
     }
     await recordActivity(tx, admin.organizationId, admin.id, "auth.login_succeeded", now, null, {
       cli: true,

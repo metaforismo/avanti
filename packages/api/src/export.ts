@@ -79,9 +79,8 @@ function printableText(text: string, fonts: Fonts): string {
     .join("");
 }
 
-async function loadFonts(pdf: PDFDocument, dossier: CaseDossier): Promise<Fonts> {
+export async function loadFonts(pdf: PDFDocument, content: string): Promise<Fonts> {
   pdf.registerFontkit(fontkit);
-  const content = JSON.stringify(dossier);
   const fonts: Partial<Record<FontFamily, PDFFont>> = {};
   const families: FontFamily[] = ["latin"];
   if (/\p{Script=Arabic}/u.test(content)) families.push("arabic");
@@ -99,7 +98,7 @@ async function loadFonts(pdf: PDFDocument, dossier: CaseDossier): Promise<Fonts>
   return { ...fonts, latin: fonts.latin };
 }
 
-class DossierPrinter {
+export class UnicodePrinter {
   private page: PDFPage;
   private y = 0;
   private readonly width = PageSizes.A4[0] - margin * 2;
@@ -109,7 +108,7 @@ class DossierPrinter {
   constructor(
     private readonly pdf: PDFDocument,
     private readonly fonts: Fonts,
-    private readonly dossier: CaseDossier,
+    private readonly document: { header: string; subtitle: string; footer: string },
   ) {
     this.page = this.addPage();
   }
@@ -136,16 +135,13 @@ class DossierPrinter {
   private addPage(): PDFPage {
     this.page = this.pdf.addPage(PageSizes.A4);
     const top = this.page.getHeight() - margin;
-    const header = printableText(
-      `Avanti - ${this.dossier.office?.name ?? "Fascicolo operatore"}`,
-      this.fonts,
-    );
+    const header = printableText(this.document.header, this.fonts);
     const headerSize = Math.min(
       9,
       (9 * this.width) / Math.max(this.width, this.measure(header, 9)),
     );
     this.draw(header, margin, top, headerSize, headingColor);
-    this.draw(printableText(this.dossier.reference, this.fonts), margin, top - 17, 9, mutedColor);
+    this.draw(printableText(this.document.subtitle, this.fonts), margin, top - 17, 9, mutedColor);
     this.page.drawLine({
       start: { x: margin, y: top - 27 },
       end: { x: this.page.getWidth() - margin, y: top - 27 },
@@ -154,6 +150,10 @@ class DossierPrinter {
     });
     this.y = top - 49;
     return this.page;
+  }
+
+  newPage(): void {
+    this.addPage();
   }
 
   private space(height: number): void {
@@ -214,7 +214,7 @@ class DossierPrinter {
   finish(): void {
     const pages = this.pdf.getPages();
     for (const [position, page] of pages.entries()) {
-      page.drawText("Fascicolo preparatorio - verifica dell'operatore", {
+      page.drawText(this.document.footer, {
         x: margin,
         y: 27,
         size: 7,
@@ -238,7 +238,11 @@ export async function exportPdf(dossier: CaseDossier): Promise<Uint8Array> {
   pdf.setTitle(`${dossier.reference} - ${dossier.headline}`);
   pdf.setAuthor("Avanti");
   pdf.setProducer("Avanti / pdf-lib");
-  const printer = new DossierPrinter(pdf, await loadFonts(pdf, dossier), dossier);
+  const printer = new UnicodePrinter(pdf, await loadFonts(pdf, JSON.stringify(dossier)), {
+    header: `Avanti - ${dossier.office?.name ?? "Fascicolo operatore"}`,
+    subtitle: dossier.reference,
+    footer: "Fascicolo preparatorio - verifica dell'operatore",
+  });
   printer.paragraph(dossier.headline, 19, headingColor, 9);
   printer.paragraph(
     "Fascicolo preparatorio generato con supporto automatico. Non costituisce una DSU e non è trasmesso a INPS o ad altri enti.",

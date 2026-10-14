@@ -11,6 +11,7 @@ const valid = () => ({
   BLOB_READ_WRITE_TOKEN: "do-not-print-blob",
   PUBLIC_APP_URL: "https://avanti.example",
   RATE_LIMIT_SECRET: randomBytes(32).toString("hex"),
+  MFA_ENCRYPTION_KEY: randomBytes(32).toString("hex"),
   CRON_SECRET: randomBytes(32).toString("hex"),
   NOTIFY_ENCRYPTION_KEY: randomBytes(32).toString("hex"),
 });
@@ -48,6 +49,7 @@ it("checks production without logging values or making network requests", () => 
     env.BLOB_READ_WRITE_TOKEN,
     env.CRON_SECRET,
     env.RATE_LIMIT_SECRET,
+    env.MFA_ENCRYPTION_KEY,
     env.NOTIFY_ENCRYPTION_KEY,
   ])
     expect(JSON.stringify(result)).not.toContain(secret);
@@ -60,6 +62,7 @@ it("reports every missing obligation, permits local fallback, and does not requi
     "PUBLIC_APP_URL",
     "RATE_LIMIT_SECRET",
     "CRON_SECRET",
+    "MFA_ENCRYPTION_KEY",
     "NOTIFY_ENCRYPTION_KEY",
   ])
     expect(errors.some((issue) => issue.message.includes(key))).toBe(true);

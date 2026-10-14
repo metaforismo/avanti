@@ -261,6 +261,7 @@ segreti: gli script DB non leggono `apps/web/.env.local`.
 | `DATABASE_URL`                 | Sì                        | URL Postgres UE dedicata con TLS, diretta/session; obbligatoria, credenziali DB incluse                               |
 | `BLOB_READ_WRITE_TOKEN`        | Sì                        | Token dello store **privato** UE di staging; obbligatorio                                                             |
 | `RATE_LIMIT_SECRET`            | Sì                        | Segreto casuale stabile distinto per ambiente, almeno 32 byte; obbligatorio                                           |
+| `MFA_ENCRYPTION_KEY`           | Sì                        | Chiave AES-256-GCM: 32 byte casuali in 64 cifre hex; distinta dagli altri segreti, mai pubblica                       |
 | `CRON_SECRET`                  | Sì                        | Altro segreto casuale di almeno 32 byte; obbligatorio per eseguire manutenzione                                       |
 | `PUBLIC_APP_URL`               | No                        | Origine HTTPS canonica di staging, senza path o slash finale; obbligatoria. Usata per link, metadata e CSRF           |
 | `TRUST_PROXY`                  | No                        | `1` dietro Vercel; il runtime riconosce anche `VERCEL=1` e usa `x-real-ip` fidato                                     |
@@ -278,9 +279,11 @@ segreti: gli script DB non leggono `apps/web/.env.local`.
 `AVANTI_TEST_DATABASE_URL` è un segreto **solo della suite di parità**, non una variabile
 di deploy; usare un database vuoto e sacrificabile il cui nome finisca in `_test`.
 Non servono segreti JWT/session signing: le sessioni sono token opachi hashati nel DB.
-Generare i due segreti indipendenti con un password manager o `openssl rand -hex 32`,
+Generare i tre segreti indipendenti con un password manager o `openssl rand -hex 32`,
 senza salvarne l'output nei log di CI. Rotazione di `RATE_LIMIT_SECRET` azzera di fatto
 le quote correnti; `CRON_SECRET` deve cambiare anche nello scheduler esterno se presente.
+`MFA_ENCRYPTION_KEY` deve restare disponibile nel ripristino: non cambiarla senza
+ricifrare i segreti TOTP o pianificare reset e nuova configurazione (vedi SECURITY.md).
 
 ## 5. Migrare e predisporre lo sportello
 
@@ -525,7 +528,7 @@ sono azioni distinte; misurare gli effetti sul cron e sui worker ancora attivi.
 
 ## 10. Esportazione e uscita dal pilota
 
-Con DB migrato, credenziali DB TLS e `RATE_LIMIT_SECRET` caricati dal gestore segreti,
+Con DB migrato, credenziali DB TLS, `RATE_LIMIT_SECRET` e `MFA_ENCRYPTION_KEY` caricati dal gestore segreti,
 admin attivo del CAF che abbia completato il cambio password e terminale privato:
 
 ```sh
@@ -545,7 +548,9 @@ fuori Git: formato `avanti.organization`, versione 1, timestamp, organizzazione,
 sportelli, impostazioni, operatori senza credenziali, pratiche con risposte strutturate,
 contatti/note, messaggi originali, revisioni ed eventi, inclusi audit di cancellazione.
 Lo snapshot transazionale è coerente. Documenti: elenco, metadati, analisi e **SHA-256**;
-**nessun binario**, chiave storage, hash capability, sessione o password.
+**nessun binario**, chiave storage, hash capability, sessione, password o credenziale MFA.
+L’export richiede anche il codice TOTP/recupero quando l’admin ha MFA attiva; senza
+configurazione, un obbligo MFA impedisce l’export. Tutti i prompt sensibili sono nascosti.
 
 L’audit `organization.exported` registra la preparazione e i conteggi, non la
 consegna; un errore di scrittura non stampa il dataset. Verificare destinatario,

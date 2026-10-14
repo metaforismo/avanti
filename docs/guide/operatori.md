@@ -169,3 +169,37 @@ compilalo insieme a lui, oppure lavora come sempre: Avanti non è obbligatorio.
 
 **Un documento è finito sulla voce sbagliata.** Il cittadino può spostarlo; se serve, chiedigli
 un'integrazione indicando la voce giusta.
+
+## Verifica in due passaggi
+
+Da **Account**, avvia la configurazione inserendo la password attuale. Aggiungi
+Avanti alla tua app di autenticazione usando il QR ottenuto dall'URI oppure il
+segreto per inserimento manuale, poi inserisci il codice di sei cifre. La configurazione
+scade dopo cinque minuti: se necessario avviala nuovamente. Non condividere QR,
+segreto o codici e non inserirli in chat, ticket o screenshot.
+
+Dopo la conferma vengono mostrati **dieci codici di recupero, una sola volta**.
+Conservali in un password manager o in una copia cartacea custodita. Ognuno vale
+per un solo uso. La conferma termina le sessioni precedenti; sul dispositivo attuale
+resti autenticato. Attendi che l'app mostri il codice successivo prima di un nuovo
+login: un codice già usato non può essere riutilizzato.
+
+Ai login successivi inserisci email e password, poi il codice dell'app oppure un
+codice di recupero. Hai cinque minuti per completare il secondo passo. Dopo troppi
+tentativi, attendi il tempo indicato. Se il codice non funziona, verifica che il
+telefono usi data e ora automatiche e attendi il codice seguente.
+
+Da Account puoi rigenerare i codici con password e secondo fattore: tutti i precedenti
+smettono di funzionare. Puoi anche disattivare la verifica con le stesse credenziali,
+se il CAF non la richiede; dovrai accedere di nuovo sugli altri dispositivi.
+
+L'amministratore può rendere obbligatoria la verifica nelle **Impostazioni**:
+chi non l'ha attivata deve configurarla prima di aprire la console. Se occorre anche
+cambiare la password temporanea, quel passaggio viene prima. La demo resta accessibile
+con le credenziali abituali e senza secondo fattore.
+
+Se perdi telefono e codici di recupero, contatta l'amministratore del tuo CAF:
+dopo aver verificato la tua identità può azzerare la verifica dalla gestione operatori.
+L'operazione termina tutte le tue sessioni e viene registrata. Con obbligo attivo,
+al login successivo imposta un nuovo telefono. Un amministratore non può azzerare
+la propria verifica: serve un altro amministratore abilitato.

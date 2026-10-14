@@ -1,3 +1,4 @@
+import { mfaCipher } from "./mfa";
 import { randomBytes } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { eq, sql } from "drizzle-orm";
@@ -86,6 +87,7 @@ beforeEach(async () => {
     publicUrl: origin,
     production: false,
     notifications: options,
+    mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
     cronSecret: "test-cron",
     errorLogger: (record) => logs.push(record),
     logger: (record) => logs.push(record),

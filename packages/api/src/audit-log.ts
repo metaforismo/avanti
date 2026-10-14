@@ -24,6 +24,12 @@ const labels: Partial<Record<AuditAction, string>> = {
   "auth.login_succeeded": "Accesso operatore riuscito",
   "auth.login_failed": "Tentativo di accesso operatore fallito",
   "auth.password_changed": "Password modificata dall’operatore",
+  "auth.mfa_enabled": "Verifica in due passaggi attivata",
+  "auth.mfa_disabled": "Verifica in due passaggi disattivata",
+  "auth.mfa_failed": "Verifica in due passaggi fallita",
+  "auth.mfa_recovery_used": "Codice di recupero utilizzato",
+  "auth.mfa_recovery_regenerated": "Codici di recupero rigenerati",
+  "operator.mfa_reset": "Verifica in due passaggi azzerata dall’amministratore",
   "auth.logged_out": "Sessione operatore terminata",
   "operator.created": "Account operatore creato",
   "operator.updated": "Account operatore aggiornato",
@@ -35,6 +41,7 @@ const labels: Partial<Record<AuditAction, string>> = {
   "office.updated": "Sportello aggiornato",
   "organization.bootstrapped": "Organizzazione e primo amministratore creati",
   "organization.exported": "Dati dell’organizzazione esportati",
+  "pilot_report.exported": "Rapporto del pilota esportato",
   "audit.exported": "Registro attività esportato in CSV",
   "activity.recorded": "Attività registrata",
 };
@@ -149,7 +156,7 @@ function eventFilter(org: string, query: AuditQuery) {
   return and(...filters);
 }
 
-function csvCell(value: string) {
+export function csvCell(value: string) {
   // Strip controls before checking the first non-space character; quoting alone does not stop formulas.
   const clean = value.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ");
   const safe = /^[\s\uFEFF]*[=+\-@]/u.test(clean) ? `'${clean}` : clean;

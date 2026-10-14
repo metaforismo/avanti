@@ -644,6 +644,7 @@ describe("authentication and tenant isolation", () => {
       clock: () => new Date(instant),
       publicUrl: origin,
       production: true,
+      mfaEncryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       rateLimitSecret: "test-only-rate-secret",
       clientAddress: () => "127.0.0.1",
     });
@@ -1472,6 +1473,7 @@ describe("second backend review", () => {
       db,
       storage: new MemoryStorage(),
       production: true,
+      mfaEncryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       publicUrl: origin,
       rateLimitSecret: "test",
     };
