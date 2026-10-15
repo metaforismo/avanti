@@ -26,7 +26,8 @@ volta per bundle e di nuovo a ogni hot reload, quindi il database è un singleto
 (`processSingleton` in `packages/api/src/runtime.ts`): PGlite ammette una sola istanza aperta
 per cartella e due aperture concorrenti corrompono `.data/pglite`.
 
-Lo stesso getter globale condivide anche un solo pool postgres-js (`max: 5`) e
+Lo stesso getter globale condivide anche un solo pool postgres-js (`max: 5` di default,
+configurabile con `DATABASE_POOL_MAX`) e
 serializza gli avvii concorrenti. Un fallimento dell’inizializzazione permette un nuovo
 tentativo; un errore di richiesta non riapre il DB. `closeRuntimeDatabase()` è una
 chiusura esplicita, idempotente e definitiva del runtime: attende un avvio pendente,
@@ -130,3 +131,6 @@ Il collettivo «vivo con i miei genitori» propone madre e padre conviventi, da
 confermare nell’intervista. Non identifica persone, titolarità dei conti o il nucleo legale; i
 figli senza quantità restano da completare. L’assenza di un fatto estratto non
 significa una risposta negativa.
+
+Budget SQL, modalità dei pooler e prove su Postgres reale sono documentati in
+[load-postgres.md](verification/load-postgres.md).
