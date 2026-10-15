@@ -341,6 +341,7 @@ export function DossierView({ caseId }: { caseId: string }) {
         dossier={data}
         onClose={() => setViewing(null)}
         onNavigate={setViewing}
+        actions={actions}
       />
       <Dialog
         open={confirmClose}

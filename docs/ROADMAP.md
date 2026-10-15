@@ -1,6 +1,6 @@
 # Stato e roadmap
 
-Aggiornato al 14 ottobre 2026. Obiettivo: 2–3 CAF pilota in uso reale durante il picco ISEE di
+Aggiornato al 15 ottobre 2026. Obiettivo: 2–3 CAF pilota in uso reale durante il picco ISEE di
 gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 
 ## Cosa c'è
@@ -38,7 +38,7 @@ gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 - Cancellazione definitiva su richiesta dell'interessato e pulizia automatica a fine
   conservazione.
 - Registro attività con export CSV, stato del sistema, avvisi via email (facoltativi), rapporto
-  del pilota e verifica in due passaggi (anche obbligatoria).
+  del pilota, verifica in due passaggi (anche obbligatoria), risposte rapide e promemoria.
 
 **Pratiche**: ISEE ordinario completo; assegno unico, 730 e permesso di soggiorno in beta; le
 altre elencate come "in arrivo" (vedi `docs/research/`).
@@ -54,6 +54,21 @@ nelle PR.
   Hobby con manutenzione giornaliera).
 - Decisioni commerciali del fondatore in `docs/gtm/README.md` (sedi, budget pilota, soglie,
   prezzo da testare, promesse in landing).
+
+## Fatto di recente (15 ottobre)
+
+- Prestazioni misurate prima di toccare: aprire una pratica passa da 842 a 103 ms, le schermate
+  già viste si aprono subito, la coda carica le pratiche più vecchie prima di arrivare in fondo e
+  scorre leggera anche con 650 righe; font della landing e della pagina dello sportello dimezzati;
+  API più rapida all'avvio (da 939 a 656 ms) e verificata con 5.000 pratiche (`pnpm db:seed:volume`,
+  `pnpm bench:api`).
+- Verifica delle voci direttamente dal visore dei documenti, anche da tastiera (V, R, frecce): dopo
+  ogni verifica si passa al prossimo documento da controllare.
+- Risposte rapide per le richieste d'integrazione e promemoria automatici al cittadino che non ha
+  ancora risposto (facoltativi, nella sua lingua, al massimo due).
+- Revisione di sicurezza indipendente (`docs/verification/review-2026-10.md`): nessun problema
+  critico o alto; corretta la revoca durante richieste in corso e la scadenza del link salvato sul
+  dispositivo del cittadino. Da decidere: conservazione delle candidature pilota.
 
 ## Fatto di recente (14 ottobre)
 
