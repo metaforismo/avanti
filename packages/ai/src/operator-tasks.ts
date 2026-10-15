@@ -65,8 +65,10 @@ const issueOutput = z.object({
 });
 const version = `${CONSTITUTION_VERSION}.${OPERATOR_COPILOT_VERSION}`;
 const limits = { maxOutputTokens: 2400, maxInputChars: 48000, temperature: 0 };
+// A point must rest on at least one real piece of the dossier. References the model wrote in
+// another form are dropped later; one of them must not throw away an otherwise sound brief.
 const refsValid = (ids: string[], i: CopilotDossier) =>
-  ids.every((id) => evidenceFor(i).some((e) => e.id === id));
+  ids.some((id) => evidenceFor(i).some((e) => e.id === id));
 const dossierData = (i: CopilotDossier) => ({
   context: { evidence: evidenceFor(i) },
   untrusted: [{ kind: "document" as const, text: JSON.stringify(i) }],
@@ -86,13 +88,9 @@ export const dossierBriefTask: Task<z.infer<typeof CopilotInput>, z.infer<typeof
       attention: brief.attention.map((a) => ({ ...a, evidence: a.evidence.map((e) => e.id) })),
     };
   },
+  // `missing` is recomputed by the server from the checklist, so the model's list is not checked.
   validate: (o, i) =>
     o.attention.every((a) => refsValid(a.evidence, i)) &&
-    o.missing.every((id) =>
-      i.checklist.some(
-        (c) => c.id === id && c.required && ["missing", "rejected"].includes(c.status),
-      ),
-    ) &&
     (o.nextStep !== "ready_for_practice" || heuristicBrief(i).nextStep === "ready_for_practice"),
   guardText: (o) => [o.situation, o.nextStepReason, ...o.attention.map((a) => a.text)].join(" "),
   language: () => "it",

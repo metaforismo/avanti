@@ -293,7 +293,7 @@ it("validates tier controls and model price maps, with legacy timeout precedence
   });
   expect(loadAiConfig().attemptTimeoutMs).toEqual({
     fast: 6000,
-    reasoning: 15000,
+    reasoning: 25000,
     vision: 20000,
     audio: 20000,
   });

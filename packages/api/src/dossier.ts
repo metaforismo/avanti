@@ -178,8 +178,12 @@ function evaluateCase(
       };
   for (const doc of docViews) {
     if (doc.status === "processing") continue;
+    // "Unchecked" is the operator's caveat on automatic reading, not something to fix.
     const issues = evaluation.findings.filter(
-      (f) => f.documentId === doc.id && f.code !== "document.observation",
+      (f) =>
+        f.documentId === doc.id &&
+        f.code !== "document.observation" &&
+        f.code !== "document.unchecked",
     );
     doc.citizenCheck = {
       status: issues.some((f) => f.severity === "blocker")
@@ -293,17 +297,17 @@ export async function citizenView(
     messages: chat
       .filter((m) => m.kind !== "citizen_assistant")
       .map((m) => ({
-      id: m.id,
-      role: m.role,
-      text:
-        m.role === "system" && m.originalText === automaticAssistanceNotice.it
-          ? automaticAssistanceNotice[language]
-          : language === "it" && m.originalText
-            ? m.originalText
-            : m.text,
-      originalText: m.originalText,
-      createdAt: iso(m.createdAt),
-    })),
+        id: m.id,
+        role: m.role,
+        text:
+          m.role === "system" && m.originalText === automaticAssistanceNotice.it
+            ? automaticAssistanceNotice[language]
+            : language === "it" && m.originalText
+              ? m.originalText
+              : m.text,
+        originalText: m.originalText,
+        createdAt: iso(m.createdAt),
+      })),
     findings: operatorView
       ? evaluation.findings.map((finding) => ({
           ...finding,

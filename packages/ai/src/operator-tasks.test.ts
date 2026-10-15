@@ -95,3 +95,24 @@ it("keeps conflicts out of prefill and cannot fabricate a candidate", () => {
     false,
   );
 });
+it("keeps a brief whose points cite at least one real piece of the dossier", async () => {
+  const { dossierBriefTask } = await import("./operator-tasks");
+  const { operatorFixture } = await import("../eval/operator-fixtures");
+  const { evidenceFor } = await import("@avanti/core");
+  const { dossier } = operatorFixture("wrong_year");
+  const real = evidenceFor(dossier)[0]!.id;
+  const brief = (evidence: string[]) => ({
+    situation: "Nucleo di una persona.",
+    attention: [{ text: "Controlla il documento del saldo.", evidence }],
+    missing: ["not-a-checklist-id"],
+    nextStep: "verify_documents" as const,
+    nextStepReason: "Un documento ha l'anno sbagliato.",
+  });
+  const run = (evidence: string[]) =>
+    new AiRuntime(
+      loadAiConfig({ AI_PROVIDER: "openai", OPENAI_API_KEY: "synthetic", AI_MAX_ATTEMPTS: "1" }),
+      { transport: vi.fn(async () => ({ output: brief(evidence) })) },
+    ).runTask(dossierBriefTask, dossier);
+  expect((await run([real, "income_present_written_differently"])).engine).toBe("ai");
+  expect((await run(["only_invented"])).engine).toBe("heuristic");
+});

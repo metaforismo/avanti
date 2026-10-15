@@ -25,6 +25,12 @@ export function ProposalsCard({
   const [dropped, setDropped] = useState<string[]>([]);
   const kept = proposals.filter((p) => !dropped.includes(p.id));
   if (proposals.length === 0) return null;
+  // A quote helps only when it points at a few words. The first story is quoted whole for every
+  // fact drawn from it, and it is already on screen just above.
+  const quoted = new Map<string, number>();
+  for (const p of proposals) quoted.set(p.evidence, (quoted.get(p.evidence) ?? 0) + 1);
+  const showEvidence = (p: Proposal) =>
+    p.evidence.length > 0 && p.evidence.length <= 140 && quoted.get(p.evidence) === 1;
 
   return (
     <section
@@ -46,7 +52,7 @@ export function ProposalsCard({
                 <p dir="auto" className="font-semibold break-words">
                   {isDropped ? <s>{proposal.display}</s> : proposal.display}
                 </p>
-                {proposal.evidence && (
+                {showEvidence(proposal) && (
                   <p className="mt-0.5 text-sm text-ink-2">
                     {m.conversation.because}{" "}
                     <q dir="auto" className="italic">

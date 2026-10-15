@@ -169,9 +169,14 @@ export async function analyzeConsistency(s: Services, row: CaseRow, force = fals
     }));
     const issues = [
       ...deterministic,
+      // The rules already cover each checklist item they flag; a model restating them is noise.
       ...added.filter(
         (a) =>
-          !deterministic.some((i) => i.text === a.text && i.checklistItemId === a.checklistItemId),
+          !deterministic.some(
+            (i) =>
+              i.text === a.text ||
+              (a.checklistItemId !== null && i.checklistItemId === a.checklistItemId),
+          ),
       ),
     ];
     return DossierConsistency.parse({

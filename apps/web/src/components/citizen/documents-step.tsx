@@ -684,11 +684,14 @@ function DocumentCheck({ doc, api, m }: { doc: DocumentSummary; api: CitizenCase
   const check = doc.citizenCheck;
   if (doc.status === "processing" || check.status === "pending") return null;
   if (check.status === "ok")
-    return (
+    // Only an AI reading can say the document looks right; otherwise it is simply received.
+    return doc.analysis?.engine === "ai" ? (
       <p className="mt-2 flex items-center gap-1.5 text-sm text-ok">
         <Check className="size-4 shrink-0" aria-hidden />
         {m.docs.checkOk}
       </p>
+    ) : (
+      <p className="mt-2 text-sm text-ink-3">{m.docs.received}</p>
     );
   const problem = check.status === "problem";
   return (

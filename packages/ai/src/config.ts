@@ -78,7 +78,7 @@ export function loadAiConfig(env: Record<string, string | undefined> = {}): AiCo
       fast: number(env.AI_ATTEMPT_TIMEOUT_MS_FAST ?? env.AI_ATTEMPT_TIMEOUT_MS, 6000, 10, 120000),
       reasoning: number(
         env.AI_ATTEMPT_TIMEOUT_MS_REASONING ?? env.AI_ATTEMPT_TIMEOUT_MS,
-        15000,
+        25000,
         10,
         120000,
       ),

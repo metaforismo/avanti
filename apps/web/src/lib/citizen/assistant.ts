@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
-import type { AssistantTurn } from "@avanti/contracts";
+import type { AssistantReply, AssistantTurn } from "@avanti/contracts";
 
 export type { AssistantAction, AssistantIntent, AssistantTurn } from "@avanti/contracts";
 
@@ -58,13 +58,22 @@ export function useAssistant(token: string) {
         remainingToday: h?.remainingToday ?? 0,
       }));
       try {
-        const reply = await apiFetch<AssistantTurn & { remainingToday?: number }>(base, {
+        const reply = await apiFetch<AssistantReply>(base, {
           method: "POST",
           body: { message, focus },
         });
+        const turn: AssistantTurn = {
+          id: reply.id,
+          role: "assistant",
+          text: reply.reply,
+          intent: reply.intent,
+          action: reply.action,
+          sources: reply.sources,
+          createdAt: reply.createdAt,
+        };
         setHistory((h) => ({
-          messages: [...(h?.messages ?? []), { ...reply, role: "assistant" }],
-          remainingToday: reply.remainingToday ?? Math.max(0, (h?.remainingToday ?? 1) - 1),
+          messages: [...(h?.messages ?? []), turn],
+          remainingToday: Math.max(0, (h?.remainingToday ?? 1) - 1),
         }));
         return true;
       } catch (err) {

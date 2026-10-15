@@ -30,7 +30,7 @@ import {
   MemberInput,
   type PracticeId,
 } from "@avanti/contracts";
-import { calendarYear, getQuestions } from "@avanti/core";
+import { calendarYear, getQuestions, t } from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
 import { detachRemovedMembers } from "./household-cleanup";
 import { AiIntelligence, heuristicAnalysis } from "./ai";
@@ -340,12 +340,15 @@ export function mountCitizenRoutes(app: App, s: Services) {
                       input.text,
                       current.practiceId,
                     ),
-                    assistantReply(view, null),
+                    // Pending proposals come first: asking the next question would skip them.
+                    initialProposals.length
+                      ? t(view.language, "checkProposals")
+                      : assistantReply(view, null),
                   ]
                     .filter(Boolean)
                     .join(" "),
-            kind: view.nextQuestion ? "question" : "summary",
-            questionId: view.nextQuestion?.id ?? null,
+            kind: initialProposals.length ? "message" : view.nextQuestion ? "question" : "summary",
+            questionId: initialProposals.length ? null : (view.nextQuestion?.id ?? null),
           },
         ]);
       }

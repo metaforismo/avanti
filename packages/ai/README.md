@@ -88,7 +88,7 @@ Un 400 che nomina reasoning/thinking causa al massimo un retry senza controllo p
 nel limite globale dei tentativi. `retryReasons` registra `reasoning_unsupported` anche dopo
 un recupero; la telemetria CAF conserva il motivo in `outcome`, senza contenuti.
 
-`AI_ATTEMPT_TIMEOUT_MS_FAST/REASONING/VISION` hanno default 6000/15000/20000 ms.
+`AI_ATTEMPT_TIMEOUT_MS_FAST/REASONING/VISION/AUDIO` hanno default 6000/25000/20000/20000 ms: i controlli incrociati producono JSON lunghi e con 15 s DeepSeek andava in timeout.
 `AI_ATTEMPT_TIMEOUT_MS` resta un override legacy comune; gli override di livello prevalgono.
 Il totale è il minimo fra `AI_TOTAL_TIMEOUT_MS` (45000), due timeout di livello + 500 ms
 e l'eventuale limite del compito. Tre tentativi al massimo per default. Il breaker conta

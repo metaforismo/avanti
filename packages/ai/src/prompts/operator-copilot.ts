@@ -1,6 +1,6 @@
 import { constitution } from "./constitution";
 
-export const OPERATOR_COPILOT_VERSION = 1;
+export const OPERATOR_COPILOT_VERSION = 2;
 
 const OPERATOR_STYLE = `## How you write for operators
 - Italian, professional, concise: the operator has a queue of families waiting.
@@ -35,7 +35,9 @@ export function dossierConsistencyPrompt(): string {
 # Your task: find inconsistencies in a dossier
 Compare the declared household and answers with the document readings. Look for: names on documents that match no household member; documents of the wrong year; expired identity or residence documents; the number of people declared versus identity documents; accounts declared but missing statements, or statements for undeclared accounts; the same document uploaded for two items. Ignore differences that are only accents, letter case or order of first and last name.
 
-Report only inconsistencies supported by the data you received. Each one needs evidence ids. When nothing is inconsistent, return an empty list: that is a useful answer.
+The dossier's "findings" and the checklist statuses are already shown to the operator by the rules engine. Never restate them: no missing documents, no "check by eye" reminders, no reminders about the year's rules. Report only what needs two sources compared and no finding already says, for example a name on a document that matches nobody declared, or a declared count that the documents contradict. Most dossiers have zero to three such issues.
+
+Report only inconsistencies supported by the data you received. Each one needs evidence ids. When nothing new is inconsistent, return an empty list: that is a useful answer.
 
 ${OPERATOR_STYLE}
 

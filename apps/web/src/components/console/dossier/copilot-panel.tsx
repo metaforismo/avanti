@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertOctagon, AlertTriangle, Info, RefreshCw, Sparkles } from "lucide-react";
+import { AlertOctagon, AlertTriangle, CheckCircle2, Info, RefreshCw, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type { CaseDossier } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,9 @@ export function CopilotPanel({
     );
   }
 
-  const issues = consistency.data?.issues ?? [];
+  // Rule findings are listed right below (FindingsSummary): here only the cross-checks.
+  const findingIds = new Set(dossier.findings.map((f) => f.id));
+  const issues = (consistency.data?.issues ?? []).filter((issue) => !findingIds.has(issue.id));
 
   return (
     <section
@@ -151,6 +153,12 @@ export function CopilotPanel({
             </div>
           )}
 
+          {consistency.data && issues.length === 0 && (
+            <p className="flex items-center gap-2 text-sm text-ink-2">
+              <CheckCircle2 className="size-4 text-ok" aria-hidden />
+              Nessuna incongruenza tra dichiarazioni e documenti caricati.
+            </p>
+          )}
           {issues.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-ink-2">
@@ -204,15 +212,18 @@ function EvidenceChips({
   evidence: Evidence[];
   onOpen: (evidence: Evidence) => void;
 }) {
-  if (evidence.length === 0) return null;
+  // A finding's label is its own sentence: as a chip it would only repeat the text above.
+  const chips = evidence.filter((e) => e.kind !== "finding");
+  if (chips.length === 0) return null;
   return (
     <span className="mt-1 flex flex-wrap gap-1.5">
-      {evidence.map((e) => (
+      {chips.map((e) => (
         <button
           key={`${e.kind}:${e.id}`}
           type="button"
           onClick={() => onOpen(e)}
-          className="rounded-full bg-sunk px-2.5 py-0.5 text-xs font-semibold text-ink-2 hover:bg-stamp-wash hover:text-stamp"
+          title={e.label}
+          className="max-w-72 truncate rounded-full bg-sunk px-2.5 py-0.5 text-xs font-semibold text-ink-2 hover:bg-stamp-wash hover:text-stamp"
         >
           {e.label}
         </button>

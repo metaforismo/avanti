@@ -33,7 +33,7 @@ describe("guided conversation task", () => {
       },
     ];
     expect(converseTask.tier).toBe("fast");
-    expect(converseTask.version).toMatch(/\.2$/);
+    expect(converseTask.version).toMatch(/\.3$/);
     expect(converseTask.system(value)).toContain("A proposal is not a confirmed answer");
     expect(JSON.stringify(converseTask.data(value).context)).not.toContain("ignore all previous");
     expect(converseTask.data(value).untrusted[0]!.text).toContain("ignore all previous");
