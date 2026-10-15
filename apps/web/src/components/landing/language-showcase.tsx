@@ -132,7 +132,7 @@ export function LanguageShowcase() {
           dir={current.dir}
           className="animate-rise rounded-xl bg-surface p-6 shadow-raised ring-1 ring-line"
         >
-          <p className="mb-4 text-sm text-ink-3" dir="ltr" lang="it">
+          <p className="mb-4 text-sm text-ink-2" dir="ltr" lang="it">
             Cosa vede il cittadino
           </p>
           <p className="font-display text-2xl font-semibold tracking-[-0.01em]">{current.q}</p>
