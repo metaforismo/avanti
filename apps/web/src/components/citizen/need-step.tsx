@@ -1,7 +1,16 @@
 "use client";
 
-import { ChevronDown, Clock } from "lucide-react";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import {
+  ArrowUpRight,
+  Baby,
+  ChevronDown,
+  Clock,
+  FileText,
+  IdCard,
+  ListChecks,
+  Receipt,
+} from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { PracticeSummary } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
@@ -12,14 +21,14 @@ import { format } from "@/lib/citizen/messages";
 import { cn } from "@/lib/cn";
 import { ActionErrorNotice } from "./action-error";
 import { AssistantMessage, lastMessage } from "./assistant-message";
+import { Composer } from "./composer";
 import type { StepProps } from "./citizen-app";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import { QuestionCard } from "./question-card";
 
 const MIN_LENGTH = 3;
 
-export function NeedStep({ api, data, m }: StepProps) {
-  const [text, setText] = useState("");
+export function NeedStep({ api, data, m, token }: StepProps) {
   const [tooShort, setTooShort] = useState(false);
   const [showList, setShowList] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -34,7 +43,6 @@ export function NeedStep({ api, data, m }: StepProps) {
       listRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   }, [api.unavailablePractice]);
   const textareaId = useId();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sending = api.pending === "text";
   const assistant = lastMessage(data.messages, "assistant");
 
@@ -42,30 +50,24 @@ export function NeedStep({ api, data, m }: StepProps) {
     const trimmed = value.trim();
     if (trimmed.length < MIN_LENGTH) {
       setTooShort(true);
-      textareaRef.current?.focus();
-      return;
+      document.getElementById(textareaId)?.focus();
+      return false;
     }
     setTooShort(false);
-    const result = await api.turn({ type: "text", text: trimmed });
-    if (result) setText("");
-  }
-
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    void send(text);
+    return Boolean(await api.turn({ type: "text", text: trimmed }));
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
+    <div className="grid gap-8 pt-2 sm:pt-8">
+      <div className="text-center">
         <h1
           id={STEP_TITLE_ID}
           tabIndex={-1}
-          className="font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em] outline-none"
+          className="font-display text-[2.25rem] leading-[1.05] font-bold tracking-[-0.03em] outline-none sm:text-[2.75rem]"
         >
           <label htmlFor={textareaId}>{m.need.title}</label>
         </h1>
-        <p className="mt-2 text-lg text-ink-2">{m.need.hint}</p>
+        <p className="mx-auto mt-3 max-w-md text-lg text-ink-2">{m.need.hint}</p>
       </div>
 
       {assistant && (
@@ -77,27 +79,22 @@ export function NeedStep({ api, data, m }: StepProps) {
       )}
       {data.nextQuestion && <QuestionCard api={api} question={data.nextQuestion} m={m} />}
 
-      <form onSubmit={onSubmit} className="grid gap-3">
-        <textarea
-          id={textareaId}
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            if (tooShort) setTooShort(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              void send(text);
-            }
-          }}
-          rows={4}
-          maxLength={2000}
+      <div className="grid gap-3">
+        <Composer
+          token={token}
+          language={data.language}
+          m={m}
+          size="hero"
+          inputId={textareaId}
           placeholder={m.need.placeholder}
-          aria-invalid={tooShort || undefined}
-          aria-describedby={tooShort ? `${textareaId}-error` : undefined}
-          className="[field-sizing:content] min-h-32 w-full resize-none rounded-md bg-surface p-4 text-lg leading-relaxed text-ink ring-1 ring-line-strong ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
+          maxLength={2000}
+          busy={sending}
+          sendLabel={m.need.send}
+          invalid={tooShort}
+          describedBy={tooShort ? `${textareaId}-error` : undefined}
+          voiceEnabled={data.aiCitizenAssistant !== false}
+          onTextChange={() => tooShort && setTooShort(false)}
+          onSend={send}
         />
         {tooShort && (
           <p id={`${textareaId}-error`} role="alert" className="text-sm font-medium text-danger">
@@ -105,38 +102,47 @@ export function NeedStep({ api, data, m }: StepProps) {
           </p>
         )}
         <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
-        <Button type="submit" size="lg" loading={sending} className="w-full">
-          {m.need.send}
-        </Button>
-      </form>
+      </div>
 
       <section aria-labelledby="examples-label">
-        <h2 id="examples-label" className="mb-2.5 text-sm text-ink-3">
+        <h2 id="examples-label" className="mb-2 px-1 text-sm text-ink-3">
           {m.need.examplesLabel}
         </h2>
-        <div className="flex flex-wrap gap-2">
-          {m.need.examples.map((example) => (
-            <button
-              key={example}
-              type="button"
-              disabled={sending}
-              onClick={() => void send(example)}
-              className="rounded-full bg-surface px-4 py-2.5 text-start text-body-sm text-ink ring-1 ring-line-strong transition-colors ring-inset hover:bg-sunk disabled:opacity-50"
-            >
-              {example}
-            </button>
-          ))}
-        </div>
+        <ul className="divide-y divide-line overflow-hidden rounded-xl bg-surface ring-1 ring-line">
+          {m.need.examples.map((example, index) => {
+            const Icon = EXAMPLE_ICONS[index % EXAMPLE_ICONS.length]!;
+            return (
+              <li key={example}>
+                <button
+                  type="button"
+                  disabled={sending}
+                  onClick={() => void send(example)}
+                  className="group flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none disabled:opacity-50"
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-md bg-stamp-wash text-stamp">
+                    <Icon className="size-4.5" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1 text-ink">{example}</span>
+                  <ArrowUpRight
+                    className="rtl-flip size-4 shrink-0 text-ink-3 transition-colors group-hover:text-ink"
+                    aria-hidden
+                  />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
-      <div ref={listRef} className="scroll-mt-28 border-t border-line pt-5">
+      <div ref={listRef} className="scroll-mt-28">
         <button
           type="button"
           aria-expanded={showList}
           onClick={() => setShowList((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 rounded-sm py-2 text-start font-semibold text-stamp"
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-start font-semibold text-stamp ring-1 ring-line transition-colors hover:bg-surface"
         >
-          {m.need.pick}
+          <ListChecks className="size-5 shrink-0" aria-hidden />
+          <span className="flex-1">{m.need.pick}</span>
           <ChevronDown
             className={cn("size-5 transition-transform duration-200", showList && "rotate-180")}
             aria-hidden
@@ -147,6 +153,9 @@ export function NeedStep({ api, data, m }: StepProps) {
     </div>
   );
 }
+
+// ISEE, 730, residence permit, child benefit: the order of `m.need.examples` in every language.
+const EXAMPLE_ICONS = [FileText, Receipt, IdCard, Baby] as const;
 
 function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
   const [practices, setPractices] = useState<PracticeSummary[] | "error" | null>(null);

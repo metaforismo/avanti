@@ -8,7 +8,7 @@ import { Notice } from "@/components/ui/notice";
 import { errorMessage } from "@/lib/citizen/messages";
 import { useConversation, type ConversationTurn } from "@/lib/citizen/conversation";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
-import { ChatBubble } from "./chat-bubble";
+import { ChatBubble, Thinking } from "./chat-bubble";
 import type { StepProps } from "./citizen-app";
 import { Composer } from "./composer";
 import { AnsweredList, InterviewStep } from "./interview-step";
@@ -60,19 +60,13 @@ export function ConversationStep(props: StepProps) {
         <InterviewProgressBar progress={data.progress} m={m} />
       </div>
 
-      <ol aria-live="polite" aria-relevant="additions" className="grid gap-3">
+      <AnsweredList api={api} data={data} m={m} />
+
+      <ol aria-live="polite" aria-relevant="additions" className="grid gap-6">
         {turns.map((turn) => (
           <Turn key={turn.id} turn={turn} you={m.conversation.you} avanti={m.conversation.avanti} />
         ))}
-        {thinking && (
-          <li
-            className="flex items-center gap-2 text-sm text-ink-3"
-            aria-label={m.conversation.reading}
-          >
-            <TypingDots />
-            {m.conversation.reading}
-          </li>
-        )}
+        {thinking && <Thinking label={m.conversation.avanti} text={m.conversation.reading} />}
       </ol>
 
       {conversation.error && conversation.error.status !== 404 && (
@@ -134,7 +128,7 @@ export function ConversationStep(props: StepProps) {
         )
       )}
 
-      <div className="sticky bottom-0 z-20 -mx-4 bg-paper/95 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+      <div className="sticky bottom-0 z-20 -mx-4 bg-linear-to-t from-paper from-70% to-paper/0 px-4 pt-6 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Composer
           token={token}
           language={data.language}
@@ -152,7 +146,6 @@ export function ConversationStep(props: StepProps) {
         />
       </div>
 
-      <AnsweredList api={api} data={data} m={m} />
       <div ref={bottom} />
     </div>
   );
@@ -166,19 +159,5 @@ function Turn({ turn, you, avanti }: { turn: ConversationTurn; you: string; avan
       label={mine ? you : avanti}
       text={turn.text}
     />
-  );
-}
-
-function TypingDots() {
-  return (
-    <span aria-hidden className="inline-flex gap-1">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="size-1.5 animate-pulse rounded-full bg-ink-3"
-          style={{ animationDelay: `${i * 150}ms` }}
-        />
-      ))}
-    </span>
   );
 }

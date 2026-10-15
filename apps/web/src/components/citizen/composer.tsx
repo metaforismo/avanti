@@ -1,6 +1,6 @@
 "use client";
 
-import { Mic, SendHorizontal, Square } from "lucide-react";
+import { ArrowUp, Mic, Square } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -9,17 +9,18 @@ import {
   useSyncExternalStore,
   type FormEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import type { Language } from "@avanti/contracts";
-import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { CitizenMessages, Widen } from "@/lib/citizen/messages";
 import { MAX_RECORDING_SECONDS, useVoice, voiceSupported } from "@/lib/citizen/use-voice";
 import { cn } from "@/lib/cn";
 
 /**
- * Where the citizen writes or speaks. Speech comes back as text in the box, so they can read and
- * fix it before sending: a transcript is never sent on its own.
+ * Where the citizen writes or speaks: the text on top, the actions in a bar below, like the chat
+ * apps people already know. Speech comes back as text in the box, so they can read and fix it
+ * before sending: a transcript is never sent on its own.
  */
 export function Composer({
   token,
@@ -31,41 +32,65 @@ export function Composer({
   busy,
   onSend,
   voiceEnabled = true,
+  size = "chat",
+  inputId,
+  describedBy,
+  invalid = false,
+  sendLabel,
+  leading,
+  onTextChange,
 }: {
-  /** Off when the CAF has switched off AI for citizens: recordings would go to a provider. */
-  voiceEnabled?: boolean;
   token: string;
   language: Language;
   m: Widen<CitizenMessages>;
-  label: string;
+  /** Accessible name; omit when an outside <label htmlFor={inputId}> names the field. */
+  label?: string;
   placeholder: string;
   maxLength: number;
   busy: boolean;
   /** Resolves true when the text was accepted, so the box can be cleared. */
   onSend: (text: string) => Promise<boolean>;
+  /** Off when the CAF has switched off AI for citizens: recordings would go to a provider. */
+  voiceEnabled?: boolean;
+  /** "hero" is the first question of the practice: a roomier box. */
+  size?: "hero" | "chat";
+  inputId?: string;
+  describedBy?: string;
+  invalid?: boolean;
+  /** Name of the send button when "send" is not the right verb (e.g. "Continua"). */
+  sendLabel?: string;
+  /** Extra actions at the start of the bar. */
+  leading?: ReactNode;
+  onTextChange?: () => void;
 }) {
   const [text, setText] = useState("");
   const field = useRef<HTMLTextAreaElement>(null);
-  const id = useId();
+  const ownId = useId();
+  const id = inputId ?? ownId;
   const voice = useVoice(token, language);
   const recording = voice.state.kind === "recording";
   const transcribing = voice.state.kind === "transcribing";
 
   // False on the server and during hydration: only the browser knows whether it can record.
   const canSpeak = useSyncExternalStore(noSubscription, voiceSupported, () => false);
+  const max = size === "hero" ? 280 : 168;
 
   // Grow with the text up to a few lines, then scroll inside.
   useEffect(() => {
     const el = field.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
-  }, [text]);
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+  }, [text, max]);
 
   async function submit(event?: FormEvent) {
     event?.preventDefault();
     const value = text.trim();
-    if (!value || busy) return;
+    if (busy) return;
+    if (!value) {
+      field.current?.focus();
+      return;
+    }
     if (await onSend(value)) setText("");
   }
 
@@ -99,16 +124,29 @@ export function Composer({
           ? m.conversation.voiceTooLong
           : m.conversation.voiceUnavailable
       : null;
+  const status = recording
+    ? `${clock(voice.state.kind === "recording" ? voice.state.seconds : 0)} / ${clock(MAX_RECORDING_SECONDS)}`
+    : transcribing
+      ? m.conversation.transcribing
+      : voiceNotice;
+  const empty = !text.trim();
 
   return (
     <form onSubmit={submit} className="grid gap-1.5">
-      <label htmlFor={id} className="sr-only">
-        {label}
-      </label>
+      {label && (
+        <label htmlFor={id} className="sr-only">
+          {label}
+        </label>
+      )}
       <div
+        // A click anywhere on the box puts the cursor in the text, as in every chat app.
+        onClick={(event) => {
+          if (event.target === event.currentTarget) field.current?.focus();
+        }}
         className={cn(
-          "flex items-end gap-1.5 rounded-xl bg-surface p-1.5 ring-1 ring-line-strong transition-shadow",
-          "focus-within:ring-2 focus-within:ring-stamp",
+          "grid rounded-xl bg-surface shadow-raised ring-1 ring-line-strong transition-shadow",
+          "focus-within:ring-2 focus-within:ring-stamp/60",
+          invalid && "ring-2 ring-danger/70",
           recording && "ring-2 ring-danger",
         )}
       >
@@ -116,55 +154,85 @@ export function Composer({
           ref={field}
           id={id}
           dir="auto"
-          rows={1}
+          rows={size === "hero" ? 3 : 1}
           value={text}
           maxLength={maxLength}
           placeholder={recording ? "" : placeholder}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           onChange={(e) => {
             setText(e.target.value);
+            onTextChange?.();
             if (voice.state.kind === "error") voice.reset();
           }}
           onKeyDown={onKeyDown}
           disabled={recording || transcribing}
-          className="min-h-11 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-base leading-snug outline-none placeholder:text-ink-3 disabled:opacity-60"
+          className={cn(
+            "w-full resize-none bg-transparent px-4 text-ink outline-none placeholder:text-ink-3 disabled:opacity-60",
+            size === "hero"
+              ? "min-h-24 pt-4 pb-1 text-lg leading-relaxed"
+              : "min-h-11 pt-3 pb-0.5 text-base leading-snug",
+          )}
         />
-        {canSpeak && voiceEnabled && (
-          <Button
-            type="button"
-            variant={recording ? "danger" : "ghost"}
-            size="icon"
-            className="size-11 shrink-0 rounded-lg"
-            onClick={() => void speak()}
-            disabled={transcribing || busy}
-            aria-pressed={recording}
-            aria-label={recording ? m.conversation.stop : m.conversation.speak}
-          >
-            {transcribing ? (
-              <Spinner className="size-5" />
-            ) : recording ? (
-              <Square className="size-4 fill-current" aria-hidden />
-            ) : (
-              <Mic className="size-5" aria-hidden />
+        <div className="flex items-center gap-1.5 px-2 pb-2">
+          {leading}
+          {status && (
+            <span
+              dir="auto"
+              className={cn(
+                "tabular flex min-w-0 items-center gap-2 truncate px-2 text-sm",
+                recording ? "font-semibold text-danger" : "text-ink-3",
+              )}
+            >
+              {recording && (
+                <span
+                  aria-hidden
+                  className="size-2 shrink-0 animate-pulse rounded-full bg-danger"
+                />
+              )}
+              {status}
+            </span>
+          )}
+          <span className="ms-auto" />
+          {canSpeak && voiceEnabled && (
+            <button
+              type="button"
+              onClick={() => void speak()}
+              disabled={transcribing || busy}
+              aria-pressed={recording}
+              aria-label={recording ? m.conversation.stop : m.conversation.speak}
+              className={cn(
+                "grid size-10 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none disabled:opacity-50",
+                recording
+                  ? "bg-danger-wash text-danger"
+                  : "text-ink-2 hover:bg-sunk hover:text-ink",
+              )}
+            >
+              {transcribing ? (
+                <Spinner className="size-5" />
+              ) : recording ? (
+                <Square className="size-4 fill-current" aria-hidden />
+              ) : (
+                <Mic className="size-5" aria-hidden />
+              )}
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={busy || recording || transcribing}
+            aria-label={sendLabel ?? m.conversation.send}
+            className={cn(
+              "grid size-10 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none disabled:cursor-not-allowed",
+              empty ? "bg-sunk text-ink-3" : "bg-contrast text-on-contrast hover:opacity-90",
             )}
-          </Button>
-        )}
-        <Button
-          type="submit"
-          size="icon"
-          className="size-11 shrink-0 rounded-lg"
-          loading={busy}
-          disabled={!text.trim() || recording || transcribing}
-          aria-label={m.conversation.send}
-        >
-          <SendHorizontal className="rtl-flip size-5" aria-hidden />
-        </Button>
+          >
+            {busy ? <Spinner className="size-5" /> : <ArrowUp className="size-5" aria-hidden />}
+          </button>
+        </div>
       </div>
-      <p role="status" dir="auto" className="tabular min-h-5 px-1 text-sm text-ink-3">
-        {recording
-          ? `● ${clock(voice.state.kind === "recording" ? voice.state.seconds : 0)} / ${clock(MAX_RECORDING_SECONDS)}`
-          : transcribing
-            ? m.conversation.transcribing
-            : (voiceNotice ?? "")}
+      {/* Announced to screen readers; on screen it lives inside the bar. */}
+      <p role="status" className="sr-only">
+        {recording ? m.conversation.recording : (status ?? "")}
       </p>
     </form>
   );
