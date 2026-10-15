@@ -116,6 +116,39 @@ for (const engine of ["pglite", "postgres"] as const) {
           { allowed: true, retryAfterSeconds: 0, firstRejection: false },
         );
       });
+
+      it.skipIf(engine !== "postgres")(
+        "cancels statements and lock waits within configured budgets and recovers the pool",
+        async () => {
+          const bounded = await createDatabase({
+            url: postgresUrl,
+            migrate: false,
+            poolMax: 1,
+            statementTimeoutMs: 150,
+            lockTimeoutMs: 50,
+          });
+          try {
+            await expect(bounded.db.execute(sql`select pg_sleep(1)`)).rejects.toMatchObject({
+              cause: { code: "57014" },
+            });
+            expect(((await bounded.db.execute(sql`select 1`)) as unknown[]).length).toBe(1);
+            await db.transaction(async (tx) => {
+              await tx.select().from(organizations).where(eq(organizations.id, id)).for("update");
+              await expect(
+                bounded.db
+                  .update(organizations)
+                  .set({ name: "forbidden" })
+                  .where(eq(organizations.id, id)),
+              ).rejects.toMatchObject({ cause: { code: "55P03" } });
+            });
+            const [row] = await db.select().from(organizations).where(eq(organizations.id, id));
+            expect(row?.name).toBe("20");
+            expect(((await bounded.db.execute(sql`select 1`)) as unknown[]).length).toBe(1);
+          } finally {
+            await bounded.close();
+          }
+        },
+      );
     },
   );
 }

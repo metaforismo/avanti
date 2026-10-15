@@ -1,0 +1,782 @@
+{
+  "schemaVersion": 1,
+  "timestamp": "2026-10-15T12:00:44.500Z",
+  "environment": {
+    "platform": "darwin",
+    "release": "25.5.0",
+    "cpu": "Apple M3",
+    "cores": 8,
+    "memoryGiB": 16,
+    "node": "v25.8.2",
+    "loadavg": [4.0087890625, 4.310546875, 4.765625],
+    "postgres": "PostgreSQL 17.11 (Homebrew) on aarch64-apple-darwin25.6.0, compiled by Apple clang version 21.0.0 (clang-2100.1.1.101), 64-bit"
+  },
+  "workload": {
+    "operatorCount": 30,
+    "citizenCount": 200,
+    "iterations": 5,
+    "caseCount": 5000,
+    "hotCases": 0,
+    "poolMax": "5",
+    "statementTimeoutMs": "unbounded",
+    "lockTimeoutMs": "unbounded",
+    "sampleIntervalMs": 100
+  },
+  "elapsedMs": 7479.15,
+  "throughputRps": 387.74,
+  "successfulRps": 387.74,
+  "requests": {
+    "count": 2900,
+    "p50Ms": 446.28,
+    "p95Ms": 718.92,
+    "p99Ms": 1108.03,
+    "maxMs": 1198.57
+  },
+  "operations": {
+    "turn": {
+      "count": 1000,
+      "p50Ms": 444.53,
+      "p95Ms": 527.28,
+      "p99Ms": 530.07,
+      "maxMs": 531.72
+    },
+    "queue": {
+      "count": 150,
+      "p50Ms": 108.53,
+      "p95Ms": 636.75,
+      "p99Ms": 645.48,
+      "maxMs": 650.63
+    },
+    "uploadMetadata": {
+      "count": 1000,
+      "p50Ms": 519.86,
+      "p95Ms": 720.55,
+      "p99Ms": 722.18,
+      "maxMs": 723.61
+    },
+    "dossier": {
+      "count": 150,
+      "p50Ms": 107.54,
+      "p95Ms": 720.19,
+      "p99Ms": 731.22,
+      "maxMs": 739.34
+    },
+    "note": {
+      "count": 150,
+      "p50Ms": 81.3,
+      "p95Ms": 634.28,
+      "p99Ms": 636.16,
+      "maxMs": 637.04
+    },
+    "review": {
+      "count": 150,
+      "p50Ms": 112.59,
+      "p95Ms": 734.77,
+      "p99Ms": 750.02,
+      "maxMs": 758.8
+    },
+    "request": {
+      "count": 150,
+      "p50Ms": 152.98,
+      "p95Ms": 1133.06,
+      "p99Ms": 1166.04,
+      "maxMs": 1198.57
+    },
+    "state": {
+      "count": 150,
+      "p50Ms": 87.55,
+      "p95Ms": 691.66,
+      "p99Ms": 700.22,
+      "maxMs": 703.34
+    }
+  },
+  "statuses": {
+    "200": 2900
+  },
+  "errors": 0,
+  "conflicts": 0,
+  "backgroundErrors": 0,
+  "deadlocks": 0,
+  "pool": {
+    "peakInFlight": 230,
+    "peakConnections": 6,
+    "peakActive": 5,
+    "saturatedSamples": 3
+  },
+  "locks": {
+    "samples": 74,
+    "waitingSamples": 0,
+    "peakWaiting": 0,
+    "peakUngranted": 0,
+    "oldestWaitingQueryMs": 0,
+    "oldestTransactionMs": 241.51
+  },
+  "samples": [
+    {
+      "atMs": 41.94,
+      "connections": 1,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.36
+    },
+    {
+      "atMs": 142.18,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.19
+    },
+    {
+      "atMs": 243.22,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 3.92
+    },
+    {
+      "atMs": 344,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.51
+    },
+    {
+      "atMs": 444.07,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.61
+    },
+    {
+      "atMs": 557.03,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.35
+    },
+    {
+      "atMs": 657.75,
+      "connections": 5,
+      "active": 0,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 1.38
+    },
+    {
+      "atMs": 758.21,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 5.55
+    },
+    {
+      "atMs": 858.97,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.45
+    },
+    {
+      "atMs": 959.18,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.41
+    },
+    {
+      "atMs": 1059.87,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.21
+    },
+    {
+      "atMs": 1160.25,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.54
+    },
+    {
+      "atMs": 1261.08,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.43
+    },
+    {
+      "atMs": 1362.05,
+      "connections": 5,
+      "active": 5,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.51
+    },
+    {
+      "atMs": 1462.16,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.37
+    },
+    {
+      "atMs": 1563.32,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 4.97
+    },
+    {
+      "atMs": 1664.16,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 4.32
+    },
+    {
+      "atMs": 1765.18,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.41
+    },
+    {
+      "atMs": 1868.97,
+      "connections": 5,
+      "active": 0,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0
+    },
+    {
+      "atMs": 1969.51,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.31
+    },
+    {
+      "atMs": 2070.22,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.28
+    },
+    {
+      "atMs": 2171.01,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.53
+    },
+    {
+      "atMs": 2271.48,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.7
+    },
+    {
+      "atMs": 2372.85,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 6.4
+    },
+    {
+      "atMs": 2473.54,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 7.22
+    },
+    {
+      "atMs": 2574.19,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 6.02
+    },
+    {
+      "atMs": 2675.43,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.05
+    },
+    {
+      "atMs": 2775.99,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.43
+    },
+    {
+      "atMs": 2876.43,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.17
+    },
+    {
+      "atMs": 2977.44,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 3.98
+    },
+    {
+      "atMs": 3078.2,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 3.27
+    },
+    {
+      "atMs": 3179.21,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.17
+    },
+    {
+      "atMs": 3280.24,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.46
+    },
+    {
+      "atMs": 3381.67,
+      "connections": 5,
+      "active": 0,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 7.79
+    },
+    {
+      "atMs": 3482.37,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 7.99
+    },
+    {
+      "atMs": 3583,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.85
+    },
+    {
+      "atMs": 3683.46,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 6.48
+    },
+    {
+      "atMs": 3785.14,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 5.04
+    },
+    {
+      "atMs": 3887.06,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.23
+    },
+    {
+      "atMs": 3988.26,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 1.06
+    },
+    {
+      "atMs": 4089.23,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 5.78
+    },
+    {
+      "atMs": 4190.29,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 5.24
+    },
+    {
+      "atMs": 4291.27,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 1.44
+    },
+    {
+      "atMs": 4392.85,
+      "connections": 5,
+      "active": 0,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0
+    },
+    {
+      "atMs": 4494.24,
+      "connections": 5,
+      "active": 0,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0
+    },
+    {
+      "atMs": 4595.49,
+      "connections": 6,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 65.61
+    },
+    {
+      "atMs": 4695.96,
+      "connections": 6,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 39.15
+    },
+    {
+      "atMs": 4797.23,
+      "connections": 6,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 139.62
+    },
+    {
+      "atMs": 4898.54,
+      "connections": 6,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 241.51
+    },
+    {
+      "atMs": 4999.17,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.52
+    },
+    {
+      "atMs": 5105.79,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.36
+    },
+    {
+      "atMs": 5206.8,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.78
+    },
+    {
+      "atMs": 5307.47,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 7.83
+    },
+    {
+      "atMs": 5408.43,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.06
+    },
+    {
+      "atMs": 5509.57,
+      "connections": 5,
+      "active": 5,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 9.55
+    },
+    {
+      "atMs": 5610.88,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 3.98
+    },
+    {
+      "atMs": 5718.71,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.38
+    },
+    {
+      "atMs": 5819.32,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.43
+    },
+    {
+      "atMs": 5919.93,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.43
+    },
+    {
+      "atMs": 6019.83,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 8.99
+    },
+    {
+      "atMs": 6120.23,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 9.05
+    },
+    {
+      "atMs": 6221.41,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.96
+    },
+    {
+      "atMs": 6327.68,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.4
+    },
+    {
+      "atMs": 6431.16,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.9
+    },
+    {
+      "atMs": 6531.89,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 7.82
+    },
+    {
+      "atMs": 6632.18,
+      "connections": 5,
+      "active": 2,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.29
+    },
+    {
+      "atMs": 6733,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 7.92
+    },
+    {
+      "atMs": 6833.12,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.08
+    },
+    {
+      "atMs": 6940.48,
+      "connections": 5,
+      "active": 3,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 0.54
+    },
+    {
+      "atMs": 7042.89,
+      "connections": 5,
+      "active": 0,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.57
+    },
+    {
+      "atMs": 7142.92,
+      "connections": 5,
+      "active": 5,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 1.18
+    },
+    {
+      "atMs": 7242.95,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 4.15
+    },
+    {
+      "atMs": 7343.1,
+      "connections": 5,
+      "active": 1,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 8.17
+    },
+    {
+      "atMs": 7444.75,
+      "connections": 5,
+      "active": 4,
+      "lockWaiting": 0,
+      "ungranted": 0,
+      "oldestLockMs": 0,
+      "oldestTransactionMs": 2.73
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-10-15T12:07:59.649Z",
+  "before": {
+    "statementTimeoutMs": 0,
+    "lockTimeoutMs": 0,
+    "sleepQueryMs": 1001.42
+  },
+  "after": {
+    "statementTimeoutMs": 150,
+    "lockTimeoutMs": 50,
+    "statementQueryMs": 156.31,
+    "statementCode": "57014",
+    "lockQueryMs": 53.07,
+    "lockCode": "55P03",
+    "poolRecovered": true,
+    "unchangedRow": true
+  }
+}

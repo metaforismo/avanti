@@ -38,18 +38,33 @@ export function DocumentViewer({
   const analysis = doc?.analysis;
   const canDecide = dossier.status !== "closed" && dossier.status !== "intake";
   const [rejecting, setRejecting] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
 
   // After a decision, go straight to the next document whose item is still open: checking a
   // dossier becomes one pass through the files instead of back-and-forth with the list.
   const decide = async (target: ChecklistItem, decision: "verified" | "reset", note?: string) => {
     const done = await actions.review(target.id, { decision, note });
+    if (done)
+      setAnnouncement(
+        decision === "verified" ? `${target.title}: verificato.` : "Decisione annullata.",
+      );
     if (!done || decision !== "verified") return done;
     const open = (d: DocumentSummary) => {
       const it = dossier.checklist.find((i) => i.id === d.checklistItemId);
       return it && it.id !== target.id && !DECIDED.has(it.status);
     };
     const following = [...docs.slice(index + 1), ...docs.slice(0, Math.max(index, 0))].find(open);
-    if (following) onNavigate(following);
+    if (following) {
+      onNavigate(following);
+      const position = docs.indexOf(following) + 1;
+      setAnnouncement(
+        `${target.title}: verificato. Documento ${position} di ${docs.length}: ${following.analysis?.detectedLabel ?? following.fileName}.`,
+      );
+      // The panel is rebuilt for the next item: put the keyboard on its main action again.
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLButtonElement>('[data-viewer-primary="true"]')?.focus(),
+      );
+    }
     return done;
   };
   const reject = async (target: ChecklistItem, note: string) => {
@@ -63,7 +78,8 @@ export function DocumentViewer({
     const onKey = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
         return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      // Holding V must not verify file after file as the viewer advances.
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
       if (event.key === "ArrowLeft" && prev) onNavigate(prev);
       if (event.key === "ArrowRight" && next) onNavigate(next);
       if (!item || !canDecide || DECIDED.has(item.status) || actions.pending) return;
@@ -149,6 +165,9 @@ export function DocumentViewer({
                 </div>
 
                 <aside className="overflow-y-auto border-t border-line p-5 lg:border-s lg:border-t-0">
+                  <p role="status" className="sr-only">
+                    {announcement}
+                  </p>
                   {item && canDecide && (
                     <Decision
                       key={item.id}
@@ -165,7 +184,7 @@ export function DocumentViewer({
                   {!analysis ? (
                     <p className="mt-2 text-sm text-ink-3">
                       {doc.status === "processing"
-                        ? "Analisi in corso."
+                        ? "Analisi in corso…"
                         : "Analisi non disponibile: verifica a vista."}
                     </p>
                   ) : (
@@ -200,7 +219,10 @@ export function DocumentViewer({
                           label="Scadenza"
                           value={
                             analysis.expiresOn
-                              ? new Date(analysis.expiresOn).toLocaleDateString("it-IT")
+                              ? // A calendar date: read it in UTC so it never shifts by a day.
+                                new Date(
+                                  `${analysis.expiresOn.slice(0, 10)}T00:00:00Z`,
+                                ).toLocaleDateString("it-IT", { timeZone: "UTC" })
                               : null
                           }
                         />
@@ -318,7 +340,13 @@ function Decision({
       ) : (
         <>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" loading={busy} onClick={onVerify} aria-keyshortcuts="V">
+            <Button
+              size="sm"
+              loading={busy}
+              onClick={onVerify}
+              aria-keyshortcuts="V"
+              data-viewer-primary="true"
+            >
               <Check className="size-4" aria-hidden />
               Verifica
             </Button>

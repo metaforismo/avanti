@@ -2,7 +2,9 @@
 
 import { CheckCircle2, CircleDashed, Download, FileText, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { Route } from "next";
+import { Suspense, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { PilotCount, PilotReport, PilotReportGroup, PilotThreshold } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
@@ -37,7 +39,24 @@ function presets(today: string) {
   ];
 }
 
-const count = (value: PilotCount) => (value === null ? "—" : String(value));
+const numbers = new Intl.NumberFormat("it-IT");
+const count = (value: PilotCount) =>
+  value === null ? "—" : typeof value === "number" ? numbers.format(value) : value;
+
+const longDay = (day: string) =>
+  new Intl.DateTimeFormat("it-IT", { dateStyle: "long", timeZone: "UTC" }).format(
+    new Date(`${day}T00:00:00Z`),
+  );
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** The API's own rule, checked before asking: start before end, at most one year. */
+function periodError(from: string, to: string) {
+  if (!ISO_DAY.test(from) || !ISO_DAY.test(to)) return "Scegli le due date del periodo.";
+  if (from > to) return "La data di inizio viene dopo quella di fine.";
+  const [y, m, d] = from.split("-");
+  if (to >= `${Number(y) + 1}-${m}-${d}`) return "Il periodo può durare al massimo un anno.";
+  return null;
+}
 const percent = (share: number | null) => (share === null ? "—" : `${Math.round(share * 100)}%`);
 
 const THRESHOLD: Record<PilotThreshold["id"], { title: string; target: string }> = {
@@ -98,26 +117,58 @@ export default function PilotReportPage() {
       </div>
     );
   }
-  return <ReportView />;
+  return (
+    <Suspense>
+      <ReportView />
+    </Suspense>
+  );
 }
 
 function ReportView() {
   const operator = useOperator();
+  const router = useRouter();
+  const params = useSearchParams();
   const today = isoDay(new Date());
   const choices = useMemo(() => presets(today), [today]);
-  const [from, setFrom] = useState(choices[0]!.from);
-  const [to, setTo] = useState(choices[0]!.to);
-  const [officeId, setOfficeId] = useState("");
+  // The period lives in the URL, like the queue filters: a report can be linked and reloaded.
+  const from = params.get("dal") ?? choices[0]!.from;
+  const to = params.get("al") ?? choices[0]!.to;
+  const officeId = params.get("sportello") ?? "";
+  const apply = (next: Record<string, string>) => {
+    const search = new URLSearchParams(params);
+    for (const [key, value] of Object.entries(next))
+      if (value) search.set(key, value);
+      else search.delete(key);
+    router.replace(`/console/rapporto?${search.toString()}` as Route, { scroll: false });
+  };
+  // Typed dates are drafts until the field is left or Enter is pressed: every keystroke in a
+  // year field is a valid date, and each request is audited and counts toward the export limit.
+  const [draft, setDraft] = useState<{ from: string; to: string } | null>(null);
+  const shown = draft ?? { from, to };
+  const commit = () => {
+    if (!draft) return;
+    if (!periodError(draft.from, draft.to)) apply({ dal: draft.from, al: draft.to });
+    else return;
+    setDraft(null);
+  };
+  const onDateKey = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commit();
+    }
+  };
+  const invalid = periodError(shown.from, shown.to);
+  const validApplied = !periodError(from, to);
 
   const query = useMemo(() => {
     const q = new URLSearchParams({ from, to });
     if (officeId) q.set("office", officeId);
     return q.toString();
   }, [from, to, officeId]);
-  // Half-typed dates are empty strings: wait for both instead of showing a validation error.
-  const report = useResource<PilotReport>(from && to ? `/api/reports/pilot?${query}` : null);
+  const report = useResource<PilotReport>(validApplied ? `/api/reports/pilot?${query}` : null);
   const data = report.data;
   const active = choices.find((c) => c.from === from && c.to === to)?.key;
+  const downloadable = validApplied && !draft;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
@@ -132,18 +183,33 @@ function ReportView() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" asChild>
-            <a href={`/api/reports/pilot?${query}&format=pdf`} download>
-              <FileText className="size-4" aria-hidden />
-              Scarica PDF
-            </a>
-          </Button>
-          <Button variant="secondary" asChild>
-            <a href={`/api/reports/pilot?${query}&format=csv`} download>
-              <Download className="size-4" aria-hidden />
-              Scarica CSV
-            </a>
-          </Button>
+          {downloadable ? (
+            <>
+              <Button variant="secondary" asChild>
+                <a href={`/api/reports/pilot?${query}&format=pdf`} download>
+                  <FileText className="size-4" aria-hidden />
+                  Scarica PDF
+                </a>
+              </Button>
+              <Button variant="secondary" asChild>
+                <a href={`/api/reports/pilot?${query}&format=csv`} download>
+                  <Download className="size-4" aria-hidden />
+                  Scarica CSV
+                </a>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" disabled>
+                <FileText className="size-4" aria-hidden />
+                Scarica PDF
+              </Button>
+              <Button variant="secondary" disabled>
+                <Download className="size-4" aria-hidden />
+                Scarica CSV
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -158,8 +224,8 @@ function ReportView() {
               type="button"
               aria-pressed={active === choice.key}
               onClick={() => {
-                setFrom(choice.from);
-                setTo(choice.to);
+                setDraft(null);
+                apply({ dal: choice.from, al: choice.to });
               }}
               className={cn(
                 "h-9 rounded-[5px] px-3 text-sm transition-colors",
@@ -176,9 +242,13 @@ function ReportView() {
           <span className="text-ink-2">Dal</span>
           <Input
             type="date"
-            value={from}
-            max={to || undefined}
-            onChange={(e) => setFrom(e.target.value)}
+            value={shown.from}
+            max={shown.to || undefined}
+            onChange={(e) => setDraft({ ...shown, from: e.target.value })}
+            onBlur={commit}
+            onKeyDown={onDateKey}
+            aria-invalid={draft && invalid ? true : undefined}
+            aria-describedby={draft && invalid ? "period-error" : undefined}
             className="h-9 text-sm"
           />
         </label>
@@ -186,9 +256,13 @@ function ReportView() {
           <span className="text-ink-2">Al</span>
           <Input
             type="date"
-            value={to}
-            min={from || undefined}
-            onChange={(e) => setTo(e.target.value)}
+            value={shown.to}
+            min={shown.from || undefined}
+            onChange={(e) => setDraft({ ...shown, to: e.target.value })}
+            onBlur={commit}
+            onKeyDown={onDateKey}
+            aria-invalid={draft && invalid ? true : undefined}
+            aria-describedby={draft && invalid ? "period-error" : undefined}
             className="h-9 text-sm"
           />
         </label>
@@ -197,7 +271,7 @@ function ReportView() {
             <span className="text-ink-2">Sportello</span>
             <Select
               value={officeId}
-              onChange={(e) => setOfficeId(e.target.value)}
+              onChange={(e) => apply({ sportello: e.target.value })}
               compact
               className="h-9 text-sm"
             >
@@ -211,6 +285,11 @@ function ReportView() {
           </label>
         )}
       </form>
+      {draft && invalid && (
+        <p id="period-error" role="alert" className="mt-2 text-sm text-danger">
+          {invalid}
+        </p>
+      )}
       <p className="mt-2 text-sm text-ink-3">
         «—» indica un dato non ancora misurabile o nascosto perché, insieme agli altri, renderebbe
         riconoscibili poche persone.
@@ -230,8 +309,14 @@ function ReportView() {
         </div>
       ) : (
         <div
+          aria-busy={report.refreshing || undefined}
           className={cn("mt-8 grid gap-10 transition-opacity", report.refreshing && "opacity-60")}
         >
+          <p role="status" className="sr-only">
+            {report.refreshing
+              ? ""
+              : `Rapporto dal ${longDay(data.period.from)} al ${longDay(data.period.to)}.`}
+          </p>
           {report.status === "error" && (
             <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
               {report.error.message} Sotto resta il rapporto precedente.

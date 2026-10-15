@@ -25,7 +25,8 @@
     "admin:bootstrap": "pnpm --filter @avanti/api admin:bootstrap",
     "admin:export": "pnpm --filter @avanti/api admin:export",
     "db:seed:volume": "pnpm --filter @avanti/db seed:volume",
-    "bench:api": "pnpm --filter @avanti/api bench"
+    "bench:api": "pnpm --filter @avanti/api bench",
+    "bench:load": "pnpm --filter @avanti/api bench:load"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

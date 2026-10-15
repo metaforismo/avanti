@@ -19,6 +19,57 @@ export interface DatabaseOptions {
   memory?: boolean;
   migrate?: boolean;
   logger?: Logger;
+  poolMax?: number;
+  statementTimeoutMs?: number;
+  lockTimeoutMs?: number;
+  applicationName?: string;
+}
+
+function boundedInteger(
+  value: number | string | undefined,
+  fallback: number,
+  name: string,
+  max: number,
+): number {
+  const parsed = value === undefined ? fallback : Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > max)
+    throw new Error(`${name} must be an integer between 1 and ${max}`);
+  return parsed;
+}
+
+export function postgresSettings(options: DatabaseOptions = {}, env = process.env) {
+  const mode = env.DATABASE_TIMEOUT_MODE ?? "startup";
+  if (!["startup", "role"].includes(mode))
+    throw new Error("DATABASE_TIMEOUT_MODE must be startup or role");
+  const statement = boundedInteger(
+    options.statementTimeoutMs ?? env.DATABASE_STATEMENT_TIMEOUT_MS,
+    15000,
+    "DATABASE_STATEMENT_TIMEOUT_MS",
+    120000,
+  );
+  const lock = boundedInteger(
+    options.lockTimeoutMs ?? env.DATABASE_LOCK_TIMEOUT_MS,
+    3000,
+    "DATABASE_LOCK_TIMEOUT_MS",
+    60000,
+  );
+  return {
+    max: boundedInteger(options.poolMax ?? env.DATABASE_POOL_MAX, 5, "DATABASE_POOL_MAX", 50),
+    prepare: false,
+    connect_timeout: 10,
+    connection: {
+      application_name: options.applicationName ?? "avanti",
+      // Transaction poolers may reject these startup parameters. In role mode,
+      // deploy configures the same budgets on the dedicated application role.
+      ...(mode === "startup"
+        ? {
+            statement_timeout: statement,
+            lock_timeout: lock,
+            idle_in_transaction_session_timeout: 30000,
+          }
+        : {}),
+    },
+  };
 }
 
 export function findRepoRoot(start = process.cwd()): string {
@@ -42,23 +93,37 @@ export async function createDatabase(options: DatabaseOptions = {}): Promise<{
   const shouldMigrate =
     options.migrate ?? (options.memory === true || process.env.NODE_ENV !== "production");
   if (url?.trim() && !options.memory) {
-    const client = postgres(url, { max: 5, prepare: false });
+    const client = postgres(url, postgresSettings(options));
     const db = drizzlePostgres(client, { schema, logger: options.logger });
     try {
       if (shouldMigrate) {
         // Session locks serialize startup migrations across Node instances sharing PostgreSQL.
-        await client.reserve().then(async (connection) => {
-          try {
-            await connection`select pg_advisory_lock(614829701)`;
-            await migratePostgres(drizzlePostgres(connection, { schema }), { migrationsFolder });
-          } finally {
-            try {
-              await connection`select pg_advisory_unlock(614829701)`;
-            } finally {
-              connection.release();
-            }
-          }
+        // ReservedSql lacks the parser options required by Drizzle. A dedicated,
+        // non-expiring single connection keeps the session lock through migrations.
+        const migrator = postgres(url, {
+          max: 1,
+          prepare: false,
+          max_lifetime: 0,
+          idle_timeout: 0,
+          connect_timeout: 10,
+          // DDL is a deployment step and needs a separate budget from interactive queries.
+          connection: {
+            application_name: "avanti-migrate",
+            statement_timeout: 120000,
+            lock_timeout: 30000,
+            idle_in_transaction_session_timeout: 30000,
+          },
         });
+        try {
+          await migrator`select pg_advisory_lock(614829701)`;
+          try {
+            await migratePostgres(drizzlePostgres(migrator, { schema }), { migrationsFolder });
+          } finally {
+            await migrator`select pg_advisory_unlock(614829701)`;
+          }
+        } finally {
+          await migrator.end();
+        }
       }
     } catch (error) {
       await client.end();

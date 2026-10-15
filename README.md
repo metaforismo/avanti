@@ -66,19 +66,20 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 
 ## Script
 
-| Comando                              | Effetto                                                                          |
-| ------------------------------------ | -------------------------------------------------------------------------------- |
-| `pnpm dev`                           | Avvia l'app web con backend integrato                                            |
-| `pnpm check`                         | Lint + typecheck + test di tutti i pacchetti                                     |
-| `pnpm --filter @avanti/web test:e2e` | Test end-to-end Playwright e controlli axe (WCAG 2.2 AA, temi chiaro/scuro, RTL) |
-| `pnpm build`                         | Build di produzione                                                              |
-| `pnpm db:check`                      | Verifica Postgres reale, migrazioni e indici senza modifiche                     |
-| `pnpm preflight`                     | Verifica configurazione produzione, senza connessioni o segreti nei log          |
-| `pnpm admin:bootstrap`               | Crea il primo CAF/admin con conferma, solo da terminale amministrativo           |
-| `pnpm admin:export`                  | Esporta il CAF in JSON, solo admin autenticato da CLI                            |
-| `pnpm db:seed`                       | Carica i dati demo                                                               |
-| `pnpm db:seed:volume --cases 5000`   | Crea pratiche demo di volume con metadati, senza file; solo PGlite locale        |
-| `pnpm bench:api`                     | Misura p50/p95, byte e piani SQL su 5.000 pratiche in un DB isolato in memoria   |
+| Comando                              | Effetto                                                                                               |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                           | Avvia l'app web con backend integrato                                                                 |
+| `pnpm check`                         | Lint + typecheck + test di tutti i pacchetti                                                          |
+| `pnpm --filter @avanti/web test:e2e` | Test end-to-end Playwright e controlli axe (WCAG 2.2 AA, temi chiaro/scuro, RTL)                      |
+| `pnpm build`                         | Build di produzione                                                                                   |
+| `pnpm db:check`                      | Verifica Postgres reale, migrazioni e indici senza modifiche                                          |
+| `pnpm preflight`                     | Verifica configurazione produzione, senza connessioni o segreti nei log                               |
+| `pnpm admin:bootstrap`               | Crea il primo CAF/admin con conferma, solo da terminale amministrativo                                |
+| `pnpm admin:export`                  | Esporta il CAF in JSON, solo admin autenticato da CLI                                                 |
+| `pnpm db:seed`                       | Carica i dati demo                                                                                    |
+| `pnpm db:seed:volume --cases 5000`   | Crea pratiche demo di volume con metadati, senza file; PGlite o Postgres di prova locale              |
+| `pnpm bench:api`                     | Misura p50/p95, byte e piani SQL su 5.000 pratiche in un DB isolato in memoria                        |
+| `pnpm bench:load`                    | Carico concorrente su Postgres locale: 30 operatori, 200 cittadini, DB isolato e cancellato alla fine |
 
 ## Documentazione
 
@@ -121,9 +122,11 @@ metriche demo sono sintetiche, non risultati del pilota. Credenziali locali:
 | Operatore   | `operatore@demo.avanti.local`   | `DemoAvanti2027!` |
 | Disattivato | `disattivato@demo.avanti.local` | accesso negato    |
 
-La password è identica soltanto nei dati demo. Seed rifiutato con
-`NODE_ENV=production`, Vercel o `DATABASE_URL` configurata; non distribuire queste credenziali in ambienti reali. I link
-cittadino vengono mostrati una volta alla creazione; non sono ricostruibili dal DB.
+La password è identica soltanto nei dati demo. Il seed è sempre vietato in produzione
+e su Vercel. Con `DATABASE_URL` richiede un database loopback `*_test` e
+`AVANTI_LOCAL_PG_SEED=1`; i database remoti restano vietati. Non distribuire queste
+credenziali in ambienti reali. I link cittadino vengono mostrati una volta alla
+creazione; non sono ricostruibili dal DB.
 
 ## Avvio di un CAF pilota
 
@@ -141,7 +144,7 @@ i file binari vanno trasferiti separatamente. Backup e prove trimestrali nel run
 
 Copia `.env.example` in `apps/web/.env.local` per Next. Gli script DB leggono
 variabili della shell: per Postgres esporta `DATABASE_URL` quando esegui
-`pnpm db:migrate` e gli altri comandi amministrativi. Il seed accetta solo PGlite locale.
+`pnpm db:migrate` e gli altri comandi amministrativi. Il seed accetta PGlite locale; per un Postgres loopback con nome `*_test` serve `AVANTI_LOCAL_PG_SEED=1`. I dettagli e le prove sono in [load-postgres.md](docs/verification/load-postgres.md).
 
 | Variabile                           | Effetto                                                                                                         |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
