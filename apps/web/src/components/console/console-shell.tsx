@@ -35,7 +35,7 @@ import { MfaSetupFlow } from "./mfa/setup-flow";
 import { MfaVerifyForm } from "./mfa/verify-form";
 import { NewCaseDialog } from "./new-case-dialog";
 import { CommandPalette } from "./command-palette";
-import { forgetRecentCases, useRecentCases } from "@/lib/console/recent-cases";
+import { useRecentCases } from "@/lib/console/recent-cases";
 
 type NavItem = {
   href: Route;
@@ -317,7 +317,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
                 },
               )}
             </ul>
-            <RecentCases />
+            <RecentCases operatorId={operator.id} />
           </nav>
           <OperatorCard operator={operator} />
         </aside>
@@ -331,6 +331,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         open={searching}
         onOpenChange={setSearching}
         onNewCase={() => setCreating(true)}
+        operatorId={operator.id}
         pages={NAV.filter((item) => !item.adminOnly || operator.role === "admin").map(
           ({ href, label, icon }) => ({ href, label, icon }),
         )}
@@ -340,8 +341,8 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
 }
 
 /** The last dossiers opened in this browser session, one click away. */
-function RecentCases() {
-  const recent = useRecentCases();
+function RecentCases({ operatorId }: { operatorId: string }) {
+  const recent = useRecentCases(operatorId);
   const pathname = usePathname();
   if (recent.length === 0) return null;
   return (
@@ -379,7 +380,6 @@ function OperatorCard({ operator }: { operator: Operator }) {
     setLeaving(true);
     try {
       clearResourceCache();
-      forgetRecentCases();
       await apiFetch("/api/auth/logout", { method: "POST" });
     } finally {
       // Leave even if the request failed: the session expires server-side anyway.

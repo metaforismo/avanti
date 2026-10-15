@@ -113,12 +113,13 @@ export function DossierView({ caseId }: { caseId: string }) {
   useEffect(() => {
     if (!loaded) return;
     rememberCase({
+      operatorId: operator.id,
       id: loaded.id,
       reference: loaded.reference,
       name: [loaded.citizen.firstName, loaded.citizen.lastName].filter(Boolean).join(" ") || null,
       practice: loaded.practice ? PRACTICE_SHORT[loaded.practice.id] : null,
     });
-  }, [loaded]);
+  }, [loaded, operator.id]);
 
   // Uploads are analysed in the background: refresh until every document has its result.
   const analysing = dossier.data?.documents.some((doc) => doc.status === "processing") ?? false;

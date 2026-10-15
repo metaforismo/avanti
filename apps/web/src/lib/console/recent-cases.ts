@@ -3,6 +3,8 @@
 import { useSyncExternalStore } from "react";
 
 export type RecentCase = {
+  /** Whose list this is: another operator signing in on the same browser never sees it. */
+  operatorId: string;
   id: string;
   reference: string;
   name: string | null;
@@ -38,7 +40,8 @@ function write(next: RecentCase[]) {
 }
 
 export function rememberCase(entry: RecentCase) {
-  write([entry, ...read().filter((c) => c.id !== entry.id)].slice(0, MAX));
+  const mine = read().filter((c) => c.operatorId === entry.operatorId && c.id !== entry.id);
+  write([entry, ...mine].slice(0, MAX));
 }
 
 export function forgetRecentCases() {
@@ -51,6 +54,7 @@ const subscribe = (listener: () => void) => {
 };
 const empty: RecentCase[] = [];
 
-export function useRecentCases() {
-  return useSyncExternalStore(subscribe, read, () => empty);
+export function useRecentCases(operatorId: string) {
+  const all = useSyncExternalStore(subscribe, read, () => empty);
+  return all.filter((entry) => entry.operatorId === operatorId);
 }

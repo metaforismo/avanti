@@ -32,14 +32,16 @@ export function CommandPalette({
   onOpenChange,
   pages,
   onNewCase,
+  operatorId,
 }: {
+  operatorId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pages: PaletteLink[];
   onNewCase: () => void;
 }) {
   const router = useRouter();
-  const recent = useRecentCases();
+  const recent = useRecentCases(operatorId);
   const [query, setQuery] = useState("");
   const [cases, setCases] = useState<CaseListResponse["items"] | null>(null);
   const [searching, setSearching] = useState(false);
