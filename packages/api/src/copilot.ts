@@ -38,7 +38,7 @@ import { observeAi } from "./operational-telemetry";
 import { lockOperatorAccess } from "./operator-access";
 import { nextCaseUpdate } from "./case-version";
 
-import { copilotDossier, redactContact } from "./copilot-context";
+import { copilotDossier, redactContact, stripInternalIds } from "./copilot-context";
 export { copilotDossier, redactContact } from "./copilot-context";
 async function enabled(s: Services, org: string) {
   const [policy] = await s.db.select().from(settings).where(eq(settings.organizationId, org));
@@ -171,6 +171,7 @@ export async function analyzeConsistency(s: Services, row: CaseRow, force = fals
     const deterministic = deterministicConsistency(d);
     const added = result.output.issues.map((issue) => ({
       ...issue,
+      text: stripInternalIds(issue.text),
       id: `ai:${createHash("sha256").update(JSON.stringify(issue)).digest("hex").slice(0, 20)}`,
       evidence: resolveEvidence(issue.evidence, d),
     }));
@@ -320,9 +321,12 @@ export function mountCopilot(app: App, s: Services) {
         const result = await run(s, row, dossierBriefTask, d, allow);
         return DossierBrief.parse({
           ...result.output,
+          situation: stripInternalIds(result.output.situation),
+          nextStepReason: stripInternalIds(result.output.nextStepReason),
           missing: heuristicBrief(d).missing,
           attention: result.output.attention.map((a) => ({
             ...a,
+            text: stripInternalIds(a.text),
             evidence: resolveEvidence(a.evidence, d),
           })),
           engine: result.engine,

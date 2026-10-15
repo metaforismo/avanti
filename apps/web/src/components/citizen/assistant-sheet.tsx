@@ -20,7 +20,7 @@ import { useAssistant, type AssistantFocus, type AssistantTurn } from "@/lib/cit
 import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { View } from "@/lib/citizen/view";
 import { cn } from "@/lib/cn";
-import { AssistantMark, ChatBubble, Thinking } from "./chat-bubble";
+import { AssistantAvatar, ChatBubble, Thinking } from "./chat-bubble";
 import { Composer } from "./composer";
 
 /**
@@ -81,18 +81,16 @@ export function AssistantSheet({
             "sm:inset-y-0 sm:start-auto sm:end-0 sm:w-[28rem] sm:border-s sm:border-line sm:shadow-float",
           )}
         >
-          <header className="flex items-start gap-3 border-b border-line bg-surface px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
-            <AssistantMark className="mt-1" />
+          <header className="flex items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
+            <AssistantAvatar />
             <div className="min-w-0 flex-1">
-              <Primitive.Title className="font-display text-lg font-semibold">
-                {m.assistant.title}
-              </Primitive.Title>
+              <Primitive.Title className="font-semibold">{m.assistant.title}</Primitive.Title>
               <Primitive.Description className="text-sm text-ink-3">
                 {m.assistant.disclaimer}
               </Primitive.Description>
             </div>
             <Primitive.Close
-              className="-me-1 grid size-11 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-sunk hover:text-ink"
+              className="grid size-11 shrink-0 place-items-center rounded-md bg-surface text-ink-3 ring-1 ring-line hover:text-ink"
               aria-label={m.common.close}
             >
               <X className="size-5" aria-hidden />
@@ -160,7 +158,7 @@ export function AssistantSheet({
             <div ref={end} />
           </div>
 
-          <div className="grid gap-2 border-t border-line bg-paper px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="grid gap-2 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {assistant.error && (
               <Notice tone="danger">
                 {limited

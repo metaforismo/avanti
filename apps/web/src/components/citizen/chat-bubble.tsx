@@ -1,6 +1,5 @@
 import { Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/cn";
 import { WithCallLinks } from "./call-links";
 
 /**
@@ -27,7 +26,7 @@ export function ChatBubble({
   if (from === "citizen") {
     return (
       <li className="flex animate-fade-in justify-end">
-        <div className="max-w-[85%] rounded-3xl rounded-ee-md bg-sunk px-4 py-2.5 text-ink">
+        <div className="max-w-[85%] rounded-3xl bg-sunk px-4 py-2.5 text-ink">
           {label && <span className="sr-only">{label}: </span>}
           <p dir="auto" className="break-words whitespace-pre-line">
             {text}
@@ -38,9 +37,10 @@ export function ChatBubble({
     );
   }
   return (
-    <li className="grid animate-fade-in gap-1.5">
-      <AssistantMark label={label} />
-      <div className="ps-8">
+    <li className="flex animate-fade-in gap-3">
+      <AssistantAvatar />
+      <div className="min-w-0 flex-1 pt-0.5">
+        {label && <span className="sr-only">{label}: </span>}
         {before}
         <p
           dir="auto"
@@ -54,27 +54,24 @@ export function ChatBubble({
   );
 }
 
-/** The assistant's name with its mark, at the head of each automated reply. */
-export function AssistantMark({ label, className }: { label?: string; className?: string }) {
+/** The assistant's mark beside each automated reply (AI Act art. 50 transparency). */
+export function AssistantAvatar() {
   return (
-    <p className={cn("flex items-center gap-2 text-sm font-semibold text-ink-2", className)}>
-      <span
-        aria-hidden
-        className="grid size-6 shrink-0 place-items-center rounded-full bg-stamp-wash text-stamp ring-1 ring-stamp/15"
-      >
-        <Sparkles className="size-3.5" />
-      </span>
-      {label}
-    </p>
+    <span
+      aria-hidden
+      className="grid size-7 shrink-0 place-items-center rounded-full bg-stamp-wash text-stamp ring-1 ring-stamp/20"
+    >
+      <Sparkles className="size-3.5" />
+    </span>
   );
 }
 
 /** While Avanti reads: the mark and a softly shimmering line, as the chat apps do. */
-export function Thinking({ label, text }: { label?: string; text: string }) {
+export function Thinking({ text }: { label?: string; text: string }) {
   return (
-    <li className="grid gap-1.5" aria-label={text}>
-      <AssistantMark label={label} />
-      <p aria-hidden className="text-shimmer ps-8 text-[1.0625rem]">
+    <li className="flex gap-3" aria-label={text}>
+      <AssistantAvatar />
+      <p aria-hidden className="text-shimmer pt-0.5 text-[1.0625rem]">
         {text}
       </p>
     </li>

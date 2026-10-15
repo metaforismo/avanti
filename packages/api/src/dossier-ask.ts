@@ -10,7 +10,7 @@ import {
 import { evidenceFor, normativeRetriever, citationFor, calendarDate } from "@avanti/core";
 import { body, parse, type App, type Services } from "./context";
 import { audit, caseById, dossierView, iso } from "./dossier";
-import { copilotDossier, redactContact } from "./copilot-context";
+import { copilotDossier, redactContact, stripInternalIds } from "./copilot-context";
 import { aiBudget } from "./ai-usage";
 import { observeAi } from "./operational-telemetry";
 import { lockOperatorAccess } from "./operator-access";
@@ -134,7 +134,7 @@ export function mountDossierAsk(app: App, s: Services) {
             p.citations.includes(source.id) ? [`fonte ${index + 1}`] : [],
           );
           refs.push(...sources);
-          return `${p.text}${refs.length ? ` [${refs.join(", ")}]` : ""}`;
+          return `${stripInternalIds(p.text)}${refs.length ? ` [${refs.join(", ")}]` : ""}`;
         })
         .join("\n\n"),
       evidence,
