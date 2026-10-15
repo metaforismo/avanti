@@ -20,6 +20,7 @@ import { mountMaintenance } from "./middleware/maintenance";
 import { requestMetadata } from "./middleware/request";
 import { mountAuthRoutes } from "./routes/auth";
 import { mountPublicRoutes } from "./routes/public";
+import { mountCitizenAssistant } from "./citizen-assistant";
 import { mountCitizenRoutes } from "./citizen";
 import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
@@ -100,6 +101,8 @@ export function createApp(options: ApiOptions) {
   mountAuthRoutes(app, services);
   mountMfaRoutes(app, services);
   mountCitizenRoutes(app, services);
+  app.use("/c/:token/*", limited);
+  mountCitizenAssistant(app, services);
   mountConversationRoutes(app, services);
   mountOperatorRoutes(app, services);
   mountFamilyReuseRoutes(app, services);

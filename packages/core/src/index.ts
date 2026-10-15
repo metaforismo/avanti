@@ -31,3 +31,10 @@ export { t } from "./i18n";
 export { HOUSEHOLD_RELATIONS } from "./extraction-lexicons";
 
 export { assessDocumentReuse, sameMemberIdentity } from "./document-reuse";
+export {
+  assistantContext,
+  heuristicAssistant,
+  assistantSafetyIntent,
+  citizenAssistantCopy,
+  type AssistantContextItem,
+} from "./citizen-assistant";

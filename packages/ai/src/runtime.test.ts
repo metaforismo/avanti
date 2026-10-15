@@ -82,7 +82,11 @@ describe("runtime boundaries", () => {
   it("charges the conservative estimate when a provider returns an empty usage object", async () => {
     const reserve = vi.fn(async (_ceiling: number) => ({ id: "reservation" }));
     const runtime = new AiRuntime(
-      { ...config(), models: { fast: "paid", reasoning: "paid", vision: "paid" }, fallbacks: [] },
+      {
+        ...config(),
+        models: { fast: "paid", reasoning: "paid", vision: "paid", audio: "paid" },
+        fallbacks: [],
+      },
       { transport: async () => ({ output: { text: "accepted" }, usage: {} }) },
     );
     const result = await runtime.runTask(task, "private", { reserve });

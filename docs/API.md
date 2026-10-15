@@ -763,3 +763,83 @@ con clock uguali. Proposte e motore sono nella pratica (migrazione `0016_intervi
 Il fascicolo operatore espone anche `conversation` con i metadati dei turni e mantiene `messages`; l'export JSON del CAF include messaggi,
 metadati e proposte pendenti. La cancellazione della pratica e la retention eliminano anche
 questi dati. I log e gli eventi contengono solo conteggi e metadati, mai il testo del dialogo.
+
+### Assistente del cittadino, voce e controllo dei documenti
+
+Gli endpoint seguenti usano la capability della pratica e gli stessi controlli Origin
+(CSRF) delle altre scritture cittadino. Non richiedono una sessione operatore.
+
+| Metodo e percorso                       | Input                                                 | Risultato                                               |
+| --------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| `POST /api/c/:token/assistant`          | `AssistantAsk`                                        | `AssistantReply`                                        |
+| `GET /api/c/:token/assistant`           | —                                                     | `{ messages: AssistantTurn[], remainingToday: number }` |
+| `POST /api/c/:token/assistant/ask-desk` | `{ message: string }`, 1–600 caratteri                | `201 { ok: true }`                                      |
+| `POST /api/c/:token/transcribe`         | multipart: un `file` audio, `language` nelle 8 lingue | `{ text, language, engine }`                            |
+| `POST /api/c/:token/documents/:id/keep` | nessun campo                                          | `CitizenCase` aggiornato                                |
+
+Esempio richiesta assistente:
+
+```json
+{ "message": "Perché me lo chiedi?", "focus": { "questionId": "household_count" } }
+```
+
+Esempio risposta (id, testo e data dipendono dalla pratica):
+
+```json
+{
+  "id": "turn-id",
+  "reply": "Lo sportello verifica chi fa parte del nucleo familiare.",
+  "intent": "answer",
+  "action": "explain_question",
+  "sources": [{ "id": "question:household_count", "title": "Quante persone?" }],
+  "engine": "heuristic",
+  "createdAt": "2027-01-05T10:00:00.001Z"
+}
+```
+
+`intent`: `answer | needs_operator | off_topic | manipulation | emergency`.
+`action`: `none | explain_question | open_documents | ask_desk`.
+`AssistantTurn`: `{ id, role: citizen|assistant, text, intent?, action?, sources?, createdAt }`.
+La storia inviata dal client viene ignorata. Soltanto gli ultimi 12 turni server entrano
+nel prompt, come contenuto non fidato. Le fonti sono id del contesto server con il loro titolo.
+Il focus domanda è accettato soltanto per la domanda attuale; un id sconosciuto non aggiunge dati.
+I suggerimenti dei documenti provengono dalla checklist della pratica, nella lingua corrente.
+
+Limiti persistenti per pratica: assistente 30/ora e 80/24 ore, domanda allo sportello 5/24 ore,
+trascrizione 20/ora. Sono finestre dalla prima richiesta, come gli altri limiti cittadino.
+La rigenerazione del link non azzera questi contatori. Il tetto IP per ciascuna operazione
+è quello dei turni cittadino (1.500/minuto, 15.000/ora). Risposta `429` con `Retry-After`.
+`remainingToday` indica il residuo della finestra di 24 ore, non il residuo orario.
+
+Audio: webm, ogg, mp4/m4a, wav; massimo 2 MiB e 60 secondi verificati dai byte e dai
+pacchetti audio, senza fidarsi del MIME o della durata del client. Solo una traccia audio,
+nessun video. File vuoti, illeggibili o di durata non determinabile: `400 bad_request`.
+Audio solo in memoria per la richiesta, mai nello storage o nella storia. La trascrizione
+non invia un messaggio: il client la mostra modificabile e il cittadino decide se inviarla.
+Senza provider, budget o trascrizione utilizzabile: `503 transcription_unavailable`,
+con messaggio localizzato; il client può nascondere il microfono. Il modello audio è
+`AI_MODEL_AUDIO` (default `google/gemini-3.5-flash-lite`); riserva `qwen/qwen3.8-omni-flash`.
+Una trascrizione con lingua chiaramente diversa passa alla riserva, senza tradurre.
+
+Ogni documento aggiunge:
+
+```json
+{
+  "citizenCheck": {
+    "status": "warning",
+    "messages": ["Il documento richiede il controllo dello sportello."]
+  },
+  "citizenKeptAt": null
+}
+```
+
+Gli stati sono `pending | ok | warning | problem`; i testi provengono dai codici fissi del
+core, mai dalle osservazioni libere del modello. `ok` indica assenza di rilievi automatici,
+non validità ufficiale. `keep` registra `citizenKeptAt` e un evento: non accetta il documento,
+non rimuove rilievi e non cambia la decisione dell’operatore. Consentito solo durante
+`intake` e `needs_citizen`, dopo la fine dell’analisi. Id di un’altra pratica: `404`.
+
+Il fascicolo operatore aggiunge `assistantTurns` (sezione “Domande all’assistente”).
+Le domande allo sportello sono messaggi cittadino distinti, con evento `citizen.question`;
+`hasCitizenQuestion` nella coda segnala che il fascicolo contiene almeno una domanda.
+L’indicatore è storico: non esiste ancora un comando di presa in carico della domanda.

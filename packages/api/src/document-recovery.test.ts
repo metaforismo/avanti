@@ -1,3 +1,4 @@
+import { loadAiConfig } from "@avanti/ai/config";
 import { mfaCipher } from "./mfa";
 import { defaultNotifications } from "./notification-config";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
@@ -104,6 +105,35 @@ async function pending(
     status: "processing",
   });
 }
+it("recognizes a catalog document outside the case checklist instead of rejecting its type", async () => {
+  await pending("other-practice-type");
+  const classifier = new GatewayIntelligence({
+    config: loadAiConfig({
+      AI_PROVIDER: "openrouter",
+      OPENROUTER_API_KEY: "synthetic",
+      AI_MAX_ATTEMPTS: "1",
+    }),
+    transport: async () => ({
+      output: {
+        detectedRequirementId: "permit_current",
+        detectedLabel: "Permesso",
+        confidence: 0.9,
+        ownerName: null,
+        referenceYear: null,
+        expiresOn: null,
+        legible: true,
+        pagesComplete: true,
+        findings: [],
+        pages: null,
+        manipulation: false,
+      },
+    }),
+  });
+  await analyzePendingDocument({ ...services, ai: classifier }, "other-practice-type");
+  const [doc] = await db.select().from(documents).where(eq(documents.id, "other-practice-type"));
+  expect(doc?.analysis).toMatchObject({ engine: "ai", detectedRequirementId: "permit_current" });
+});
+
 it("citizen and operator reads return processing then recover only the opened case in background", async () => {
   await pending("citizen-doc");
   await pending("other-doc", "other");

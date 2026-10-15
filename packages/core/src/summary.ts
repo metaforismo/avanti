@@ -66,6 +66,8 @@ export function dossierSummary(
 const timelineLabels: Record<string, string> = {
   "case.reused": "Nucleo e documenti riusati per una nuova pratica",
   "document.reuse_checked": "Validità del documento riusato controllata",
+  "citizen.question": "Domanda del cittadino allo sportello",
+  "document.kept": "Documento confermato dal cittadino: è giusto così",
   "citizen.reminder_sent": "Promemoria inviato",
   "citizen.reminder_simulated": "Invio promemoria simulato",
   "privacy.accepted": "Presa visione dell’informativa registrata",

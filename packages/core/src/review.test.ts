@@ -22,6 +22,8 @@ function doc(id: string, checklistItemId: string): DocumentSummary {
     id,
     checklistItemId,
     memberId: "m",
+    citizenCheck: { status: "pending", messages: [] },
+    citizenKeptAt: null,
     fileName: "banca.pdf",
     mimeType: "application/pdf",
     sizeBytes: 100,

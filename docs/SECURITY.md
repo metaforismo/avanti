@@ -553,3 +553,34 @@ scoped alla sessione. I lock brevi sulle organizzazioni impediscono ammissioni c
 oltre il budget stimato; nessuna transazione resta aperta durante la chiamata al provider.
 In mancanza di contabilità si usa l'euristica. Il budget non è un controllo della fattura:
 confrontare periodicamente stime, prenotazioni residue e spesa del provider.
+
+### Assistente cittadino e audio
+
+I turni `citizen_assistant` e le domande `citizen_question` risiedono in `messages`, con
+la stessa FK a cascata, esportazione e retention del fascicolo. Le API non accettano una
+storia dal client. Il contesto dell’assistente seleziona esclusivamente pratica, domanda
+corrente con spiegazione, checklist con aiuti localizzati, FAQ curate e dati pubblici dello
+sportello. Nessuna nota interna, contatto del cittadino o contenuto dei documenti entra nel
+contesto. Le ultime sei coppie sono delimitate come testo non fidato, inclusi i turni AI.
+
+Il runtime mantiene guard, timeout, budget per CAF e telemetria senza contenuti. Il server
+ricontrolla fonti, richieste di dati personali e il numero 112 nelle emergenze. Le offerte
+riconoscibili di credenziali vengono sostituite da un avviso nella storia e nei messaggi allo
+sportello; non si deve comunque inserire un segreto nel servizio. I rilevatori di attacchi,
+segreti e lingua sono euristiche conservative, non dimostrazioni di assenza di ogni attacco.
+La capability viene ricontrollata sotto lock prima di salvare una risposta arrivata dall’AI:
+un link revocato o un fascicolo cancellato durante la rete non può aggiungere messaggi.
+
+Le quote dell’assistente, della voce e delle domande al CAF usano l’id della pratica,
+protetto con HMAC, prima del limite IP fidato; ruotare la capability non le azzera.
+L’audio è limitato in byte, riconosciuto dal contenuto e controllato per durata e tracce in
+memoria. Non viene scritto su disco né incluso nei log. La trascrizione resta input non
+fidato quando il cittadino la invia successivamente a un altro compito. Il prompt chiede
+trascrizione letterale nella lingua indicata, senza correggere o tradurre, con glossario
+italiano del dominio. Una lingua incompatibile fa provare il modello di riserva.
+`strict` non viene allentata automaticamente; i test sintetici `permissive` sono separati.
+
+I messaggi `citizenCheck` derivano solo dai codici fissi del core. Le osservazioni libere
+AI non vengono mostrate come esito di questo controllo. La conferma cittadino ha un timestamp
+proprio e non modifica analisi, rilievi o verifiche dell’operatore. Solo il cittadino della
+pratica può confermarla, durante le fasi modificabili. Nessuna nuova trasmissione agli enti.

@@ -44,6 +44,8 @@ function checklist(answers = answersWithMembers(), language: Language = "it") {
 function document(item: ChecklistItem, overrides: Partial<DocumentSummary> = {}): DocumentSummary {
   return {
     id: "doc_one",
+    citizenCheck: { status: "pending", messages: [] },
+    citizenKeptAt: null,
     fileName: "ESEMPIO.pdf",
     mimeType: "application/pdf",
     sizeBytes: 100,

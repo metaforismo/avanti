@@ -27,3 +27,10 @@ export * from "./prompts/operator-copilot";
 export { constitution, CONSTITUTION_VERSION } from "./prompts/constitution";
 export { converseTask, ConverseInput, ConverseOutput, deterministicReply } from "./conversation";
 export * from "./prompts/interview-conversation";
+export {
+  citizenAssistantTask,
+  safeAssistantOutput,
+  speechTask,
+  transcriptionLanguageMismatch,
+} from "./citizen-tasks";
+export type { AssistantInput, AssistantOutput } from "./citizen-tasks";

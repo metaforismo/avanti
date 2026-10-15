@@ -10,6 +10,8 @@ function sample(language: Language, name: string): CaseDossier {
   const now = "2027-01-10T12:00:00Z";
   return {
     id: "example-case",
+    assistantTurns: [],
+    hasCitizenQuestion: false,
     reference: "AV-2027-000123",
     citizenName: name,
     practice: {
@@ -71,6 +73,8 @@ function sample(language: Language, name: string): CaseDossier {
       {
         id: "example-doc",
         fileName: `ESEMPIO-${name}.pdf`,
+        citizenCheck: { status: "pending", messages: [] },
+        citizenKeptAt: null,
         mimeType: "application/pdf",
         sizeBytes: 2048,
         pages: 1,

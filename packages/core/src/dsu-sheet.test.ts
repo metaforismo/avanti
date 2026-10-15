@@ -46,6 +46,8 @@ function fixture() {
     item.documentIds = [id];
     return {
       id,
+      citizenCheck: { status: "pending", messages: [] },
+      citizenKeptAt: null,
       fileName: "ESEMPIO.pdf",
       mimeType: "application/pdf",
       sizeBytes: 100,
@@ -201,6 +203,8 @@ describe("DSU preparatory sheet", () => {
       const documents: DocumentSummary[] = [
         {
           id: "doc-selected",
+          citizenCheck: { status: "pending", messages: [] },
+          citizenKeptAt: null,
           fileName: "ESEMPIO.pdf",
           mimeType: "application/pdf",
           sizeBytes: 1,

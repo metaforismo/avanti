@@ -1,3 +1,4 @@
+import { citizenDataset } from "./citizen-dataset";
 import sharp from "sharp";
 import { Language, type Language as LanguageType } from "@avanti/contracts";
 import { getQuestions } from "@avanti/core";
@@ -71,7 +72,7 @@ export async function syntheticDocument(hostile = false) {
   return new Uint8Array(await sharp(Buffer.from(svg)).png().toBuffer());
 }
 export async function dataset(): Promise<EvalCase[]> {
-  const cases: EvalCase[] = [];
+  const cases: EvalCase[] = citizenDataset();
   for (const language of Language.options) {
     const questions = getQuestions("isee_ordinario", {}, language);
     const question = questions.find((q) => q.id === "household_count")!;

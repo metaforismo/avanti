@@ -1,0 +1,170 @@
+{
+  "configuration": {
+    "provider": "openrouter",
+    "models": {
+      "fast": "nvidia/nemotron-3-super-120b-a12b:free",
+      "audio": "google/gemini-3.5-flash-lite",
+      "reasoning": "nvidia/nemotron-3-super-120b-a12b:free",
+      "vision": "nvidia/nemotron-3-super-120b-a12b:free"
+    },
+    "dataPolicy": "strict",
+    "keyPresent": true,
+    "monthlyBudgetEur": 50
+  },
+  "transportOverride": true,
+  "summary": {
+    "status": "BLOCKED",
+    "mode": "live",
+    "cases": 8,
+    "correct": 8,
+    "accuracy": 1,
+    "ai": {
+      "cases": 0,
+      "correct": 0,
+      "accuracy": null
+    },
+    "heuristic": {
+      "cases": 8,
+      "correct": 8,
+      "accuracy": 1
+    },
+    "requests": 5,
+    "secretViolations": 0,
+    "languageMismatch": 0,
+    "costEstimateEur": 0,
+    "httpStatuses": {
+      "404": 5
+    },
+    "reason": "no_usable_ai_response"
+  },
+  "rows": [
+    {
+      "id": "citizen-explain-ar",
+      "task": "citizen.assistant",
+      "language": "ar",
+      "engine": "heuristic",
+      "model": null,
+      "attempts": 0,
+      "latencyMs": 0,
+      "costEstimateEur": 0,
+      "fallbackReason": "circuit_open",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-bn",
+      "task": "citizen.assistant",
+      "language": "bn",
+      "engine": "heuristic",
+      "model": null,
+      "attempts": 0,
+      "latencyMs": 0,
+      "costEstimateEur": 0,
+      "fallbackReason": "circuit_open",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-en",
+      "task": "citizen.assistant",
+      "language": "en",
+      "engine": "heuristic",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "attempts": 1,
+      "latencyMs": 525,
+      "costEstimateEur": 0,
+      "fallbackReason": "provider_error",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-es",
+      "task": "citizen.assistant",
+      "language": "es",
+      "engine": "heuristic",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "attempts": 1,
+      "latencyMs": 629,
+      "costEstimateEur": 0,
+      "fallbackReason": "provider_error",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-fr",
+      "task": "citizen.assistant",
+      "language": "fr",
+      "engine": "heuristic",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "attempts": 1,
+      "latencyMs": 680,
+      "costEstimateEur": 0,
+      "fallbackReason": "provider_error",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-it",
+      "task": "citizen.assistant",
+      "language": "it",
+      "engine": "heuristic",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "attempts": 1,
+      "latencyMs": 787,
+      "costEstimateEur": 0,
+      "fallbackReason": "provider_error",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-ro",
+      "task": "citizen.assistant",
+      "language": "ro",
+      "engine": "heuristic",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "attempts": 1,
+      "latencyMs": 139,
+      "costEstimateEur": 0,
+      "fallbackReason": "provider_error",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-uk",
+      "task": "citizen.assistant",
+      "language": "uk",
+      "engine": "heuristic",
+      "model": null,
+      "attempts": 0,
+      "latencyMs": 1,
+      "costEstimateEur": 0,
+      "fallbackReason": "circuit_open",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    }
+  ]
+}

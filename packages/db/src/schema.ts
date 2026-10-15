@@ -244,6 +244,7 @@ export const documents = pgTable(
     reusedFromYear: integer("reused_from_year"),
     reusedMember: jsonb("reused_member").$type<import("@avanti/contracts").Member>(),
     citizenVisible: boolean("citizen_visible").notNull().default(true),
+    citizenKeptAt: instant("citizen_kept_at"),
     analysisLeaseToken: text("analysis_lease_token"),
     analysisLeaseUntil: instant("analysis_lease_until"),
   },
@@ -270,10 +271,18 @@ export const messages = pgTable(
     role: text("role").$type<"citizen" | "assistant" | "operator" | "system">().notNull(),
     text: text("text").notNull(),
     kind: text("kind")
-      .$type<import("@avanti/contracts").ConversationTurn["kind"]>()
+      .$type<
+        | import("@avanti/contracts").ConversationTurn["kind"]
+        | "citizen_assistant"
+        | "citizen_question"
+      >()
       .notNull()
       .default("message"),
     questionId: text("question_id"),
+    assistantMetadata:
+      jsonb("assistant_metadata").$type<
+        Pick<import("@avanti/contracts").AssistantTurn, "intent" | "action" | "sources">
+      >(),
     originalText: text("original_text"),
     createdAt: instant("created_at").notNull(),
   },

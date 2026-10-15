@@ -108,6 +108,54 @@ it("keeps lexical Unicode validation local while sending a non-strict free-key s
     vi.unstubAllGlobals();
   }
 });
+it("sends audio in memory with the selected model and strict data policy", async () => {
+  let body: Record<string, unknown> = {};
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: unknown, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: '{"text":"ISEE"}' } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+        { headers: { "Content-Type": "application/json" } },
+      );
+    }),
+  );
+  try {
+    const transport = createTransport(
+      loadAiConfig({ AI_PROVIDER: "openrouter", OPENROUTER_API_KEY: "synthetic" }),
+    );
+    await transport({
+      model: "google/gemini-3.5-flash-lite",
+      models: ["google/gemini-3.5-flash-lite"],
+      system: "transcribe",
+      prompt: "language it",
+      schema: z.object({ text: z.string() }),
+      structured: true,
+      maxOutputTokens: 50,
+      signal: new AbortController().signal,
+      file: { bytes: new Uint8Array([1, 2, 3]), mime: "audio/webm" },
+    });
+    expect(body).toMatchObject({
+      provider: { data_collection: "deny", zdr: true },
+      model: "google/gemini-3.5-flash-lite",
+      messages: [
+        { role: "system" },
+        {
+          role: "user",
+          content: [
+            { type: "text" },
+            { type: "input_audio", input_audio: { data: "AQID", format: "webm" } },
+          ],
+        },
+      ],
+    });
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
 it.each(["off", "minimal", "low", "medium", undefined] as const)(
   "maps direct OpenAI reasoning %s and disables strict schema",
   async (reasoning) => {

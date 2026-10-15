@@ -15,7 +15,7 @@ configura il deploy di un CAF.
    fermano. Lo stato del sistema lo dice in chiaro.
 3. **Un provider si cambia da configurazione.** OpenRouter, OpenAI, Anthropic e Vercel AI
    Gateway sono intercambiabili: cambiano variabili d'ambiente, non codice. Il modello si sceglie
-   per compito (veloce, ragionamento, visione), con una catena di riserva.
+   per compito (veloce, ragionamento, visione, audio), con una catena di riserva.
 4. **Ogni uscita è validata.** Output strutturato con schema zod, controlli di dominio dopo lo
    schema (ID ammessi, anni plausibili, lingua), al massimo un tentativo di correzione, poi
    euristica. Un testo libero non entra mai nel database senza passare da uno schema.
@@ -47,16 +47,16 @@ packages/core          regole, catalogo, euristiche pure (restano la fonte di ve
 
 Ogni compito è una definizione:
 
-| Campo              | Significato                                                    |
-| ------------------ | -------------------------------------------------------------- |
-| `id`, `version`    | es. `citizen.assistant@3`; la versione entra nella telemetria  |
-| `tier`             | `fast`, `reasoning` o `vision`: sceglie il modello configurato |
-| `system`           | costituzione + prompt del compito, costruito da funzioni pure  |
-| `input` / `output` | schemi zod; l'output è sempre strutturato                      |
-| `validate`         | invarianti di dominio dopo lo schema                           |
-| `heuristic`        | risultato senza AI, sempre disponibile                         |
-| `limits`           | timeout, token massimi, temperatura, dimensione input          |
-| `data`             | quali campi del fascicolo possono entrare nel prompt           |
+| Campo              | Significato                                                             |
+| ------------------ | ----------------------------------------------------------------------- |
+| `id`, `version`    | es. `citizen.assistant@3`; la versione entra nella telemetria           |
+| `tier`             | `fast`, `reasoning`, `vision` o `audio`: sceglie il modello configurato |
+| `system`           | costituzione + prompt del compito, costruito da funzioni pure           |
+| `input` / `output` | schemi zod; l'output è sempre strutturato                               |
+| `validate`         | invarianti di dominio dopo lo schema                                    |
+| `heuristic`        | risultato senza AI, sempre disponibile                                  |
+| `limits`           | timeout, token massimi, temperatura, dimensione input                   |
+| `data`             | quali campi del fascicolo possono entrare nel prompt                    |
 
 ## Configurazione
 
@@ -66,6 +66,7 @@ OPENROUTER_API_KEY=…              # oppure OPENAI_API_KEY, ANTHROPIC_API_KEY, 
 AI_MODEL_FAST=…                   # conversazione, traduzione, classificazione
 AI_MODEL_REASONING=…              # riepiloghi, coerenza, prefill DSU
 AI_MODEL_VISION=…                 # lettura dei documenti
+AI_MODEL_AUDIO=google/gemini-3.5-flash-lite # trascrizione letterale
 AI_MODEL_FALLBACKS=…,…            # catena di riserva (OpenRouter: parametro models)
 AI_DATA_POLICY=strict             # strict: solo provider senza conservazione né addestramento
 AI_MONTHLY_BUDGET_EUR=…           # tetto per CAF, sovrascrivibile dall'amministratore
@@ -168,7 +169,7 @@ l'API usa l'euristica; le CLI sintetiche non scrivono nel DB.
 ## Verifiche e limiti osservabili
 
 `pnpm check` non usa provider esterni. `AI_LIVE=1` è necessario per eval/stress reali.
-Dataset: 74 casi sintetici, otto lingue per testo/traduzioni, immagini italiane normali e
+Dataset: 226 casi sintetici (inclusi 152 casi cittadino), otto lingue per testo/traduzioni, immagini italiane normali e
 ostili. Report separano uscite AI ed euristiche, JSON finale e rifiuti del guard. Accuratezza
 su campi annotati, precisione/richiamo sulle risposte (esclusi i fatti laterali del core);
 la fedeltà delle traduzioni richiede revisione umana. Il controllo lingua riconosce script
@@ -204,3 +205,8 @@ le estrazioni già presenti nel core, numeri e risposte esatte sì/no/opzioni/da
 referenziale, refusi e lingue miste hanno copertura limitata e vengono misurati nelle eval.
 Il modello non può completare l'intervista o modificare la checklist senza conferme.
 Prove e limiti: [ai-eval-interview.md](../verification/ai-eval-interview.md).
+
+La sessione cittadino aggiunge assistente con storia server, domande allo sportello,
+trascrizione e conferma dei documenti. Nessuna modifica a `/conversation` o `interview.converse`.
+Contratti e migrazione in [ai-citizen.md](ai-citizen.md); risultati reali, copertura AI distinta
+adeguatamente dal fallback e limiti osservati in [ai-eval-citizen.md](../verification/ai-eval-citizen.md).

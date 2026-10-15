@@ -223,6 +223,11 @@ export const DocumentReuseAssessment = z.object({
   checkedAt: IsoDateTime,
 });
 export type DocumentReuseAssessment = z.infer<typeof DocumentReuseAssessment>;
+export const CitizenCheck = z.object({
+  status: z.enum(["ok", "warning", "problem", "pending"]),
+  messages: z.array(SafeText),
+});
+export type CitizenCheck = z.infer<typeof CitizenCheck>;
 
 export const DocumentSummary = z.object({
   id: Id,
@@ -236,6 +241,8 @@ export const DocumentSummary = z.object({
   status: DocumentStatus,
   analysis: DocumentAnalysis.nullable(),
   reuse: DocumentReuseAssessment.nullable().optional(),
+  citizenCheck: CitizenCheck.default({ status: "pending", messages: [] }),
+  citizenKeptAt: IsoDateTime.nullable().default(null),
 });
 export type DocumentSummary = z.infer<typeof DocumentSummary>;
 
@@ -274,6 +281,59 @@ export const ChatMessage = z.object({
   originalText: SafeText.nullable(),
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
+
+export const AssistantIntent = z.enum([
+  "answer",
+  "needs_operator",
+  "off_topic",
+  "manipulation",
+  "emergency",
+]);
+export type AssistantIntent = z.infer<typeof AssistantIntent>;
+export const AssistantAction = z.enum(["none", "explain_question", "open_documents", "ask_desk"]);
+export const AssistantSource = z.object({ id: z.string(), title: z.string() });
+export const AssistantAsk = z.object({
+  message: SafeText.trim().min(1).max(600),
+  focus: z
+    .object({
+      questionId: z.string().max(160).optional(),
+      checklistItemId: z.string().max(160).optional(),
+    })
+    .optional(),
+});
+export type AssistantAsk = z.infer<typeof AssistantAsk>;
+export const AssistantReply = z.object({
+  id: Id,
+  reply: SafeText.min(1),
+  intent: AssistantIntent,
+  action: AssistantAction,
+  sources: z.array(AssistantSource),
+  engine: z.enum(["ai", "heuristic"]),
+  createdAt: IsoDateTime,
+});
+export type AssistantReply = z.infer<typeof AssistantReply>;
+export const AssistantTurn = z.object({
+  id: Id,
+  role: z.enum(["citizen", "assistant"]),
+  text: SafeText,
+  intent: AssistantIntent.optional(),
+  action: AssistantAction.optional(),
+  sources: z.array(AssistantSource).optional(),
+  createdAt: IsoDateTime,
+});
+export type AssistantTurn = z.infer<typeof AssistantTurn>;
+export const AssistantHistory = z.object({
+  messages: z.array(AssistantTurn),
+  remainingToday: z.number().int().min(0).max(80),
+});
+export const AskDesk = z.object({ message: SafeText.trim().min(1).max(600) });
+export const TranscribeFields = z.object({ language: Language });
+export const Transcription = z.object({
+  text: SafeText.min(1).max(6000),
+  language: Language,
+  engine: z.enum(["ai", "heuristic"]),
+});
+export type Transcription = z.infer<typeof Transcription>;
 
 /** External destination, never fetched by Avanti or included in notification emails. */
 export const BookingUrl = SafeName.trim()
@@ -548,6 +608,7 @@ export const MfaStatus = z.object({
 export type MfaStatus = z.infer<typeof MfaStatus>;
 
 export const CaseListItem = z.object({
+  hasCitizenQuestion: z.boolean().default(false),
   id: Id,
   reference: z.string(),
   citizenName: z.string().nullable(),
@@ -656,6 +717,7 @@ export const DsuSheetResponse = DsuSheet.nullable();
 
 /** Full dossier for operators. Everything is in Italian regardless of the citizen language. */
 export const CaseDossier = CaseListItem.extend({
+  assistantTurns: z.array(AssistantTurn).default([]),
   citizen: z.object({
     firstName: SafeName.nullable(),
     lastName: SafeName.nullable(),
@@ -1007,6 +1069,8 @@ export const AuditAction = z.enum([
   "review.started",
   "review.completed",
   "citizen.requested",
+  "citizen.question",
+  "document.kept",
   "document.uploaded",
   "document.analyzed",
   "document.reassigned",
@@ -1284,6 +1348,7 @@ export const ErrorCode = z.enum([
   "unsupported_file",
   "rate_limited",
   "ai_unavailable",
+  "transcription_unavailable",
   "internal",
 ]);
 export type ErrorCode = z.infer<typeof ErrorCode>;

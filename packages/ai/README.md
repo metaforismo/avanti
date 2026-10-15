@@ -34,7 +34,8 @@ una pratica indisponibile per mostrare il messaggio di recupero). Il ripiego è 
 lo schema e produrre testo locale sicuro. Un input non valido solleva ZodError: l'API valida
 prima coi contratti e restituisce ApiError, senza dettagli interni.
 
-Le prossime sessioni possono definire `citizen.assistant`, `dossier.*`, `dsu.prefill`,
+`citizen.assistant` (fast) e `speech.transcribe` (audio) sono definiti in `citizen-tasks.ts`.
+Le prossime sessioni possono definire `dossier.*`, `dsu.prefill`,
 `request.draft`, `operator.ask` come nuovi oggetti `Task`. I relativi prompt già scritti sono
 esportati; non ci sono implementazioni fittizie. Usare la costituzione comune e versionare
 ogni variazione del prompt. Le invarianti di dominio (ID, anni, citazioni) appartengono a
@@ -64,7 +65,7 @@ provider, non cancellarle automaticamente. Le tariffe devono coprire i modelli s
 
 Valutazione: `pnpm ai:eval [--task intake.understand|interview.freeform|document.analyze|translate]
 [--limit N]`. Offline per default; `AI_LIVE=1` abilita i provider. Dataset sintetico, 8 lingue,
-74 casi; documenti immagine generati in memoria con sharp. Report JSON e Markdown in
+226 casi, inclusi 152 casi cittadino multilingue; documenti immagine generati in memoria con sharp. Report JSON e Markdown in
 `docs/verification/`, distinti per modalità. La precisione ignora solo i fatti laterali
 `household_roles`/`household_relations`, non presenti negli ID del form. Per le traduzioni
 non si dichiara accuratezza semantica automatica: serve revisione umana. Lingua: il guard
@@ -107,3 +108,9 @@ La prenotazione usa il candidato più costoso della catena, inclusi i fallback.
 Le risposte salvate dalla CLI sono esclusivamente quelle del dataset sintetico, mai dati
 cittadino. Il gate live fallisce con fallback >=5%, mediana testo >=3000 ms o violazioni;
 le lingue latine richiedono ancora revisione semantica umana.
+
+Voce: `AI_MODEL_AUDIO` sceglie il modello (default `google/gemini-3.5-flash-lite`).
+La riserva audio è `qwen/qwen3.8-omni-flash`. L’API conserva la registrazione solo in memoria,
+riconosce il contenitore e verifica la durata prima di `runTask`. Un mismatch chiaro di lingua
+porta alla riserva senza allentare la policy dati. Budget e telemetria restano quelli del runtime.
+Prove e limiti in [ai-eval-citizen.md](../../docs/verification/ai-eval-citizen.md).

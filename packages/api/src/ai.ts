@@ -15,6 +15,14 @@ export interface Intelligence {
   readonly configured?: boolean;
   readonly fallbackCount?: number;
   readonly configuration?: ReturnType<typeof publicAiConfig>;
+  assistant?(
+    input: import("@avanti/ai").AssistantInput,
+  ): Promise<import("@avanti/ai").AssistantOutput & { engine: "ai" | "heuristic" }>;
+  transcribe?(input: {
+    bytes: Uint8Array;
+    mime: string;
+    language: Language;
+  }): Promise<{ text: string; language: Language; engine: "ai" | "heuristic" }>;
   intake(
     text: string,
     language: Language,
@@ -43,6 +51,7 @@ export type AiFallbackRecord = {
 export class AiIntelligence implements Intelligence {
   fallbackCount = 0;
   private runtime?: Promise<AiRuntime>;
+  private speechRuntimes = new Map<string, AiRuntime>();
   private config: AiConfig;
   readonly configuration: ReturnType<typeof publicAiConfig>;
   get configured() {
@@ -87,6 +96,47 @@ export class AiIntelligence implements Intelligence {
     }
     return result;
   }
+  async assistant(input: import("@avanti/ai").AssistantInput) {
+    const [runtime, { citizenAssistantTask, safeAssistantOutput }] = await Promise.all([
+      this.getRuntime(),
+      import("@avanti/ai"),
+    ]);
+    const result = this.observe(
+      "assistant",
+      await runtime.runTask(citizenAssistantTask, input, aiContext.getStore()),
+    );
+    const safe = safeAssistantOutput(result.output, input);
+    return { ...safe, engine: safe === result.output ? result.engine : ("heuristic" as const) };
+  }
+  async transcribe(input: { bytes: Uint8Array; mime: string; language: Language }) {
+    const [{ AiRuntime }, { speechTask }] = await Promise.all([
+      import("@avanti/ai/runtime"),
+      import("@avanti/ai"),
+    ]);
+    // Audio has its own reserve chain; text/vision fallbacks cannot ingest a recording.
+    const run = (model: string) => {
+      let runtime = this.speechRuntimes.get(model);
+      if (!runtime) {
+        runtime = new AiRuntime(
+          {
+            ...this.config,
+            models: { ...this.config.models, audio: model },
+            fallbacks: [],
+            maxAttempts: 1,
+          },
+          { transport: this.options.transport },
+        );
+        this.speechRuntimes.set(model, runtime);
+      }
+      return runtime.runTask(speechTask, input, aiContext.getStore());
+    };
+    let result = await run(this.config.models.audio);
+    if (result.engine !== "ai" && this.config.models.audio !== "qwen/qwen3.8-omni-flash")
+      result = await run("qwen/qwen3.8-omni-flash");
+    this.observe("transcribe", result);
+    return { text: result.output.text, language: input.language, engine: result.engine };
+  }
+
   async intake(
     text: string,
     language: Language,

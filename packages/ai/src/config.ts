@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const Provider = z.enum(["openrouter", "openai", "anthropic", "gateway", "none"]);
 export type Provider = z.infer<typeof Provider>;
-export type Tier = "fast" | "reasoning" | "vision";
+export type Tier = "fast" | "reasoning" | "vision" | "audio";
 const Reasoning = z.enum(["off", "minimal", "low", "medium"]);
 export type Reasoning = z.infer<typeof Reasoning>;
 const identifier = z
@@ -61,6 +61,7 @@ export function loadAiConfig(env: Record<string, string | undefined> = {}): AiCo
     key: env[keys[provider]]?.trim() || undefined,
     models: {
       fast,
+      audio: identifier.parse(env.AI_MODEL_AUDIO || "google/gemini-3.5-flash-lite"),
       reasoning: identifier.parse(env.AI_MODEL_REASONING || fast),
       vision: identifier.parse(env.AI_MODEL_VISION || fast),
     },

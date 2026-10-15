@@ -404,7 +404,7 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
     }
     if (!analysis.legible && analysis.engine !== "heuristic")
       finding("document.illegible", blocking, document, item);
-    if (analysis.pagesComplete === false)
+    if (analysis.engine !== "heuristic" && analysis.pagesComplete === false)
       finding("document.missing_pages", blocking, document, item);
     if (analysis.expiresOn && validDate(analysis.expiresOn)) {
       const days =
@@ -422,7 +422,12 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
       analysis.referenceYear !== year
     )
       finding("document.wrong_year", blocking, document, item, { year });
-    if (member && analysis.ownerName && !ownerMatches(analysis.ownerName, member))
+    if (
+      analysis.engine !== "heuristic" &&
+      member &&
+      analysis.ownerName &&
+      !ownerMatches(analysis.ownerName, member)
+    )
       finding("document.wrong_owner", member.lastName ? blocking : "warning", document, item);
     const practiceRequirements = new Set(checklist.map((entry) => entry.requirementId));
     if (
@@ -529,8 +534,13 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
 }
 
 export function ownerMatches(name: string, member: Member): boolean {
-  const fullName = normalizedName([member.firstName, member.lastName].filter(Boolean).join(" "));
-  const actual = normalizedName(name);
+  const normalize = (value: string) =>
+    normalizedName(value)
+      .normalize("NFD")
+      .replace(/(\p{Script=Latin})\p{M}+/gu, "$1")
+      .normalize("NFC");
+  const fullName = normalize([member.firstName, member.lastName].filter(Boolean).join(" "));
+  const actual = normalize(name);
   if (actual === fullName) return true;
   const expectedTokens = fullName.split(" ");
   const actualTokens = new Set(actual.split(" "));

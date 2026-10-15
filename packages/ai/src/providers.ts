@@ -13,6 +13,55 @@ export function anthropicReasoningBudget(config: AiConfig, model: string, reason
 
 export function createTransport(config: AiConfig): Transport {
   return async (request) => {
+    if (request.file?.mime.startsWith("audio/")) {
+      if (config.provider !== "openrouter") throw new Error("UnsupportedAudioProvider");
+      const format =
+        request.file.mime === "audio/mp4"
+          ? "m4a"
+          : request.file.mime.slice(6).replace("x-wav", "wav");
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        signal: request.signal,
+        headers: { Authorization: `Bearer ${config.key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: request.model,
+          provider:
+            config.dataPolicy === "strict"
+              ? { data_collection: "deny", zdr: true }
+              : { data_collection: "allow" },
+          messages: [
+            { role: "system", content: request.system },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: request.prompt },
+                {
+                  type: "input_audio",
+                  input_audio: { data: Buffer.from(request.file.bytes).toString("base64"), format },
+                },
+              ],
+            },
+          ],
+          max_tokens: request.maxOutputTokens,
+          ...(request.structured ? { response_format: { type: "json_object" } } : {}),
+        }),
+      });
+      if (!response.ok)
+        throw Object.assign(new Error("AudioProviderError"), { statusCode: response.status });
+      const result = (await response.json()) as {
+        choices?: { message?: { content?: string } }[];
+        model?: string;
+        usage?: { prompt_tokens?: number; completion_tokens?: number };
+      };
+      return {
+        text: result.choices?.[0]?.message?.content,
+        model: result.model,
+        usage: {
+          inputTokens: result.usage?.prompt_tokens,
+          outputTokens: result.usage?.completion_tokens,
+        },
+      };
+    }
     const { generateText, Output, jsonSchema } = await import("ai");
     let model;
     let providerOptions;
