@@ -22,3 +22,32 @@ export function resolveView(view: View | null, data: Pick<CitizenCase, "step">):
 
 /** Id of each step's <h1>, focused after navigation so screen readers announce the new step. */
 export const STEP_TITLE_ID = "step-title";
+
+export type InterviewEstimate = {
+  /** What to say about the questions left, or null when there is nothing honest to say. */
+  remaining: { min: number; max: number } | null;
+  /** 0–100, or null when the total is unknown. */
+  percent: number | null;
+};
+
+/**
+ * Answers open new questions (one per person, account, vehicle): the server gives an exact total
+ * only when nothing is pending, otherwise a range. The bar uses the middle of the range.
+ */
+export function interviewEstimate(progress: CitizenCase["progress"]): InterviewEstimate {
+  const {
+    questionsAnswered: answered,
+    questionsTotal: total,
+    questionsRemaining: range,
+  } = progress;
+  if (total > 0) {
+    const left = Math.max(0, total - answered);
+    return {
+      remaining: left > 0 ? { min: left, max: left } : null,
+      percent: (answered / total) * 100,
+    };
+  }
+  if (!range || range.max === 0) return { remaining: null, percent: null };
+  const middle = (range.min + range.max) / 2;
+  return { remaining: range, percent: (answered / (answered + middle)) * 100 };
+}

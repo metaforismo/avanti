@@ -5,8 +5,7 @@ import { useEffect, useRef } from "react";
 import type { MemberRole } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
-import { ProgressBar } from "@/components/ui/progress";
-import { errorMessage, format } from "@/lib/citizen/messages";
+import { errorMessage } from "@/lib/citizen/messages";
 import { useConversation, type ConversationTurn } from "@/lib/citizen/conversation";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import { ChatBubble } from "./chat-bubble";
@@ -14,6 +13,7 @@ import type { StepProps } from "./citizen-app";
 import { Composer } from "./composer";
 import { AnsweredList, InterviewStep } from "./interview-step";
 import { ProposalsCard } from "./proposals-card";
+import { InterviewProgressBar, RemainingQuestions } from "./interview-progress";
 import { QuestionCard } from "./question-card";
 
 /**
@@ -26,7 +26,7 @@ export function ConversationStep(props: StepProps) {
   const { api, data, m, token, goTo } = props;
   const conversation = useConversation(token, null);
   const { load, state } = conversation;
-  const { questionsAnswered, questionsTotal } = data.progress;
+  const { questionsAnswered } = data.progress;
   const bottom = useRef<HTMLDivElement>(null);
 
   // Answers given with the buttons go through the classic turn: refresh the conversation after.
@@ -41,8 +41,6 @@ export function ConversationStep(props: StepProps) {
 
   if (!state && conversation.error?.status === 404) return <InterviewStep {...props} />;
 
-  const remaining = Math.max(0, questionsTotal - questionsAnswered);
-  const percent = questionsTotal > 0 ? (questionsAnswered / questionsTotal) * 100 : 0;
   const question = state?.ask[0] ?? data.nextQuestion ?? null;
   const thinking = conversation.pending === "send";
 
@@ -57,24 +55,9 @@ export function ConversationStep(props: StepProps) {
           >
             {data.practice?.name ?? m.steps.interview}
           </h1>
-          {remaining > 0 && (
-            <p aria-hidden className="text-sm text-ink-3">
-              {remaining === 1
-                ? m.interview.remainingOne
-                : format(m.interview.remainingMany, { n: remaining })}
-            </p>
-          )}
+          <RemainingQuestions progress={data.progress} m={m} />
         </div>
-        {questionsTotal > 0 && (
-          <ProgressBar
-            value={percent}
-            label={format(m.interview.progressLabel, {
-              n: questionsAnswered,
-              total: questionsTotal,
-            })}
-            className="mt-2"
-          />
-        )}
+        <InterviewProgressBar progress={data.progress} m={m} />
       </div>
 
       <ol aria-live="polite" aria-relevant="additions" className="grid gap-3">

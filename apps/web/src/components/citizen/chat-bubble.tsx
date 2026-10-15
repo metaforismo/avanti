@@ -1,3 +1,4 @@
+import { WithCallLinks } from "./assistant-message";
 import { Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
@@ -46,7 +47,7 @@ export function ChatBubble({
         )}
         {before}
         <p dir="auto" className="break-words whitespace-pre-line">
-          {text}
+          {mine ? text : <WithCallLinks text={text} />}
         </p>
         {children}
       </div>
