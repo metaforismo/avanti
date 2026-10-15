@@ -29,3 +29,22 @@ Verifica locale: le suite `administration.test.ts`, `notifications.test.ts`,
 `citizen-copy.test.ts` e `next-steps-migration.test.ts` coprono i contratti, i
 confini del tenant, il submit reale e l'aggiornamento di dati preesistenti.
 Le prove UI e la consegna di email reali richiedono verifiche distinte.
+
+## Limite anti-abuso delle ricevute
+
+L'email del cittadino non è verificata. Si riusa `consumeRateLimit` nella
+transazione del primo submit: massimo 2 ricevute per email in una finestra fissa
+di 24 ore dal primo accodamento, condivisa fra organizzazioni. Chiave HMAC con
+`RATE_LIMIT_SECRET`, dominio dedicato, `trim().toLowerCase()`; nessun destinatario
+in chiaro nelle tabelle di supporto. Il fallback locale condivide il segreto di
+processo degli altri rate limit. Nessuna migrazione né modifica ai contratti.
+
+Quando il contatore supera 2, la ricevuta non viene accodata e il submit procede
+senza errori. Il contatore persistente registra anche i tentativi soppressi;
+la manutenzione elimina i bucket scaduti. Un rollback del submit annulla anche
+il consumo del budget. Deduplica e guardia `submittedAt` restano attive.
+
+`notifications.test.ts` verifica soppressione al terzo invio con submit riuscito,
+quota fra CAF, normalizzazione, indipendenza degli indirizzi, sole chiavi HMAC,
+scadenza esatta a 24 ore, concorrenza e rollback. Il controllo limita l'abuso
+verso un destinatario; non sostituisce la verifica del possesso della casella.

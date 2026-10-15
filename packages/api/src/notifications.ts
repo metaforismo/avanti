@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
 import {
   cases,
+  consumeRateLimit,
   notifications,
   offices,
   operators,
@@ -19,6 +20,7 @@ import { audit } from "./dossier";
 import { reminderNotification } from "./reminder-copy";
 import { DeliveryFailure } from "./email";
 import { submissionReceipt } from "./submission-receipt";
+import { rateKey, rateLimitSecret } from "./rate-limit-key";
 
 export const NOTIFICATION_ATTEMPTS = 5;
 export const NOTIFICATION_BATCH = 5;
@@ -140,6 +142,21 @@ export async function enqueueSubmissionReceipt(db: Database, s: Services, row: C
     .from(offices)
     .where(and(eq(offices.id, row.officeId), eq(offices.organizationId, row.organizationId)));
   if (!office) throw new Error("Notification office missing");
+  const now = s.clock();
+  // Global recipient budget: neither tenant nor case identity may let a caller bypass it.
+  const limit = await consumeRateLimit(
+    db,
+    rateKey(
+      rateLimitSecret(s.rateLimitSecret),
+      "citizen_submission:email:86400",
+      row.contact.email.trim().toLowerCase(),
+    ),
+    now,
+    2,
+    86400,
+  );
+  // rate_limits.count records suppressed attempts too, without plaintext recipient data.
+  if (!limit.allowed) return;
   return enqueueNotification(
     db,
     s.notifications,
@@ -152,7 +169,7 @@ export async function enqueueSubmissionReceipt(db: Database, s: Services, row: C
       to: row.contact.email,
       email: submissionReceipt(row.language, row.reference, office.name),
     },
-    s.clock(),
+    now,
   );
 }
 
