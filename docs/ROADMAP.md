@@ -55,6 +55,21 @@ nelle PR.
 - Decisioni commerciali del fondatore in `docs/gtm/README.md` (sedi, budget pilota, soglie,
   prezzo da testare, promesse in landing).
 
+## Fatto di recente (15 ottobre, sera): l'AI dentro il flusso
+
+- Runtime AI unico per OpenRouter, OpenAI, Anthropic e AI Gateway: solo fornitori a
+  conservazione zero, budget mensile per CAF, pagina admin con consumi; senza AI si va avanti con
+  le regole (`docs/decisions/ai-platform.md`).
+- Cittadino: intervista come conversazione con proposte da confermare, assistente, voce, controlli
+  immediati sui documenti con «È giusto così»; emergenze riconosciute prima del modello con 112 e
+  1522; numero di domande rimanenti che non sale più.
+- Operatore: copilota con riepilogo e controlli incrociati, importi DSU letti dai documenti da
+  confermare, bozze di risposta dalle fonti, priorità in coda, interruttori AI del CAF.
+- Provato nel browser con il trasporto di produzione: otto difetti che le eval sintetiche non
+  vedevano, tutti corretti; eval del copilota ora usa la configurazione reale.
+- Interfaccia: componenti condivisi per avvisi, intestazioni, caricamenti e scelte; errori sempre
+  annunciati; arabo corretto anche in coda e nei QR; pagina Accessibilità.
+
 ## Fatto di recente (15 ottobre)
 
 - Prestazioni misurate prima di toccare: aprire una pratica passa da 842 a 103 ms, le schermate
@@ -114,7 +129,8 @@ nelle PR.
 | Area       | Cosa serve                                                                                           | Chi                     |
 | ---------- | ---------------------------------------------------------------------------------------------------- | ----------------------- |
 | Hosting    | Deploy di produzione (Vercel + Postgres in UE + Blob privato), dominio, backup                       | Team                    |
-| AI         | Scelta del fornitore via AI Gateway con regione UE e zero data retention; prova su documenti fittizi | Team                    |
+| AI         | Modello di produzione dopo eval su casi reali anonimizzati; contratti ZDR e regione UE dei fornitori | Team                    |
+| AI         | «Quasi pronta» in ombra secondo `docs/decisions/threshold-automation.md`, se approvata               | Team + CAF              |
 | Legale     | Accordo art. 28 con ogni CAF, DPIA, informativa nelle lingue dello sportello, registro trattamenti   | Team + consulente + CAF |
 | Normativa  | Verifica delle regole ISEE 2027 quando escono modello e istruzioni definitive                        | Team + CAF              |
 | Traduzioni | Revisione delle 7 lingue straniere da madrelingua, priorità bengalese e arabo                        | Mediatori dei CAF       |
