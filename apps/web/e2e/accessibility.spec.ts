@@ -1,10 +1,17 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { logIn } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
 
 async function expectNoSeriousViolations(page: Page) {
+  // Contrast is a property of the settled page: with motion on, axe can sample a section that
+  // is fading in (content-visibility reveals it only when axe reaches it).
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // And settled data: axe reads the DOM over several ticks, and a button that stops loading
+  // halfway through is reported as unnamed although it never is.
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
@@ -38,9 +45,7 @@ test("operator login and queue are accessible", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Accedi alla console" })).toBeVisible();
   await expectNoSeriousViolations(page);
 
-  await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
   await expectNoSeriousViolations(page);
 });

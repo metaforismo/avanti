@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { logIn } from "./helpers";
 
 /**
  * Regenerates the README screenshots: `pnpm --filter @avanti/web screenshots`.
@@ -70,9 +71,7 @@ test("citizen flow", async ({ page }) => {
 test("console", async ({ page }) => {
   await page.setViewportSize({ width: 1360, height: 900 });
   await page.goto("/console/accedi");
-  await page.getByLabel("Email").fill(DEMO.email);
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
   await page.screenshot({ path: `${OUT}/console-coda.png` });
   // A seeded demo case (fictitious "Persona Esempio"), more representative than test leftovers.
