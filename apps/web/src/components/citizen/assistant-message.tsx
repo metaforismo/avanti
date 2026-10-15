@@ -1,5 +1,6 @@
-import { Sparkles } from "lucide-react";
 import type { ChatMessage } from "@avanti/contracts";
+import { WithCallLinks } from "./call-links";
+import { AssistantMark } from "./chat-bubble";
 
 /** Latest assistant reply, always labelled as automated (AI Act art. 50 transparency). */
 export function AssistantMessage({
@@ -23,40 +24,12 @@ export function AssistantMessage({
 
 function Bubble({ message, label }: { message: ChatMessage; label: string }) {
   return (
-    <div
-      key={message.id}
-      className="animate-rise rounded-lg rounded-ss-xs bg-stamp-wash px-4 py-3.5"
-    >
-      <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-stamp">
-        <Sparkles className="size-3.5" aria-hidden />
-        {label}
-      </p>
-      <p dir="auto" className="text-[1.0625rem] leading-relaxed whitespace-pre-line text-ink">
+    <div key={message.id} className="grid animate-rise gap-1.5">
+      <AssistantMark label={label} />
+      <p dir="auto" className="ps-8 text-[1.0625rem] leading-relaxed whitespace-pre-line text-ink">
         <WithCallLinks text={message.text} />
       </p>
     </div>
-  );
-}
-
-// Emergency (112) and anti-violence (1522) numbers: one tap to call, from a phone in a hurry.
-const EMERGENCY = /(?<![\d+])(112|1522)(?!\d)/g;
-
-export function WithCallLinks({ text }: { text: string }) {
-  const parts = text.split(EMERGENCY);
-  if (parts.length === 1) return text;
-  return parts.map((part, i) =>
-    i % 2 === 1 ? (
-      <a
-        key={i}
-        href={`tel:${part}`}
-        dir="ltr"
-        className="font-bold whitespace-nowrap text-danger underline underline-offset-2"
-      >
-        {part}
-      </a>
-    ) : (
-      part
-    ),
   );
 }
 

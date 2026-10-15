@@ -25,7 +25,7 @@ export const STEP_TITLE_ID = "step-title";
 
 export type InterviewEstimate = {
   /** What to say about the questions left, or null when there is nothing honest to say. */
-  remaining: { min: number; max: number } | null;
+  remaining: { min: number; max: number; atLeast?: boolean } | null;
   /** 0–100, or null when the total is unknown. */
   percent: number | null;
 };
@@ -48,6 +48,14 @@ export function interviewEstimate(progress: CitizenCase["progress"]): InterviewE
     };
   }
   if (!range || range.max === 0) return { remaining: null, percent: null };
+  // A range like 16–441 (many accounts or people still possible) says nothing useful: give the
+  // floor, which is true, and size the bar on it.
+  if (range.max > range.min * 1.5 + 4) {
+    return {
+      remaining: { min: range.min, max: range.min, atLeast: true },
+      percent: (answered / (answered + range.min)) * 100,
+    };
+  }
   const middle = (range.min + range.max) / 2;
   return { remaining: range, percent: (answered / (answered + middle)) * 100 };
 }

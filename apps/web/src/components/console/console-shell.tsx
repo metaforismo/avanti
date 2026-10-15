@@ -10,6 +10,7 @@ import {
   Menu,
   Plus,
   QrCode,
+  Search,
   ScrollText,
   Settings,
   Sparkles,
@@ -33,6 +34,8 @@ import { PasswordForm } from "./admin/password-form";
 import { MfaSetupFlow } from "./mfa/setup-flow";
 import { MfaVerifyForm } from "./mfa/verify-form";
 import { NewCaseDialog } from "./new-case-dialog";
+import { CommandPalette } from "./command-palette";
+import { useRecentCases } from "@/lib/console/recent-cases";
 
 type NavItem = {
   href: Route;
@@ -109,7 +112,19 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [searching, setSearching] = useState(false);
   const pathname = usePathname();
+
+  // ⌘K / Ctrl+K opens the search from anywhere in the console, as in most work tools.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return;
+      event.preventDefault();
+      setSearching((open) => !open);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Scope for the console's dark theme (see globals.css): citizen pages stay light.
   useEffect(() => {
@@ -224,6 +239,15 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
             <Logo />
           </Link>
           <Button
+            variant="ghost"
+            size="icon"
+            className="ms-auto"
+            aria-label="Cerca"
+            onClick={() => setSearching(true)}
+          >
+            <Search className="size-5" aria-hidden />
+          </Button>
+          <Button
             id="console-menu-toggle"
             variant="ghost"
             size="icon"
@@ -250,11 +274,23 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
               <Logo />
             </Link>
           </div>
-          <div className="px-3 pt-3 lg:pt-1">
+          <div className="grid gap-1.5 px-3 pt-3 lg:pt-1">
             <Button className="w-full justify-start" onClick={() => setCreating(true)}>
               <Plus className="size-4" aria-hidden />
               Nuova pratica
             </Button>
+            <button
+              type="button"
+              onClick={() => setSearching(true)}
+              aria-keyshortcuts="Meta+K Control+K"
+              className="flex h-10 items-center gap-3 rounded-sm px-3 text-body-sm text-ink-2 transition-colors hover:bg-sunk hover:text-ink"
+            >
+              <Search className="size-4.5" aria-hidden />
+              <span className="flex-1 text-start">Cerca</span>
+              <kbd className="hidden rounded-xs px-1.5 font-mono text-xs text-ink-3 ring-1 ring-line-strong lg:block">
+                ⌘K
+              </kbd>
+            </button>
           </div>
           <nav aria-label="Console" className="mt-4 flex-1 px-3">
             <ul className="grid gap-0.5">
@@ -281,6 +317,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
                 },
               )}
             </ul>
+            <RecentCases operatorId={operator.id} />
           </nav>
           <OperatorCard operator={operator} />
         </aside>
@@ -290,7 +327,48 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <NewCaseDialog open={creating} onOpenChange={setCreating} />
+      <CommandPalette
+        open={searching}
+        onOpenChange={setSearching}
+        onNewCase={() => setCreating(true)}
+        operatorId={operator.id}
+        pages={NAV.filter((item) => !item.adminOnly || operator.role === "admin").map(
+          ({ href, label, icon }) => ({ href, label, icon }),
+        )}
+      />
     </OperatorProvider>
+  );
+}
+
+/** The last dossiers opened in this browser session, one click away. */
+function RecentCases({ operatorId }: { operatorId: string }) {
+  const recent = useRecentCases(operatorId);
+  const pathname = usePathname();
+  if (recent.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <p className="px-3 pb-1.5 text-xs font-semibold text-ink-3">Aperte di recente</p>
+      <ul className="grid gap-0.5">
+        {recent.slice(0, 5).map((item) => {
+          const href = `/console/pratiche/${item.id}` as Route;
+          const active = pathname === href;
+          return (
+            <li key={item.id}>
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "block truncate rounded-sm px-3 py-1.5 text-sm transition-colors",
+                  active ? "bg-sunk text-ink" : "text-ink-2 hover:bg-sunk hover:text-ink",
+                )}
+              >
+                {item.name ?? item.reference}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
