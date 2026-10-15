@@ -40,6 +40,9 @@ function policy(path: string, method: string): Policy | null {
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
   if (method !== "POST") return null;
+  if (/^\/api\/cases\/[^/]+\/(reuse|documents\/[^/]+\/reuse-check)$/.test(path))
+    return RATE_POLICIES.link;
+  if (path === "/api/cases/families/search") return RATE_POLICIES.link;
   if (/^\/api\/cases\/[^/]+\/link$/.test(path)) return RATE_POLICIES.link;
   if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return RATE_POLICIES.translate;
   if (path.startsWith("/api/auth/mfa/")) return RATE_POLICIES.mfa;

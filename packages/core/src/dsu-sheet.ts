@@ -7,7 +7,7 @@ import type {
   Member,
   PracticeId,
 } from "@avanti/contracts";
-import { boundedCount, catalog, type Answers } from "./catalog";
+import { boundedCount, referenceYearFor, type Answers } from "./catalog";
 import type { RequirementId } from "./requirements";
 
 export function formatDsuDate(value: string): string | null {
@@ -74,7 +74,7 @@ export function buildDsuSheet(
   documents: DocumentSummary[],
 ): DsuSheet | null {
   if (practiceId !== "isee_ordinario") return null;
-  const referenceYear = catalog.isee_ordinario.referenceYear!;
+  const referenceYear = referenceYearFor("isee_ordinario", answers)!;
   const sections: DsuSection[] = [];
   const orderedDocuments = [...documents].sort((a, b) => a.id.localeCompare(b.id, "en"));
   const people = [
@@ -629,7 +629,7 @@ export function buildDsuSheet(
     declarationYear: referenceYear + 2,
     referenceYear,
     notes: [
-      "Prospetto preparatorio, non DSU ufficiale. Modello verificato 2026; modello 2027 non verificato. Ricontrollare prima del pilota.",
+      `Prospetto preparatorio, non DSU ufficiale. Modello verificato 2026; modello ${referenceYear + 2} non verificato. Ricontrollare prima del pilota.`,
       `Redditi e giacenza media: ${referenceYear}; patrimoni: ${formatDsuDate(`${referenceYear}-12-31`)}. Nucleo, casa e veicoli: alla presentazione.`,
       "Valori documentali non estratti. Date: gg/mm/aaaa; importi: due decimali con virgola, senza calcoli ISEE o arrotondamenti fiscali automatici.",
       "Nessuno: voce esclusa dal cittadino nell'intervista, da confermare al CAF. Dati mancanti: acquisire; documenti verificati: leggere il campo.",

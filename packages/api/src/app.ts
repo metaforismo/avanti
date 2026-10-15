@@ -24,6 +24,7 @@ import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
 import { mountPilotReportRoutes } from "./routes/pilot-report";
 import { mountAuditRoutes } from "./audit-log";
+import { mountFamilyReuseRoutes } from "./family-reuse";
 import { mountSystemStatus } from "./system-status";
 
 export function createApp(options: ApiOptions) {
@@ -97,6 +98,7 @@ export function createApp(options: ApiOptions) {
   mountMfaRoutes(app, services);
   mountCitizenRoutes(app, services);
   mountOperatorRoutes(app, services);
+  mountFamilyReuseRoutes(app, services);
   mountAdministrationRoutes(app, services);
   mountQuickReplyRoutes(app, services);
   mountAuditRoutes(app, services);

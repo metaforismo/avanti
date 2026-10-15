@@ -118,15 +118,31 @@ export const catalog: Record<PracticeId, PracticeDefinition> = {
   },
 };
 
-export function getPractice(id: PracticeId, language: Language): PracticeSummary {
+export function practiceYear(answers: Answers): number {
+  return typeof answers.practice_year === "number" ? answers.practice_year : 2027;
+}
+
+export function referenceYearFor(id: PracticeId, answers: Answers): number | null {
+  const base = catalog[id].referenceYear;
+  return base === null ? null : base + practiceYear(answers) - 2027;
+}
+
+export function getPractice(
+  id: PracticeId,
+  language: Language,
+  answers: Answers = {},
+): PracticeSummary {
   const definition = catalog[id];
   return {
     id,
     category: definition.category,
     availability: definition.availability,
     name: t(language, definition.name),
-    description: t(language, definition.description),
-    referenceYear: definition.referenceYear,
+    description: t(language, definition.description, {
+      year: referenceYearFor(id, answers) ?? "",
+      practiceYear: practiceYear(answers),
+    }),
+    referenceYear: referenceYearFor(id, answers),
     estimatedMinutes: definition.estimatedMinutes,
   };
 }
@@ -266,24 +282,24 @@ const extraPrompts = {
     "১৮–২০ বছরের সন্তান, প্রতিবন্ধী সন্তান বা বিশেষ অভিভাবকত্ব আছে?",
   ],
   tax_expenses: [
-    "Hai spese 2026 da portare al CAF (sanità, scuola, affitto, mutuo o altre)?",
-    "Do you have expenses for 2026 to show the CAF (health, school, rent, mortgage or other)?",
-    "Avez-vous des dépenses 2026 pour le CAF (santé, école, loyer, prêt ou autres) ?",
-    "¿Tienes gastos de 2026 para el CAF (salud, escuela, alquiler, hipoteca u otros)?",
-    "Ai cheltuieli din 2026 pentru CAF (sănătate, școală, chirie, credit sau altele)?",
-    "Чи маєте витрати за 2026 рік для CAF (здоров’я, школа, оренда, кредит тощо)?",
-    "هل لديك مصاريف 2026 لعرضها على CAF (صحة أو مدرسة أو إيجار أو قرض أو غيرها)؟",
-    "CAF-কে দেখানোর ২০২৬-এর খরচ আছে (স্বাস্থ্য, স্কুল, ভাড়া, ঋণ বা অন্য)?",
+    "Hai spese {year} da portare al CAF (sanità, scuola, affitto, mutuo o altre)?",
+    "Do you have expenses for {year} to show the CAF (health, school, rent, mortgage or other)?",
+    "Avez-vous des dépenses {year} pour le CAF (santé, école, loyer, prêt ou autres) ?",
+    "¿Tienes gastos de {year} para el CAF (salud, escuela, alquiler, hipoteca u otros)?",
+    "Ai cheltuieli din {year} pentru CAF (sănătate, școală, chirie, credit sau altele)?",
+    "Чи маєте витрати за {year} рік для CAF (здоров’я, школа, оренда, кредит тощо)?",
+    "هل لديك مصاريف {year} لعرضها على CAF (صحة أو مدرسة أو إيجار أو قرض أو غيرها)؟",
+    "CAF-কে দেখানোর {year}-এর খরচ আছে (স্বাস্থ্য, স্কুল, ভাড়া, ঋণ বা অন্য)?",
   ],
   tax_foreign: [
-    "Nel 2026 avevi redditi o beni all’estero? Il CAF verifica anche la scelta del modello.",
-    "Did you have income or assets abroad in 2026? The CAF also checks which tax form applies.",
-    "Aviez-vous des revenus ou biens à l’étranger en 2026 ? Le CAF vérifie aussi le formulaire adapté.",
-    "¿En 2026 tenías ingresos o bienes en el extranjero? El CAF revisa también el formulario adecuado.",
-    "În 2026 aveai venituri sau bunuri în străinătate? CAF verifică și formularul potrivit.",
-    "Чи мали Ви доходи чи майно за кордоном у 2026 році? CAF також перевірить потрібну форму.",
-    "هل كان لديك دخل أو ممتلكات خارج إيطاليا في 2026؟ يتحقق CAF أيضًا من النموذج المناسب.",
-    "২০২৬-এ বিদেশে আয় বা সম্পদ ছিল? CAF সঠিক কর ফর্মও যাচাই করবে।",
+    "Nel {year} avevi redditi o beni all’estero? Il CAF verifica anche la scelta del modello.",
+    "Did you have income or assets abroad in {year}? The CAF also checks which tax form applies.",
+    "Aviez-vous des revenus ou biens à l’étranger en {year} ? Le CAF vérifie aussi le formulaire adapté.",
+    "¿En {year} tenías ingresos o bienes en el extranjero? El CAF revisa también el formulario adecuado.",
+    "În {year} aveai venituri sau bunuri în străinătate? CAF verifică și formularul potrivit.",
+    "Чи мали Ви доходи чи майно за кордоном у {year} році? CAF також перевірить потрібну форму.",
+    "هل كان لديك دخل أو ممتلكات خارج إيطاليا في {year}؟ يتحقق CAF أيضًا من النموذج المناسب.",
+    "{year}-এ বিদেশে আয় বা সম্পদ ছিল? CAF সঠিক কর ফর্মও যাচাই করবে।",
   ],
   permit_action: [
     "È il primo rilascio o il rinnovo del permesso?",
@@ -458,7 +474,15 @@ export function questionDefinitions(
     section: TextKey,
     extra: Partial<Question> = {},
   ) {
-    add(id, kind, t(language, id), section, true, [], extra);
+    add(
+      id,
+      kind,
+      t(language, id, { year: referenceYearFor(practiceId, answers) ?? "" }),
+      section,
+      true,
+      [],
+      extra,
+    );
   }
   function selectMembers(id: string, parent: string) {
     if (answers[parent] === true)
@@ -466,7 +490,7 @@ export function questionDefinitions(
         id,
         "multi_choice",
         localize(language, selectionPrompts[parent]!, {
-          year: catalog[practiceId].referenceYear ?? "",
+          year: referenceYearFor(practiceId, answers) ?? "",
         }),
         "particular",
         true,
@@ -500,7 +524,7 @@ export function questionDefinitions(
         `income_present_${member.id}`,
         "yes_no",
         localize(language, extraPrompts.income_present, {
-          year: catalog[practiceId].referenceYear ?? "",
+          year: referenceYearFor(practiceId, answers) ?? "",
           name: [member.firstName, member.lastName].filter(Boolean).join(" "),
         }),
         "incomeGroup",
@@ -592,7 +616,10 @@ export function questionDefinitions(
       add(
         `property_mortgage_${index}`,
         "yes_no",
-        t(language, "property_mortgage", { index: index + 1 }),
+        t(language, "property_mortgage", {
+          index: index + 1,
+          year: referenceYearFor(practiceId, answers) ?? "",
+        }),
         "assets",
         true,
         ["properties_count"],
@@ -648,11 +675,20 @@ export function questionDefinitions(
     add(
       "tax_expenses",
       "yes_no",
-      localize(language, extraPrompts.tax_expenses),
+      localize(language, extraPrompts.tax_expenses, {
+        year: referenceYearFor(practiceId, answers) ?? "",
+      }),
       "incomeGroup",
       false,
     );
-    add("tax_foreign", "yes_no", localize(language, extraPrompts.tax_foreign), "incomeGroup");
+    add(
+      "tax_foreign",
+      "yes_no",
+      localize(language, extraPrompts.tax_foreign, {
+        year: referenceYearFor(practiceId, answers) ?? "",
+      }),
+      "incomeGroup",
+    );
   } else if (practiceId === "permesso_soggiorno") {
     add(
       "permit_action",

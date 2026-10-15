@@ -42,7 +42,9 @@ export async function administer<T>(
       .select({ id: organizations.id })
       .from(organizations)
       .where(eq(organizations.id, actor.organizationId))
-      .for("update");
+      // Retention holds case locks before inserting audit FKs to this organization.
+      // Keep KEY SHARE compatible while still excluding other operator mutations.
+      .for("no key update");
     const [current] = await tx
       .select()
       .from(operators)

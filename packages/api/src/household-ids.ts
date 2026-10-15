@@ -6,6 +6,7 @@ import { ApiFailure } from "./security";
 export function storeMemberIds(
   answers: Record<string, AnswerValue>,
   previous: Record<string, AnswerValue>,
+  matchMissingIds = true,
 ): Record<string, AnswerValue> {
   if (!Array.isArray(answers.members)) return answers;
   const before = buildHousehold(previous);
@@ -19,7 +20,7 @@ export function storeMemberIds(
         400,
         "Il componente del nucleo familiare non è valido. Ricarica la pagina.",
       );
-    if (!input.id) {
+    if (!input.id && matchMissingIds) {
       match = before.find(
         (member) =>
           !used.has(member.id) &&

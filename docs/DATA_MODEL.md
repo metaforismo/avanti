@@ -221,3 +221,16 @@ o senza email non si registra una notifica e non la si recupera retroattivamente
 Il provider continua a ricevere l'ID tecnico stabile della notifica come chiave
 di idempotenza entro la sua finestra; questa non è una garanzia di consegna alla
 casella del destinatario.
+
+## Famiglie collegate e file condivisi (0014)
+
+`cases.family_id` è il gruppo opaco creato dall'operatore nel proprio CAF durante
+il riuso. Non dipende dalla sopravvivenza della pratica sorgente. L'anno applicativo
+è in `answers.practice_year`, con default di catalogo 2027 per i record precedenti.
+Ogni pratica conserva documenti e verifiche indipendenti; più documenti possono
+referenziare la stessa `storage_key`. `reused_from_year` conserva l'anno originario,
+`reused_member` l'identità al momento del riuso e `citizen_visible` l'autorizzazione
+alla visibilità. La coda verifica i riferimenti prima di ogni cancellazione fisica.
+La retention elimina una sola pratica alla volta; la richiesta dell'interessato
+usa `family-erasure` per l'intero gruppo. Nessuna variazione alla portata dell'export.
+Dettagli ed esempi in [document-reuse.md](decisions/document-reuse.md).
