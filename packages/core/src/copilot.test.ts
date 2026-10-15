@@ -40,6 +40,8 @@ function fixture(owner = "ROSSI JOSE", year = 2025, expiresOn: string | null = n
       checklistItemId: item?.id ?? null,
       memberId: "m",
       status: "analyzed",
+      citizenCheck: { status: "ok", messages: [] },
+      citizenKeptAt: null,
       analysis: {
         engine: "ai",
         detectedRequirementId: "account_balance",

@@ -60,6 +60,7 @@ async function run<I, O>(
       usage: { inputTokens: 0, outputTokens: 0 },
       costEstimate: 0,
       fallbackReason: "not_configured",
+      retryReasons: [],
     };
   return observeAi(s, row.organizationId, () => s.ai.runTask!(task, input));
 }
