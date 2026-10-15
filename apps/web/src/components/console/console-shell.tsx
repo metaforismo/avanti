@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { OperatorProvider } from "@/lib/console/operator-context";
-import { useResource } from "@/lib/console/use-resource";
+import { clearResourceCache, useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 import { PasswordForm } from "./admin/password-form";
 import { MfaSetupFlow } from "./mfa/setup-flow";
@@ -154,6 +154,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         <MfaVerifyForm
           onVerified={me.setData}
           onCancel={() => {
+            clearResourceCache();
             void apiFetch("/api/auth/logout", { method: "POST" })
               .catch(() => undefined)
               .finally(() => router.replace("/console/accedi"));
@@ -285,6 +286,7 @@ function OperatorCard({ operator }: { operator: Operator }) {
   async function logout() {
     setLeaving(true);
     try {
+      clearResourceCache();
       await apiFetch("/api/auth/logout", { method: "POST" });
     } finally {
       // Leave even if the request failed: the session expires server-side anyway.
