@@ -587,31 +587,80 @@ ZDR un account. Con OpenRouter il runtime non rimuove mai i filtri strict per re
 una risposta. Il provider può non avere endpoint compatibili: in quel caso usa l'euristica.
 [Routing ufficiale OpenRouter](https://openrouter.ai/docs/guides/routing/provider-selection).
 
-Prima di scegliere un modello:
+Configurazione candidata raccomandata per le prove sintetiche (A, misurata il 15 ottobre
+2026; risultati e limiti in [eval live](verification/ai-eval-2026-10-15-live.md)):
 
-1. Verificare disponibilità e supporto schema/immagini nel catalogo ufficiale del provider.
-2. Esportare la chiave nel terminale privato. Con dati sintetici gratuiti OpenRouter usare
-   `AI_PROVIDER=openrouter AI_DATA_POLICY=permissive`, testo
-   `nvidia/nemotron-3-super-120b-a12b:free`, immagini `google/gemma-4-31b-it:free`, fallback
-   `openrouter/free`. Questi nomi sono uno snapshot da rivalidare, non una raccomandazione per dati reali.
-3. Eseguire `AI_LIVE=1 pnpm ai:eval --limit 16` e
-   `AI_LIVE=1 pnpm ai:stress --limit 12 --concurrency 3`. Massimo 84 chiamate SDK con 3 tentativi;
-   non ripetere automaticamente fino al successo. Il router può fare tentativi a monte non visibili.
-4. Leggere i report JSON/Markdown in `docs/verification/`: quota fallback, risposte valide,
-   campi estratti, rifiuti di sicurezza, latenza e costo. Revisionare traduzioni e documenti
-   in modo umano nelle lingue del pilota; gli alfabeti non provano la lingua corretta.
-5. Ripetere sul modello di produzione e con policy strict prima di attivare dati reali.
+```dotenv
+AI_PROVIDER=openrouter
+AI_DATA_POLICY=strict
+AI_MODEL_FAST=deepseek/deepseek-v4.1-flash
+AI_MODEL_REASONING=deepseek/deepseek-v4.1-flash
+AI_MODEL_VISION=openai/gpt-6-luna
+AI_MODEL_FALLBACKS=openai/gpt-6-luna
+AI_REASONING_FAST=off
+AI_REASONING_REASONING=minimal
+AI_REASONING_VISION=minimal
+AI_ATTEMPT_TIMEOUT_MS_FAST=6000
+AI_ATTEMPT_TIMEOUT_MS_REASONING=15000
+AI_ATTEMPT_TIMEOUT_MS_VISION=20000
+AI_TOTAL_TIMEOUT_MS=45000
+AI_MAX_ATTEMPTS=3
+AI_PRICES='{"deepseek/deepseek-v4.1-flash":[0.03,0.70],"openai/gpt-6-luna":[0.10,0.50]}'
+```
 
-`AI_ATTEMPT_TIMEOUT_MS` (6.000), `AI_TOTAL_TIMEOUT_MS` (12.000) e `AI_MAX_ATTEMPTS` (3)
-sono limiti massimi: i compiti possono ridurli. Il breaker per istanza apre dopo 3 fallimenti
-sul modello e ammette un probe dopo 30 secondi. Non memorizza prompt, risposte o documenti.
+Risultati finali: A mediana testo **1.228 s**, p95 **3.559 s**, **1/74 ripieghi (1,35%)**, costo stimato **€0.016804**. B: **1.510 s**, p95 **7.873 s**, **0/74 ripieghi**, costo **€0.026836**; 68 risposte B sono state servite da DeepSeek. Entrambe: zero violazioni rilevate e 58/58 casi annotati corretti. Stress A: **40/40 AI**, concorrenza **8**, mediana **1.065 s**, p95 **1.664 s**, zero ripieghi e violazioni. A mantiene un timeout sulla sola immagine ostile; il fallback non attesta una lettura vision riuscita.
+
+Provata anche B con `AI_REASONING_FAST=minimal`: mediana **2,324 s**, p95 **9,051 s**, **2/74 ripieghi**, costo stimato **€0,036394**; 66 risposte DeepSeek e 6 Luna. Il fallback eredita il ragionamento del livello. La raccomandazione resta A.
+
+La chiave OpenRouter va impostata separatamente nel gestore segreti o nell'ambiente.
+`AI_PROVIDER=none` resta il default dell'esempio locale: nessuna chiamata senza provider e
+chiave. Per riprodurre A usare le variabili sopra; per B usare Luna nei tre livelli e
+DeepSeek nei fallback. I controlli di ragionamento sono identici nelle due prove.
+
+```bash
+AI_LIVE=1 pnpm ai:eval --limit 74 --variant a
+# Cambiare solo modelli e fallback per B:
+AI_LIVE=1 pnpm ai:eval --limit 74 --variant b
+# Ripristinare la configurazione migliore:
+AI_LIVE=1 pnpm ai:stress --concurrency 8 --limit 40
+```
+
+Il comando eval live include ora tutto il dataset per default. Una variante salva JSON e
+Markdown separati. I report contengono le risposte dei soli casi sintetici e non vanno
+alimentati con dati reali. Gate: mediana testo <3 s, ripieghi <5%, nessuna violazione
+rilevata. Il router può fare tentativi a monte non visibili all'SDK. Le traduzioni nelle
+otto lingue e la correttezza normativa richiedono verifica umana oltre ai controlli automatici.
+
+I timeout di tentativo per livello sono 6000/15000/20000 ms; `AI_ATTEMPT_TIMEOUT_MS` resta
+l'override legacy comune quando manca quello specifico. Il totale per compito è il minimo
+fra `AI_TOTAL_TIMEOUT_MS` (45000), due timeout del livello +500 ms e l'eventuale limite
+specifico: con i default 12500/30500/40500 ms. Il breaker apre dopo tre richieste fallite
+per modello e ammette un probe dopo 30 s. Conta solo errori provider, 429 e timeout, al
+massimo un fallimento per modello nella stessa richiesta: un singolo compito vision lento
+non apre il circuito. Errori di schema, validazione o guardia non sono outage.
+
+`AI_REASONING_FAST/REASONING/VISION` accettano `off|minimal|low|medium`.
+Su OpenRouter off invia `enabled:false`; gli altri livelli `effort` e `exclude:true`.
+[Controlli ufficiali](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
+OpenAI diretto mappa off a none e minimal a low per GPT-6; Anthropic usa adaptive/effort
+quando disponibile, oppure budget 1024/2048/4096 sui modelli precedenti. Un 400 che nomina
+il parametro consente una sola ripetizione senza quel controllo per modello, nel limite
+di tempo e tentativi; il motivo `reasoning_unsupported` resta nella telemetria anche se il
+retry riesce. La policy dati resta strict.
+
+Lo schema remoto è non strict, senza regex lessicali Unicode; la validazione Zod completa
+e i vincoli del compito restano locali. Una risposta strutturata vuota riprova una volta
+come JSON testuale sullo stesso modello, con motivo `empty_structured_output` in telemetria. La telemetria non memorizza prompt o documenti.
 
 Applicare la migrazione `0014_ai_runtime` prima del rilascio. `AI_MONTHLY_BUDGET_EUR=50` è il
 default CAF; l'admin può impostare `aiMonthlyBudgetEur` in `/api/settings` (0 disattiva AI,
 null ripristina il default). `/api/ai/usage?month=YYYY-MM` offre aggregati mensili del CAF,
 `/api/status` mostra budget, provider, livelli, policy e presenza chiave. Le tariffe
-`AI_INPUT_EUR_PER_MILLION` e `AI_OUTPUT_EUR_PER_MILLION` devono essere conservative per tutti
-i modelli della catena: sono stime EUR, non conversioni automatiche o fatture. Le prenotazioni
+`AI_PRICES` può specificare una coppia input/output EUR per milione per ciascun ID modello.
+`AI_INPUT_EUR_PER_MILLION` e `AI_OUTPUT_EUR_PER_MILLION` coprono i modelli non elencati e
+restano conservative. Il costo usa il modello restituito per ogni tentativo; le prenotazioni
+usano il candidato più costoso della catena, incluso il ragionamento aggiuntivo Anthropic.
+Usage assente e timeout mantengono una stima prudente: sono stime EUR, non fatture. Le prenotazioni
 non riconciliate dopo un arresto restano addebitate: confrontarle col provider prima di una
 correzione amministrativa, senza liberarle a scadenza mentre potrebbe esserci lavoro remoto.
 

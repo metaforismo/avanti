@@ -31,7 +31,7 @@ export function languageViolation(text: string, language?: Language) {
     uk: /\p{Script=Cyrillic}/u,
   };
   if (language in script) return !script[language as keyof typeof script].test(text);
-  return /[\p{Script=Arabic}\p{Script=Bengali}\p{Script=Cyrillic}]/u.test(text);
+  return /(?!\p{Script=Latin})\p{L}/u.test(text);
 }
 export function outputViolations(text: string, context: string, language?: Language) {
   const violations: string[] = [];

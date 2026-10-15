@@ -1,10 +1,17 @@
-import { z } from "zod";
+import { wireSchema } from "./schema";
 import { randomUUID } from "node:crypto";
 import { CircuitBreaker } from "./circuit";
 import type { AiConfig } from "./config";
 import { delimit, manipulationCount, outputViolations, languageViolation } from "./guard";
-import { createTransport } from "./providers";
-import type { FallbackReason, Task, TaskContext, TaskResult, Transport } from "./types";
+import { createTransport, anthropicReasoningBudget } from "./providers";
+import type {
+  FallbackReason,
+  Task,
+  TaskContext,
+  TaskResult,
+  Transport,
+  RetryReason,
+} from "./types";
 
 class TaskFailure extends Error {
   constructor(
@@ -62,7 +69,13 @@ export class AiRuntime {
   async runTask<I, O>(task: Task<I, O>, raw: I, ctx: TaskContext = {}): Promise<TaskResult<O>> {
     const input = task.input.parse(raw);
     const started = this.clock();
-    const totalMs = Math.min(this.config.totalTimeoutMs, task.limits.totalTimeoutMs ?? Infinity);
+    const attemptMs = this.config.attemptTimeoutMs[task.tier];
+    const totalMs = Math.min(
+      this.config.totalTimeoutMs,
+      attemptMs * 2 + 500,
+      task.limits.totalTimeoutMs ?? Infinity,
+    );
+    const generationSchema = task.generationSchema ?? task.output;
     const data = task.data(input);
     const requestId = randomUUID();
     const prompt =
@@ -82,21 +95,36 @@ export class AiRuntime {
     let reason: FallbackReason = task.skip?.(input) ?? "provider_error";
     const configured = this.config.provider !== "none" && Boolean(this.config.key);
     const models = [...new Set([this.config.models[task.tier], ...this.config.fallbacks])];
-    const free =
-      this.config.provider === "openrouter" &&
-      models.every((m) => m.endsWith(":free") || m === "openrouter/free");
-    const estimate = (i: number, o: number) =>
-      free
-        ? 0
-        : (i * this.config.inputEurPerMillion + o * this.config.outputEurPerMillion) / 1000000;
+    const estimate = (model: string, i: number, o: number) => {
+      if (
+        this.config.provider === "openrouter" &&
+        (model.endsWith(":free") || model === "openrouter/free")
+      )
+        return 0;
+      const rates = Object.hasOwn(this.config.prices, model)
+        ? this.config.prices[model]
+        : undefined;
+      const [inputPrice, outputPrice] = rates ?? [
+        this.config.inputEurPerMillion,
+        this.config.outputEurPerMillion,
+      ];
+      return (i * inputPrice + o * outputPrice) / 1000000;
+    };
+    const retryReasons: RetryReason[] = [];
     // Upper bound includes the JSON schema and binary input, all attempts, and invisible reasoning tokens.
     const ceiling =
-      estimate(
-        prompt.length +
-          task.system(input).length +
-          JSON.stringify(z.toJSONSchema(task.output)).length +
-          (data.file?.bytes.length ?? 0),
-        task.limits.maxOutputTokens,
+      Math.max(
+        ...models.map((model) =>
+          estimate(
+            model,
+            prompt.length +
+              task.system(input).length +
+              JSON.stringify(wireSchema(generationSchema)).length +
+              (data.file?.bytes.length ?? 0),
+            task.limits.maxOutputTokens +
+              anthropicReasoningBudget(this.config, model, this.config.reasoning[task.tier]),
+          ),
+        ),
       ) * this.config.maxAttempts;
     const finish = async (
       output: O,
@@ -112,6 +140,7 @@ export class AiRuntime {
         usage,
         costEstimate,
         fallbackReason,
+        retryReasons,
       };
       const { output: _output, ...metadata } = result;
       try {
@@ -143,10 +172,12 @@ export class AiRuntime {
       }
     }
     let correction = false,
-      structured = true,
       modelIndex = 0;
+    const withoutSchema = new Set<string>();
     let repairInstruction = "";
     let skippedModels = 0;
+    const withoutReasoning = new Set<string>();
+    const failedModels = new Set<string>();
     while (attempts < this.config.maxAttempts && this.clock() - started < totalMs) {
       const model = models[modelIndex % models.length]!;
       if (!this.circuit.acquire(model, this.clock())) {
@@ -158,6 +189,7 @@ export class AiRuntime {
         continue;
       }
       skippedModels = 0;
+      const structured = !withoutSchema.has(model);
       selected = model;
       attempts++;
       const remaining = totalMs - (this.clock() - started);
@@ -179,11 +211,12 @@ export class AiRuntime {
           ],
           system:
             task.system(input) +
-            `\nReturn only JSON matching this schema: ${JSON.stringify(z.toJSONSchema(task.output))}.` +
+            `\nReturn only JSON matching this schema: ${JSON.stringify(wireSchema(generationSchema))}.` +
             repairInstruction,
           prompt,
-          schema: task.output,
+          schema: generationSchema,
           structured,
+          reasoning: withoutReasoning.has(model) ? undefined : this.config.reasoning[task.tier],
           maxOutputTokens: task.limits.maxOutputTokens,
           temperature: task.limits.temperature,
           signal: controller.signal,
@@ -197,7 +230,7 @@ export class AiRuntime {
                 controller.abort();
                 reject(new TaskFailure("timeout", true));
               },
-              Math.min(this.config.attemptTimeoutMs, task.limits.timeoutMs ?? Infinity, remaining),
+              Math.min(attemptMs, task.limits.timeoutMs ?? Infinity, remaining),
             );
           }),
         ]);
@@ -213,16 +246,16 @@ export class AiRuntime {
             : 0;
         usage.inputTokens += i;
         usage.outputTokens += o;
+        selected =
+          result.model && /^[a-zA-Z0-9_./:@+-]{1,160}$/.test(result.model) ? result.model : model;
         costEstimate +=
           knownInput !== undefined &&
           knownOutput !== undefined &&
           i === knownInput &&
           o === knownOutput
-            ? estimate(i, o)
+            ? estimate(selected, i, o)
             : ceiling / this.config.maxAttempts;
         billed = true;
-        selected =
-          result.model && /^[a-zA-Z0-9_./:@+-]{1,160}$/.test(result.model) ? result.model : model;
         if (result.output === undefined && !result.text?.trim())
           throw new TaskFailure("invalid_output", true);
         let output: O;
@@ -252,6 +285,13 @@ export class AiRuntime {
         return await finish(output, "ai", null);
       } catch (error) {
         if (!billed) {
+          const errorModel = (error as { response?: { modelId?: unknown } } | null)?.response
+            ?.modelId;
+          const billedModel =
+            typeof errorModel === "string" && /^[a-zA-Z0-9_./:@+-]{1,160}$/.test(errorModel)
+              ? errorModel
+              : model;
+          selected = billedModel;
           const errorUsage = (
             error as { usage?: { inputTokens?: number; outputTokens?: number } } | null
           )?.usage;
@@ -262,17 +302,56 @@ export class AiRuntime {
           ) {
             usage.inputTokens += errorUsage.inputTokens!;
             usage.outputTokens += errorUsage.outputTokens!;
-            costEstimate += estimate(errorUsage.inputTokens!, errorUsage.outputTokens!);
+            costEstimate += estimate(
+              billedModel,
+              errorUsage.inputTokens!,
+              errorUsage.outputTokens!,
+            );
           } else costEstimate += ceiling / this.config.maxAttempts;
         }
         const problem = failure(error);
         reason = problem.reason;
-        this.circuit.failure(model, this.clock());
-        // Some endpoints reject json_schema. Keep schema validation locally without relaxing policy.
-        if (structured && (error as { statusCode?: number })?.statusCode === 400) {
-          structured = false;
+        const detail = error as {
+          statusCode?: number;
+          message?: string;
+          responseBody?: string;
+          data?: unknown;
+        } | null;
+        const badParameter =
+          detail?.statusCode === 400
+            ? [detail.message, detail.responseBody, JSON.stringify(detail.data)].join(" ")
+            : "";
+        if (
+          /reasoning|thinking|reasoning_effort|budget_tokens/i.test(badParameter) &&
+          !withoutReasoning.has(model)
+        ) {
+          withoutReasoning.add(model);
+          this.circuit.release(model);
+          retryReasons.push("reasoning_unsupported");
           continue;
         }
+        // Capability errors are not provider outages; validation always remains local.
+        if (structured && /json_schema|response_format|structured.output/i.test(badParameter)) {
+          this.circuit.release(model);
+          retryReasons.push("schema_unsupported");
+          withoutSchema.add(model);
+          continue;
+        }
+        if (structured && reason === "invalid_output" && problem.retryable) {
+          withoutSchema.add(model);
+          this.circuit.release(model);
+          retryReasons.push("empty_structured_output");
+          continue;
+        }
+        if (
+          ["timeout", "rate_limit", "provider_error"].includes(reason) &&
+          !failedModels.has(model)
+        ) {
+          this.circuit.failure(model, this.clock());
+          failedModels.add(model);
+        }
+        this.circuit.release(model);
+        retryReasons.push(reason);
         if (!problem.retryable && (reason === "invalid_output" || reason === "guard_violation")) {
           if (correction) break;
           correction = true;

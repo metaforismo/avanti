@@ -138,7 +138,7 @@ it("pilot: a nonresponding provider hits the hard deadline and keeps the citizen
     const ai = new GatewayIntelligence({ key: "synthetic-key", logger: vi.fn() });
     const work = ai.intake("Devo fare ISEE", "it", null, [], new Date("2027-01-01Z"));
     await vi.dynamicImportSettled();
-    await vi.advanceTimersByTimeAsync(12001);
+    await vi.advanceTimersByTimeAsync(12501);
     expect(await work).toMatchObject({ engine: "heuristic", practiceId: "isee_ordinario" });
     expect(ai.fallbackCount).toBe(1);
   } finally {

@@ -123,7 +123,8 @@ it("40 citizens on one Wi-Fi create cases together and complete ISEE interviews 
     ),
   ).toBe(true);
   expect(now.getTime() - Date.parse("2027-01-05T10:00:00Z")).toBeLessThanOrEqual(600000);
-});
+  // PGlite serializes hundreds of transactions; product timing uses the injected clock above.
+}, 120_000);
 it("ten operators on one Wi-Fi can retry and log in without blocking one another", async () => {
   await db.delete(rateLimits);
   const password = "SyntheticPassword-2027!";

@@ -1,6 +1,6 @@
 export { AiRuntime, extractJson } from "./runtime";
 export { loadAiConfig, publicAiConfig } from "./config";
-export type { AiConfig, Provider, Tier } from "./config";
+export type { AiConfig, Provider, Tier, Reasoning } from "./config";
 export type {
   Task,
   TaskResult,
@@ -10,6 +10,7 @@ export type {
   TransportRequest,
   TransportResult,
   FallbackReason,
+  RetryReason,
 } from "./types";
 export { intakeTask, freeformTask, documentTask, translateTask, validAnswer } from "./tasks";
 export { heuristicAnalysis } from "./heuristics";

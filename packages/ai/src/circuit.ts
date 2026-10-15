@@ -11,6 +11,10 @@ export class CircuitBreaker {
     state.probe = true;
     return true;
   }
+  release(model: string) {
+    const state = this.states.get(model);
+    if (state) state.probe = false;
+  }
   success(model: string) {
     this.states.delete(model);
   }

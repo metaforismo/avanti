@@ -1,18 +1,24 @@
 # AI stress
 
 {
-  "status": "BLOCKED",
+  "status": "PASS",
   "mode": "live",
-  "reason": "missing_provider_or_key",
-  "concurrency": 3,
-  "liveCases": 0,
-  "requests": 0,
-  "ai": 0,
+  "reason": null,
+  "concurrency": 8,
+  "cases": 40,
+  "liveCases": 40,
+  "requests": 41,
+  "ai": 40,
   "heuristic": 0,
   "observed429": 0,
   "observedTimeout": 0,
-  "wallMs": 0,
-  "costEstimateEur": 0
+  "medianLatencyMs": 1064.5,
+  "p95LatencyMs": 1664,
+  "fallbackRate": 0,
+  "guardViolations": 0,
+  "languageFailures": 0,
+  "wallMs": 12507,
+  "costEstimateEur": 0.0035526699999999995
 }
 
 ## Deterministic fault injection
@@ -21,22 +27,22 @@
   {
     "fault": "429",
     "status": "PASS",
-    "fallback": 12,
+    "fallback": 40,
     "opened": true,
     "suppressedWhileOpen": true,
     "recovered": true,
     "closed": true,
-    "networkCalls": 4
+    "transportCalls": 9
   },
   {
     "fault": "timeout",
     "status": "PASS",
-    "fallback": 12,
+    "fallback": 40,
     "opened": true,
     "suppressedWhileOpen": true,
     "recovered": true,
     "closed": true,
-    "networkCalls": 5
+    "transportCalls": 10
   }
 ]
 

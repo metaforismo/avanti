@@ -107,6 +107,15 @@ export const intakeTask: Task<z.infer<typeof IntakeInput>, z.infer<typeof Intake
   tier: "fast",
   input: IntakeInput,
   output: IntakeOutput,
+  generationSchema: IntakeOutput.extend({
+    practiceId: z
+      .enum(
+        listPractices("it")
+          .filter((p) => p.availability !== "coming_soon")
+          .map((p) => p.id),
+      )
+      .nullable(),
+  }),
   system: (i) => intakePrompt(style(i.language)) + "\n" + citizenWritingInstructions(i.language),
   data: (i) => ({
     context: {
@@ -123,6 +132,7 @@ export const intakeTask: Task<z.infer<typeof IntakeInput>, z.infer<typeof Intake
     manipulation: false,
   }),
   validate: (o, i) =>
+    (o.practiceId !== null || i.practiceId !== null || Object.keys(o.answers).length === 0) &&
     (!o.practiceId ||
       listPractices("it").some((p) => p.id === o.practiceId && p.availability !== "coming_soon")) &&
     Object.entries(o.answers).every(([id, value]) => {
@@ -132,7 +142,7 @@ export const intakeTask: Task<z.infer<typeof IntakeInput>, z.infer<typeof Intake
   guardText: (o) => JSON.stringify(o),
   languageText: (o) => o.reply,
   language: (i) => i.language,
-  limits: { maxOutputTokens: 1600, maxInputChars: 20000, totalTimeoutMs: 12000 },
+  limits: { maxOutputTokens: 1600, maxInputChars: 20000 },
 };
 export const FreeformInput = z.object({
   text: SafeText.max(4000),
@@ -233,7 +243,7 @@ export const documentTask: Task<z.infer<typeof DocumentInput>, z.infer<typeof Do
         new Date(o.expiresOn).toISOString().slice(0, 10) === o.expiresOn)),
   guardText: (o) => [o.detectedLabel, o.ownerName, ...o.findings].filter(Boolean).join(" "),
   skip: (i) => (i.mime === "image/heic" ? "unsupported_media" : undefined),
-  limits: { maxOutputTokens: 1400, maxInputChars: 16000, timeoutMs: 18000, totalTimeoutMs: 18000 },
+  limits: { maxOutputTokens: 1400, maxInputChars: 16000 },
 };
 export const TranslateInput = z.object({ text: SafeText.min(1).max(3000), language: Language });
 export const TranslateOutput = z.object({ text: SafeText.trim().min(1).max(3000) });
@@ -259,7 +269,7 @@ export const translateTask: Task<
   }),
   guardText: (o) => o.text,
   language: (i) => i.language,
-  limits: { maxOutputTokens: 1800, maxInputChars: 4000, totalTimeoutMs: 8000 },
+  limits: { maxOutputTokens: 1800, maxInputChars: 4000 },
 };
 // Shared prompts for future tasks remain exported without inventing unfinished task implementations.
 export { constitution };

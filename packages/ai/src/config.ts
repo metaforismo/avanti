@@ -3,6 +3,8 @@ import { z } from "zod";
 const Provider = z.enum(["openrouter", "openai", "anthropic", "gateway", "none"]);
 export type Provider = z.infer<typeof Provider>;
 export type Tier = "fast" | "reasoning" | "vision";
+const Reasoning = z.enum(["off", "minimal", "low", "medium"]);
+export type Reasoning = z.infer<typeof Reasoning>;
 const identifier = z
   .string()
   .trim()
@@ -23,7 +25,9 @@ export interface AiConfig {
   fallbacks: string[];
   dataPolicy: "strict" | "permissive";
   gatewayProvider: string;
-  attemptTimeoutMs: number;
+  attemptTimeoutMs: Record<Tier, number>;
+  reasoning: Record<Tier, Reasoning>;
+  prices: Record<string, [number, number]>;
   totalTimeoutMs: number;
   maxAttempts: number;
   monthlyBudgetEur: number;
@@ -69,8 +73,33 @@ export function loadAiConfig(env: Record<string, string | undefined> = {}): AiCo
       .slice(0, 5),
     dataPolicy: z.enum(["strict", "permissive"]).parse(env.AI_DATA_POLICY || "strict"),
     gatewayProvider: identifier.parse(env.AI_GATEWAY_PROVIDER || "anthropic"),
-    attemptTimeoutMs: number(env.AI_ATTEMPT_TIMEOUT_MS, 6000, 10, 120000),
-    totalTimeoutMs: number(env.AI_TOTAL_TIMEOUT_MS, 12000, 10, 180000),
+    attemptTimeoutMs: {
+      fast: number(env.AI_ATTEMPT_TIMEOUT_MS_FAST ?? env.AI_ATTEMPT_TIMEOUT_MS, 6000, 10, 120000),
+      reasoning: number(
+        env.AI_ATTEMPT_TIMEOUT_MS_REASONING ?? env.AI_ATTEMPT_TIMEOUT_MS,
+        15000,
+        10,
+        120000,
+      ),
+      vision: number(
+        env.AI_ATTEMPT_TIMEOUT_MS_VISION ?? env.AI_ATTEMPT_TIMEOUT_MS,
+        20000,
+        10,
+        120000,
+      ),
+    },
+    reasoning: {
+      fast: Reasoning.parse(env.AI_REASONING_FAST ?? "off"),
+      reasoning: Reasoning.parse(env.AI_REASONING_REASONING ?? "minimal"),
+      vision: Reasoning.parse(env.AI_REASONING_VISION ?? "minimal"),
+    },
+    prices: z
+      .record(
+        identifier,
+        z.tuple([z.number().finite().min(0).max(10000), z.number().finite().min(0).max(10000)]),
+      )
+      .parse(JSON.parse(env.AI_PRICES ?? "{}")),
+    totalTimeoutMs: number(env.AI_TOTAL_TIMEOUT_MS, 45000, 10, 180000),
     maxAttempts: z
       .number()
       .int()
@@ -90,6 +119,12 @@ export function publicAiConfig(config: AiConfig) {
     provider: config.provider,
     models: config.models,
     dataPolicy: config.dataPolicy,
+    fallbacks: config.fallbacks,
+    reasoning: config.reasoning,
+    attemptTimeoutMs: config.attemptTimeoutMs,
+    totalTimeoutMs: config.totalTimeoutMs,
+    maxAttempts: config.maxAttempts,
+    prices: config.prices,
     keyPresent: Boolean(config.key),
     monthlyBudgetEur: config.monthlyBudgetEur,
   };

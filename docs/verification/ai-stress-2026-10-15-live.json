@@ -1,53 +1,607 @@
 {
-  "generatedAt": "2026-10-15T13:28:52.111Z",
+  "generatedAt": "2026-10-15T14:32:43.062Z",
   "configuration": {
     "provider": "openrouter",
     "models": {
-      "fast": "nvidia/nemotron-3-super-120b-a12b:free",
-      "reasoning": "nvidia/nemotron-3-super-120b-a12b:free",
-      "vision": "google/gemma-4-31b-it:free"
+      "fast": "deepseek/deepseek-v4.1-flash",
+      "reasoning": "deepseek/deepseek-v4.1-flash",
+      "vision": "openai/gpt-6-luna"
     },
-    "dataPolicy": "permissive",
-    "keyPresent": false,
+    "dataPolicy": "strict",
+    "fallbacks": [
+      "openai/gpt-6-luna"
+    ],
+    "reasoning": {
+      "fast": "off",
+      "reasoning": "minimal",
+      "vision": "minimal"
+    },
+    "attemptTimeoutMs": {
+      "fast": 6000,
+      "reasoning": 15000,
+      "vision": 20000
+    },
+    "totalTimeoutMs": 45000,
+    "maxAttempts": 3,
+    "prices": {
+      "deepseek/deepseek-v4.1-flash": [
+        0.03,
+        0.7
+      ],
+      "openai/gpt-6-luna": [
+        0.1,
+        0.5
+      ]
+    },
+    "keyPresent": true,
     "monthlyBudgetEur": 50
   },
   "summary": {
-    "status": "BLOCKED",
+    "status": "PASS",
     "mode": "live",
-    "reason": "missing_provider_or_key",
-    "concurrency": 3,
-    "liveCases": 0,
-    "requests": 0,
-    "ai": 0,
+    "reason": null,
+    "concurrency": 8,
+    "cases": 40,
+    "liveCases": 40,
+    "requests": 41,
+    "ai": 40,
     "heuristic": 0,
     "observed429": 0,
     "observedTimeout": 0,
-    "wallMs": 0,
-    "costEstimateEur": 0
+    "medianLatencyMs": 1064.5,
+    "p95LatencyMs": 1664,
+    "fallbackRate": 0,
+    "guardViolations": 0,
+    "languageFailures": 0,
+    "wallMs": 12507,
+    "costEstimateEur": 0.0035526699999999995
   },
   "deterministicFaultInjection": [
     {
       "fault": "429",
       "status": "PASS",
-      "fallback": 12,
+      "fallback": 40,
       "opened": true,
       "suppressedWhileOpen": true,
       "recovered": true,
       "closed": true,
-      "networkCalls": 4
+      "transportCalls": 9
     },
     {
       "fault": "timeout",
       "status": "PASS",
-      "fallback": 12,
+      "fallback": 40,
       "opened": true,
       "suppressedWhileOpen": true,
       "recovered": true,
       "closed": true,
-      "networkCalls": 5
+      "transportCalls": 10
     }
   ],
-  "live": [],
+  "live": [
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1664,
+      "usage": {
+        "inputTokens": 1204,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.00004522,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1541,
+      "usage": {
+        "inputTokens": 1331,
+        "outputTokens": 16
+      },
+      "costEstimate": 0.00005112999999999999,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1323,
+      "usage": {
+        "inputTokens": 1241,
+        "outputTokens": 19
+      },
+      "costEstimate": 0.00005052999999999999,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1551,
+      "usage": {
+        "inputTokens": 1361,
+        "outputTokens": 22
+      },
+      "costEstimate": 0.000056229999999999995,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1774,
+      "usage": {
+        "inputTokens": 1322,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.00004876,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1251,
+      "usage": {
+        "inputTokens": 1221,
+        "outputTokens": 15
+      },
+      "costEstimate": 0.00004713,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1504,
+      "usage": {
+        "inputTokens": 1339,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.000054170000000000005,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1298,
+      "usage": {
+        "inputTokens": 1249,
+        "outputTokens": 22
+      },
+      "costEstimate": 0.00005287,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 751,
+      "usage": {
+        "inputTokens": 1316,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.00004858,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1310,
+      "usage": {
+        "inputTokens": 1329,
+        "outputTokens": 16
+      },
+      "costEstimate": 0.00005106999999999999,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 892,
+      "usage": {
+        "inputTokens": 1231,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.00005093,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 514,
+      "usage": {
+        "inputTokens": 1251,
+        "outputTokens": 21
+      },
+      "costEstimate": 0.000052230000000000006,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1326,
+      "usage": {
+        "inputTokens": 1208,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.00004534,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1167,
+      "usage": {
+        "inputTokens": 1221,
+        "outputTokens": 16
+      },
+      "costEstimate": 0.00004783,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1429,
+      "usage": {
+        "inputTokens": 1339,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.000054170000000000005,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 860,
+      "usage": {
+        "inputTokens": 1255,
+        "outputTokens": 22
+      },
+      "costEstimate": 0.000053049999999999995,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 848,
+      "usage": {
+        "inputTokens": 1314,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.00004852,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 805,
+      "usage": {
+        "inputTokens": 1329,
+        "outputTokens": 16
+      },
+      "costEstimate": 0.00005106999999999999,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1224,
+      "usage": {
+        "inputTokens": 1229,
+        "outputTokens": 19
+      },
+      "costEstimate": 0.000050169999999999996,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 952,
+      "usage": {
+        "inputTokens": 1253,
+        "outputTokens": 22
+      },
+      "costEstimate": 0.00005298999999999999,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 992,
+      "usage": {
+        "inputTokens": 1200,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.0000451,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 896,
+      "usage": {
+        "inputTokens": 1321,
+        "outputTokens": 15
+      },
+      "costEstimate": 0.000050129999999999996,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 901,
+      "usage": {
+        "inputTokens": 1227,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.000050809999999999996,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 566,
+      "usage": {
+        "inputTokens": 1245,
+        "outputTokens": 19
+      },
+      "costEstimate": 0.00005065,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 728,
+      "usage": {
+        "inputTokens": 1204,
+        "outputTokens": 12
+      },
+      "costEstimate": 0.000044519999999999994,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1237,
+      "usage": {
+        "inputTokens": 1325,
+        "outputTokens": 16
+      },
+      "costEstimate": 0.000050950000000000005,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1066,
+      "usage": {
+        "inputTokens": 1341,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.000054229999999999994,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 873,
+      "usage": {
+        "inputTokens": 1249,
+        "outputTokens": 22
+      },
+      "costEstimate": 0.00005287,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 851,
+      "usage": {
+        "inputTokens": 1204,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.00004522,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 811,
+      "usage": {
+        "inputTokens": 1217,
+        "outputTokens": 17
+      },
+      "costEstimate": 0.00004841,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1658,
+      "usage": {
+        "inputTokens": 1341,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.000054229999999999994,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1117,
+      "usage": {
+        "inputTokens": 1355,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.00005465,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1063,
+      "usage": {
+        "inputTokens": 1210,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.0000454,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 2,
+      "latencyMs": 8023,
+      "usage": {
+        "inputTokens": 1223,
+        "outputTokens": 21
+      },
+      "costEstimate": 0.0015785,
+      "fallbackReason": null,
+      "retryReasons": [
+        "timeout"
+      ]
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1376,
+      "usage": {
+        "inputTokens": 1343,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.00005429,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1030,
+      "usage": {
+        "inputTokens": 1349,
+        "outputTokens": 25
+      },
+      "costEstimate": 0.000057969999999999996,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1276,
+      "usage": {
+        "inputTokens": 1316,
+        "outputTokens": 13
+      },
+      "costEstimate": 0.00004858,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 790,
+      "usage": {
+        "inputTokens": 1217,
+        "outputTokens": 15
+      },
+      "costEstimate": 0.00004701,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1002,
+      "usage": {
+        "inputTokens": 1343,
+        "outputTokens": 20
+      },
+      "costEstimate": 0.00005429,
+      "fallbackReason": null,
+      "retryReasons": []
+    },
+    {
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 898,
+      "usage": {
+        "inputTokens": 1249,
+        "outputTokens": 22
+      },
+      "costEstimate": 0.00005287,
+      "fallbackReason": null,
+      "retryReasons": []
+    }
+  ],
   "limitations": [
     "429/timeout breaker lifecycle scenarios inject faults locally; they are not provider observations",
     "Observed429/Timeout counts final fallback reasons; intermediate retries may recover",

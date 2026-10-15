@@ -102,7 +102,7 @@ it("isolates tenants and months, validates query and protects the endpoint", asy
   });
   expect(current.groups[0]).toMatchObject({
     task: "translate",
-    version: "1.1",
+    version: "1.3",
     outcome: "success",
     engine: "ai",
   });
@@ -180,4 +180,26 @@ it("fails closed if the organization cannot reserve a budget", async () => {
     observeAi(s, "missing", () => s.ai.translate("Porta il documento", "en")),
   ).resolves.toMatchObject({ engine: "heuristic" });
   expect(transport).not.toHaveBeenCalled();
+});
+it("persists a reasoning capability retry without recording content", async () => {
+  const retryTransport = vi
+    .fn()
+    .mockRejectedValueOnce({ statusCode: 400, message: "Unsupported reasoning_effort" })
+    .mockResolvedValue({
+      output: { text: "Bring the document to the desk." },
+      usage: { inputTokens: 50, outputTokens: 10 },
+    });
+  s.ai = new AiIntelligence({
+    config: loadAiConfig({ AI_PROVIDER: "openai", OPENAI_API_KEY: "synthetic" }),
+    transport: retryTransport,
+  });
+  await observeAi(s, "a", () => s.ai.translate("Porta il documento allo sportello", "en"));
+  const [row] = await db.select().from(aiUsage).where(eq(aiUsage.organizationId, "a"));
+  expect(row).toMatchObject({
+    outcome: "success_after_reasoning_unsupported",
+    attempts: 2,
+    engine: "ai",
+    reservedEur: 0,
+  });
+  expect(JSON.stringify(row)).not.toContain("Porta il documento");
 });

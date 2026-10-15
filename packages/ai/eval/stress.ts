@@ -1,4 +1,5 @@
 import { AiRuntime } from "../src/runtime";
+import { languageViolation, outputViolations } from "../src/guard";
 import { loadAiConfig, publicAiConfig } from "../src/config";
 import { intakeTask, translateTask } from "../src/tasks";
 import type { TaskResult, Transport } from "../src/types";
@@ -26,7 +27,7 @@ const localConfig = {
     AI_MODEL_FAST: "test/model:free",
   }),
   maxAttempts: 1,
-  attemptTimeoutMs: 20,
+  attemptTimeoutMs: { fast: 20, reasoning: 20, vision: 20 },
   totalTimeoutMs: 30,
   circuitFailures: 2,
   circuitCooldownMs: 10,
@@ -104,6 +105,23 @@ if (live && !blocked) {
     )),
   );
 }
+const latencies = results.map((r) => r.latencyMs).toSorted((a, b) => a - b);
+const guardViolations = results.reduce(
+  (n, r, i) =>
+    n +
+    outputViolations(
+      (r.output as { text: string }).text,
+      "Porta il documento allo sportello.",
+      (["en", "fr", "ar", "bn"] as const)[i % 4],
+    ).length,
+  0,
+);
+const languageFailures = results.filter((r, i) =>
+  languageViolation(
+    (r.output as { text: string }).text,
+    (["en", "fr", "ar", "bn"] as const)[i % 4],
+  ),
+).length;
 const summary = {
   status: blocked ? "BLOCKED" : scenarios.some((s) => s.status === "FAIL") ? "FAIL" : "PASS",
   mode: live ? "live" : "deterministic",
@@ -116,9 +134,29 @@ const summary = {
   heuristic: results.filter((r) => r.engine === "heuristic").length,
   observed429: results.filter((r) => r.fallbackReason === "rate_limit").length,
   observedTimeout: results.filter((r) => r.fallbackReason === "timeout").length,
+  medianLatencyMs: latencies.length
+    ? (latencies[Math.floor((latencies.length - 1) / 2)]! +
+        latencies[Math.floor(latencies.length / 2)]!) /
+      2
+    : null,
+  p95LatencyMs: latencies.length ? latencies[Math.ceil(latencies.length * 0.95) - 1] : null,
+  fallbackRate: results.length
+    ? results.filter((r) => r.engine === "heuristic").length / results.length
+    : null,
+  guardViolations,
+  languageFailures,
   wallMs: Math.round(performance.now() - started),
   costEstimateEur: results.reduce((n, r) => n + r.costEstimate, 0),
 };
+if (
+  live &&
+  !blocked &&
+  (guardViolations ||
+    languageFailures ||
+    (summary.fallbackRate ?? 1) >= 0.05 ||
+    (summary.medianLatencyMs ?? Infinity) >= 3000)
+)
+  summary.status = "FAIL";
 const report = {
   generatedAt: new Date().toISOString(),
   configuration: publicAiConfig(config),

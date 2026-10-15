@@ -55,7 +55,7 @@ describe("runtime boundaries", () => {
     expect(JSON.stringify(record.mock.calls)).not.toContain("private");
     expect(record.mock.calls[0]?.[0]).not.toHaveProperty("output");
   });
-  it("retries only retryable errors, switches models, and accounts for empty reasoning output", async () => {
+  it("switches models on outages and retries empty structured output as locally validated JSON", async () => {
     const transport = vi
       .fn<Transport>()
       .mockRejectedValueOnce({ statusCode: 429 })
@@ -72,8 +72,10 @@ describe("runtime boundaries", () => {
     expect(transport.mock.calls.map(([r]) => r.model)).toEqual([
       "test/a:free",
       "test/b:free",
-      "test/a:free",
+      "test/b:free",
     ]);
+    expect(transport.mock.calls.map(([r]) => r.structured)).toEqual([true, true, false]);
+    expect(result.retryReasons).toEqual(["rate_limit", "empty_structured_output"]);
     transport.mockRejectedValue({ statusCode: 401 });
     expect((await runtime.runTask(task, "private")).attempts).toBe(1);
   });
@@ -104,7 +106,10 @@ describe("runtime boundaries", () => {
   it("uses local schema validation when json_schema is unsupported", async () => {
     const transport = vi
       .fn<Transport>()
-      .mockRejectedValueOnce({ statusCode: 400 })
+      .mockRejectedValueOnce({
+        statusCode: 400,
+        message: "Unsupported response_format json_schema",
+      })
       .mockResolvedValue(ok);
     expect((await new AiRuntime(config(), { transport }).runTask(task, "x")).engine).toBe("ai");
     expect(transport.mock.calls.map(([r]) => r.structured)).toEqual([true, false]);
@@ -114,7 +119,11 @@ describe("runtime boundaries", () => {
     try {
       const transport = vi.fn<Transport>(() => new Promise(() => {}));
       const runtime = new AiRuntime(
-        { ...config(), totalTimeoutMs: 50, attemptTimeoutMs: 50 },
+        {
+          ...config(),
+          totalTimeoutMs: 50,
+          attemptTimeoutMs: { fast: 50, reasoning: 50, vision: 50 },
+        },
         { transport, clock: () => Date.now() },
       );
       const pending = runtime.runTask(task, "x");
@@ -263,4 +272,193 @@ it("rejects invented IDs and ambiguous freeform values; HEIC skips the provider"
     ).fallbackReason,
   ).toBe("unsupported_media");
   expect(transport).not.toHaveBeenCalled();
+});
+it("validates tier controls and model price maps, with legacy timeout precedence", () => {
+  const c = loadAiConfig({
+    AI_ATTEMPT_TIMEOUT_MS: "9000",
+    AI_ATTEMPT_TIMEOUT_MS_VISION: "21000",
+    AI_REASONING_FAST: "low",
+    AI_PRICES: '{"test/a":[0.03,0.7]}',
+  });
+  expect(c.attemptTimeoutMs).toEqual({ fast: 9000, reasoning: 9000, vision: 21000 });
+  expect(c.reasoning).toEqual({ fast: "low", reasoning: "minimal", vision: "minimal" });
+  expect(loadAiConfig().attemptTimeoutMs).toEqual({ fast: 6000, reasoning: 15000, vision: 20000 });
+  for (const env of [
+    { AI_REASONING_FAST: "high" },
+    { AI_PRICES: '{"test/a":[-1,2]}' },
+    { AI_PRICES: '{"test/a":[1]}' },
+    { AI_PRICES: "broken" },
+  ])
+    expect(() => loadAiConfig(env)).toThrow();
+});
+it("retries a named reasoning rejection once without changing schema or policy and records the reason", async () => {
+  const transport = vi
+    .fn<Transport>()
+    .mockRejectedValueOnce({
+      statusCode: 400,
+      responseBody: '{"error":{"message":"reasoning.enabled unsupported"}}',
+    })
+    .mockResolvedValue(ok);
+  const record = vi.fn();
+  const runtime = new AiRuntime(config(), { transport });
+  expect(await runtime.runTask(task, "private", { record })).toMatchObject({
+    engine: "ai",
+    attempts: 2,
+    retryReasons: ["reasoning_unsupported"],
+  });
+  expect(transport.mock.calls.map(([r]) => [r.reasoning, r.structured])).toEqual([
+    ["off", true],
+    [undefined, true],
+  ]);
+  expect(record.mock.calls[0]?.[0].retryReasons).toEqual(["reasoning_unsupported"]);
+  expect(runtime.circuit.snapshot()).toEqual([]);
+  transport
+    .mockReset()
+    .mockRejectedValue({ statusCode: 400, message: "Unsupported reasoning_effort" });
+  expect((await runtime.runTask(task, "private")).attempts).toBe(2);
+  transport.mockReset().mockRejectedValue({ statusCode: 400, message: "Invalid image" });
+  expect((await runtime.runTask(task, "private")).attempts).toBe(1);
+});
+it("prices each attempt by its actual returned model and reserves the most expensive candidate", async () => {
+  const c = loadAiConfig({
+    AI_PROVIDER: "openrouter",
+    OPENROUTER_API_KEY: "synthetic",
+    AI_MODEL_FAST: "test/cheap",
+    AI_MODEL_FALLBACKS: "test/expensive",
+    AI_PRICES: '{"test/cheap":[1,2],"test/expensive":[10,20]}',
+  });
+  const transport = vi
+    .fn<Transport>()
+    .mockResolvedValueOnce({
+      text: "",
+      model: "test/cheap",
+      usage: { inputTokens: 100, outputTokens: 10 },
+    })
+    .mockResolvedValueOnce({
+      ...ok,
+      model: "test/expensive",
+      usage: { inputTokens: 100, outputTokens: 10 },
+    });
+  const reserve = vi.fn(async (_ceiling: number) => ({ id: "test" }));
+  const result = await new AiRuntime(c, { transport, sleep: async () => {} }).runTask(
+    task,
+    "private",
+    { reserve },
+  );
+  expect(result.costEstimate).toBeCloseTo(0.00132, 10);
+  expect(reserve.mock.calls[0]![0]).toBeGreaterThan(result.costEstimate);
+});
+it("allows a vision response beyond the fast timeout and counts repeated timeouts once per request", async () => {
+  vi.useFakeTimers();
+  try {
+    const c = {
+      ...config(),
+      fallbacks: [],
+      attemptTimeoutMs: { fast: 10, reasoning: 30, vision: 50 },
+      totalTimeoutMs: 200,
+    };
+    const transport = vi.fn<Transport>(
+      () => new Promise((resolve) => setTimeout(() => resolve(ok), 40)),
+    );
+    const runtime = new AiRuntime(c, { transport, clock: () => Date.now(), sleep: async () => {} });
+    const pending = runtime.runTask({ ...task, tier: "vision" }, "x");
+    await vi.advanceTimersByTimeAsync(41);
+    expect(await pending).toMatchObject({ engine: "ai", attempts: 1 });
+    transport.mockImplementation(() => new Promise(() => {}));
+    const slow = runtime.runTask({ ...task, tier: "vision" }, "x");
+    await vi.advanceTimersByTimeAsync(151);
+    expect(await slow).toMatchObject({ engine: "heuristic", attempts: 3 });
+    expect(runtime.circuit.snapshot()[0]?.failures).toBe(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+it("keeps unavailable practices and lexical violations out of accepted outputs", async () => {
+  expect(
+    intakeTask.generationSchema!.safeParse({
+      practiceId: "isee_universitario",
+      confidence: 1,
+      answers: {},
+      reply: "",
+      manipulation: false,
+    }).success,
+  ).toBe(false);
+  const local = new AiRuntime(config(), {
+    transport: async () => ({ output: { text: "ok\u0000" } }),
+  });
+  const { SafeText } = await import("@avanti/contracts");
+  expect(
+    (await local.runTask({ ...task, output: z.object({ text: SafeText }) }, "x")).fallbackReason,
+  ).toBe("invalid_output");
+  expect(outputViolations("Una risposta con 日本語 nel testo", "", "it")).toContain("language");
+});
+it("does not count validation failures as outages and can retry a half-open capability probe", async () => {
+  const c = { ...config(), fallbacks: [], circuitFailures: 1, circuitCooldownMs: 10 };
+  let now = 0;
+  const transport = vi
+    .fn<Transport>()
+    .mockResolvedValueOnce({ output: { text: "password" } })
+    .mockResolvedValueOnce({ output: { text: "password" } });
+  const runtime = new AiRuntime(c, { transport, clock: () => now });
+  await runtime.runTask(task, "x");
+  expect(runtime.circuit.snapshot()).toEqual([]);
+  runtime.circuit.failure("test/a:free", 0);
+  now = 11;
+  transport
+    .mockReset()
+    .mockRejectedValueOnce({ statusCode: 400, message: "unsupported reasoning" })
+    .mockResolvedValueOnce(ok);
+  expect(await runtime.runTask(task, "x")).toMatchObject({
+    engine: "ai",
+    attempts: 2,
+    retryReasons: ["reasoning_unsupported"],
+  });
+  expect(runtime.circuit.snapshot()).toEqual([]);
+});
+it("keeps full local validation when an empty schema response is retried as text", async () => {
+  const transport = vi
+    .fn<Transport>()
+    .mockRejectedValueOnce({
+      name: "AI_NoObjectGeneratedError",
+      text: "",
+      usage: { inputTokens: 10, outputTokens: 1 },
+    })
+    .mockResolvedValue({ text: '{"text":"password"}' });
+  const result = await new AiRuntime(config(), { transport }).runTask(task, "x");
+  expect(result.engine).toBe("heuristic");
+  expect(result.retryReasons).toContain("empty_structured_output");
+  expect(result.fallbackReason).toBe("guard_violation");
+  expect(transport.mock.calls[1]?.[0]).toMatchObject({ model: "test/a:free", structured: false });
+});
+
+it("preserves the offline intake result for a practice that is not available yet", async () => {
+  const result = await new AiRuntime(loadAiConfig()).runTask(intakeTask, {
+    text: "Devo chiedere il permesso di soggiorno",
+    language: "it",
+    practiceId: null,
+    questions: [],
+    now: new Date("2027-01-01Z"),
+  });
+  expect(result.engine).toBe("heuristic");
+});
+it("prices billed empty output using the model returned with the provider error", async () => {
+  const c = loadAiConfig({
+    AI_PROVIDER: "openrouter",
+    OPENROUTER_API_KEY: "synthetic",
+    AI_MODEL_FAST: "test/cheap",
+    AI_MODEL_FALLBACKS: "test/expensive",
+    AI_PRICES: '{"test/cheap":[1,2],"test/expensive":[10,20]}',
+  });
+  const transport = vi
+    .fn<Transport>()
+    .mockRejectedValueOnce({
+      name: "AI_NoObjectGeneratedError",
+      text: "",
+      response: { modelId: "test/expensive" },
+      usage: { inputTokens: 100, outputTokens: 10 },
+    })
+    .mockResolvedValue({ ...ok, model: "test/cheap" });
+  const result = await new AiRuntime(c, { transport }).runTask(task, "x");
+  expect(result.engine).toBe("ai");
+  expect(result.costEstimate).toBeCloseTo(0.001218, 10);
 });

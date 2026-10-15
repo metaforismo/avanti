@@ -46,7 +46,14 @@
         "AI_TOTAL_TIMEOUT_MS",
         "AI_MAX_ATTEMPTS",
         "AI_INPUT_EUR_PER_MILLION",
-        "AI_OUTPUT_EUR_PER_MILLION"
+        "AI_OUTPUT_EUR_PER_MILLION",
+        "AI_REASONING_FAST",
+        "AI_REASONING_REASONING",
+        "AI_REASONING_VISION",
+        "AI_ATTEMPT_TIMEOUT_MS_FAST",
+        "AI_ATTEMPT_TIMEOUT_MS_REASONING",
+        "AI_ATTEMPT_TIMEOUT_MS_VISION",
+        "AI_PRICES"
       ]
     },
     "dev": {

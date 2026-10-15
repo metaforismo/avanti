@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { Language } from "@avanti/contracts";
-import type { Tier } from "./config";
+import type { Tier, Reasoning } from "./config";
 
 export type FallbackReason =
   | "not_configured"
@@ -13,12 +13,15 @@ export type FallbackReason =
   | "guard_violation"
   | "circuit_open"
   | "unsupported_media";
+export type RetryReason =
+  FallbackReason | "reasoning_unsupported" | "schema_unsupported" | "empty_structured_output";
 export interface Task<I, O> {
   id: string;
   version: string;
   tier: Tier;
   input: z.ZodType<I>;
   output: z.ZodType<O>;
+  generationSchema?: z.ZodType<O>;
   system(input: I): string;
   data(input: I): {
     context: unknown;
@@ -51,6 +54,7 @@ export interface TaskResult<O> {
   usage: { inputTokens: number; outputTokens: number };
   costEstimate: number;
   fallbackReason: FallbackReason | null;
+  retryReasons: RetryReason[];
 }
 export interface Telemetry extends Omit<TaskResult<never>, "output"> {
   task: string;
@@ -72,6 +76,7 @@ export interface TransportRequest {
   prompt: string;
   schema: z.ZodType;
   structured: boolean;
+  reasoning?: Reasoning;
   maxOutputTokens: number;
   temperature?: number;
   signal: AbortSignal;

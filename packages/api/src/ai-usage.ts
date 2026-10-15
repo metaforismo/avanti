@@ -84,7 +84,11 @@ export function cafAiContext(s: Services, organizationId: string): TaskContext {
         version: record.version,
         model: record.model,
         engine: record.engine,
-        outcome: record.fallbackReason ?? "success",
+        outcome:
+          (record.fallbackReason ?? "success") +
+          (record.retryReasons.length
+            ? `_after_${[...new Set(record.retryReasons)].join("+")}`
+            : ""),
         latencyMs: record.latencyMs,
         inputTokens: record.usage.inputTokens,
         outputTokens: record.usage.outputTokens,

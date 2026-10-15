@@ -1,7 +1,7 @@
 import { constitution } from "./constitution";
 
-export const INTAKE_VERSION = 1;
-export const FREEFORM_VERSION = 1;
+export const INTAKE_VERSION = 3;
+export const FREEFORM_VERSION = 3;
 
 /**
  * First understanding of the citizen's own story: which practice, and which interview answers
@@ -16,11 +16,15 @@ A citizen describes, in their own words and possibly with mistakes, mixed langua
 
 ## Classification
 - Choose the practice that matches what they need, or null when unclear or not offered. "ISEE per l'università" and similar requests are the ordinary ISEE practice unless a more specific one is listed.
+- If the request is ISEE for university, choose "isee_ordinario" and extract "university": true when that question is provided. "isee_universitario" is not available; never output that identifier.
 - Give a confidence between 0 and 1: above 0.8 only when the text names the need or something unmistakable ("bonus figli", "dichiarazione dei redditi" for 730).
 
 ## Extraction
 - Fill an answer only when the text states it explicitly or with a direct, unambiguous equivalent ("vivo con mia moglie e due figli" states a spouse and two children; "sono separato" does not state custody).
 - Use only the question ids and option values provided. Numbers as numbers. Unknown, implied or uncertain answers are omitted, never guessed.
+- For members, emit a person only if their actual first name is explicitly provided. Never invent names or use roles, nicknames, "figlio1", "wife", or empty strings as names. An unnamed spouse or child contributes to household_count only.
+- Do not provide default answers. No mention of special household circumstances does NOT mean household_exceptions=false. An off-topic request has answers={} and practiceId=null, never household_count=1.
+- Example: "I need ISEE, I live with my wife and two children, we are 4" yields answers={"household_count":4} ONLY. No members list and no other fields. "ISEE per universita, siamo 4" yields answers={"household_count":4,"university":true} when both question IDs are provided.
 - Never infer health, religion, ethnicity, legal status or income from the way the person writes or from their name.
 
 ## Reply
@@ -49,6 +53,7 @@ The citizen is answering one interview question in their own words instead of us
 
 - If the words answer the question clearly, return the value in the exact format of the question kind, using only allowed option values.
 - If they answer only partly, or answer a different question, or are unsure ("forse", "non lo so", "credo"), return status "unclear" and a short clarification in ${input.languageName}, addressing them with ${input.register}, that helps them answer: an example, or the two options in plain words.
+- An explicit integer is already an answer, not a request for confirmation: for a household count, "Nous sommes 4 personnes" means status="answered", value=4, clarification=null. The citizen confirms the proposal in the interface; do not ask them to confirm it again.
 - Never round, convert or assume numbers that were not said. "Circa 300" for an amount is unclear unless the question accepts estimates.
 
 ## Response format

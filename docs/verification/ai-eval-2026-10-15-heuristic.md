@@ -7,6 +7,7 @@
   "cases": 74,
   "requests": 0,
   "ai": 0,
+  "servedModels": {},
   "heuristic": 74,
   "accuracy": 0.9827586206896551,
   "scoredCases": 58,
@@ -20,11 +21,14 @@
   "languageScriptPass": 12,
   "languageUnverified": 62,
   "jsonValidity": 1,
-  "meanLatencyMs": 14.837837837837839,
+  "textMedianLatencyMs": 1,
+  "textP95LatencyMs": 94,
+  "fallbackRate": 1,
+  "meanLatencyMs": 13.797297297297296,
   "costEstimateEur": 0
 }
 
-Configuration: {"provider":"none","models":{"fast":"disabled","reasoning":"disabled","vision":"disabled"},"dataPolicy":"strict","keyPresent":false,"monthlyBudgetEur":50}
+Configuration: {"provider":"none","models":{"fast":"disabled","reasoning":"disabled","vision":"disabled"},"dataPolicy":"strict","fallbacks":[],"reasoning":{"fast":"off","reasoning":"minimal","vision":"minimal"},"attemptTimeoutMs":{"fast":6000,"reasoning":15000,"vision":20000},"totalTimeoutMs":45000,"maxAttempts":3,"prices":{},"keyPresent":false,"monthlyBudgetEur":50}
 
 - Synthetic fixtures only; no real citizen data
 - Accuracy checks only labelled fields; translations need human semantic review
