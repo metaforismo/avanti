@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
 import {
   cases,
   notifications,
@@ -14,6 +14,8 @@ import type { Services } from "./context";
 import type { CaseRow } from "./dossier";
 import { citizenNotification, digestNotification, leadNotification } from "./notification-copy";
 import { seal, unseal, type Envelope, type NotificationOptions } from "./notification-config";
+import { audit } from "./dossier";
+import { reminderNotification } from "./reminder-copy";
 import { DeliveryFailure } from "./email";
 
 export const NOTIFICATION_ATTEMPTS = 5;
@@ -31,6 +33,8 @@ export async function enqueueNotification(
     language: Language;
     organizationId?: string;
     caseId?: string;
+    citizenRequestId?: string;
+    reminderNumber?: number;
     leadId?: string;
     operatorId?: string;
     to: string | null;
@@ -184,7 +188,12 @@ export async function enqueueDigests(s: Services, now: Date): Promise<number> {
 
 async function stillRelevant(db: Database, row: Row, envelope: Envelope, now: Date) {
   if (row.caseId) {
-    const [current] = await db.select().from(cases).where(eq(cases.id, row.caseId));
+    const query = db
+      .select()
+      .from(cases)
+      .where(and(eq(cases.id, row.caseId), eq(cases.organizationId, row.organizationId!)));
+    // Serialize delivery with citizen replies and state changes, including the provider call.
+    const [current] = await (row.kind === "citizen_reminder" ? query.for("update") : query);
     if (
       !current ||
       current.language !== row.language ||
@@ -192,6 +201,21 @@ async function stillRelevant(db: Database, row: Row, envelope: Envelope, now: Da
       Date.parse(current.expiresAt) <= now.getTime()
     )
       return false;
+    if (row.kind === "citizen_reminder") {
+      const [prefs] = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.organizationId, current.organizationId))
+        .for("share");
+      if (
+        !prefs?.notifyCitizenReminders ||
+        current.status !== "needs_citizen" ||
+        current.citizenRequestId !== row.citizenRequestId ||
+        !row.reminderNumber ||
+        row.reminderNumber > prefs.citizenReminderDays.length
+      )
+        return false;
+    }
     if (row.kind === "citizen_request" && current.status !== "needs_citizen") return false;
     if (row.kind === "citizen_ready" && current.status !== "ready") return false;
   }
@@ -393,6 +417,23 @@ export async function sendNotifications(s: Services, now: Date, ids?: string[]):
         s.notifications.adapter.mode === "console" ? "simulated" : "sent",
         now,
       );
+      if (row.kind === "citizen_reminder") {
+        const [current] = await tx
+          .update(cases)
+          .set({ citizenReminderSentAt: now.toISOString() })
+          .where(and(eq(cases.id, row.caseId!), eq(cases.citizenRequestId, row.citizenRequestId!)))
+          .returning();
+        if (current)
+          await audit(
+            tx,
+            current,
+            "system",
+            s.notifications.adapter.mode === "console"
+              ? "citizen.reminder_simulated"
+              : "citizen.reminder_sent",
+            now,
+          );
+      }
       completed++;
     });
   }
@@ -422,7 +463,63 @@ export async function maintainNotifications(s: Services, now: Date) {
     .where(
       sql`${notifications.completedAt} < ${now.toISOString()}::timestamptz - interval '30 days'`,
     );
+  const queuedReminders = await enqueueReminders(s, now);
   const queuedDigests = await enqueueDigests(s, now);
   const deliveredNotifications = await sendNotifications(s, now);
-  return { queuedDigests, deliveredNotifications };
+  return { queuedDigests, queuedReminders, deliveredNotifications };
+}
+
+export async function enqueueReminders(s: Services, now: Date): Promise<number> {
+  const ids = await s.db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ row: cases })
+      .from(cases)
+      .innerJoin(settings, eq(settings.organizationId, cases.organizationId))
+      .where(
+        and(
+          eq(cases.status, "needs_citizen"),
+          isNotNull(cases.citizenRequestId),
+          isNotNull(cases.citizenRequestedAt),
+          gt(cases.expiresAt, now.toISOString()),
+          eq(settings.notifyCitizenReminders, true),
+          sql`coalesce(${cases.contact}->>'email', '') <> ''`,
+          sql`${cases.citizenRemindersQueued} < jsonb_array_length(${settings.citizenReminderDays})`,
+          sql`((${cases.citizenRemindersQueued} = 0 and
+          ${cases.citizenRequestedAt} + (${settings.citizenReminderDays}->>0)::int * interval '1 day' <= ${now.toISOString()}::timestamptz)
+          or (${cases.citizenRemindersQueued} = 1 and ${cases.citizenReminderSentAt} is not null and
+          ${cases.citizenReminderSentAt} + (${settings.citizenReminderDays}->>1)::int * interval '1 day' <= ${now.toISOString()}::timestamptz))`,
+        ),
+      )
+      .orderBy(asc(cases.citizenRequestedAt), asc(cases.id))
+      .limit(100)
+      .for("update", { of: cases, skipLocked: true });
+    const queued: string[] = [];
+    for (const { row } of rows) {
+      const reminderNumber = row.citizenRemindersQueued + 1;
+      const id = await enqueueNotification(
+        tx,
+        s.notifications,
+        {
+          kind: "citizen_reminder",
+          language: row.language,
+          organizationId: row.organizationId,
+          caseId: row.id,
+          citizenRequestId: row.citizenRequestId!,
+          reminderNumber,
+          dedupeKey: `reminder:${row.id}:${row.citizenRequestId}:${reminderNumber}`,
+          to: row.contact!.email!,
+          email: reminderNotification(row.language),
+        },
+        now,
+      );
+      await tx
+        .update(cases)
+        .set({ citizenRemindersQueued: reminderNumber, citizenReminderSentAt: null })
+        .where(eq(cases.id, row.id));
+      if (id) queued.push(id);
+    }
+    return queued;
+  });
+  for (const id of ids) scheduleNotificationDelivery(s, id);
+  return ids.length;
 }

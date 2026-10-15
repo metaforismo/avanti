@@ -6,7 +6,15 @@ import { eq } from "drizzle-orm";
 import { expect, it, vi } from "vitest";
 import { createDatabase } from "./client";
 import { seedDemo } from "./demo";
-import { cases, documents, events, operators, organizations, messages } from "./schema";
+import {
+  cases,
+  documents,
+  events,
+  operators,
+  organizations,
+  messages,
+  quickReplies,
+} from "./schema";
 
 it("seed is idempotent, creates safe PDFs, and preserves operator edits", async () => {
   const { db, close } = await createDatabase({ memory: true });
@@ -14,6 +22,11 @@ it("seed is idempotent, creates safe PDFs, and preserves operator edits", async 
   try {
     const options = { now: new Date("2027-01-15T10:00:00Z"), uploadsDir };
     expect(await seedDemo(db, options)).toEqual({ created: 10 });
+    expect(await db.select().from(quickReplies)).toHaveLength(5);
+    await db
+      .update(quickReplies)
+      .set({ text: "Testo modificato" })
+      .where(eq(quickReplies.id, "demo-quick-reply-1"));
     const before = await db.select().from(operators);
     expect(before).toHaveLength(3);
     expect(before.find((row) => row.id === "demo-admin")).toMatchObject({
@@ -29,6 +42,11 @@ it("seed is idempotent, creates safe PDFs, and preserves operator edits", async 
       .set({ internalNotes: "Nota modificata" })
       .where(eq(cases.id, "demo-case-1"));
     expect(await seedDemo(db, options)).toEqual({ created: 0 });
+    expect(await db.select().from(quickReplies)).toHaveLength(5);
+    expect(
+      (await db.select().from(quickReplies).where(eq(quickReplies.id, "demo-quick-reply-1")))[0]
+        ?.text,
+    ).toBe("Testo modificato");
     const seededCases = await db.select().from(cases);
     expect(seededCases).toHaveLength(10);
     const seededDocuments = await db.select().from(documents);

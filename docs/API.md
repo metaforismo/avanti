@@ -520,3 +520,93 @@ Esempio **sintetico, estratto** dal rapporto di un unico sportello, 50 avvii,
 Il JSON completo include sempre le tre soglie, i gruppi per sportello, il periodo,
 i tempi con etichette/campioni, le distribuzioni e il metodo. L'estratto sopra non
 sostituisce lo schema completo.
+
+## Risposte rapide e promemoria al cittadino
+
+I nuovi contratti in `@avanti/contracts` consentono alla console di gestire i testi del
+CAF e le preferenze del cron senza duplicare validazione e limiti nel frontend.
+`QuickReplyInput` contiene `title` (1–80 caratteri, una riga) e `text` (1–1.000 caratteri),
+entrambi ripuliti dagli spazi ai bordi e validati con `SafeText`. I testi sono italiani;
+`QuickReply` aggiunge `id` e `position` (0–49). `QuickReplyList` è un array ordinato,
+lungo al massimo 50. Nessun `organizationId` viene accettato o restituito: il tenant
+proviene dalla sessione.
+
+| Endpoint                         | Permesso        | Corpo / risposta                                                               |
+| -------------------------------- | --------------- | ------------------------------------------------------------------------------ |
+| `GET /api/quick-replies`         | Operatore/admin | `QuickReplyList`                                                               |
+| `POST /api/quick-replies`        | Admin           | `QuickReplyInput` → `QuickReply`, 201                                          |
+| `PATCH /api/quick-replies/:id`   | Admin           | `UpdateQuickReplyRequest`: almeno uno tra `title`, `text` → `QuickReply`       |
+| `DELETE /api/quick-replies/:id`  | Admin           | Nessun corpo → 204; compatta le posizioni                                      |
+| `PUT /api/quick-replies/reorder` | Admin           | `ReorderQuickRepliesRequest`: `{ "ids": ["id-b", "id-a"] }` → `QuickReplyList` |
+
+Il riordino richiede tutti e soli gli ID correnti del CAF, una volta ciascuno. Elenco
+cambiato o ID estraneo: 409 `conflict`; duplicati/formato non valido: 400 `bad_request`.
+Edit/delete di un ID estraneo: 404. Scritture di un operatore: 403. Il limite di 50
+restituisce 409 anche con creazioni concorrenti. Le mutazioni sono serializzate per CAF
+e registrano `quick_reply.created/updated/deleted/reordered`, senza titolo o testo
+nel registro. Le risposte rapide sono incluse nell'export amministrativo del CAF.
+
+Esempio creazione:
+
+```http
+POST /api/quick-replies
+Content-Type: application/json
+
+{"title":"Foto illeggibile","text":"Carica una nuova foto a fuoco e senza riflessi."}
+```
+
+Per usare una risposta, copia `text` nel `message` dell'endpoint esistente: il testo
+resta modificabile e segue le stesse regole di traduzione/fallback delle integrazioni.
+La semplice scelta non invia nulla.
+
+```http
+POST /api/cases/case-id/requests
+Content-Type: application/json
+
+{"expectedUpdatedAt":"2027-01-15T10:00:00.000Z","checklistItemIds":[],"message":"Carica una nuova foto a fuoco e senza riflessi."}
+```
+
+`OrganizationSettings` e `UpdateSettingsRequest` espongono `notifyCitizenReminders`
+(booleano, default false) e `citizenReminderDays` (`CitizenReminderDays`: uno o due
+interi tra 1 e 30, default `[3,4]`). Il primo intervallo decorre dalla richiesta;
+il secondo dall'effettivo invio del primo promemoria. Per un solo promemoria usa `[3]`.
+I PATCH conservano le preferenze omesse; lettura e modifica restano riservate agli admin.
+
+```http
+PATCH /api/settings
+Content-Type: application/json
+
+{"notifyCitizenReminders":true,"citizenReminderDays":[3,4]}
+```
+
+`GET /api/cron/maintenance`, con il consueto bearer `CRON_SECRET`, aggiunge
+`queuedReminders` alla risposta. A ogni esecuzione accoda fino a 100 promemoria dovuti,
+con invio tramite la stessa outbox cifrata e lo stesso dispatcher delle notifiche.
+Il cron giornaliero può quindi inviarli al primo passaggio successivo alla scadenza;
+non garantisce l'ora esatta. I retry seguono il runbook notifiche esistente.
+
+Solo una nuova richiesta tramite `/cases/:id/requests` apre un ciclo; le pratiche già
+in attesa al momento della migrazione e il semplice PATCH di stato non ricevono
+promemoria retroattivi. L'attivazione considera anche richieste tracciate mentre la
+preferenza era spenta. Non vengono accodate email senza indirizzo o con link scaduto.
+Ogni risposta/modifica accettata del cittadino (testo, risposta intervista, upload,
+abbinamento/eliminazione documento, lingua, invio fascicolo) chiude il ciclo anche
+se lo stato resta `needs_citizen`. Letture e download non lo chiudono.
+Un cambio di stato lo chiude; una nuova richiesta apre un nuovo ciclo indipendente.
+Modifiche interne, assegnazioni e rigenerazione del link non riavviano il conteggio.
+
+Prima dell'invio, anche dopo un retry, si ricontrollano ciclo, stato, lingua,
+destinatario, scadenza e preferenze. Il lock del fascicolo resta acquisito durante
+l'invio: una risposta o un cambio di stato già confermati impediscono l'invio.
+Disattivazione e rimozione del secondo intervallo annullano le email ancora in coda;
+un promemoria annullato o fallito non genera un nuovo tentativo logico.
+Il secondo richiede il completamento del primo. Al massimo due promemoria accodati
+per richiesta, anche dopo la pulizia delle ricevute outbox.
+
+L'email è generica nelle otto lingue del cittadino: nessun link, nome, riferimento,
+elenco documenti o contenuto della richiesta. Nel dossier `timeline` riporta
+`citizen.reminder_sent`, etichetta «Promemoria inviato» e `at` per la data; lo stato
+`sent` significa accettazione del provider, non consegna certificata. Il fallback locale
+produce `citizen.reminder_simulated` («Invio promemoria simulato»). Nessun invio viene
+annotato prima della conferma del dispatcher; il promemoria non modifica `updatedAt`
+e non sposta la pratica in coda.

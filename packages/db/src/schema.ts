@@ -1,5 +1,6 @@
 import type {
   AnswerValue,
+  CitizenReminderDays,
   CaseStatus,
   CitizenContactRequest,
   DocumentAnalysis,
@@ -120,6 +121,10 @@ export const cases = pgTable(
     language: text("language").$type<Language>().notNull(),
     practiceId: text("practice_id").$type<PracticeId>(),
     status: text("status").$type<CaseStatus>().notNull().default("intake"),
+    citizenRequestId: text("citizen_request_id"),
+    citizenRequestedAt: instant("citizen_requested_at"),
+    citizenRemindersQueued: integer("citizen_reminders_queued").notNull().default(0),
+    citizenReminderSentAt: instant("citizen_reminder_sent_at"),
     editingQuestion: text("editing_question"),
     confirmedAnswers: jsonb("confirmed_answers").$type<string[]>().notNull().default([]),
     answers: jsonb("answers").$type<Record<string, AnswerValue>>().notNull().default({}),
@@ -173,6 +178,10 @@ export const cases = pgTable(
     index("cases_org_submitted_idx").on(t.organizationId, t.submittedAt),
     index("cases_org_office_submitted_idx").on(t.organizationId, t.officeId, t.submittedAt),
     index("cases_expires_idx").on(t.expiresAt),
+    index("cases_citizen_reminders_idx")
+      .on(t.citizenRequestedAt, t.id)
+      .where(sql`${t.status} = 'needs_citizen' and ${t.citizenRequestId} is not null`),
+    check("cases_reminders_check", sql`${t.citizenRemindersQueued} between 0 and 2`),
     check(
       "cases_status_check",
       sql`${t.status} in ('intake','submitted','in_review','needs_citizen','ready','closed')`,
@@ -322,9 +331,20 @@ export const settings = pgTable(
     linkDays: integer("link_days").notNull().default(60),
     notifyCitizenReady: boolean("notify_citizen_ready").notNull().default(false),
     notifyOperatorDigest: boolean("notify_operator_digest").notNull().default(false),
+    notifyCitizenReminders: boolean("notify_citizen_reminders").notNull().default(false),
+    citizenReminderDays: jsonb("citizen_reminder_days")
+      .$type<CitizenReminderDays>()
+      .notNull()
+      .default([3, 4]),
     lastDigestDate: text("last_digest_date"),
   },
   (t) => [
+    check(
+      "settings_reminder_days_check",
+      sql`jsonb_typeof(${t.citizenReminderDays}) = 'array'
+      and jsonb_array_length(${t.citizenReminderDays}) between 1 and 2
+      and not jsonb_path_exists(${t.citizenReminderDays}, '$[*] ? (@.type() != "number" || @ < 1 || @ > 30 || @ != @.floor())')`,
+    ),
     check("settings_days_check", sql`${t.retentionDays} > 0 and ${t.linkDays} > 0`),
     check(
       "settings_baseline_check",
@@ -371,7 +391,7 @@ export const storageDeletions = pgTable("storage_deletions", {
 });
 
 export type NotificationKind =
-  "pilot_lead" | "citizen_request" | "citizen_ready" | "operator_digest";
+  "pilot_lead" | "citizen_request" | "citizen_ready" | "citizen_reminder" | "operator_digest";
 export const notifications = pgTable(
   "notifications",
   {
@@ -383,6 +403,8 @@ export const notifications = pgTable(
       onDelete: "cascade",
     }),
     caseId: text("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    citizenRequestId: text("citizen_request_id"),
+    reminderNumber: integer("reminder_number"),
     leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
     operatorId: text("operator_id").references(() => operators.id, { onDelete: "cascade" }),
     // AES-GCM envelope contains only recipient, sender and the rendered minimal email.
@@ -407,7 +429,13 @@ export const notifications = pgTable(
     index("notifications_completed_idx").on(t.completedAt),
     check(
       "notifications_kind_check",
-      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'operator_digest')`,
+      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'citizen_reminder', 'operator_digest')`,
+    ),
+    check(
+      "notifications_reminder_check",
+      sql`${t.kind} <> 'citizen_reminder' or
+      (${t.citizenRequestId} is not null and ${t.reminderNumber} is not null
+       and ${t.reminderNumber} between 1 and 2 and ${t.caseId} is not null and ${t.organizationId} is not null)`,
     ),
     check(
       "notifications_language_check",
@@ -466,5 +494,26 @@ export const operationalCounters = pgTable(
       sql`${t.metric} in ('ai_success','ai_fallback','ai_error','api_error')`,
     ),
     check("operational_counters_count_check", sql`${t.count} > 0`),
+  ],
+);
+
+export const quickReplies = pgTable(
+  "quick_replies",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    text: text("text").notNull(),
+    position: integer("position").notNull(),
+  },
+  (t) => [
+    unique("quick_replies_org_position_unique").on(t.organizationId, t.position),
+    check("quick_replies_position_check", sql`${t.position} between 0 and 49`),
+    check(
+      "quick_replies_text_check",
+      sql`length(trim(${t.title})) between 1 and 80 and length(trim(${t.text})) between 1 and 1000`,
+    ),
   ],
 );

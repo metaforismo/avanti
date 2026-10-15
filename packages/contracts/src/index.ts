@@ -658,6 +658,35 @@ export const ReviewChecklistItemRequest = z.object({
 });
 export type ReviewChecklistItemRequest = z.infer<typeof ReviewChecklistItemRequest>;
 
+/** Italian templates copied into the existing integration request, where translation is applied. */
+export const QuickReplyInput = z
+  .object({
+    title: SafeName.trim().min(1).max(80),
+    text: SafeText.trim().min(1).max(1000),
+  })
+  .strict();
+export type QuickReplyInput = z.infer<typeof QuickReplyInput>;
+export const UpdateQuickReplyRequest = QuickReplyInput.partial().refine(
+  (input) => Object.keys(input).length > 0,
+);
+export type UpdateQuickReplyRequest = z.infer<typeof UpdateQuickReplyRequest>;
+export const QuickReply = QuickReplyInput.extend({
+  id: Id,
+  position: z.number().int().min(0).max(49),
+});
+export type QuickReply = z.infer<typeof QuickReply>;
+export const QuickReplyList = z.array(QuickReply).max(50);
+export type QuickReplyList = z.infer<typeof QuickReplyList>;
+export const ReorderQuickRepliesRequest = z
+  .object({
+    ids: z
+      .array(Id)
+      .max(50)
+      .refine((ids) => new Set(ids).size === ids.length),
+  })
+  .strict();
+export type ReorderQuickRepliesRequest = z.infer<typeof ReorderQuickRepliesRequest>;
+
 export const RequestFromCitizenRequest = z.object({
   /** Required by the API for writes; use updatedAt from the dossier and reload on 409. */
   expectedUpdatedAt: IsoDateTime.optional(),
@@ -865,6 +894,12 @@ export const AuditAction = z.enum([
   "operator.activated",
   "operator.password_reset",
   "settings.updated",
+  "quick_reply.created",
+  "quick_reply.updated",
+  "quick_reply.deleted",
+  "quick_reply.reordered",
+  "citizen.reminder_sent",
+  "citizen.reminder_simulated",
   "office.created",
   "office.updated",
   "organization.bootstrapped",
@@ -943,6 +978,9 @@ export const ChangePasswordRequest = z.object({
 });
 export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequest>;
 
+export const CitizenReminderDays = z.array(z.number().int().min(1).max(30)).min(1).max(2);
+export type CitizenReminderDays = z.infer<typeof CitizenReminderDays>;
+
 export const OrganizationSettings = z.object({
   mfaRequired: z.boolean().default(false),
   /** Minutes per case measured by the CAF before Avanti; null until measured. */
@@ -955,6 +993,9 @@ export const OrganizationSettings = z.object({
   notifyCitizenReady: z.boolean().default(false),
   /** Daily UTC aggregate, sent to active operators. No citizen data. */
   notifyOperatorDigest: z.boolean().default(false),
+  notifyCitizenReminders: z.boolean().default(false),
+  /** First delay after the request, then additional days after the first delivery. */
+  citizenReminderDays: CitizenReminderDays.default([3, 4]),
 });
 export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 
@@ -964,6 +1005,8 @@ export const UpdateSettingsRequest = OrganizationSettings.partial().extend({
   mfaRequired: z.boolean().optional(),
   notifyCitizenReady: z.boolean().optional(),
   notifyOperatorDigest: z.boolean().optional(),
+  notifyCitizenReminders: z.boolean().optional(),
+  citizenReminderDays: CitizenReminderDays.optional(),
 });
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
