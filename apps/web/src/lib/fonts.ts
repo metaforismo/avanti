@@ -1,7 +1,6 @@
 import {
   Atkinson_Hyperlegible_Mono,
   Atkinson_Hyperlegible_Next,
-  Bricolage_Grotesque,
   Noto_Sans_Arabic,
   Noto_Sans_Bengali,
 } from "next/font/google";
@@ -16,16 +15,11 @@ export const body = Atkinson_Hyperlegible_Next({
   adjustFontFallback: false,
 });
 
-export const display = Bricolage_Grotesque({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-display-face",
-  axes: ["opsz", "wdth"],
-  display: "swap",
-});
-
+// Used for codes and keys only, never above the fold: not worth a preload on every page.
 export const code = Atkinson_Hyperlegible_Mono({
   subsets: ["latin"],
   variable: "--font-code",
+  preload: false,
   display: "swap",
   adjustFontFallback: false,
 });
@@ -47,6 +41,5 @@ export const arabic = Noto_Sans_Arabic({
   display: "swap",
 });
 
-export const fontVariables = [body, display, code, bengali, arabic]
-  .map((f) => f.variable)
-  .join(" ");
+// The display face is set per area: see components/brand/editorial-type.tsx.
+export const fontVariables = [body, code, bengali, arabic].map((f) => f.variable).join(" ");

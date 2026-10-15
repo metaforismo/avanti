@@ -110,7 +110,7 @@ function Queue() {
   const firstDay = counts ? Object.values(counts).every((n) => n === 0) : false;
 
   async function loadMore() {
-    if (!nextCursor) return;
+    if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
     setLoadMoreFailed(false);
     try {
@@ -301,6 +301,9 @@ function Queue() {
             </ul>
             {nextCursor && (
               <div className="mt-4 grid justify-items-center gap-2">
+                {!loadMoreFailed && (
+                  <LoadMoreSentinel key={nextCursor} onVisible={() => void loadMore()} />
+                )}
                 {loadMoreFailed && (
                   <p role="alert" className="text-sm text-danger">
                     Non è stato possibile caricare altre pratiche. Riprova.
@@ -319,12 +322,21 @@ function Queue() {
 }
 
 function QueueRow({ item }: { item: CaseListItem }) {
+  const router = useRouter();
   const { documentsDone, documentsRequired } = item.progress;
   const docPercent = documentsRequired ? (documentsDone / documentsRequired) * 100 : 0;
+  const href = `/console/pratiche/${item.id}` as Route;
+  // Prefetch on intent, not on sight: scrolling hundreds of cases must not fire hundreds of
+  // requests. Only the route's code is fetched; opening the case itself is what gets audited.
+  const prefetch = () => router.prefetch(href);
   return (
-    <li>
+    // Rows off screen skip layout and paint: long queues scroll as lightly as short ones.
+    <li className="[contain-intrinsic-size:auto_4.5rem] [content-visibility:auto]">
       <Link
-        href={`/console/pratiche/${item.id}`}
+        href={href}
+        prefetch={false}
+        onPointerEnter={prefetch}
+        onFocus={prefetch}
         className="grid gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-paper focus-visible:bg-paper md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem] md:items-center"
       >
         <span className="min-w-0">
@@ -445,4 +457,31 @@ function QueueSkeleton() {
       </div>
     </>
   );
+}
+
+/**
+ * Starts loading older cases a screen before the end of the list, so scrolling rarely meets a
+ * wait. Fires once per page (remounted with each cursor); the button stays for keyboards.
+ */
+function LoadMoreSentinel({ onVisible }: { onVisible: () => void }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const latest = useRef(onVisible);
+  useEffect(() => {
+    latest.current = onVisible;
+  });
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        latest.current();
+      },
+      { rootMargin: "800px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return <span ref={ref} aria-hidden />;
 }

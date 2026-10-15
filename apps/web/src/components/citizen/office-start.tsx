@@ -9,7 +9,7 @@ import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { apiFetch, ApiRequestError } from "@/lib/api";
-import { recallCase, rememberCase } from "@/lib/citizen/local-cases";
+import { forgetCase, recallCase, rememberCase } from "@/lib/citizen/local-cases";
 import { errorMessage, format, LANGUAGE_NAMES, messagesFor } from "@/lib/citizen/messages";
 import { cn } from "@/lib/cn";
 import { browserLanguage, directionOf, useDocumentLanguage } from "@/lib/citizen/document-language";
@@ -143,7 +143,13 @@ export function OfficeStart({
               <Button asChild>
                 <Link href={`/pratica/${resumeToken}`}>{m.start.resume}</Link>
               </Button>
-              <Button variant="ghost" onClick={() => setResumeToken(null)}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  forgetCase(officeSlug);
+                  setResumeToken(null);
+                }}
+              >
                 {m.start.startNew}
               </Button>
             </div>

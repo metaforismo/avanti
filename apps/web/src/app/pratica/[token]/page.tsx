@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CitizenApp } from "@/components/citizen/citizen-app";
+import { PlainType } from "@/components/brand/plain-type";
 
 // The token in the URL is a capability: never leak it via Referer or indexing.
 export const metadata: Metadata = {
@@ -10,5 +11,9 @@ export const metadata: Metadata = {
 
 export default async function CasePage({ params }: PageProps<"/pratica/[token]">) {
   const { token } = await params;
-  return <CitizenApp token={token} />;
+  return (
+    <PlainType>
+      <CitizenApp token={token} />
+    </PlainType>
+  );
 }

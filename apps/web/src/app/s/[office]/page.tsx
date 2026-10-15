@@ -1,5 +1,6 @@
 import { app } from "@avanti/api";
 import type { Metadata } from "next";
+import { PlainType } from "@/components/brand/plain-type";
 import { OfficeStart, type OfficeInfo } from "@/components/citizen/office-start";
 
 export const metadata: Metadata = {
@@ -24,5 +25,9 @@ async function loadOffice(slug: string): Promise<OfficeInfo | "missing" | null> 
 
 export default async function OfficePage({ params }: PageProps<"/s/[office]">) {
   const { office } = await params;
-  return <OfficeStart officeSlug={office} initial={await loadOffice(office)} />;
+  return (
+    <PlainType>
+      <OfficeStart officeSlug={office} initial={await loadOffice(office)} />
+    </PlainType>
+  );
 }
