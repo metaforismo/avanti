@@ -1,15 +1,11 @@
 import type { AnswerValue, CitizenCase, IntakeTurn, Language, PracticeId } from "@avanti/contracts";
-import { MemberRole } from "@avanti/contracts";
 import {
   CLASSIFICATION_THRESHOLD,
   applyAnswer,
-  DomainValidationError,
   editAnswer,
   getPractice,
-  getQuestions,
   skipQuestion,
   t,
-  HOUSEHOLD_RELATIONS,
 } from "@avanti/core";
 import type { IntakeProposal } from "./ai";
 import type { CaseRow } from "./dossier";
@@ -25,6 +21,7 @@ export function assertStartable(practiceId: PracticeId | undefined) {
 
 export function assertProposalCurrent(initial: CaseRow, current: CaseRow) {
   if (
+    initial.updatedAt !== current.updatedAt ||
     initial.practiceId !== current.practiceId ||
     initial.language !== current.language ||
     JSON.stringify(initial.answers) !== JSON.stringify(current.answers)
@@ -33,7 +30,7 @@ export function assertProposalCurrent(initial: CaseRow, current: CaseRow) {
   }
 }
 
-function applyValidatedAnswer(
+export function applyValidatedAnswer(
   practiceId: PracticeId,
   answers: Record<string, AnswerValue>,
   questionId: string,
@@ -46,35 +43,6 @@ function applyValidatedAnswer(
   if (questionId === "household_count" && answers.members)
     updated = { ...answers, household_count: updated.household_count! };
   return storeMemberIds(updated, answers);
-}
-
-function applyProposedAnswers(
-  practiceId: PracticeId,
-  initial: Record<string, AnswerValue>,
-  proposal: IntakeProposal,
-  language: Language,
-  now: Date,
-) {
-  let answers = initial;
-  const pending = new Map(Object.entries(proposal.answers));
-  // Each pass can expose dependent questions; stop only when no answer was accepted.
-  const maximumPasses = pending.size;
-  for (let pass = 0; pass < maximumPasses; pass++) {
-    let accepted = false;
-    for (const question of getQuestions(practiceId, answers, language)) {
-      const value = pending.get(question.id);
-      if (value === undefined) continue;
-      pending.delete(question.id);
-      try {
-        answers = applyValidatedAnswer(practiceId, answers, question.id, value, language, now);
-        accepted = true;
-      } catch (error) {
-        if (!(error instanceof DomainValidationError)) throw error;
-      }
-    }
-    if (!accepted || !pending.size) break;
-  }
-  return answers;
 }
 
 export function applyTurn(
@@ -101,7 +69,6 @@ export function applyTurn(
       proposal = {
         ...proposal,
         practiceId: "isee_ordinario",
-        answers: { ...proposal.answers, university: true },
       };
     if (
       proposal.practiceId &&
@@ -111,27 +78,7 @@ export function applyTurn(
       return { practiceId, answers, unavailablePractice: proposal.practiceId };
     if (!practiceId && proposal.practiceId && proposal.confidence >= CLASSIFICATION_THRESHOLD)
       practiceId = proposal.practiceId;
-    const roles = MemberRole.array().max(20).safeParse(proposal.answers.household_roles);
-    if (roles.success && !Array.isArray(answers.members)) answers.household_roles = roles.data;
-    if (practiceId)
-      answers = applyProposedAnswers(practiceId, answers, proposal, current.language, now);
-    const relations = proposal.answers.household_relations;
-    if (
-      !Array.isArray(answers.members) &&
-      Array.isArray(relations) &&
-      relations.length <= 20 &&
-      relations.every(
-        (value) =>
-          typeof value === "string" && HOUSEHOLD_RELATIONS.some((relation) => relation === value),
-      )
-    )
-      answers.household_relations = relations;
-    for (const fact of [
-      "applicant_parent_nonresident",
-      "foreign_institution_review",
-      "mortgage_review",
-    ] as const)
-      if (proposal.answers[fact] === true) answers[fact] = true;
+    // Extracted values remain proposals until the citizen confirms them.
     return { practiceId, answers, unavailablePractice };
   }
   if (!practiceId) throw new ApiFailure("bad_request", 400, "Scegli prima la pratica.");

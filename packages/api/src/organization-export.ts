@@ -7,6 +7,7 @@ import {
   operators,
   settings,
   quickReplies,
+  prefillDecisions,
   cases,
   documents,
   messages,
@@ -169,6 +170,11 @@ export async function exportOrganization(
     });
     return {
       format: "avanti.organization",
+      prefillDecisions: await tx
+        .select(getTableColumns(prefillDecisions))
+        .from(prefillDecisions)
+        .innerJoin(cases, eq(prefillDecisions.caseId, cases.id))
+        .where(caseFilter),
       version: 1,
       exportedAt: now.toISOString(),
       organization,

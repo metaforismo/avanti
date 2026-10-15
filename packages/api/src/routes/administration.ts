@@ -73,6 +73,8 @@ function settingsView(row?: typeof settings.$inferSelect): OrganizationSettings 
   return {
     mfaRequired: row?.mfaRequired ?? false,
     aiMonthlyBudgetEur: row?.aiMonthlyBudgetEur ?? null,
+    aiCopilot: row?.aiCopilot ?? true,
+    aiCitizenAssistant: row?.aiCitizenAssistant ?? true,
     baselineMinutesPerCase: row?.baselineMinutesPerCase ?? null,
     linkDays: row?.linkDays ?? 60,
     retentionDays: row?.retentionDays ?? 180,

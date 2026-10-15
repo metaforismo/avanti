@@ -27,7 +27,7 @@ const localConfig = {
     AI_MODEL_FAST: "test/model:free",
   }),
   maxAttempts: 1,
-  attemptTimeoutMs: { fast: 20, reasoning: 20, vision: 20 },
+  attemptTimeoutMs: { fast: 20, reasoning: 20, vision: 20, audio: 20 },
   totalTimeoutMs: 30,
   circuitFailures: 2,
   circuitCooldownMs: 10,

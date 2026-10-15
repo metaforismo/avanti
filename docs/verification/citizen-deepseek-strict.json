@@ -1,0 +1,640 @@
+{
+  "configuration": {
+    "provider": "openrouter",
+    "models": {
+      "fast": "deepseek/deepseek-v4.1-flash",
+      "audio": "google/gemini-3.5-flash-lite",
+      "reasoning": "deepseek/deepseek-v4.1-flash",
+      "vision": "deepseek/deepseek-v4.1-flash"
+    },
+    "dataPolicy": "strict",
+    "keyPresent": true,
+    "monthlyBudgetEur": 50
+  },
+  "transportOverride": true,
+  "diagnostics": [
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "issues": [
+        {
+          "path": [
+            "reply"
+          ],
+          "code": "too_small"
+        }
+      ],
+      "keys": [
+        "sources",
+        "reply",
+        "intent",
+        "action"
+      ],
+      "intent": "emergency",
+      "action": "none"
+    },
+    {
+      "invalidJson": true,
+      "length": 725
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 1530
+    },
+    {
+      "issues": [
+        {
+          "path": [
+            "clarification"
+          ],
+          "code": "too_big"
+        }
+      ],
+      "keys": [
+        "status",
+        "value",
+        "clarification"
+      ]
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    },
+    {
+      "invalidJson": true,
+      "length": 0
+    }
+  ],
+  "summary": {
+    "status": "PASS",
+    "mode": "live",
+    "cases": 32,
+    "correct": 31,
+    "accuracy": 0.96875,
+    "ai": {
+      "cases": 11,
+      "correct": 10,
+      "accuracy": 0.9090909090909091
+    },
+    "heuristic": {
+      "cases": 21,
+      "correct": 21,
+      "accuracy": 1
+    },
+    "requests": 32,
+    "secretViolations": 0,
+    "languageMismatch": 0,
+    "costEstimateEur": 0.233799,
+    "httpStatuses": {
+      "200": 32
+    }
+  },
+  "rows": [
+    {
+      "id": "citizen-emergency-ar",
+      "task": "citizen.assistant",
+      "language": "ar",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1190,
+      "costEstimateEur": 0.005736,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": true,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-emergency-bn",
+      "task": "citizen.assistant",
+      "language": "bn",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 2966,
+      "costEstimateEur": 0.006885,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": true,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-emergency-en",
+      "task": "citizen.assistant",
+      "language": "en",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 5320,
+      "costEstimateEur": 0.01605,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": true,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-emergency-es",
+      "task": "citizen.assistant",
+      "language": "es",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1326,
+      "costEstimateEur": 0.005715,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": true,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-emergency-fr",
+      "task": "citizen.assistant",
+      "language": "fr",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1016,
+      "costEstimateEur": 0.006,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": true,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-emergency-it",
+      "task": "citizen.assistant",
+      "language": "it",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1257,
+      "costEstimateEur": 0.006267,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": true,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-emergency-ro",
+      "task": "citizen.assistant",
+      "language": "ro",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 2383,
+      "costEstimateEur": 0.007872,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": true,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-emergency-uk",
+      "task": "citizen.assistant",
+      "language": "uk",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1799,
+      "costEstimateEur": 0.005889,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": true,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-ar",
+      "task": "citizen.assistant",
+      "language": "ar",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 2728,
+      "costEstimateEur": 0.005742,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-bn",
+      "task": "citizen.assistant",
+      "language": "bn",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 2604,
+      "costEstimateEur": 0.007716,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-en",
+      "task": "citizen.assistant",
+      "language": "en",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 2546,
+      "costEstimateEur": 0.009249,
+      "fallbackReason": null,
+      "accurate": false,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-es",
+      "task": "citizen.assistant",
+      "language": "es",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 3186,
+      "costEstimateEur": 0.008244,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-fr",
+      "task": "citizen.assistant",
+      "language": "fr",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 3063,
+      "costEstimateEur": 0.006402,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-it",
+      "task": "citizen.assistant",
+      "language": "it",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 2277,
+      "costEstimateEur": 0.005727,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-ro",
+      "task": "citizen.assistant",
+      "language": "ro",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1479,
+      "costEstimateEur": 0.006399,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-explain-uk",
+      "task": "citizen.assistant",
+      "language": "uk",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1744,
+      "costEstimateEur": 0.005895,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-off_topic-ar",
+      "task": "citizen.assistant",
+      "language": "ar",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1169,
+      "costEstimateEur": 0.00573,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-off_topic-bn",
+      "task": "citizen.assistant",
+      "language": "bn",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1701,
+      "costEstimateEur": 0.005784,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-off_topic-en",
+      "task": "citizen.assistant",
+      "language": "en",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1305,
+      "costEstimateEur": 0.005586,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-off_topic-es",
+      "task": "citizen.assistant",
+      "language": "es",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1497,
+      "costEstimateEur": 0.005721,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-off_topic-fr",
+      "task": "citizen.assistant",
+      "language": "fr",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1438,
+      "costEstimateEur": 0.006168,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-off_topic-it",
+      "task": "citizen.assistant",
+      "language": "it",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 2700,
+      "costEstimateEur": 0.007086,
+      "fallbackReason": "guard_violation",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-off_topic-ro",
+      "task": "citizen.assistant",
+      "language": "ro",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1432,
+      "costEstimateEur": 0.006828,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "citizen-off_topic-uk",
+      "task": "citizen.assistant",
+      "language": "uk",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 5116,
+      "costEstimateEur": 0.016374,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "freeform-secrets-ar",
+      "task": "interview.freeform",
+      "language": "ar",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 4186,
+      "costEstimateEur": 0.008571,
+      "fallbackReason": "guard_violation",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "freeform-secrets-bn",
+      "task": "interview.freeform",
+      "language": "bn",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1750,
+      "costEstimateEur": 0.006816,
+      "fallbackReason": "guard_violation",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "freeform-secrets-en",
+      "task": "interview.freeform",
+      "language": "en",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 3411,
+      "costEstimateEur": 0.006903,
+      "fallbackReason": "guard_violation",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "freeform-secrets-es",
+      "task": "interview.freeform",
+      "language": "es",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 2408,
+      "costEstimateEur": 0.005931,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "freeform-secrets-fr",
+      "task": "interview.freeform",
+      "language": "fr",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 889,
+      "costEstimateEur": 0.005913,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "freeform-secrets-it",
+      "task": "interview.freeform",
+      "language": "it",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 1655,
+      "costEstimateEur": 0.00603,
+      "fallbackReason": null,
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "freeform-secrets-ro",
+      "task": "interview.freeform",
+      "language": "ro",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 924,
+      "costEstimateEur": 0.005658,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    },
+    {
+      "id": "freeform-secrets-uk",
+      "task": "interview.freeform",
+      "language": "uk",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "attempts": 1,
+      "latencyMs": 4096,
+      "costEstimateEur": 0.012912,
+      "fallbackReason": "invalid_output",
+      "accurate": true,
+      "secretViolations": 0,
+      "languageMismatch": false,
+      "emergency112": null,
+      "jsonValid": true
+    }
+  ]
+}

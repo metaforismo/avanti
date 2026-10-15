@@ -274,3 +274,47 @@ simulati; lo stato `sent` indica l'accettazione del provider, non la lettura.
 
 Questa modifica backend fornisce contratti e API; i controlli visuali e i moduli
 per queste nuove indicazioni sono gestiti nell'interfaccia in parallelo.
+
+## Intervista come conversazione
+
+Il cittadino può raccontare più cose nello stesso messaggio. Avanti presenta schede con
+ciò che ha capito: il cittadino può confermarle, correggerne il valore o rifiutarle.
+Solo le conferme entrano nelle risposte e nella checklist. Le domande obbligatorie
+restano aperte fino a una risposta valida; «non lo so» non completa una domanda.
+I pulsanti rapidi e l'editor del nucleo restano disponibili dentro la conversazione.
+Senza AI il percorso continua con una domanda alla volta nella lingua del cittadino.
+
+Nel fascicolo, i messaggi mostrano il racconto originale, le risposte dell'assistente
+e i valori confermati anche quando sono stati scelti con un pulsante. Controlla sempre
+le proposte e le correzioni: una confidenza alta non attesta la correttezza del dato.
+Una risposta già confermata va riaperta con la funzione di modifica; un nuovo racconto
+non la sovrascrive. Cambiare il numero dei componenti conserva l'elenco confermato e
+richiede di riallinearlo se necessario.
+
+Il dialogo e le proposte pendenti seguono la retention del fascicolo e sono inclusi
+nell'export JSON del CAF per rispondere alle richieste dell'interessato. La cancellazione
+del fascicolo li elimina insieme alle risposte. La disponibilità dei controlli visuali
+dipende dall'allineamento dell'interfaccia ai contratti della conversazione.
+
+### Domande all’assistente e domande allo sportello
+
+Il fascicolo espone “Domande all’assistente”: sono le domande del cittadino e le risposte
+automatiche, nella lingua in cui sono state scritte. Non sono risposte dell’intervista e
+non modificano la checklist. Le fonti rimandano alle informazioni disponibili nella pratica.
+L’assistente spiega le domande e dove trovare i documenti; valutazioni sul diritto a una
+prestazione, importi e casi personali restano all’operatore.
+
+Con “Chiedi allo sportello” il cittadino invia una domanda al CAF. Compare tra i messaggi
+del fascicolo e nel registro come “Domanda del cittadino allo sportello”. La coda espone
+`hasCitizenQuestion`; l’indicatore segnala la presenza storica di domande, non una nuova
+notifica email e non una presa in carico automatica.
+
+Il cittadino vede subito i rilievi automatici sui documenti nella propria lingua. Può
+ricaricare un file oppure confermare “è giusto così”. La data `citizenKeptAt` e l’evento
+“Documento confermato dal cittadino” restano nel fascicolo. La conferma non vale come
+verifica del CAF: controlla comunque intestatario, anno, scadenza, pagine e leggibilità.
+L’analisi euristica controlla soltanto gli indizi deterministici disponibili.
+
+La voce produce testo che il cittadino deve rileggere e può modificare prima di inviarlo.
+Nessuna registrazione viene conservata da Avanti. Se il servizio non è disponibile, il
+cittadino può continuare scrivendo.

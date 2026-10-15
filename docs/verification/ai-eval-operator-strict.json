@@ -1,0 +1,304 @@
+{
+  "summary": {
+    "mode": "strict",
+    "configuration": {
+      "provider": "openrouter",
+      "models": {
+        "fast": "deepseek/deepseek-v4.1-flash",
+        "reasoning": "deepseek/deepseek-v4.1-flash",
+        "vision": "openai/gpt-6-luna"
+      },
+      "dataPolicy": "strict",
+      "keyPresent": true,
+      "monthlyBudgetEur": 50
+    },
+    "transportOverride": true,
+    "knowledgeVersion": "6a3a03bea829a881",
+    "cases": 17,
+    "passed": 14,
+    "ai": 3,
+    "heuristic": 14,
+    "requests": 13,
+    "measuredCostReceipts": 7,
+    "actualCostUsd": 0.003465825,
+    "costEstimateEur": 0.573408
+  },
+  "rows": [
+    {
+      "id": "consistency:clean",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 4482,
+      "attempts": 2,
+      "fallbackReason": "provider_error",
+      "costEstimateEur": 0.089226
+    },
+    {
+      "id": "consistency:wrong_name",
+      "engine": "heuristic",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 7299,
+      "attempts": 2,
+      "fallbackReason": "invalid_output",
+      "costEstimateEur": 0.028617000000000004
+    },
+    {
+      "id": "consistency:wrong_year",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 3357,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.09192
+    },
+    {
+      "id": "consistency:expired",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 10145,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.09015000000000001
+    },
+    {
+      "id": "consistency:undeclared",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 5418,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.086046
+    },
+    {
+      "id": "brief",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 32143,
+      "attempts": 2,
+      "fallbackReason": "timeout",
+      "costEstimateEur": 0.157662
+    },
+    {
+      "id": "request-draft",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 4682,
+      "attempts": 2,
+      "fallbackReason": "provider_error",
+      "costEstimateEur": 0.029786999999999998
+    },
+    {
+      "id": "ask:years",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 20,
+      "attempts": 0,
+      "fallbackReason": "circuit_open",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "ask:cu",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "circuit_open",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "ask:outside",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 6,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "ask:injection",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "reply-draft",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "circuit_open",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:bank-image",
+      "engine": "heuristic",
+      "model": null,
+      "pass": false,
+      "latencyMs": 2,
+      "attempts": 0,
+      "fallbackReason": "circuit_open",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:cu-pdf",
+      "engine": "heuristic",
+      "model": null,
+      "pass": false,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "circuit_open",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:rent-pdf",
+      "engine": "heuristic",
+      "model": null,
+      "pass": false,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "circuit_open",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:select",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 3,
+      "attempts": 0,
+      "fallbackReason": "circuit_open",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:conflict",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 21,
+      "attempts": 0,
+      "fallbackReason": "circuit_open",
+      "costEstimateEur": 0
+    }
+  ],
+  "receipts": [
+    {
+      "status": 200,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "policy": "strict",
+      "provider": "DigitalOcean",
+      "costUsd": 0.00071664,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "provider_error"
+    },
+    {
+      "status": 200,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "policy": "strict",
+      "provider": "InferenceNet",
+      "costUsd": 0.00054014,
+      "reason": null
+    },
+    {
+      "status": 200,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "policy": "strict",
+      "provider": "DigitalOcean",
+      "costUsd": 0.000628455,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "provider_error"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000518425,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "provider_error"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000460425,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "provider_error"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.0004503,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "provider_error"
+    },
+    {
+      "status": 200,
+      "model": "deepseek/deepseek-v4.1-flash",
+      "policy": "strict",
+      "provider": "DigitalOcean",
+      "costUsd": 0.00015144,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "provider_error"
+    }
+  ]
+}

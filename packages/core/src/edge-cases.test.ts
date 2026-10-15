@@ -136,6 +136,8 @@ describe("Rome calendar and document deadlines", () => {
       documents: [
         {
           id: "d",
+          citizenCheck: { status: "pending", messages: [] },
+          citizenKeptAt: null,
           fileName: "ESEMPIO.pdf",
           mimeType: "application/pdf",
           sizeBytes: 1,

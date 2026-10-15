@@ -1,4 +1,7 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { conversationState } from "./conversation-state";
+import { copilotDossier } from "./copilot-context";
+import { queuePrioritySql } from "./copilot-queue";
+import { and, asc, eq, inArray, getTableColumns, sql } from "drizzle-orm";
 import {
   cases,
   organizations,
@@ -8,10 +11,13 @@ import {
   messages,
   events,
   checklistReviews,
+  prefillDecisions,
+  settings,
   type Database,
 } from "@avanti/db";
 import {
   CitizenContact,
+  AssistantTurn,
   type CaseDossier,
   type CitizenCase,
   type DocumentSummary,
@@ -23,6 +29,7 @@ import {
   buildHousehold,
   buildChecklist,
   buildDsuSheet,
+  applyConfirmedPrefill,
   evaluateDossier,
   nextQuestion,
   getPractice,
@@ -78,7 +85,7 @@ export async function audit(
   });
 }
 type ViewData = {
-  organization: typeof organizations.$inferSelect;
+  organization: typeof organizations.$inferSelect & { aiCitizenAssistant?: boolean | null };
   office: typeof offices.$inferSelect | undefined;
   storedDocs: (typeof documents.$inferSelect)[];
   reviews: (typeof checklistReviews.$inferSelect)[];
@@ -139,6 +146,8 @@ function evaluateCase(
             now,
           })
         : null,
+    citizenKeptAt: d.citizenKeptAt ? iso(d.citizenKeptAt) : null,
+    citizenCheck: { status: d.status === "processing" ? "pending" : "warning", messages: [] },
   }));
   for (const item of checklist) {
     item.documentIds = docViews.filter((d) => d.checklistItemId === item.id).map((d) => d.id);
@@ -167,6 +176,24 @@ function evaluateCase(
           percent: 0,
         },
       };
+  for (const doc of docViews) {
+    if (doc.status === "processing") continue;
+    // "Unchecked" is the operator's caveat on automatic reading, not something to fix.
+    const issues = evaluation.findings.filter(
+      (f) =>
+        f.documentId === doc.id &&
+        f.code !== "document.observation" &&
+        f.code !== "document.unchecked",
+    );
+    doc.citizenCheck = {
+      status: issues.some((f) => f.severity === "blocker")
+        ? "problem"
+        : issues.length
+          ? "warning"
+          : "ok",
+      messages: issues.map((f) => f.message),
+    };
+  }
   for (const item of checklist)
     if (
       item.status === "uploaded" &&
@@ -174,6 +201,36 @@ function evaluateCase(
     )
       item.status = "issue";
   return { household, checklist, docViews, evaluation };
+}
+
+async function loadViewData(db: Database, row: CaseRow): Promise<ViewData> {
+  const [[organization], [office], storedDocs, reviews, chat] = await Promise.all([
+    db
+      .select({
+        ...getTableColumns(organizations),
+        aiCitizenAssistant: settings.aiCitizenAssistant,
+      })
+      .from(organizations)
+      .leftJoin(settings, eq(settings.organizationId, organizations.id))
+      .where(eq(organizations.id, row.organizationId)),
+    db
+      .select()
+      .from(offices)
+      .where(and(eq(offices.id, row.officeId), eq(offices.organizationId, row.organizationId))),
+    db
+      .select()
+      .from(documents)
+      .where(eq(documents.caseId, row.id))
+      .orderBy(asc(documents.uploadedAt), asc(documents.id)),
+    db.select().from(checklistReviews).where(eq(checklistReviews.caseId, row.id)),
+    db
+      .select()
+      .from(messages)
+      .where(eq(messages.caseId, row.id))
+      .orderBy(asc(messages.createdAt), asc(messages.id)),
+  ]);
+  if (!organization) throw notFound();
+  return { organization, office, storedDocs, reviews, chat };
 }
 
 export async function citizenView(
@@ -184,26 +241,7 @@ export async function citizenView(
   operatorView = false,
   data?: ViewData,
 ): Promise<CitizenCase> {
-  const [[organization], [office], storedDocs, reviews, chat] = data
-    ? [[data.organization], [data.office], data.storedDocs, data.reviews, data.chat]
-    : await Promise.all([
-        db.select().from(organizations).where(eq(organizations.id, row.organizationId)),
-        db
-          .select()
-          .from(offices)
-          .where(and(eq(offices.id, row.officeId), eq(offices.organizationId, row.organizationId))),
-        db
-          .select()
-          .from(documents)
-          .where(eq(documents.caseId, row.id))
-          .orderBy(asc(documents.uploadedAt), asc(documents.id)),
-        db.select().from(checklistReviews).where(eq(checklistReviews.caseId, row.id)),
-        db
-          .select()
-          .from(messages)
-          .where(eq(messages.caseId, row.id))
-          .orderBy(asc(messages.createdAt), asc(messages.id)),
-      ]);
+  const { organization, office, storedDocs, reviews, chat } = data ?? (await loadViewData(db, row));
   if (!organization) throw notFound();
   const { household, checklist, docViews, evaluation } = evaluateCase(
     row,
@@ -222,6 +260,7 @@ export async function citizenView(
   else if (question) step = "interview";
   return {
     id: row.id,
+    aiCitizenAssistant: organization.aiCitizenAssistant ?? true,
     reference: row.reference,
     status: row.status,
     step,
@@ -248,18 +287,27 @@ export async function citizenView(
     reuseNotice: storedDocs.some((doc) => doc.reusedFromYear !== null && visibleToCitizen(doc, row))
       ? reuseNotice[language]
       : null,
-    messages: chat.map((m) => ({
-      id: m.id,
-      role: m.role,
-      text:
-        m.role === "system" && m.originalText === automaticAssistanceNotice.it
-          ? automaticAssistanceNotice[language]
-          : language === "it" && m.originalText
-            ? m.originalText
-            : m.text,
-      originalText: m.originalText,
-      createdAt: iso(m.createdAt),
-    })),
+    conversation: conversationState(
+      row,
+      chat.filter((m) => m.kind !== "citizen_assistant" && m.kind !== "citizen_question"),
+      evaluation.progress,
+      now,
+      language,
+    ),
+    messages: chat
+      .filter((m) => m.kind !== "citizen_assistant")
+      .map((m) => ({
+        id: m.id,
+        role: m.role,
+        text:
+          m.role === "system" && m.originalText === automaticAssistanceNotice.it
+            ? automaticAssistanceNotice[language]
+            : language === "it" && m.originalText
+              ? m.originalText
+              : m.text,
+        originalText: m.originalText,
+        createdAt: iso(m.createdAt),
+      })),
     findings: operatorView
       ? evaluation.findings.map((finding) => ({
           ...finding,
@@ -280,7 +328,8 @@ export async function citizenView(
   };
 }
 export async function dossierView(db: Database, row: CaseRow, now: Date): Promise<CaseDossier> {
-  const view = await citizenView(db, row, now, "it", true);
+  const data = await loadViewData(db, row);
+  const view = await citizenView(db, row, now, "it", true, data);
   const [timeline, actors] = await Promise.all([
     db
       .select()
@@ -293,9 +342,11 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
       .where(eq(operators.organizationId, row.organizationId)),
   ]);
   const summary = dossierSummary(row.practiceId, row.answers, view.household);
-  return {
+  const dossier: CaseDossier = {
     id: row.id,
     reference: row.reference,
+    aiAttention: row.aiAttention,
+    aiPriority: null,
     citizenName: row.contact?.firstName
       ? [row.contact.firstName, row.contact.lastName].filter(Boolean).join(" ")
       : null,
@@ -317,6 +368,8 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
       email: row.contact?.email ?? null,
     },
     ...summary,
+    hasCitizenQuestion: data.chat.some((m) => m.kind === "citizen_question"),
+    assistantTurns: mapAssistantTurns(data.chat.filter((m) => m.kind === "citizen_assistant")),
     household: view.household,
     answers: view.answered.map(({ editable: _editable, ...answer }) => answer),
     checklist: view.checklist,
@@ -331,6 +384,7 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
     ),
     findings: view.findings,
     messages: view.messages,
+    conversation: view.conversation,
     timeline: timeline.map((e) => ({
       id: e.id,
       at: iso(e.at),
@@ -350,11 +404,32 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
     },
     citizenLink: null,
   };
+  const decisions = await db
+    .select({ field: prefillDecisions.field })
+    .from(prefillDecisions)
+    .innerJoin(
+      documents,
+      and(
+        eq(documents.id, sql`${prefillDecisions.field}->>'documentId'`),
+        eq(documents.caseId, row.id),
+        eq(documents.sha256, prefillDecisions.documentHash),
+      ),
+    )
+    .where(and(eq(prefillDecisions.caseId, row.id), eq(prefillDecisions.decision, "accepted")));
+  if (decisions.length)
+    dossier.dsuSheet = applyConfirmedPrefill(
+      dossier.dsuSheet,
+      copilotDossier(dossier),
+      decisions.map((decision) => decision.field),
+    );
+  return dossier;
 }
 
 // No capability hash, notes or interview UI state is needed to render the queue.
 export const caseListColumns = {
   id: cases.id,
+  aiAttention: cases.aiAttention,
+  aiPriority: queuePrioritySql().as("ai_priority"),
   organizationId: cases.organizationId,
   officeId: cases.officeId,
   reference: cases.reference,
@@ -368,7 +443,9 @@ export const caseListColumns = {
   updatedAt: cases.updatedAt,
   submittedAt: cases.submittedAt,
 };
-type CaseListRow = Pick<CaseRow, keyof typeof caseListColumns>;
+type CaseListRow = Pick<CaseRow, Exclude<keyof typeof caseListColumns, "aiPriority">> & {
+  aiPriority: "quick_review" | "attention" | "citizen_question" | null;
+};
 function byCase<T extends { caseId: string }>(rows: T[]) {
   const grouped = new Map<string, T[]>();
   for (const row of rows) {
@@ -383,7 +460,7 @@ export async function caseListViews(db: Database, rows: CaseListRow[], now: Date
   if (!rows.length) return [];
   const ids = rows.map((row) => row.id);
   const organizationId = rows[0]!.organizationId;
-  const [officeRows, operatorRows, storedDocs, reviews] = await Promise.all([
+  const [officeRows, operatorRows, storedDocs, reviews, questions] = await Promise.all([
     db.select().from(offices).where(eq(offices.organizationId, organizationId)),
     db
       .select({ id: operators.id, name: operators.name })
@@ -395,6 +472,10 @@ export async function caseListViews(db: Database, rows: CaseListRow[], now: Date
       .where(inArray(documents.caseId, ids))
       .orderBy(asc(documents.uploadedAt), asc(documents.id)),
     db.select().from(checklistReviews).where(inArray(checklistReviews.caseId, ids)),
+    db
+      .selectDistinct({ caseId: messages.caseId })
+      .from(messages)
+      .where(and(inArray(messages.caseId, ids), eq(messages.kind, "citizen_question"))),
   ]);
   const docsByCase = byCase(storedDocs);
   const reviewsByCase = byCase(reviews);
@@ -410,6 +491,7 @@ export async function caseListViews(db: Database, rows: CaseListRow[], now: Date
     );
     return {
       id: row.id,
+      hasCitizenQuestion: questions.some((q) => q.caseId === row.id),
       reference: row.reference,
       citizenName: row.contact?.firstName
         ? [row.contact.firstName, row.contact.lastName].filter(Boolean).join(" ")
@@ -422,9 +504,31 @@ export async function caseListViews(db: Database, rows: CaseListRow[], now: Date
       progress: evaluation.progress,
       blockers: evaluation.findings.filter((f) => f.severity === "blocker").length,
       warnings: evaluation.findings.filter((f) => f.severity === "warning").length,
+      aiAttention: row.aiAttention,
+      aiPriority: row.aiPriority,
       createdAt: iso(row.createdAt),
       updatedAt: iso(row.updatedAt),
       submittedAt: row.submittedAt ? iso(row.submittedAt) : null,
     };
   });
+}
+
+export async function assistantTurns(db: Database, caseId: string): Promise<AssistantTurn[]> {
+  const rows = await db
+    .select()
+    .from(messages)
+    .where(and(eq(messages.caseId, caseId), eq(messages.kind, "citizen_assistant")))
+    .orderBy(asc(messages.createdAt), asc(messages.id));
+  return mapAssistantTurns(rows);
+}
+function mapAssistantTurns(rows: ViewData["chat"]): AssistantTurn[] {
+  return rows.map((m) =>
+    AssistantTurn.parse({
+      id: m.id,
+      role: m.role,
+      text: m.text,
+      ...m.assistantMetadata,
+      createdAt: iso(m.createdAt),
+    }),
+  );
 }

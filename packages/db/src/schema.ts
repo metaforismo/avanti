@@ -131,6 +131,14 @@ export const cases = pgTable(
     citizenReminderSentAt: instant("citizen_reminder_sent_at"),
     editingQuestion: text("editing_question"),
     confirmedAnswers: jsonb("confirmed_answers").$type<string[]>().notNull().default([]),
+    conversationProposals: jsonb("conversation_proposals")
+      .$type<import("@avanti/contracts").Proposal[]>()
+      .notNull()
+      .default([]),
+    conversationEngine: text("conversation_engine")
+      .$type<"ai" | "heuristic">()
+      .notNull()
+      .default("heuristic"),
     answers: jsonb("answers").$type<Record<string, AnswerValue>>().notNull().default({}),
     contact: jsonb("contact").$type<Partial<CitizenContactRequest>>(),
     citizenNote: text("citizen_note"),
@@ -143,6 +151,7 @@ export const cases = pgTable(
     reviewCompletedAt: instant("review_completed_at"),
     closedAt: instant("closed_at"),
     expiresAt: instant("expires_at").notNull(),
+    aiAttention: integer("ai_attention"),
     firstSubmissionComplete: boolean("first_submission_complete"),
   },
   (t) => [
@@ -236,6 +245,7 @@ export const documents = pgTable(
     reusedFromYear: integer("reused_from_year"),
     reusedMember: jsonb("reused_member").$type<import("@avanti/contracts").Member>(),
     citizenVisible: boolean("citizen_visible").notNull().default(true),
+    citizenKeptAt: instant("citizen_kept_at"),
     analysisLeaseToken: text("analysis_lease_token"),
     analysisLeaseUntil: instant("analysis_lease_until"),
   },
@@ -261,7 +271,21 @@ export const messages = pgTable(
       .references(() => cases.id, { onDelete: "cascade" }),
     role: text("role").$type<"citizen" | "assistant" | "operator" | "system">().notNull(),
     text: text("text").notNull(),
+    kind: text("kind")
+      .$type<
+        | import("@avanti/contracts").ConversationTurn["kind"]
+        | "citizen_assistant"
+        | "citizen_question"
+      >()
+      .notNull()
+      .default("message"),
+    questionId: text("question_id"),
+    assistantMetadata:
+      jsonb("assistant_metadata").$type<
+        Pick<import("@avanti/contracts").AssistantTurn, "intent" | "action" | "sources">
+      >(),
     originalText: text("original_text"),
+    operatorReadAt: instant("operator_read_at"),
     createdAt: instant("created_at").notNull(),
   },
   (t) => [
@@ -336,6 +360,8 @@ export const settings = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     mfaRequired: boolean("mfa_required").notNull().default(false),
     baselineMinutesPerCase: integer("baseline_minutes_per_case"),
+    aiCopilot: boolean("ai_copilot").notNull().default(true),
+    aiCitizenAssistant: boolean("ai_citizen_assistant").notNull().default(true),
     aiMonthlyBudgetEur: doublePrecision("ai_monthly_budget_eur"),
     retentionDays: integer("retention_days").notNull().default(180),
     linkDays: integer("link_days").notNull().default(60),
@@ -566,5 +592,39 @@ export const aiUsage = pgTable(
       sql`${t.costEstimateEur} >= 0 and ${t.reservedEur} >= 0 and ${t.inputTokens} >= 0 and ${t.outputTokens} >= 0`,
     ),
     check("ai_usage_engine", sql`${t.engine} in ('ai', 'heuristic')`),
+  ],
+);
+
+export const copilotCache = pgTable(
+  "copilot_cache",
+  {
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    caseVersion: instant("case_version").notNull(),
+    task: text("task").notNull(),
+    payload: jsonb("payload").$type<unknown>(),
+    leaseToken: text("lease_token").notNull(),
+    leaseUntil: instant("lease_until").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.caseId, t.caseVersion, t.task] })],
+);
+
+export const prefillDecisions = pgTable(
+  "prefill_decisions",
+  {
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    fieldId: text("field_id").notNull(),
+    field: jsonb("field").$type<import("@avanti/contracts").DsuPrefillField>().notNull(),
+    documentHash: text("document_hash").notNull(),
+    decision: text("decision").$type<"accepted" | "rejected">().notNull(),
+    operatorId: text("operator_id").notNull(),
+    decidedAt: instant("decided_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.caseId, t.fieldId] }),
+    check("prefill_decision_check", sql`${t.decision} in ('accepted','rejected')`),
   ],
 );

@@ -94,7 +94,7 @@ it("university AI classification uses the shared collection while explicit choic
   );
   expect(result).toMatchObject({
     practiceId: "isee_ordinario",
-    answers: { university: true },
+    answers: {},
     unavailablePractice: null,
   });
   expect(() =>

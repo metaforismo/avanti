@@ -64,7 +64,10 @@ it("seed is idempotent, creates safe PDFs, and preserves operator edits", async 
         answers: row.answers,
         household,
         checklist,
-        documents: linkedDocuments,
+        documents: linkedDocuments.map((d) => ({
+          ...d,
+          citizenCheck: { status: "pending", messages: [] },
+        })),
         language: "it",
         now: options.now,
         hashes: Object.fromEntries(

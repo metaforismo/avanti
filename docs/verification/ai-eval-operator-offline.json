@@ -1,0 +1,200 @@
+{
+  "summary": {
+    "mode": "offline",
+    "configuration": {
+      "provider": "none",
+      "models": {
+        "fast": "disabled",
+        "reasoning": "disabled",
+        "vision": "disabled"
+      },
+      "dataPolicy": "strict",
+      "keyPresent": false,
+      "monthlyBudgetEur": 50
+    },
+    "transportOverride": false,
+    "isolatedRuntimePerCase": false,
+    "knowledgeVersion": "b94cbc660f3a984a",
+    "cases": 17,
+    "passed": 17,
+    "ai": 0,
+    "heuristic": 17,
+    "requests": 0,
+    "measuredCostReceipts": 0,
+    "actualCostUsd": 0,
+    "costEstimateEur": 0
+  },
+  "rows": [
+    {
+      "id": "consistency:clean",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 15,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "consistency:wrong_name",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 4,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "consistency:wrong_year",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 3,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "consistency:expired",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 4,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "consistency:undeclared",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 5,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "brief",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 6,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "request-draft",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 4,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "ask:years",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 4,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "ask:cu",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "ask:outside",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "ask:injection",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "reply-draft",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 2,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:bank-image",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:cu-pdf",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:rent-pdf",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:select",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "prefill:conflict",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    }
+  ],
+  "receipts": []
+}

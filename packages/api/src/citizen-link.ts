@@ -1,3 +1,4 @@
+import { mutableCitizen } from "./context";
 import { eq } from "drizzle-orm";
 import { cases, type Database } from "@avanti/db";
 import type { CaseRow } from "./dossier";
@@ -31,4 +32,10 @@ export async function currentCitizenLink(
   const [current] = await (lock ? query.for("update") : query);
   assertCitizenLink(current, authorized, now);
   return current;
+}
+
+export async function lockCase(db: Database, row: CaseRow, now: Date) {
+  const fresh = await currentCitizenLink(db, row, now, true);
+  mutableCitizen(fresh);
+  return fresh;
 }

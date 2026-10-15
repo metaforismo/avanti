@@ -119,7 +119,7 @@ describe("intake recovery and household minimum over HTTP", () => {
     },
   );
   it("the reproduced university story advances with spouse facts and an operator warning", async () => {
-    const { start, turn, view } = harness();
+    const { post, start, turn, view } = harness();
     const intake = await start();
     const response = await turn(intake.token, {
       type: "text",
@@ -129,10 +129,24 @@ describe("intake recovery and household minimum over HTTP", () => {
     const result = IntakeTurnResponse.parse(await response.json());
     expect(result.unavailablePractice).toBeNull();
     expect(result.practice?.id).toBe("isee_ordinario");
-    expect(result.answers).toMatchObject({
-      university: true,
-      household_roles: ["richiedente", "coniuge"],
-      household_count: 2,
+    expect(result.answers).toEqual({});
+    expect(result.conversation?.proposals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ questionId: "university", value: true }),
+        expect.objectContaining({ questionId: "household_count", value: 2 }),
+      ]),
+    );
+    await post(`/api/c/${intake.token}/conversation/confirm`, {
+      accept: result.conversation!.proposals.map((p) => ({ proposalId: p.id })),
+      reject: [],
+    });
+    await turn(intake.token, {
+      type: "answer",
+      questionId: "members",
+      value: [
+        { role: "richiedente", firstName: "Ada" },
+        { role: "coniuge", firstName: "Eve" },
+      ],
     });
     await turn(intake.token, { type: "edit", questionId: "household_count" });
     expect((await view(intake.token)).nextQuestion).toMatchObject({
@@ -182,6 +196,16 @@ describe("intake recovery and household minimum over HTTP", () => {
       const { start, turn, view } = harness(ai);
       const intake = await start(language);
       await turn(intake.token, { type: "text", text: "Esempio" });
+      await turn(intake.token, { type: "answer", questionId: "household_count", value: 2 });
+      await turn(intake.token, {
+        type: "answer",
+        questionId: "members",
+        value: [
+          { role: "richiedente", firstName: "Esempio" },
+          { role: "coniuge", firstName: "Coniuge" },
+        ],
+      });
+      await turn(intake.token, { type: "edit", questionId: "household_count" });
       const rejected = await turn(intake.token, {
         type: "answer",
         questionId: "household_count",
@@ -223,7 +247,7 @@ describe("intake recovery and household minimum over HTTP", () => {
       ).toBe(200);
     },
   );
-  it("preserves operator signals and exposes the foreign assets question", async () => {
+  it("retains the original operator context while foreign assets remain proposals", async () => {
     const { start, turn } = harness();
     const intake = await start();
     const result = IntakeTurnResponse.parse(
@@ -234,21 +258,22 @@ describe("intake recovery and household minimum over HTTP", () => {
         })
       ).json(),
     );
-    expect(result.answers).toMatchObject({
-      household_count: 3,
-      household_roles: ["richiedente", "genitore", "altro"],
-      household_relations: ["madre", "fratello"],
-      foreign_assets: true,
-      foreign_institution_review: true,
-      mortgage_review: true,
-      housing: "owned",
-      properties_count: 1,
-    });
+    expect(result.answers).toEqual({});
+    expect(result.conversation?.proposals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ questionId: "household_count", value: 3 }),
+        expect.objectContaining({ questionId: "foreign_assets", value: true }),
+      ]),
+    );
     const [stored] = await db.select().from(cases).where(eq(cases.id, result.id));
     const operator = await citizenView(db, stored!, now, "it", true);
-    expect(operator.findings.map((finding) => finding.code)).toEqual(
-      expect.arrayContaining(["practice.foreign_institution_review", "practice.mortgage_review"]),
+    expect(operator.messages).toContainEqual(
+      expect.objectContaining({
+        role: "citizen",
+        text: expect.stringContaining("Monobank e un mutuo"),
+      }),
     );
+    expect(operator.answers).toEqual({});
   });
 });
 

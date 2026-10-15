@@ -1,0 +1,61 @@
+{
+  "task": "dsu.prefill",
+  "version": "1.2",
+  "policy": "strict",
+  "rows": [
+    {
+      "id": "known_candidate",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "attempts": 2,
+      "latencyMs": 5091,
+      "fallbackReason": null
+    },
+    {
+      "id": "different_ids_conflict",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "attempts": 2,
+      "latencyMs": 3151,
+      "fallbackReason": null
+    }
+  ],
+  "receipts": [
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000224675,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.0002088,
+      "reason": null
+    }
+  ],
+  "requests": 4,
+  "costUsd": 0.000433475
+}

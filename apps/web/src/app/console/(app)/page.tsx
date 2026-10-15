@@ -1,6 +1,14 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Inbox, Search, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Inbox,
+  MessageCircleQuestion,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -36,6 +44,7 @@ function Queue() {
   const status = (params.get("stato") as CaseStatus | null) ?? "submitted";
   const practice = params.get("pratica") ?? "";
   const assignee = params.get("assegnatario") ?? "";
+  const priority = params.get("priorita") ?? "";
   // Set by the dossier after a permanent deletion, which leaves nothing else to show.
   const deleted = params.get("eliminata");
   const familyErased = params.get("famiglia");
@@ -74,9 +83,10 @@ function Queue() {
     const q = new URLSearchParams({ status, limit: "50" });
     if (practice) q.set("practiceId", practice);
     if (assignee) q.set("assignee", assignee);
+    if (priority in PRIORITY) q.set("ai", priority);
     if (deferredSearch) q.set("q", deferredSearch);
     return `/api/cases?${q.toString()}`;
-  }, [status, practice, assignee, deferredSearch]);
+  }, [status, practice, assignee, priority, deferredSearch]);
 
   const list = useResource<CaseListResponse>(query);
   const [extra, setExtra] = useState<{
@@ -107,7 +117,7 @@ function Queue() {
   const items = [...(list.data?.items ?? []), ...(appended?.items ?? [])];
   const nextCursor = appended ? appended.cursor : (list.data?.nextCursor ?? null);
   const counts = list.data?.counts;
-  const filtered = Boolean(practice || assignee || deferredSearch);
+  const filtered = Boolean(practice || assignee || priority || deferredSearch);
   // No case in any state yet: a CAF's first day.
   const firstDay = counts ? Object.values(counts).every((n) => n === 0) : false;
 
@@ -280,6 +290,19 @@ function Queue() {
           <option value="me">Assegnate a me</option>
           <option value="none">Non assegnate</option>
         </Select>
+        <Select
+          value={priority}
+          onChange={(e) => setParam("priorita", e.target.value)}
+          aria-label="Filtra per priorità"
+          compact
+        >
+          <option value="">Tutte le priorità</option>
+          {(Object.keys(PRIORITY) as Priority[]).map((key) => (
+            <option key={key} value={key}>
+              {PRIORITY[key].filter}
+            </option>
+          ))}
+        </Select>
       </div>
 
       <p role="status" className="sr-only">
@@ -372,6 +395,7 @@ function QueueRow({ item }: { item: CaseListItem }) {
               </span>
             )}
           </span>
+          {item.aiPriority && <PriorityBadge item={item} />}
         </span>
         <span className="min-w-0 text-[0.9375rem]">
           <span className="sr-only">Pratica: </span>
@@ -429,6 +453,44 @@ function QueueRow({ item }: { item: CaseListItem }) {
         </span>
       </Link>
     </li>
+  );
+}
+
+type Priority = NonNullable<CaseListItem["aiPriority"]>;
+
+// Suggestions to order the work, never a decision on the case: the operator still reviews all.
+const PRIORITY: Record<Priority, { filter: string; badge: string; className: string }> = {
+  citizen_question: {
+    filter: "Il cittadino ha scritto",
+    badge: "Ha scritto allo sportello",
+    className: "bg-stamp-wash text-stamp",
+  },
+  attention: {
+    filter: "Da guardare con attenzione",
+    badge: "Punti da guardare",
+    className: TONE_CLASSES.warn,
+  },
+  quick_review: {
+    filter: "Revisione rapida",
+    badge: "Revisione rapida",
+    className: TONE_CLASSES.ok,
+  },
+};
+
+function PriorityBadge({ item }: { item: CaseListItem }) {
+  const key = item.aiPriority!;
+  const Icon = key === "citizen_question" ? MessageCircleQuestion : Sparkles;
+  return (
+    <span
+      className={cn(
+        "mt-1 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
+        PRIORITY[key].className,
+      )}
+    >
+      <Icon className="size-3" aria-hidden />
+      {PRIORITY[key].badge}
+      {key === "attention" && item.aiAttention ? `: ${item.aiAttention}` : ""}
+    </span>
   );
 }
 

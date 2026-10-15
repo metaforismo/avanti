@@ -39,6 +39,7 @@
         "ANTHROPIC_API_KEY",
         "AI_MODEL_FAST",
         "AI_MODEL_REASONING",
+        "AI_MODEL_AUDIO",
         "AI_MODEL_FALLBACKS",
         "AI_DATA_POLICY",
         "AI_MONTHLY_BUDGET_EUR",
@@ -50,9 +51,11 @@
         "AI_REASONING_FAST",
         "AI_REASONING_REASONING",
         "AI_REASONING_VISION",
+        "AI_REASONING_AUDIO",
         "AI_ATTEMPT_TIMEOUT_MS_FAST",
         "AI_ATTEMPT_TIMEOUT_MS_REASONING",
         "AI_ATTEMPT_TIMEOUT_MS_VISION",
+        "AI_ATTEMPT_TIMEOUT_MS_AUDIO",
         "AI_PRICES"
       ]
     },

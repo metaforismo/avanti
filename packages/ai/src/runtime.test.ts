@@ -82,7 +82,11 @@ describe("runtime boundaries", () => {
   it("charges the conservative estimate when a provider returns an empty usage object", async () => {
     const reserve = vi.fn(async (_ceiling: number) => ({ id: "reservation" }));
     const runtime = new AiRuntime(
-      { ...config(), models: { fast: "paid", reasoning: "paid", vision: "paid" }, fallbacks: [] },
+      {
+        ...config(),
+        models: { fast: "paid", reasoning: "paid", vision: "paid", audio: "paid" },
+        fallbacks: [],
+      },
       { transport: async () => ({ output: { text: "accepted" }, usage: {} }) },
     );
     const result = await runtime.runTask(task, "private", { reserve });
@@ -122,7 +126,7 @@ describe("runtime boundaries", () => {
         {
           ...config(),
           totalTimeoutMs: 50,
-          attemptTimeoutMs: { fast: 50, reasoning: 50, vision: 50 },
+          attemptTimeoutMs: { fast: 50, reasoning: 50, vision: 50, audio: 50 },
         },
         { transport, clock: () => Date.now() },
       );
@@ -280,9 +284,19 @@ it("validates tier controls and model price maps, with legacy timeout precedence
     AI_REASONING_FAST: "low",
     AI_PRICES: '{"test/a":[0.03,0.7]}',
   });
-  expect(c.attemptTimeoutMs).toEqual({ fast: 9000, reasoning: 9000, vision: 21000 });
-  expect(c.reasoning).toEqual({ fast: "low", reasoning: "minimal", vision: "minimal" });
-  expect(loadAiConfig().attemptTimeoutMs).toEqual({ fast: 6000, reasoning: 15000, vision: 20000 });
+  expect(c.attemptTimeoutMs).toEqual({ fast: 9000, reasoning: 9000, vision: 21000, audio: 9000 });
+  expect(c.reasoning).toEqual({
+    fast: "low",
+    reasoning: "minimal",
+    vision: "minimal",
+    audio: "minimal",
+  });
+  expect(loadAiConfig().attemptTimeoutMs).toEqual({
+    fast: 6000,
+    reasoning: 25000,
+    vision: 20000,
+    audio: 20000,
+  });
   for (const env of [
     { AI_REASONING_FAST: "high" },
     { AI_PRICES: '{"test/a":[-1,2]}' },
@@ -354,7 +368,7 @@ it("allows a vision response beyond the fast timeout and counts repeated timeout
     const c = {
       ...config(),
       fallbacks: [],
-      attemptTimeoutMs: { fast: 10, reasoning: 30, vision: 50 },
+      attemptTimeoutMs: { fast: 10, reasoning: 30, vision: 50, audio: 10 },
       totalTimeoutMs: 200,
     };
     const transport = vi.fn<Transport>(

@@ -9,7 +9,9 @@ import type { Route } from "next";
 import type {
   CaseDossier,
   CaseStatus,
+  ChatMessage,
   DocumentSummary,
+  ReplyDraftResponse,
   ReviewChecklistItemRequest,
   UpdateCaseRequest,
 } from "@avanti/contracts";
@@ -23,6 +25,7 @@ import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { ChecklistSection } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
+import { CopilotPanel } from "./copilot-panel";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
 import { DsuSheetSection } from "./dsu-sheet-section";
@@ -30,8 +33,9 @@ import { FamilyErasureDialog } from "./family-erasure-dialog";
 import { NewLinkDialog } from "./new-link-dialog";
 import { ReuseDialog } from "./reuse-dialog";
 import { FindingsSummary } from "./findings-summary";
-import { RequestDialog } from "./request-dialog";
-import { AnswersSection, ConversationSection } from "./secondary-sections";
+import { RequestDialog, type ReplyContext } from "./request-dialog";
+import { CitizenQuestions } from "./citizen-questions";
+import { AnswersSection, AssistantTurnsSection, ConversationSection } from "./secondary-sections";
 
 const CONFLICT_MESSAGE =
   "La pratica è cambiata nel frattempo (un collega, il cittadino o un'analisi appena conclusa). Ti mostriamo la versione aggiornata: controlla e ripeti l'azione se serve.";
@@ -41,6 +45,8 @@ export type DossierActions = {
   /** `key` separates background saves (notes) from button spinners. */
   update: (input: UpdateCaseRequest, key?: string) => Promise<boolean>;
   openDocument: (doc: DocumentSummary) => void;
+  /** Confirms or discards a value the AI read from a document for the DSU sheet. */
+  decidePrefill: (fieldId: string, decision: "accept" | "reject") => Promise<boolean>;
   pending: string | null;
 };
 
@@ -73,6 +79,7 @@ export function DossierView({ caseId }: { caseId: string }) {
     else router.replace(href, { scroll: false });
   };
   const [requesting, setRequesting] = useState(false);
+  const [reply, setReply] = useState<ReplyContext | null>(null);
 
   async function mutate(key: string, run: () => Promise<CaseDossier | unknown>) {
     setPending(key);
@@ -165,6 +172,13 @@ export function DossierView({ caseId }: { caseId: string }) {
   const actions: DossierActions = {
     pending,
     openDocument: setViewing,
+    decidePrefill: (fieldId, decision) =>
+      mutate(`prefill:${fieldId}`, async () => {
+        await startReview();
+        return apiFetch(`${base}/ai/dsu-prefill/${encodeURIComponent(fieldId)}/${decision}`, {
+          method: "POST",
+        });
+      }),
     review: (itemId, input) =>
       mutate(`review:${itemId}`, async () => {
         const expectedUpdatedAt = await startReview();
@@ -188,6 +202,26 @@ export function DossierView({ caseId }: { caseId: string }) {
       if (!ok) return;
     }
     setRequesting(true);
+  };
+
+  // The reply opens on an AI draft grounded in official sources; the operator edits and sends.
+  const openReply = async (question: ChatMessage) => {
+    setPending(`reply:${question.id}`);
+    setError(null);
+    try {
+      if (data.status === "submitted") await startReview();
+      const draft = await apiFetch<ReplyDraftResponse>(`${base}/ai/reply-draft`, {
+        method: "POST",
+        body: { messageId: question.id },
+      });
+      await dossier.reload();
+      setReply({ question, draft });
+      setRequesting(true);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : "Bozza non disponibile. Riprova.");
+    } finally {
+      setPending(null);
+    }
   };
 
   const setStatus = (next: CaseStatus) => actions.update({ status: next });
@@ -321,6 +355,12 @@ export function DossierView({ caseId }: { caseId: string }) {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 content-start gap-8">
+          <CitizenQuestions
+            dossier={data}
+            pending={pending}
+            onReply={(question) => void openReply(question)}
+          />
+          {data.status !== "intake" && <CopilotPanel dossier={data} actions={actions} />}
           <FindingsSummary dossier={data} />
           {data.facts.length > 0 && (
             <section aria-labelledby="facts-title">
@@ -341,6 +381,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           <DsuSheetSection dossier={data} actions={actions} />
           <AnswersSection dossier={data} />
           <ConversationSection dossier={data} />
+          <AssistantTurnsSection dossier={data} />
         </div>
         <DossierAside dossier={data} actions={actions} />
       </div>
@@ -435,8 +476,12 @@ export function DossierView({ caseId }: { caseId: string }) {
       />
       <RequestDialog
         open={requesting}
-        onOpenChange={setRequesting}
+        onOpenChange={(next) => {
+          setRequesting(next);
+          if (!next) setReply(null);
+        }}
         dossier={data}
+        reply={reply}
         onSent={(result) => {
           if (result) dossier.setData(result);
           else void dossier.reload();

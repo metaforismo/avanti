@@ -11,6 +11,9 @@ import type { CaseRow } from "./dossier";
 const now = new Date("2027-01-05T10:00:00.000Z");
 const exampleCase: CaseRow = {
   familyId: null,
+  conversationProposals: [],
+  conversationEngine: "heuristic",
+  aiAttention: null,
   citizenRequestId: null,
   citizenRequestedAt: null,
   citizenRemindersQueued: 0,
@@ -184,7 +187,14 @@ describe("concurrent intake proposals", () => {
     const current = CitizenCase.parse(await (await app.request(`/api/c/${intake.token}`)).json());
     expect(current.answers.accounts_count).toBe(3);
     const chat = await db.select().from(messages).where(eq(messages.caseId, intake.case.id));
-    expect(chat.filter((message) => message.role !== "system")).toHaveLength(0);
+    expect(chat.filter((message) => message.role !== "system")).toEqual([
+      expect.objectContaining({
+        role: "citizen",
+        questionId: "accounts_count",
+        kind: "confirmation",
+        text: "3",
+      }),
+    ]);
     const [stored] = await db.select().from(cases).where(eq(cases.id, intake.case.id));
     expect(stored?.answers.accounts_count).toBe(3);
   });

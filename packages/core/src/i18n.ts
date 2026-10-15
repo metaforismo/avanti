@@ -457,6 +457,16 @@ export const texts = {
     "تحقق من الإجابة: الصيغة أو القيمة غير صحيحة.",
     "উত্তর পরীক্ষা করুন: ধরন বা মান সঠিক নয়।",
   ],
+  checkProposals: [
+    "Controlla qui sotto quello che ho capito: diventa una risposta solo quando confermi.",
+    "Check below what I understood: it becomes an answer only when you confirm it.",
+    "Vérifiez ci-dessous ce que j’ai compris : cela devient une réponse seulement quand vous confirmez.",
+    "Revisa abajo lo que he entendido: solo se convierte en respuesta cuando lo confirmas.",
+    "Verifică mai jos ce am înțeles: devine răspuns doar după ce confirmi.",
+    "Перевірте нижче, що я зрозумів: це стане відповіддю лише після Вашого підтвердження.",
+    "تحقق أدناه مما فهمته: لا يصبح إجابة إلا عندما تؤكده.",
+    "আমি যা বুঝেছি তা নিচে দেখে নিন: আপনি নিশ্চিত করলে তবেই এটি উত্তর হবে।",
+  ],
   unavailablePractice: [
     "Questa pratica non si può ancora preparare con Avanti. Puoi sceglierne un’altra o chiedere allo sportello.",
     "Avanti cannot prepare this application yet. You can choose another type of application or ask the desk.",

@@ -34,9 +34,9 @@ una pratica indisponibile per mostrare il messaggio di recupero). Il ripiego è 
 lo schema e produrre testo locale sicuro. Un input non valido solleva ZodError: l'API valida
 prima coi contratti e restituisce ApiError, senza dettagli interni.
 
-Le prossime sessioni possono definire `citizen.assistant`, `dossier.*`, `dsu.prefill`,
-`request.draft`, `operator.ask` come nuovi oggetti `Task`. I relativi prompt già scritti sono
-esportati; non ci sono implementazioni fittizie. Usare la costituzione comune e versionare
+`citizen.assistant` (fast) e `speech.transcribe` (audio) sono definiti in `citizen-tasks.ts`.
+I compiti operatore sono definiti in `operator-tasks`; `citizen.assistant` resta nel
+perimetro della sessione cittadino. I prompt condivisi sono esportati. Usare la costituzione comune e versionare
 ogni variazione del prompt. Le invarianti di dominio (ID, anni, citazioni) appartengono a
 `validate`, non al provider. Lo schema deve poter essere convertito in JSON Schema da zod.
 
@@ -64,7 +64,7 @@ provider, non cancellarle automaticamente. Le tariffe devono coprire i modelli s
 
 Valutazione: `pnpm ai:eval [--task intake.understand|interview.freeform|document.analyze|translate]
 [--limit N]`. Offline per default; `AI_LIVE=1` abilita i provider. Dataset sintetico, 8 lingue,
-74 casi; documenti immagine generati in memoria con sharp. Report JSON e Markdown in
+226 casi, inclusi 152 casi cittadino multilingue; documenti immagine generati in memoria con sharp. Report JSON e Markdown in
 `docs/verification/`, distinti per modalità. La precisione ignora solo i fatti laterali
 `household_roles`/`household_relations`, non presenti negli ID del form. Per le traduzioni
 non si dichiara accuratezza semantica automatica: serve revisione umana. Lingua: il guard
@@ -88,7 +88,7 @@ Un 400 che nomina reasoning/thinking causa al massimo un retry senza controllo p
 nel limite globale dei tentativi. `retryReasons` registra `reasoning_unsupported` anche dopo
 un recupero; la telemetria CAF conserva il motivo in `outcome`, senza contenuti.
 
-`AI_ATTEMPT_TIMEOUT_MS_FAST/REASONING/VISION` hanno default 6000/15000/20000 ms.
+`AI_ATTEMPT_TIMEOUT_MS_FAST/REASONING/VISION/AUDIO` hanno default 6000/25000/20000/20000 ms: i controlli incrociati producono JSON lunghi e con 15 s DeepSeek andava in timeout.
 `AI_ATTEMPT_TIMEOUT_MS` resta un override legacy comune; gli override di livello prevalgono.
 Il totale è il minimo fra `AI_TOTAL_TIMEOUT_MS` (45000), due timeout di livello + 500 ms
 e l'eventuale limite del compito. Tre tentativi al massimo per default. Il breaker conta
@@ -107,3 +107,28 @@ La prenotazione usa il candidato più costoso della catena, inclusi i fallback.
 Le risposte salvate dalla CLI sono esclusivamente quelle del dataset sintetico, mai dati
 cittadino. Il gate live fallisce con fallback >=5%, mediana testo >=3000 ms o violazioni;
 le lingue latine richiedono ancora revisione semantica umana.
+
+Voce: `AI_MODEL_AUDIO` sceglie il modello (default `google/gemini-3.5-flash-lite`).
+La riserva audio è `qwen/qwen3.8-omni-flash`. L’API conserva la registrazione solo in memoria,
+riconosce il contenitore e verifica la durata prima di `runTask`. Un mismatch chiaro di lingua
+porta alla riserva senza allentare la policy dati. Budget e telemetria restano quelli del runtime.
+Prove e limiti in [ai-eval-citizen.md](../../docs/verification/ai-eval-citizen.md).
+
+Il copilota è disponibile dal subpath `@avanti/ai/operator-tasks`: `dossierBriefTask`,
+`dossierConsistencyTask`, `dsuReadTask` (vision), `dsuPrefillTask` (selezione reasoning),
+`requestDraftTask`, `operatorAskTask`, `replyDraftTask`. API, cache, decisioni e recupero
+sono descritti in `docs/decisions/operator-copilot.md`. I prompt operatore originali
+restano v1; i prompt nuovi hanno versione 1, salvo la selezione DSU v2: i conflitti si raggruppano
+per sezione e campo anche quando gli ID opachi delle proposte sono diversi.
+
+Rigenerare l'indice senza rete: `node packages/core/scripts/build-knowledge.mjs` dalla
+root. Le sezioni con link esterni commerciali vengono escluse anziché attribuirle a una
+fonte istituzionale. L'indice non certifica che una norma sia tuttora vigente.
+
+Eval del copilota: `pnpm --filter @avanti/ai exec tsx eval/operator.ts`, offline per default.
+Live richiede `AI_LIVE=1 AI_PROVIDER=openrouter`. `AI_EVAL_TAG` distingue i report;
+`AI_EVAL_ISOLATED=1` isola il breaker fra casi. Il transport override dell'eval usa
+`strict:false` nello schema, disabilita reasoning DeepSeek e usa `minimal` su Luna;
+non modifica l'adattatore di produzione della sessione runtime parallela. Report senza
+contenuti di cittadini o chiavi; file sintetici creati in memoria. Costi riportati dal
+provider in USD separati dalla stima prudenziale EUR del runtime.

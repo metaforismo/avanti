@@ -1,0 +1,24 @@
+{
+  "policy": "strict",
+  "synthetic": true,
+  "rows": [
+    {
+      "text": "Vorrei fare l'ISEE per la mia famiglia.",
+      "language": "it",
+      "engine": "ai",
+      "latencyMs": 6110
+    },
+    {
+      "text": "Quiero pedir el ISEE para mi familia.",
+      "language": "es",
+      "engine": "ai",
+      "latencyMs": 2114
+    },
+    {
+      "text": "تقديم طلب",
+      "language": "ar",
+      "engine": "ai",
+      "latencyMs": 1770
+    }
+  ]
+}

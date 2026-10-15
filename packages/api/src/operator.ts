@@ -1,4 +1,5 @@
-import { and, eq, desc, lt, or, ilike, sql, count, gte } from "drizzle-orm";
+import { queuePrioritySql } from "./copilot-queue";
+import { and, eq, desc, lt, or, ilike, sql, count, gte, inArray } from "drizzle-orm";
 import { enqueueCitizen, scheduleNotificationDelivery } from "./notifications";
 import { observeAi } from "./operational-telemetry";
 import {
@@ -61,6 +62,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const query = parse(CaseListQuery, c.req.query());
     const operator = c.get("operator");
     const filters = [eq(cases.organizationId, operator.organizationId)];
+    if (query.ai) filters.push(eq(queuePrioritySql(), query.ai));
     if (query.practiceId) filters.push(eq(cases.practiceId, query.practiceId));
     if (query.officeId) filters.push(eq(cases.officeId, query.officeId));
     if (query.assignee === "none") filters.push(sql`${cases.assigneeId} is null`);
@@ -156,6 +158,12 @@ export function mountOperatorRoutes(app: App, s: Services) {
       if (view.dsuSheet)
         await audit(tx, row, "operator", "dsu_sheet.viewed", s.clock(), operator.id);
     });
+    const seen = view.messages.filter((m) => m.role === "citizen").map((m) => m.id);
+    if (seen.length)
+      await s.db
+        .update(messages)
+        .set({ operatorReadAt: s.clock().toISOString() })
+        .where(and(eq(messages.caseId, row.id), inArray(messages.id, seen)));
     scheduleDocumentRecovery(s, row.id);
     return c.json(view);
   });

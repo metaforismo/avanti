@@ -1,3 +1,9 @@
+import { turnAcknowledgement } from "./turn-acknowledgement";
+import { appendConversationTurns } from "./conversation-messages";
+import { readConversationText } from "./conversation-routes";
+import { validateProposals, mergeProposals, pendingProposals } from "./conversation-state";
+import { readableAnswer } from "@avanti/core";
+import { scheduleCopilot, refreshConsistency } from "./copilot";
 import { and, eq, gt, like } from "drizzle-orm";
 import { observeAi } from "./operational-telemetry";
 import {
@@ -24,10 +30,10 @@ import {
   MemberInput,
   type PracticeId,
 } from "@avanti/contracts";
-import { calendarYear, getQuestions } from "@avanti/core";
+import { calendarYear, getQuestions, t } from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
 import { detachRemovedMembers } from "./household-cleanup";
-import { heuristicAnalysis } from "./ai";
+import { AiIntelligence, heuristicAnalysis } from "./ai";
 import { analyzePendingDocument, scheduleDocumentRecovery } from "./document-analysis";
 import { assertImageSafe } from "./image-safety";
 import { pdfPages } from "./pdf-pages";
@@ -44,7 +50,7 @@ import {
 } from "./security";
 import { citizenView, audit, type CaseRow } from "./dossier";
 import { automaticAssistanceNotice } from "./disclosure";
-import { currentCitizenLink } from "./citizen-link";
+import { currentCitizenLink, lockCase } from "./citizen-link";
 import { body, parse, mutableCitizen, type App, type Services, type ApiContext } from "./context";
 
 import { visibleToCitizen } from "./document-visibility";
@@ -52,6 +58,8 @@ import { nextCaseUpdate } from "./case-version";
 import { enqueueSubmissionReceipt, scheduleNotificationDelivery } from "./notifications";
 
 export { assertStartable } from "./citizen-turn";
+const localCitizenIntelligence = new AiIntelligence();
+
 export async function createCase(
   db: Database,
   office: typeof offices.$inferSelect,
@@ -100,11 +108,6 @@ export async function createCase(
   });
   await audit(db, row, actor, "case.created", now, actorId);
   return { token, row };
-}
-async function lockCase(db: Database, row: CaseRow, now: Date) {
-  const fresh = await currentCitizenLink(db, row, now, true);
-  mutableCitizen(fresh);
-  return fresh;
 }
 async function touchCase(db: Database, row: CaseRow, now: Date) {
   const [updated] = await db
@@ -204,31 +207,71 @@ export function mountCitizenRoutes(app: App, s: Services) {
     return c.json(view);
   });
   app.post("/c/:token/turn", async (c) => {
-    const input = await body(c, IntakeTurn);
     const initial = c.get("citizen");
     mutableCitizen(initial);
-    const proposal =
+    const raw: unknown = await c.req.json().catch(() => null);
+    if (raw && typeof raw === "object" && "type" in raw && raw.type === "text")
+      await readConversationText(c, initial);
+    const input = await body(c, IntakeTurn);
+    const [aiSettings] =
       input.type === "text"
-        ? await observeAi(s, initial.organizationId, () =>
-            s.ai.intake(
-              input.text,
-              initial.language,
-              initial.practiceId,
-              initial.practiceId
-                ? getQuestions(initial.practiceId, initial.answers, initial.language)
-                : [],
-              s.clock(),
-            ),
-          )
-        : null;
+        ? await s.db
+            .select({ enabled: settings.aiCitizenAssistant })
+            .from(settings)
+            .where(eq(settings.organizationId, initial.organizationId))
+        : [];
+    let proposal: import("./ai").IntakeProposal | null = null;
+    if (input.type === "text") {
+      const intelligence = aiSettings?.enabled === false ? localCitizenIntelligence : s.ai;
+      const work = () =>
+        intelligence.intake(
+          input.text,
+          initial.language,
+          initial.practiceId,
+          initial.practiceId
+            ? getQuestions(initial.practiceId, initial.answers, initial.language)
+            : [],
+          s.clock(),
+        );
+      proposal =
+        aiSettings?.enabled === false
+          ? await work()
+          : await observeAi(s, initial.organizationId, work);
+    }
     const result = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, initial, s.clock());
       const now = s.clock();
       if (proposal) assertProposalCurrent(initial, current);
       const { practiceId, answers, unavailablePractice } = applyTurn(current, input, proposal, now);
+      const candidate = { ...current, practiceId, answers };
+      const initialProposals =
+        proposal && input.type === "text" && !unavailablePractice
+          ? validateProposals(
+              candidate,
+              Object.entries(
+                proposal.practiceId === "isee_universitario"
+                  ? { ...proposal.answers, university: true }
+                  : proposal.answers,
+              ).map(([questionId, value]) => ({
+                questionId,
+                value,
+                confidence: Math.min(proposal.confidence, 0.7),
+                evidence: input.text,
+              })),
+              [input.text],
+              now,
+            )
+          : [];
       const [updated] = await tx
         .update(cases)
         .set({
+          conversationProposals: mergeProposals(
+            input.type === "choose_practice" && practiceId !== current.practiceId
+              ? []
+              : pendingProposals(candidate, s.clock()),
+            initialProposals,
+          ),
+          ...(proposal ? { conversationEngine: proposal.engine } : {}),
           practiceId,
           citizenRequestId: null,
           answers,
@@ -249,29 +292,65 @@ export function mountCitizenRoutes(app: App, s: Services) {
         null,
         { answersCount: Object.keys(answers).length, heuristic: proposal?.engine === "heuristic" },
       );
+      if (input.type === "answer" && practiceId) {
+        const question = getQuestions(practiceId, current.answers, current.language).find(
+          (q) => q.id === input.questionId,
+        );
+        if (question)
+          await appendConversationTurns(tx, current.id, now, [
+            {
+              role: "citizen",
+              kind: "confirmation",
+              questionId: question.id,
+              text: readableAnswer(answers[question.id]!, question, current.language),
+            },
+          ]);
+      }
       if (input.type === "text") {
-        await tx.insert(messages).values({
-          id: crypto.randomUUID(),
-          caseId: current.id,
-          role: "citizen",
-          text: input.text,
-          createdAt: now.toISOString(),
-        });
+        await appendConversationTurns(tx, current.id, now, [
+          { role: "citizen", text: input.text, kind: "message", questionId: null },
+        ]);
         const view = await citizenView(tx, updated, now);
-        await tx.insert(messages).values({
-          id: crypto.randomUUID(),
-          caseId: current.id,
-          role: "assistant",
-          text: assistantReply(
-            view,
-            proposal,
-            current.answers,
-            input.text,
-            current.practiceId,
-            unavailablePractice,
-          ),
-          createdAt: s.clock().toISOString(),
-        });
+        await appendConversationTurns(tx, current.id, now, [
+          {
+            role: "assistant",
+            text:
+              unavailablePractice || !proposal
+                ? assistantReply(
+                    view,
+                    proposal,
+                    current.answers,
+                    input.text,
+                    current.practiceId,
+                    unavailablePractice,
+                  )
+                : [
+                    turnAcknowledgement(
+                      {
+                        ...view,
+                        answers: {
+                          ...view.answers,
+                          ...Object.fromEntries(
+                            initialProposals.map((p) => [p.questionId, p.value]),
+                          ),
+                        },
+                      },
+                      proposal,
+                      current.answers,
+                      input.text,
+                      current.practiceId,
+                    ),
+                    // Pending proposals come first: asking the next question would skip them.
+                    initialProposals.length
+                      ? t(view.language, "checkProposals")
+                      : assistantReply(view, null),
+                  ]
+                    .filter(Boolean)
+                    .join(" "),
+            kind: initialProposals.length ? "message" : view.nextQuestion ? "question" : "summary",
+            questionId: initialProposals.length ? null : (view.nextQuestion?.id ?? null),
+          },
+        ]);
       }
       return { row: updated, unavailablePractice };
     });
@@ -431,6 +510,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           /* Scheduling is optional; the durable job already exists. */
         }
       }
+      if (!s.background) await refreshConsistency(s, row);
       return c.json(response, 201);
     } catch (error) {
       if (committed) throw error;
@@ -597,6 +677,8 @@ export function mountCitizenRoutes(app: App, s: Services) {
       return { row: updated, notificationId };
     });
     scheduleNotificationDelivery(s, result.notificationId);
+    scheduleCopilot(s, result.row);
+    if (!s.background) await refreshConsistency(s, result.row);
     return c.json(await citizenView(s.db, result.row, s.clock()));
   });
 }

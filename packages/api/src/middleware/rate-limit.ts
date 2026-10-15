@@ -23,12 +23,25 @@ interface Policy {
 const minute = (limit: number): WindowLimit => ({ limit, seconds: 60 });
 const hour = (limit: number): WindowLimit => ({ limit, seconds: 3600 });
 export const RATE_POLICIES = {
+  assistant: {
+    category: "assistant",
+    primary: [hour(30), { limit: 80, seconds: 86400 }],
+    ip: [minute(1500), hour(15000)],
+  },
+  askDesk: {
+    category: "askDesk",
+    primary: [{ limit: 5, seconds: 86400 }],
+    ip: [minute(1500), hour(15000)],
+  },
+  transcribe: { category: "transcribe", primary: [hour(20)], ip: [minute(1500), hour(15000)] },
+  copilot: { category: "copilot", primary: [hour(60)], ip: [hour(6000)] },
   mfa: { category: "mfa", primary: [minute(10)], ip: [minute(100)] },
   login: { category: "login", primary: [minute(10)], ip: [minute(100)] },
   intake: { category: "intake", primary: [], ip: [minute(40), hour(60)] },
   // Answers are quick taps (a large family can give 30 in a minute) and only free text reaches
   // the AI; the IP ceiling assumes a full waiting room on one Wi-Fi, all tapping at once.
   turn: { category: "turn", primary: [minute(60), hour(400)], ip: [minute(1500), hour(15000)] },
+  conversation: { category: "conversation", primary: [hour(60)], ip: [minute(1500), hour(15000)] },
   upload: { category: "upload", primary: [minute(30), hour(120)], ip: [minute(400), hour(4000)] },
   leads: { category: "leads", primary: [], ip: [minute(5)] },
   export: { category: "export", primary: [minute(20)], ip: [minute(200)] },
@@ -36,6 +49,12 @@ export const RATE_POLICIES = {
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
+  if (path === "/api/ai/ask" && method === "POST") return RATE_POLICIES.copilot;
+  if (
+    /^\/api\/cases\/[^/]+\/ai\/(brief|request-draft|reply-draft)$/.test(path) &&
+    method === "POST"
+  )
+    return RATE_POLICIES.translate;
   if (method === "GET" && path === "/api/reports/pilot") return RATE_POLICIES.export;
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
@@ -43,12 +62,16 @@ function policy(path: string, method: string): Policy | null {
   if (/^\/api\/cases\/[^/]+\/(reuse|documents\/[^/]+\/reuse-check)$/.test(path))
     return RATE_POLICIES.link;
   if (path === "/api/cases/families/search") return RATE_POLICIES.link;
+  if (/^\/api\/c\/[^/]+\/assistant$/.test(path)) return RATE_POLICIES.assistant;
+  if (/^\/api\/c\/[^/]+\/assistant\/ask-desk$/.test(path)) return RATE_POLICIES.askDesk;
+  if (/^\/api\/c\/[^/]+\/transcribe$/.test(path)) return RATE_POLICIES.transcribe;
   if (/^\/api\/cases\/[^/]+\/link$/.test(path)) return RATE_POLICIES.link;
   if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return RATE_POLICIES.translate;
   if (path.startsWith("/api/auth/mfa/")) return RATE_POLICIES.mfa;
   if (["/api/auth/login", "/api/auth/password"].includes(path)) return RATE_POLICIES.login;
   if (path === "/api/intake") return RATE_POLICIES.intake;
   if (path === "/api/leads") return RATE_POLICIES.leads;
+  if (/^\/api\/c\/[^/]+\/conversation(?:\/confirm)?$/.test(path)) return RATE_POLICIES.conversation;
   if (/^\/api\/c\/[^/]+\/turn$/.test(path)) return RATE_POLICIES.turn;
   if (/^\/api\/c\/[^/]+\/documents$/.test(path)) return RATE_POLICIES.upload;
   return null;
@@ -68,7 +91,14 @@ export function remoteAddress(context: ApiContext, services: Services): string |
 export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
   const secret = rateLimitSecret(services.rateLimitSecret);
   return async (context, next) => {
-    const rule = policy(context.req.path, context.req.method);
+    let rule = policy(context.req.path, context.req.method);
+    if (rule?.category === "turn") {
+      const input: unknown = await context.req.json().catch(() => null);
+      if (input && typeof input === "object" && "type" in input && input.type === "text")
+        rule = RATE_POLICIES.conversation;
+    }
+    const citizenTask = ["assistant", "askDesk", "transcribe"].includes(rule?.category ?? "");
+    if (citizenTask && !context.get("citizen")) return next();
     // Password attempts use the authenticated email, never a client-supplied identity.
     if (
       (context.req.path === "/api/auth/password" || rule?.category === "mfa") &&
@@ -77,7 +107,8 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       return next();
     if (
       rule &&
-      (!["export", "link", "translate"].includes(rule.category) || context.get("operator"))
+      (!["export", "link", "translate", "copilot"].includes(rule.category) ||
+        context.get("operator"))
     ) {
       const identities: string[] = [];
       let loginEmail: string | undefined;
@@ -87,7 +118,8 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
 
       if (context.get("operator")) identities.push(`operator:${context.get("operator").id}`);
       const capability = /^\/api\/c\/([^/]+)/.exec(context.req.path)?.[1];
-      if (capability) identities.push(`capability:${capability}`);
+      if (citizenTask) identities.push(`case:${context.get("citizen").id}`);
+      else if (capability) identities.push(`capability:${capability}`);
       if (context.req.path === "/api/auth/password") {
         identities.push(`email:${context.get("operator").email}`);
       } else if (rule.category === "mfa") {

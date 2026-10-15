@@ -9,6 +9,7 @@ import {
   CircleDashed,
   FileText,
   FileUp,
+  History,
   MessageCircle,
   Trash2,
   X,
@@ -91,6 +92,13 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
             )}
           <p className="mt-2 text-ink-2">{m.request.lead}</p>
         </section>
+      )}
+
+      {data.reuseNotice && (
+        <p className="flex items-start gap-3 rounded-lg bg-stamp-wash p-4 text-ink ring-1 ring-stamp/15">
+          <History className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
+          <span dir="auto">{data.reuseNotice}</span>
+        </p>
       )}
 
       <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
@@ -536,7 +544,6 @@ function DocumentRow({
   };
   const removing = api.pending === `remove:${doc.id}`;
   const reassigning = api.pending === `reassign:${doc.id}`;
-  const findings = (doc.analysis?.findings ?? []).filter((f) => f.severity !== "ok");
   const isImage = doc.mimeType.startsWith("image/") && doc.mimeType !== "image/heic";
   const fileUrl = `/api/c/${encodeURIComponent(token)}/documents/${doc.id}/file`;
   const thumbClass =
@@ -580,6 +587,12 @@ function DocumentRow({
               <>
                 <span dir="ltr">{formatSize(doc.sizeBytes, data.language)}</span>
                 {doc.pages && doc.pages > 1 ? ` · ${format(m.docs.pages, { n: doc.pages })}` : ""}
+                {doc.reuse && (
+                  <span className="ms-2 inline-flex items-center gap-1 rounded-full bg-stamp-wash px-2 py-0.5 text-xs font-semibold text-stamp">
+                    <History className="size-3" aria-hidden />
+                    {m.docs.reused.label} · {m.docs.reused[doc.reuse.status]}
+                  </span>
+                )}
               </>
             )}
           </p>
@@ -618,9 +631,7 @@ function DocumentRow({
           {m.docs.removeConfirm}
         </p>
       )}
-      {findings.map((finding) => (
-        <FindingLine key={finding.id} finding={finding} />
-      ))}
+      <DocumentCheck doc={doc} api={api} m={m} />
       {showAssign && (
         <div className="mt-3 flex items-center gap-2">
           <label htmlFor={selectId} className="shrink-0 text-sm text-ink-2">
@@ -661,6 +672,62 @@ function DocumentRow({
         </Dialog>
       )}
     </li>
+  );
+}
+
+/**
+ * What the immediate check found, in the citizen's language. A flagged document can be kept:
+ * the citizen may know better (a renewal receipt, an old card still in use), and the
+ * operator verifies it anyway.
+ */
+function DocumentCheck({ doc, api, m }: { doc: DocumentSummary; api: CitizenCaseApi; m: M }) {
+  const check = doc.citizenCheck;
+  if (doc.status === "processing" || check.status === "pending") return null;
+  if (check.status === "ok")
+    // Only an AI reading can say the document looks right; otherwise it is simply received.
+    return doc.analysis?.engine === "ai" ? (
+      <p className="mt-2 flex items-center gap-1.5 text-sm text-ok">
+        <Check className="size-4 shrink-0" aria-hidden />
+        {m.docs.checkOk}
+      </p>
+    ) : (
+      <p className="mt-2 text-sm text-ink-3">{m.docs.received}</p>
+    );
+  const problem = check.status === "problem";
+  return (
+    <div
+      className={cn(
+        "mt-3 rounded-sm px-3 py-2.5",
+        problem ? "bg-danger-wash text-danger" : "bg-warn-wash text-warn",
+      )}
+    >
+      <ul className="grid gap-1">
+        {check.messages.map((message) => (
+          <li key={message} className="flex items-start gap-2 text-[0.9375rem]">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span dir="auto">{message}</span>
+          </li>
+        ))}
+      </ul>
+      {doc.citizenKeptAt ? (
+        <p className="mt-2 flex items-start gap-1.5 text-sm text-ink-2">
+          <Check className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {m.docs.kept}
+        </p>
+      ) : (
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={api.pending === `keep:${doc.id}`}
+            onClick={() => void api.keepDocument(doc.id)}
+          >
+            {m.docs.keep}
+          </Button>
+          <p className="min-w-0 flex-1 basis-48 text-sm text-ink-2">{m.docs.keepHint}</p>
+        </div>
+      )}
+    </div>
   );
 }
 

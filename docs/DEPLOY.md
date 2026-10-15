@@ -601,7 +601,7 @@ AI_REASONING_FAST=off
 AI_REASONING_REASONING=minimal
 AI_REASONING_VISION=minimal
 AI_ATTEMPT_TIMEOUT_MS_FAST=6000
-AI_ATTEMPT_TIMEOUT_MS_REASONING=15000
+AI_ATTEMPT_TIMEOUT_MS_REASONING=25000
 AI_ATTEMPT_TIMEOUT_MS_VISION=20000
 AI_TOTAL_TIMEOUT_MS=45000
 AI_MAX_ATTEMPTS=3
@@ -638,7 +638,7 @@ alimentati con dati reali. Gate: mediana testo <3 s, ripieghi <5%, nessuna viola
 rilevata. Il router può fare tentativi a monte non visibili all'SDK. Le traduzioni nelle
 otto lingue e la correttezza normativa richiedono verifica umana oltre ai controlli automatici.
 
-I timeout di tentativo per livello sono 6000/15000/20000 ms; `AI_ATTEMPT_TIMEOUT_MS` resta
+I timeout di tentativo per livello sono 6000/25000/20000 ms (audio 20000); `AI_ATTEMPT_TIMEOUT_MS` resta
 l'override legacy comune quando manca quello specifico. Il totale per compito è il minimo
 fra `AI_TOTAL_TIMEOUT_MS` (45000), due timeout del livello +500 ms e l'eventuale limite
 specifico: con i default 12500/30500/40500 ms. Il breaker apre dopo tre richieste fallite

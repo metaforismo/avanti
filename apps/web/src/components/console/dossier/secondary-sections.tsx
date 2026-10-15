@@ -90,3 +90,67 @@ export function ConversationSection({ dossier }: { dossier: CaseDossier }) {
     </section>
   );
 }
+
+const INTENT_NOTE: Partial<
+  Record<NonNullable<CaseDossier["assistantTurns"][number]["intent"]>, string>
+> = {
+  needs_operator: "da vedere allo sportello",
+  emergency: "segnalata come emergenza",
+  manipulation: "tentativo di manipolazione",
+  off_topic: "fuori tema",
+};
+
+/**
+ * What the citizen asked the automatic assistant while preparing the dossier. Not answers to
+ * the interview: they tell the operator what was unclear, in the citizen's own words.
+ */
+export function AssistantTurnsSection({ dossier }: { dossier: CaseDossier }) {
+  const turns = dossier.assistantTurns;
+  if (turns.length === 0) return null;
+  const questions = turns.filter((t) => t.role === "citizen").length;
+  return (
+    <section aria-labelledby="assistant-turns-title">
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-baseline gap-3 [&::-webkit-details-marker]:hidden">
+          <h2 id="assistant-turns-title" className="font-display text-xl font-semibold">
+            Domande all&apos;assistente
+          </h2>
+          <span className="text-sm text-ink-3 group-open:hidden">
+            {questions === 1 ? "1 domanda" : `${questions} domande`}, mostra
+          </span>
+        </summary>
+        <p className="mt-2 text-sm text-ink-2">
+          Le risposte automatiche non cambiano la pratica: servono a capire cosa non era chiaro.
+        </p>
+        <ol className="mt-4 grid gap-3">
+          {turns.map((turn) => (
+            <li
+              key={turn.id}
+              className={cn(
+                "max-w-[85%] rounded-lg px-4 py-3",
+                turn.role === "citizen"
+                  ? "justify-self-end bg-stamp-wash"
+                  : "bg-surface ring-1 ring-line",
+              )}
+            >
+              <p className="text-xs font-semibold text-ink-3">
+                {turn.role === "citizen" ? "Cittadino" : "Assistente automatico"},{" "}
+                {formatDateTime(turn.createdAt)}
+                {turn.intent && INTENT_NOTE[turn.intent] && (
+                  <span className="text-warn"> · {INTENT_NOTE[turn.intent]}</span>
+                )}
+              </p>
+              <p
+                dir="auto"
+                lang={dossier.language}
+                className="mt-1 break-words whitespace-pre-line"
+              >
+                {turn.text}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </details>
+    </section>
+  );
+}

@@ -1,3 +1,4 @@
+import { mountConversationRoutes } from "./conversation-routes";
 import { mfaCipher } from "./mfa";
 import { mountMfaRoutes } from "./routes/mfa";
 import { mountQuickReplyRoutes } from "./routes/quick-replies";
@@ -19,11 +20,13 @@ import { mountMaintenance } from "./middleware/maintenance";
 import { requestMetadata } from "./middleware/request";
 import { mountAuthRoutes } from "./routes/auth";
 import { mountPublicRoutes } from "./routes/public";
+import { mountCitizenAssistant } from "./citizen-assistant";
 import { mountCitizenRoutes } from "./citizen";
 import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
 import { mountPilotReportRoutes } from "./routes/pilot-report";
 import { mountAuditRoutes } from "./audit-log";
+import { mountCopilot } from "./copilot";
 import { mountAiUsage } from "./ai-usage";
 import { mountFamilyReuseRoutes } from "./family-reuse";
 import { mountSystemStatus } from "./system-status";
@@ -99,6 +102,11 @@ export function createApp(options: ApiOptions) {
   mountAuthRoutes(app, services);
   mountMfaRoutes(app, services);
   mountCitizenRoutes(app, services);
+  // Assistant and voice quotas are per case, so they run again once the capability is resolved.
+  // Hono's "/assistant/*" also matches "/assistant".
+  for (const path of ["/c/:token/assistant/*", "/c/:token/transcribe"]) app.use(path, limited);
+  mountCitizenAssistant(app, services);
+  mountConversationRoutes(app, services);
   mountOperatorRoutes(app, services);
   mountFamilyReuseRoutes(app, services);
   mountAdministrationRoutes(app, services);
@@ -107,5 +115,6 @@ export function createApp(options: ApiOptions) {
   mountPilotReportRoutes(app, services);
   mountSystemStatus(app, services);
   mountAiUsage(app, services);
+  mountCopilot(app, services);
   return app;
 }

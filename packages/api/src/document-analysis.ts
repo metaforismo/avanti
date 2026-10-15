@@ -1,9 +1,10 @@
+import { analyzeConsistency, recoverCopilot } from "./copilot";
 import { and, eq, gt, isNull, lt, lte, or } from "drizzle-orm";
 import { cases, documents } from "@avanti/db";
 import { DocumentAnalysis } from "@avanti/contracts";
 import { heuristicAnalysis } from "./ai";
 import { observeAi, recordOperationalCounters } from "./operational-telemetry";
-import { citizenView } from "./dossier";
+import { requirements as requirementCatalog } from "@avanti/core";
 import { deadline } from "./deadline";
 import { nextCaseUpdate } from "./case-version";
 import type { Services } from "./context";
@@ -68,8 +69,7 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
     });
     return;
   }
-  const view = await citizenView(s.db, row, s.clock());
-  const requirements = [...new Set(view.checklist.map((i) => i.requirementId))];
+  const requirements = Object.keys(requirementCatalog);
   const bytes = await deadline(s.storage.get(document.storageKey), 10_000);
   let analysis: DocumentAnalysis;
   try {
@@ -115,6 +115,10 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
         .set({ updatedAt: nextCaseUpdate(current, finished) })
         .where(eq(cases.id, current.id));
   });
+  const [updated] = await s.db.select().from(cases).where(eq(cases.id, row.id));
+  if (updated) {
+    await analyzeConsistency(s, updated);
+  }
 }
 
 export async function recoverDocumentAnalysis(s: Services, caseId?: string) {
@@ -140,6 +144,7 @@ export function scheduleDocumentRecovery(s: Services, caseId: string) {
     s.background?.(async () => {
       try {
         await recoverDocumentAnalysis(s, caseId);
+        await recoverCopilot(s, caseId);
       } catch {
         /* Retry via a later read or cron without logging database details. */
       }

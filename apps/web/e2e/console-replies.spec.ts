@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { logIn } from "./helpers";
+import { logIn, openFirstCaseInReview } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -9,12 +9,7 @@ test("a quick reply goes into the request message where the cursor is", async ({
   await logIn(page, DEMO);
   // A case already in review: asking for documents on a new one would start its review and
   // change the demo data other tests rely on.
-  const inReview = page.waitForResponse(
-    (r) => /\/api\/cases\?.*status=in_review/.test(r.url()) && r.ok(),
-  );
-  await page.getByRole("button", { name: /^In revisione/ }).click();
-  await inReview;
-  await page.locator('a[href^="/console/pratiche/"]').first().click();
+  await openFirstCaseInReview(page);
   await page.getByRole("button", { name: "Chiedi integrazione" }).first().click();
   const dialog = page.getByRole("dialog", { name: "Chiedi un'integrazione" });
   const message = dialog.getByLabel("Messaggio");

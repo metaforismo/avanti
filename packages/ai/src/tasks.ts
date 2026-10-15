@@ -273,3 +273,5 @@ export const translateTask: Task<
 };
 // Shared prompts for future tasks remain exported without inventing unfinished task implementations.
 export { constitution };
+
+export { converseTask } from "./conversation";

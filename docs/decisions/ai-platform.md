@@ -15,7 +15,7 @@ configura il deploy di un CAF.
    fermano. Lo stato del sistema lo dice in chiaro.
 3. **Un provider si cambia da configurazione.** OpenRouter, OpenAI, Anthropic e Vercel AI
    Gateway sono intercambiabili: cambiano variabili d'ambiente, non codice. Il modello si sceglie
-   per compito (veloce, ragionamento, visione), con una catena di riserva.
+   per compito (veloce, ragionamento, visione, audio), con una catena di riserva.
 4. **Ogni uscita è validata.** Output strutturato con schema zod, controlli di dominio dopo lo
    schema (ID ammessi, anni plausibili, lingua), al massimo un tentativo di correzione, poi
    euristica. Un testo libero non entra mai nel database senza passare da uno schema.
@@ -47,16 +47,16 @@ packages/core          regole, catalogo, euristiche pure (restano la fonte di ve
 
 Ogni compito è una definizione:
 
-| Campo              | Significato                                                    |
-| ------------------ | -------------------------------------------------------------- |
-| `id`, `version`    | es. `citizen.assistant@3`; la versione entra nella telemetria  |
-| `tier`             | `fast`, `reasoning` o `vision`: sceglie il modello configurato |
-| `system`           | costituzione + prompt del compito, costruito da funzioni pure  |
-| `input` / `output` | schemi zod; l'output è sempre strutturato                      |
-| `validate`         | invarianti di dominio dopo lo schema                           |
-| `heuristic`        | risultato senza AI, sempre disponibile                         |
-| `limits`           | timeout, token massimi, temperatura, dimensione input          |
-| `data`             | quali campi del fascicolo possono entrare nel prompt           |
+| Campo              | Significato                                                             |
+| ------------------ | ----------------------------------------------------------------------- |
+| `id`, `version`    | es. `citizen.assistant@3`; la versione entra nella telemetria           |
+| `tier`             | `fast`, `reasoning`, `vision` o `audio`: sceglie il modello configurato |
+| `system`           | costituzione + prompt del compito, costruito da funzioni pure           |
+| `input` / `output` | schemi zod; l'output è sempre strutturato                               |
+| `validate`         | invarianti di dominio dopo lo schema                                    |
+| `heuristic`        | risultato senza AI, sempre disponibile                                  |
+| `limits`           | timeout, token massimi, temperatura, dimensione input                   |
+| `data`             | quali campi del fascicolo possono entrare nel prompt                    |
 
 ## Configurazione
 
@@ -66,6 +66,7 @@ OPENROUTER_API_KEY=…              # oppure OPENAI_API_KEY, ANTHROPIC_API_KEY, 
 AI_MODEL_FAST=…                   # conversazione, traduzione, classificazione
 AI_MODEL_REASONING=…              # riepiloghi, coerenza, prefill DSU
 AI_MODEL_VISION=…                 # lettura dei documenti
+AI_MODEL_AUDIO=google/gemini-3.5-flash-lite # trascrizione letterale
 AI_MODEL_FALLBACKS=…,…            # catena di riserva (OpenRouter: parametro models)
 AI_DATA_POLICY=strict             # strict: solo provider senza conservazione né addestramento
 AI_MONTHLY_BUDGET_EUR=…           # tetto per CAF, sovrascrivibile dall'amministratore
@@ -79,13 +80,14 @@ risposte instabili e nessuna garanzia sui dati.
 
 **Cittadino**
 
-| Compito              | Cosa fa                                                                                                       | Quando                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `intake.understand`  | Classifica la pratica ed estrae i fatti dal racconto libero                                                   | Primo messaggio e ogni testo libero |
-| `interview.freeform` | Trasforma una risposta a parole nella risposta strutturata della domanda corrente, da confermare              | «Rispondi a parole tue»             |
-| `citizen.assistant`  | Risponde alle domande del cittadino sulla sua pratica, nella sua lingua, solo sulla base del contesto fornito | Ovunque nel percorso                |
-| `document.analyze`   | Riconosce il documento, legge intestatario, anno, scadenza, pagine e leggibilità                              | Ogni caricamento                    |
-| `translate`          | Traduce i messaggi dell'operatore al cittadino                                                                | Ogni richiesta d'integrazione       |
+| Compito              | Cosa fa                                                                                                            | Quando                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `intake.understand`  | Classifica la pratica ed estrae i fatti dal racconto libero                                                        | Primo messaggio e ogni testo libero |
+| `interview.converse` | Conduce la conversazione, estrae più proposte con citazioni e formula le domande scelte dal server; livello `fast` | Intervista cittadino                |
+| `interview.freeform` | Trasforma una risposta a parole nella risposta strutturata della domanda corrente, da confermare                   | «Rispondi a parole tue»             |
+| `citizen.assistant`  | Risponde alle domande del cittadino sulla sua pratica, nella sua lingua, solo sulla base del contesto fornito      | Ovunque nel percorso                |
+| `document.analyze`   | Riconosce il documento, legge intestatario, anno, scadenza, pagine e leggibilità                                   | Ogni caricamento                    |
+| `translate`          | Traduce i messaggi dell'operatore al cittadino                                                                     | Ogni richiesta d'integrazione       |
 
 **Operatore**
 
@@ -167,7 +169,7 @@ l'API usa l'euristica; le CLI sintetiche non scrivono nel DB.
 ## Verifiche e limiti osservabili
 
 `pnpm check` non usa provider esterni. `AI_LIVE=1` è necessario per eval/stress reali.
-Dataset: 74 casi sintetici, otto lingue per testo/traduzioni, immagini italiane normali e
+Dataset: 226 casi sintetici (inclusi 152 casi cittadino), otto lingue per testo/traduzioni, immagini italiane normali e
 ostili. Report separano uscite AI ed euristiche, JSON finale e rifiuti del guard. Accuratezza
 su campi annotati, precisione/richiamo sulle risposte (esclusi i fatti laterali del core);
 la fedeltà delle traduzioni richiede revisione umana. Il controllo lingua riconosce script
@@ -180,3 +182,52 @@ Il catalogo pubblico OpenRouter è stato letto il 15 ottobre 2026: 14 modelli `:
 prova: [catalogo ufficiale](https://openrouter.ai/api/v1/models).
 I report `ai-eval-2026-10-15-live` e `ai-stress-2026-10-15-live` registrano BLOCKED quando la
 chiave non è esportata; non trasformare quei risultati in prove del provider.
+
+## Conversazione guidata — 15 ottobre 2026
+
+Il contratto condiviso è `ConversationTurn`, `Proposal`, `ConversationState` in
+`@avanti/contracts`. Il task riusa il prompt `interview-conversation.ts`, aggiornato alla versione 2
+per impedire al testo di anticipare una domanda diversa da `ask_next` quando è stata
+estratta una proposta ancora da confermare. Il core decide le domande aperte; proposte e conferme sono separate.
+Le condizioni sono convalidate sia alla proposta sia alla conferma con `applyAnswer`.
+La correzione di una risposta confermata passa prima da `turn:edit`, così il modello non
+può riaprire autonomamente dati confermati. Le proposte ancora aperte possono essere
+sostituite da un messaggio successivo senza alterare le risposte.
+
+Sono state confrontate due forme di persistenza: una tabella nuova per turni e proposte,
+oppure messaggi del fascicolo con stato pendente nella pratica. La seconda riusa retention,
+export e vista operatore esistenti, evita una seconda cronologia e richiede una sola
+migrazione. Il lock della pratica ordina append, conferme e modifiche; la rete avviene
+prima del lock e il risultato viene rifiutato se la versione della pratica è cambiata.
+
+L'euristica conserva i controlli rapidi e i testi del catalogo nelle otto lingue. Gestisce
+le estrazioni già presenti nel core, numeri e risposte esatte sì/no/opzioni/date; comprensione
+referenziale, refusi e lingue miste hanno copertura limitata e vengono misurati nelle eval.
+Il modello non può completare l'intervista o modificare la checklist senza conferme.
+Prove e limiti: [ai-eval-interview.md](../verification/ai-eval-interview.md).
+
+La sessione cittadino aggiunge assistente con storia server, domande allo sportello,
+trascrizione e conferma dei documenti. Nessuna modifica a `/conversation` o `interview.converse`.
+Contratti e migrazione in [ai-citizen.md](ai-citizen.md); risultati reali, copertura AI distinta
+adeguatamente dal fallback e limiti osservati in [ai-eval-citizen.md](../verification/ai-eval-citizen.md).
+
+## Integrazione e prova nel flusso reale — 15 ottobre 2026
+
+Conversazione guidata, assistente del cittadino, voce, controlli immediati sui documenti e
+copilota operatore sono stati uniti in un solo ramo e provati nel browser con OpenRouter in
+modalità `strict` (DeepSeek V4.1 Flash, riserva GPT-6 Luna, audio Gemini 3.5 Flash-Lite).
+La prova ha trovato problemi che le eval sintetiche non vedevano; tutti corretti:
+
+| Problema osservato                                                                                    | Correzione                                                                                  |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Il riepilogo AI veniva scartato se una sola evidenza aveva un ID scritto diversamente                 | Basta un'evidenza reale per punto; le altre si scartano. `missing` lo ricalcola il server   |
+| I controlli incrociati ripetevano gli avvisi delle regole (17 voci per un fascicolo) e sforavano 15 s | Il prompt vieta di ripetere i finding; dedup per voce; livello `reasoning` a 25 s           |
+| Dopo il racconto la risposta chiedeva la domanda successiva con proposte ancora da confermare         | Si invita a controllare le proposte; il prompt della conversazione (v3) rimanda alla scheda |
+| «Controlla a vista» arrivava al cittadino su ogni documento letto senza AI, con «È giusto così»       | Resta una cautela per l'operatore; il cittadino vede «Ricevuto» o «Letto: sembra a posto»   |
+| I messaggi `citizenCheck` citano il nome del file e finivano nel prompt del copilota                  | Al modello arriva solo lo stato                                                             |
+| Assistente e voce chiamavano il fornitore anche con l'AI per i cittadini spenta dal CAF               | Interruttore rispettato lato server; il microfono sparisce                                  |
+| Le quote di conversazione erano contate due volte                                                     | Il secondo limitatore vale solo per assistente e voce                                       |
+| La priorità «da guardare» contava i «controlla a vista»                                               | Esclusi dal conteggio                                                                       |
+
+Le bozze di risposta dell'operatore parlano con la voce dello sportello («verifichiamo»),
+non nominano «l'operatore» in terza persona e rimandano al caricamento dallo stesso link.

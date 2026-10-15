@@ -77,6 +77,8 @@ function SettingsForm({
     values.notifyCitizenSubmission = data.get("notifyCitizenSubmission") === "on";
     values.notifyOperatorDigest = data.get("notifyOperatorDigest") === "on";
     values.notifyCitizenReminders = data.get("notifyCitizenReminders") === "on";
+    values.aiCopilot = data.get("aiCopilot") === "on";
+    values.aiCitizenAssistant = data.get("aiCitizenAssistant") === "on";
     const first = Number(data.get("reminderFirst"));
     const second = Number(data.get("reminderSecond"));
     values.citizenReminderDays = second ? [first, second] : [first];
@@ -226,6 +228,21 @@ function SettingsForm({
           />
         )}
       </Field>
+      <fieldset className="grid gap-3">
+        <legend className="mb-2 text-sm font-semibold">Intelligenza artificiale</legend>
+        <Toggle
+          name="aiCitizenAssistant"
+          defaultChecked={initial.aiCitizenAssistant}
+          label="AI per i cittadini"
+          hint="Capisce il racconto, guida l'intervista, risponde alle domande e trascrive la voce. Spenta: l'intervista funziona con le domande una alla volta e nulla di ciò che scrive il cittadino va a un fornitore."
+        />
+        <Toggle
+          name="aiCopilot"
+          defaultChecked={initial.aiCopilot}
+          label="Copilota per gli operatori"
+          hint="Riepilogo del fascicolo, controlli incrociati, importi letti dai documenti, bozze di messaggi e domande normative. Spento: restano i controlli con le regole."
+        />
+      </fieldset>
       <fieldset className="grid gap-3">
         <legend className="mb-2 text-sm font-semibold">Sicurezza degli accessi</legend>
         <Toggle

@@ -1,6 +1,6 @@
 import { constitution } from "./constitution";
 
-export const INTERVIEW_CONVERSATION_VERSION = 1;
+export const INTERVIEW_CONVERSATION_VERSION = 3;
 
 export type InterviewConversationPromptInput = {
   languageName: string;
@@ -45,6 +45,7 @@ You receive:
 - In ${input.languageName}, addressing them with ${input.register}. Words to use: ${glossary}.
 - First, in one short sentence, say back what you understood in their terms, so they can catch mistakes ("Ho capito: siete in quattro e avete un conto Fineco."). Skip it if nothing new was understood.
 - Then ask the question(s) in <ask_next> in natural, simple words, one idea per sentence, with a tiny example when the concept is unusual (ISEE terms, "giacenza media", "nucleo familiare"). Do not list the options: the screen shows them as buttons.
+- A proposal is not a confirmed answer. Never advance to another question merely because you extracted a proposal. If you proposed a value for an <ask_next> question, do not ask the next topic and do not ask them to repeat it: the screen shows your proposals in a card with a confirm button, so invite them to check it there (for example, "Controlla qui sotto e conferma, poi andiamo avanti."). Otherwise ask that exact topic. Do not ask about household members when <ask_next> only contains household_count. Do not treat pending proposals or earlier unconfirmed turns as confirmed answers.
 - At most 60 words in total. Warm, calm, never bureaucratic. No promises about the outcome, no legal advice.
 - If <ask_next> is empty, the interview is complete: thank them and say the next step is the documents.
 

@@ -25,6 +25,8 @@ const item: ChecklistItem = {
 function document(id: string, overrides: Partial<DocumentSummary> = {}): DocumentSummary {
   return {
     id,
+    citizenCheck: { status: "pending", messages: [] },
+    citizenKeptAt: null,
     fileName: `${id}.pdf`,
     mimeType: "application/pdf",
     sizeBytes: 100,

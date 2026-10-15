@@ -697,3 +697,230 @@ Esempi completi, semantica di visibilità, cancellazione dell'intero gruppo e
 migrazione unica sono in [Riuso di nucleo e documenti](decisions/document-reuse.md).
 La ricerca usa POST per evitare dati personali negli URL; il riuso richiede la
 conferma dell'operatore e non avviene tra link indipendenti.
+
+## Intervista come conversazione guidata
+
+`GET /c/:token/conversation` e il campo `CitizenCase.conversation` restituiscono
+`ConversationState`: `turns`, `proposals`, `ask` (1–2 domande localizzate), `progress`,
+`complete`, `engine`. Senza AI viene chiesta una domanda alla volta dal catalogo.
+`complete` dipende dalle risposte confermate e dalle condizioni del core, mai dal modello.
+
+`POST /c/:token/conversation` accetta `{ "text": "Siamo in quattro e viviamo in affitto" }`
+(1–1000 caratteri, `SafeText`). Una richiesta esegue un solo `interview.converse` di livello
+`fast`; retry e fallback restano responsabilità del runtime. Il modello riceve domande aperte
+in ordine, `ask_next` scelto dal server, risposte confermate e gli ultimi 8 turni come dati
+non fidati. Il server scarta proposte fuori schema o per domande nascoste/già risposte,
+controlla le citazioni sui messaggi del cittadino e abbassa a massimo 0,3 la confidenza senza
+riscontro. Tutte le proposte richiedono conferma, qualunque sia la confidenza.
+
+Esempio di proposta (gli ID reali sono opachi):
+
+```json
+{
+  "id": "proposal-1",
+  "questionId": "household_count",
+  "questionText": "Quante persone fanno parte del tuo nucleo familiare?",
+  "value": 4,
+  "display": "4",
+  "evidence": "Siamo in quattro",
+  "confidence": 0.95
+}
+```
+
+`POST /c/:token/conversation/confirm` accetta conferme parziali e correzioni:
+
+```json
+{
+  "accept": [{ "proposalId": "proposal-1", "value": 3 }],
+  "reject": ["proposal-2"]
+}
+```
+
+Il valore omesso accetta quello proposto. L'intera richiesta è atomica: un valore non valido
+causa 400 senza modificare risposte, proposte o messaggi; ID duplicati danno 400, ID scaduti
+o appartenenti a un'altra pratica danno 409. Il rifiuto rimuove la proposta e lascia aperta
+la domanda. La conferma usa la stessa validazione, gli stessi eventi `answer.updated` e lo
+stesso ricalcolo della checklist di `turn:answer`. Le risposte con pulsanti/editor passano
+ancora da `/turn` e sono registrate come turni del cittadino leggibili.
+
+Il primo racconto usa ancora `turn:text` e `intake.understand`: classifica la pratica, ma
+le informazioni estratte diventano proposte, senza entrare automaticamente nelle risposte.
+Il racconto intero è usato come citazione iniziale, con confidenza limitata a 0,7.
+Per correggere una risposta già confermata, inviare prima `turn:edit` con `questionId`;
+la domanda riaperta può ricevere una nuova proposta. I componenti confermati vengono
+conservati durante la correzione del numero di persone; se il numero non coincide con
+l'elenco, l'editor dei componenti resta aperto. Nomi nuovi senza riscontro sono scartati;
+gli ID nuovi dei componenti sono assegnati dal server alla conferma.
+
+Messaggi liberi (`conversation` e `turn:text`) e conferme condividono il limite di 60/ora
+per capability; i pulsanti rapidi mantengono il limite esistente di 400/ora e 60/minuto.
+429 include `Retry-After` e messaggio localizzato. Il limite di lunghezza è localizzato.
+Le mutazioni richiedono pratica modificabile e link corrente anche dopo l'attesa AI:
+un turno divenuto obsoleto durante un'altra modifica restituisce 409 senza salvare messaggi.
+
+I turni sono righe di `messages` con `kind` e `questionId`; l'ordine resta stabile anche
+con clock uguali. Proposte e motore sono nella pratica (migrazione `0016_interview_conversation`).
+Il fascicolo operatore espone anche `conversation` con i metadati dei turni e mantiene `messages`; l'export JSON del CAF include messaggi,
+metadati e proposte pendenti. La cancellazione della pratica e la retention eliminano anche
+questi dati. I log e gli eventi contengono solo conteggi e metadati, mai il testo del dialogo.
+
+### Assistente del cittadino, voce e controllo dei documenti
+
+Gli endpoint seguenti usano la capability della pratica e gli stessi controlli Origin
+(CSRF) delle altre scritture cittadino. Non richiedono una sessione operatore.
+
+| Metodo e percorso                       | Input                                                 | Risultato                                               |
+| --------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| `POST /api/c/:token/assistant`          | `AssistantAsk`                                        | `AssistantReply`                                        |
+| `GET /api/c/:token/assistant`           | —                                                     | `{ messages: AssistantTurn[], remainingToday: number }` |
+| `POST /api/c/:token/assistant/ask-desk` | `{ message: string }`, 1–600 caratteri                | `201 { ok: true }`                                      |
+| `POST /api/c/:token/transcribe`         | multipart: un `file` audio, `language` nelle 8 lingue | `{ text, language, engine }`                            |
+| `POST /api/c/:token/documents/:id/keep` | nessun campo                                          | `CitizenCase` aggiornato                                |
+
+Esempio richiesta assistente:
+
+```json
+{ "message": "Perché me lo chiedi?", "focus": { "questionId": "household_count" } }
+```
+
+Esempio risposta (id, testo e data dipendono dalla pratica):
+
+```json
+{
+  "id": "turn-id",
+  "reply": "Lo sportello verifica chi fa parte del nucleo familiare.",
+  "intent": "answer",
+  "action": "explain_question",
+  "sources": [{ "id": "question:household_count", "title": "Quante persone?" }],
+  "engine": "heuristic",
+  "createdAt": "2027-01-05T10:00:00.001Z"
+}
+```
+
+`intent`: `answer | needs_operator | off_topic | manipulation | emergency`.
+`action`: `none | explain_question | open_documents | ask_desk`.
+`AssistantTurn`: `{ id, role: citizen|assistant, text, intent?, action?, sources?, createdAt }`.
+La storia inviata dal client viene ignorata. Soltanto gli ultimi 12 turni server entrano
+nel prompt, come contenuto non fidato. Le fonti sono id del contesto server con il loro titolo.
+Il focus domanda è accettato soltanto per la domanda attuale; un id sconosciuto non aggiunge dati.
+I suggerimenti dei documenti provengono dalla checklist della pratica, nella lingua corrente.
+
+Limiti persistenti per pratica: assistente 30/ora e 80/24 ore, domanda allo sportello 5/24 ore,
+trascrizione 20/ora. Sono finestre dalla prima richiesta, come gli altri limiti cittadino.
+La rigenerazione del link non azzera questi contatori. Il tetto IP per ciascuna operazione
+è quello dei turni cittadino (1.500/minuto, 15.000/ora). Risposta `429` con `Retry-After`.
+`remainingToday` indica il residuo della finestra di 24 ore, non il residuo orario.
+
+Audio: webm, ogg, mp4/m4a, wav; massimo 2 MiB e 60 secondi verificati dai byte e dai
+pacchetti audio, senza fidarsi del MIME o della durata del client. Solo una traccia audio,
+nessun video. File vuoti, illeggibili o di durata non determinabile: `400 bad_request`.
+Audio solo in memoria per la richiesta, mai nello storage o nella storia. La trascrizione
+non invia un messaggio: il client la mostra modificabile e il cittadino decide se inviarla.
+Senza provider, budget o trascrizione utilizzabile: `503 transcription_unavailable`,
+con messaggio localizzato; il client può nascondere il microfono. Il modello audio è
+`AI_MODEL_AUDIO` (default `google/gemini-3.5-flash-lite`); riserva `qwen/qwen3.8-omni-flash`.
+Una trascrizione con lingua chiaramente diversa passa alla riserva, senza tradurre.
+
+Ogni documento aggiunge:
+
+```json
+{
+  "citizenCheck": {
+    "status": "warning",
+    "messages": ["Il documento richiede il controllo dello sportello."]
+  },
+  "citizenKeptAt": null
+}
+```
+
+Gli stati sono `pending | ok | warning | problem`; i testi provengono dai codici fissi del
+core, mai dalle osservazioni libere del modello. `ok` indica assenza di rilievi automatici,
+non validità ufficiale. `keep` registra `citizenKeptAt` e un evento: non accetta il documento,
+non rimuove rilievi e non cambia la decisione dell’operatore. Consentito solo durante
+`intake` e `needs_citizen`, dopo la fine dell’analisi. Id di un’altra pratica: `404`.
+
+Il fascicolo operatore aggiunge `assistantTurns` (sezione “Domande all’assistente”).
+Le domande allo sportello sono messaggi cittadino distinti, con evento `citizen.question`;
+`hasCitizenQuestion` nella coda segnala che il fascicolo contiene almeno una domanda.
+L’indicatore è storico: non esiste ancora un comando di presa in carico della domanda.
+
+## Copilota operatore
+
+Tutti gli endpoint seguenti richiedono la sessione di un operatore attivo dello stesso
+CAF della pratica. 401 senza accesso; 404 anche per ID di un altro CAF; input non valido
+400; versione cambiata o analisi ancora in corso 409. POST protetti da Origin come le
+altre mutazioni. `POST /ai/ask`: 60 tentativi/ora per operatore, 429 con `Retry-After`.
+Rigenerazione e bozze condividono il limite traduzioni di 30/minuto; accettazioni e rifiuti
+locali non consumano la quota delle domande normative. Le GET della stessa versione riusano la cache, anche dopo riavvio.
+
+| Metodo / percorso relativo a `/api`              | Input                                                                                | Contratto condiviso                        |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------ |
+| GET, POST `/cases/:id/ai/brief`                  | —; POST rigenera                                                                     | `DossierBrief`                             |
+| GET `/cases/:id/ai/consistency`                  | —                                                                                    | `DossierConsistency` / `ConsistencyReport` |
+| GET `/cases/:id/ai/dsu-prefill`                  | —                                                                                    | `DsuPrefill`                               |
+| POST `/cases/:id/ai/dsu-prefill/:fieldId/accept` | —; fieldId URL encoded                                                               | `PrefillDecisionResponse`                  |
+| POST `/cases/:id/ai/dsu-prefill/:fieldId/reject` | —                                                                                    | `PrefillDecisionResponse`                  |
+| POST `/cases/:id/ai/request-draft`               | `{"checklistItemIds":["identity:m_demo"]}`                                           | `RequestDraftResponse`                     |
+| POST `/ai/ask`                                   | `{"question":"Per ISEE 2027 quale anno dei redditi?","practiceId":"isee_ordinario"}` | `OperatorAskResponse` / `KnowledgeAnswer`  |
+| POST `/cases/:id/ai/reply-draft`                 | `{"messageId":"messaggio-del-cittadino"}`                                            | `ReplyDraftResponse`                       |
+
+Esempio di riepilogo (IDs illustrativi):
+
+```json
+{
+  "situation": "ISEE ordinario. Nucleo dichiarato: 1 componenti.",
+  "attention": [
+    {
+      "text": "Verificare l'anno del documento.",
+      "evidence": [{ "kind": "document", "id": "doc_demo", "label": "Documento caricato" }]
+    }
+  ],
+  "missing": ["identity:m_demo"],
+  "nextStep": "ask_citizen",
+  "nextStepReason": "Occorre acquisire i documenti mancanti o rifiutati.",
+  "engine": "heuristic",
+  "model": null,
+  "generatedAt": "2027-01-15T12:00:00.000Z",
+  "caseVersion": "2027-01-15T11:00:00.000Z"
+}
+```
+
+Coerenza: `{"issues":[{"id":"document.wrong_year:doc_demo","severity":"blocker",
+"text":"Verificare l'anno dei dati.","evidence":[{"kind":"document","id":"doc_demo",
+"label":"Documento caricato"}],"checklistItemId":"account_balance:account_0_m_demo"}],
+"engine":"heuristic","generatedAt":"2027-01-15T12:00:00.000Z",
+"caseVersion":"2027-01-15T11:00:00.000Z"}`. I controlli deterministici restano presenti
+anche quando il modello non segnala nulla.
+
+Prefill: `fields` contiene per esempio `{"sectionId":"FC2:m_demo:account_0",
+"fieldId":"FC2:m_demo:account_0:saldo_al_31_dicembre~impronta",
+"label":"Saldo al 31 dicembre","value":1234.56,"documentId":"doc_demo","page":1,
+"confidence":0.99,"note":"Saldo al 31 dicembre: 1.234,56 euro"}`, con i consueti
+`engine/generatedAt/caseVersion`. Il fieldId è opaco: usare quello ricevuto, senza
+ricostruirlo. L'accettazione risponde `{"fieldId":"…","decision":"accepted"}`; il
+rifiuto usa `rejected`. Solo dopo accept il prospetto contiene `value:"1234,56"` e
+fonte `{"kind":"document","documentId":"doc_demo","checklistItemId":"…",
+"operatorConfirmed":true,"page":1}`. La nota dice «Documento, confermato da operatore».
+Il confronto del documento e il controllo umano non sono sostituiti da questa conferma.
+
+Bozza richiesta: `{"message":"Buongiorno, per completare la pratica…","engine":"heuristic"}`.
+Bozza risposta: stessa forma più `citations: []` o citazioni dei chunk usati. Nessuna
+bozza è salvata nella chat o inviata. L'operatore la edita e usa l'invio già esistente.
+
+Domande normative: `{"answer":"[kb:…] estratto della ricerca…","coverage":"partial",
+"citations":[{"id":"kb:…","title":"ISEE ordinario 2027 — Versione e anni",
+"source":"Ministero del Lavoro, documentazione ISEE","url":"https://lavoro.gov.it/strumenti-e-servizi/isee/pagine/default"}],
+"engine":"heuristic"}`. Senza AI si restituiscono estratti, senza sintesi. Fuori base:
+`coverage:"none"`, nessuna citazione. Gli ID citati dall'AI devono appartenere ai chunk
+recuperati; il server risolve titolo, fonte e URL, non li accetta dal modello.
+
+`CaseListItem` aggiunge `aiAttention: number|null` e
+`aiPriority: "quick_review"|"attention"|"citizen_question"|null`.
+Filtro: `GET /cases?ai=attention` (anche gli altri due valori). La lettura del dossier
+marca i messaggi cittadino come letti. Il conteggio dell'ultima analisi può essere di
+una versione precedente; `quick_review` richiede invece analisi della versione corrente.
+
+`GET/PATCH /settings`: `aiCopilot` e `aiCitizenAssistant`, default true;
+`aiMonthlyBudgetEur`, default null (budget da configurazione). Un PATCH omesso non
+resetta questi valori. La vista cittadino espone `aiCitizenAssistant`, senza budget.
+Impostazione off o budget esaurito: `engine:"heuristic"`, nessuna nuova chiamata.

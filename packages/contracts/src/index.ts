@@ -223,6 +223,11 @@ export const DocumentReuseAssessment = z.object({
   checkedAt: IsoDateTime,
 });
 export type DocumentReuseAssessment = z.infer<typeof DocumentReuseAssessment>;
+export const CitizenCheck = z.object({
+  status: z.enum(["ok", "warning", "problem", "pending"]),
+  messages: z.array(SafeText),
+});
+export type CitizenCheck = z.infer<typeof CitizenCheck>;
 
 export const DocumentSummary = z.object({
   id: Id,
@@ -236,6 +241,8 @@ export const DocumentSummary = z.object({
   status: DocumentStatus,
   analysis: DocumentAnalysis.nullable(),
   reuse: DocumentReuseAssessment.nullable().optional(),
+  citizenCheck: CitizenCheck.default({ status: "pending", messages: [] }),
+  citizenKeptAt: IsoDateTime.nullable().default(null),
 });
 export type DocumentSummary = z.infer<typeof DocumentSummary>;
 
@@ -274,6 +281,59 @@ export const ChatMessage = z.object({
   originalText: SafeText.nullable(),
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
+
+export const AssistantIntent = z.enum([
+  "answer",
+  "needs_operator",
+  "off_topic",
+  "manipulation",
+  "emergency",
+]);
+export type AssistantIntent = z.infer<typeof AssistantIntent>;
+export const AssistantAction = z.enum(["none", "explain_question", "open_documents", "ask_desk"]);
+export const AssistantSource = z.object({ id: z.string(), title: z.string() });
+export const AssistantAsk = z.object({
+  message: SafeText.trim().min(1).max(600),
+  focus: z
+    .object({
+      questionId: z.string().max(160).optional(),
+      checklistItemId: z.string().max(160).optional(),
+    })
+    .optional(),
+});
+export type AssistantAsk = z.infer<typeof AssistantAsk>;
+export const AssistantReply = z.object({
+  id: Id,
+  reply: SafeText.min(1),
+  intent: AssistantIntent,
+  action: AssistantAction,
+  sources: z.array(AssistantSource),
+  engine: z.enum(["ai", "heuristic"]),
+  createdAt: IsoDateTime,
+});
+export type AssistantReply = z.infer<typeof AssistantReply>;
+export const AssistantTurn = z.object({
+  id: Id,
+  role: z.enum(["citizen", "assistant"]),
+  text: SafeText,
+  intent: AssistantIntent.optional(),
+  action: AssistantAction.optional(),
+  sources: z.array(AssistantSource).optional(),
+  createdAt: IsoDateTime,
+});
+export type AssistantTurn = z.infer<typeof AssistantTurn>;
+export const AssistantHistory = z.object({
+  messages: z.array(AssistantTurn),
+  remainingToday: z.number().int().min(0).max(80),
+});
+export const AskDesk = z.object({ message: SafeText.trim().min(1).max(600) });
+export const TranscribeFields = z.object({ language: Language });
+export const Transcription = z.object({
+  text: SafeText.min(1).max(6000),
+  language: Language,
+  engine: z.enum(["ai", "heuristic"]),
+});
+export type Transcription = z.infer<typeof Transcription>;
 
 /** External destination, never fetched by Avanti or included in notification emails. */
 export const BookingUrl = SafeName.trim()
@@ -339,8 +399,49 @@ export const AnsweredQuestion = z.object({
 });
 export type AnsweredQuestion = z.infer<typeof AnsweredQuestion>;
 
+export const ConversationTurn = z.object({
+  id: Id,
+  role: z.enum(["citizen", "assistant"]),
+  text: SafeText,
+  kind: z.enum(["message", "question", "confirmation", "summary"]),
+  questionId: z.string().nullable(),
+  createdAt: IsoDateTime,
+});
+export type ConversationTurn = z.infer<typeof ConversationTurn>;
+export const Proposal = z.object({
+  id: Id,
+  questionId: z.string(),
+  questionText: SafeText,
+  value: AnswerValue,
+  display: SafeText,
+  evidence: SafeText.max(1000),
+  confidence: z.number().min(0).max(1),
+});
+export type Proposal = z.infer<typeof Proposal>;
+export const ConversationState = z.object({
+  turns: z.array(ConversationTurn),
+  proposals: z.array(Proposal),
+  ask: z.array(Question).max(2),
+  progress: Progress,
+  complete: z.boolean(),
+  engine: z.enum(["ai", "heuristic"]),
+});
+export type ConversationState = z.infer<typeof ConversationState>;
+export const ConversationRequest = z.object({ text: SafeText.trim().min(1).max(1000) });
+export const ConversationConfirmRequest = z
+  .object({
+    accept: z.array(z.object({ proposalId: Id, value: AnswerValue.optional() })).max(100),
+    reject: z.array(Id).max(100),
+  })
+  .superRefine((input, ctx) => {
+    const ids = [...input.accept.map((p) => p.proposalId), ...input.reject];
+    if (new Set(ids).size !== ids.length)
+      ctx.addIssue({ code: "custom", message: "Proposte duplicate." });
+  });
+
 /** Everything the citizen sees. Never contains operator-only notes or other cases. */
 export const CitizenCase = z.object({
+  aiCitizenAssistant: z.boolean().optional(),
   id: Id,
   reference: z.string(),
   /** Engine used for the most recent intake turn, when present. */
@@ -362,6 +463,7 @@ export const CitizenCase = z.object({
   practiceYear: z.number().int().optional(),
   reuseNotice: z.string().nullable().optional(),
   messages: z.array(ChatMessage),
+  conversation: ConversationState.optional(),
   /** Contact details the citizen already gave, to prefill a resubmission. */
   contact: CitizenContact.nullable().default(null),
   /** Blockers/warnings the citizen can act on. */
@@ -507,6 +609,7 @@ export const MfaStatus = z.object({
 export type MfaStatus = z.infer<typeof MfaStatus>;
 
 export const CaseListItem = z.object({
+  hasCitizenQuestion: z.boolean().default(false),
   id: Id,
   reference: z.string(),
   citizenName: z.string().nullable(),
@@ -518,6 +621,8 @@ export const CaseListItem = z.object({
   progress: Progress,
   blockers: z.number().int().nonnegative(),
   warnings: z.number().int().nonnegative(),
+  aiAttention: z.number().int().nonnegative().nullable().default(null),
+  aiPriority: z.enum(["quick_review", "attention", "citizen_question"]).nullable().default(null),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
   submittedAt: IsoDateTime.nullable(),
@@ -525,6 +630,7 @@ export const CaseListItem = z.object({
 export type CaseListItem = z.infer<typeof CaseListItem>;
 
 export const CaseListQuery = z.object({
+  ai: z.enum(["quick_review", "attention", "citizen_question"]).optional(),
   status: CaseStatus.optional(),
   practiceId: PracticeId.optional(),
   officeId: Id.optional(),
@@ -561,10 +667,16 @@ export const DossierFact = z.object({
 });
 export type DossierFact = z.infer<typeof DossierFact>;
 
-/** Preparatory DSU values with field-level provenance; no document-value extraction in v1. */
+/** Preparatory DSU values: document amounts require explicit operator confirmation. */
 export const DsuSource = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("answer"), questionId: z.string().min(1).max(200) }),
-  z.object({ kind: z.literal("document"), documentId: Id, checklistItemId: Id }),
+  z.object({
+    kind: z.literal("document"),
+    documentId: Id,
+    checklistItemId: Id,
+    operatorConfirmed: z.boolean().optional(),
+    page: z.number().int().positive().nullable().optional(),
+  }),
   z.object({
     kind: z.literal("missing"),
     questionId: z.string().min(1).max(200).optional(),
@@ -581,10 +693,16 @@ export const DsuRow = z
     source: DsuSource,
     note: z.string().optional(),
   })
-  .refine((row) => (row.source.kind === "answer" ? row.value !== null : row.value === null), {
-    message:
-      "Solo le risposte raccolte possono contenere un valore; i documenti non sono estratti.",
-  });
+  .refine(
+    (row) =>
+      row.source.kind === "answer" ||
+      (row.source.kind === "document" && row.source.operatorConfirmed)
+        ? row.value !== null
+        : row.value === null,
+    {
+      message: "Un valore richiede una risposta o un documento confermato dall’operatore.",
+    },
+  );
 export type DsuRow = z.infer<typeof DsuRow>;
 
 export const DsuSection = z.object({
@@ -615,6 +733,7 @@ export const DsuSheetResponse = DsuSheet.nullable();
 
 /** Full dossier for operators. Everything is in Italian regardless of the citizen language. */
 export const CaseDossier = CaseListItem.extend({
+  assistantTurns: z.array(AssistantTurn).default([]),
   citizen: z.object({
     firstName: SafeName.nullable(),
     lastName: SafeName.nullable(),
@@ -640,6 +759,7 @@ export const CaseDossier = CaseListItem.extend({
   dsuSheet: DsuSheetResponse.default(null),
   findings: z.array(Finding),
   messages: z.array(ChatMessage),
+  conversation: ConversationState.optional(),
   timeline: z.array(TimelineEvent),
   citizenNote: z.string().nullable(),
   internalNotes: z.string().nullable(),
@@ -965,6 +1085,8 @@ export const AuditAction = z.enum([
   "review.started",
   "review.completed",
   "citizen.requested",
+  "citizen.question",
+  "document.kept",
   "document.uploaded",
   "document.analyzed",
   "document.reassigned",
@@ -1097,7 +1219,9 @@ export type CitizenReminderDays = z.infer<typeof CitizenReminderDays>;
 
 export const OrganizationSettings = z.object({
   mfaRequired: z.boolean().default(false),
-  aiMonthlyBudgetEur: z.number().finite().min(0).max(100000).nullable().optional(),
+  aiCopilot: z.boolean().default(true),
+  aiCitizenAssistant: z.boolean().default(true),
+  aiMonthlyBudgetEur: z.number().finite().min(0).max(100000).nullable().default(null),
   /** Minutes per case measured by the CAF before Avanti; null until measured. */
   baselineMinutesPerCase: z.number().int().min(1).max(600).nullable(),
   /** Validity of citizen links, in days. */
@@ -1119,6 +1243,9 @@ export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 // PATCH must preserve omitted preferences: Zod defaults would otherwise reset them
 // (an unrelated PATCH would turn off required MFA or the email notices).
 export const UpdateSettingsRequest = OrganizationSettings.partial().extend({
+  aiMonthlyBudgetEur: OrganizationSettings.shape.aiMonthlyBudgetEur.removeDefault().optional(),
+  aiCopilot: z.boolean().optional(),
+  aiCitizenAssistant: z.boolean().optional(),
   mfaRequired: z.boolean().optional(),
   notifyCitizenReady: z.boolean().optional(),
   notifyCitizenSubmission: z.boolean().optional(),
@@ -1242,6 +1369,7 @@ export const ErrorCode = z.enum([
   "unsupported_file",
   "rate_limited",
   "ai_unavailable",
+  "transcription_unavailable",
   "internal",
 ]);
 export type ErrorCode = z.infer<typeof ErrorCode>;
@@ -1302,3 +1430,108 @@ export const AiUsageResponse = z.object({
 
 export type AiUsageQuery = z.infer<typeof AiUsageQuery>;
 export type AiUsageResponse = z.infer<typeof AiUsageResponse>;
+
+/* Copilota: le proposte non sono decisioni sulla pratica. */
+export const Evidence = z.object({
+  kind: z.enum(["answer", "document", "checklist", "finding"]),
+  id: SafeText.min(1).max(200),
+  label: SafeText.min(1).max(500),
+});
+export type Evidence = z.infer<typeof Evidence>;
+export const AiEngine = z.enum(["ai", "heuristic"]);
+export type AiEngine = z.infer<typeof AiEngine>;
+export type Engine = AiEngine;
+const AiVersion = { engine: AiEngine, generatedAt: IsoDateTime, caseVersion: IsoDateTime };
+export const DossierBrief = z.object({
+  situation: SafeText.min(1).max(1000),
+  attention: z
+    .array(z.object({ text: SafeText.min(1).max(700), evidence: z.array(Evidence).min(1).max(20) }))
+    .max(5),
+  missing: z.array(SafeText.min(1).max(200)).max(1000),
+  nextStep: z.enum([
+    "verify_documents",
+    "ask_citizen",
+    "ready_for_practice",
+    "needs_operator_judgement",
+  ]),
+  nextStepReason: SafeText.min(1).max(700),
+  model: SafeText.nullable(),
+  ...AiVersion,
+});
+export type DossierBrief = z.infer<typeof DossierBrief>;
+export const ConsistencyIssue = z.object({
+  id: SafeText.min(1).max(200),
+  severity: z.enum(["blocker", "warning", "info"]),
+  text: SafeText.min(1).max(700),
+  evidence: z.array(Evidence).min(1).max(20),
+  checklistItemId: Id.nullable(),
+});
+export type ConsistencyIssue = z.infer<typeof ConsistencyIssue>;
+export const DossierConsistency = z.object({
+  issues: z.array(ConsistencyIssue).max(2000),
+  ...AiVersion,
+});
+export type DossierConsistency = z.infer<typeof DossierConsistency>;
+export const DsuPrefillField = z.object({
+  sectionId: SafeText.min(1).max(200),
+  fieldId: SafeText.min(1).max(200),
+  label: SafeText.min(1).max(200),
+  value: z.union([SafeText.min(1).max(300), z.number().finite()]),
+  documentId: Id,
+  page: z.number().int().positive().nullable(),
+  confidence: z.number().min(0).max(1),
+  note: SafeText.max(700).nullable(),
+});
+export type DsuPrefillField = z.infer<typeof DsuPrefillField>;
+export const DsuPrefill = z.object({ fields: z.array(DsuPrefillField).max(200), ...AiVersion });
+export type DsuPrefill = z.infer<typeof DsuPrefill>;
+export const RequestDraftRequest = z.object({
+  checklistItemIds: z
+    .array(Id)
+    .max(100)
+    .refine((ids) => new Set(ids).size === ids.length),
+});
+export const RequestDraftResponse = z.object({
+  message: SafeText.min(1).max(3000),
+  engine: AiEngine,
+});
+export type RequestDraftResponse = z.infer<typeof RequestDraftResponse>;
+export const KnowledgeCitation = z.object({
+  id: SafeText.min(1).max(200),
+  title: SafeText.min(1).max(500),
+  source: SafeText.min(1).max(500),
+  url: z.string().url().nullable(),
+});
+export type KnowledgeCitation = z.infer<typeof KnowledgeCitation>;
+export const OperatorAskRequest = z.object({
+  question: SafeText.trim().min(3).max(500),
+  practiceId: PracticeId.optional(),
+});
+export const OperatorAskResponse = z.object({
+  answer: SafeText.min(1).max(18000),
+  coverage: z.enum(["full", "partial", "none"]),
+  citations: z.array(KnowledgeCitation).max(10),
+  engine: AiEngine,
+});
+export type OperatorAskResponse = z.infer<typeof OperatorAskResponse>;
+export const ReplyDraftRequest = z.object({ messageId: Id });
+export const ReplyDraftResponse = z.object({
+  message: SafeText.min(1).max(3000),
+  citations: z.array(KnowledgeCitation).max(10),
+  engine: AiEngine,
+});
+export type ReplyDraftResponse = z.infer<typeof ReplyDraftResponse>;
+export const PrefillDecisionResponse = z.object({
+  fieldId: SafeText.min(1).max(200),
+  decision: z.enum(["accepted", "rejected"]),
+});
+
+export const ConsistencyReport = DossierConsistency;
+export type ConsistencyReport = DossierConsistency;
+export const KnowledgeAnswer = OperatorAskResponse;
+export type KnowledgeAnswer = OperatorAskResponse;
+
+export type RequestDraftRequest = z.infer<typeof RequestDraftRequest>;
+export type OperatorAskRequest = z.infer<typeof OperatorAskRequest>;
+export type ReplyDraftRequest = z.infer<typeof ReplyDraftRequest>;
+export type PrefillDecisionResponse = z.infer<typeof PrefillDecisionResponse>;
