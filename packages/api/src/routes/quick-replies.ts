@@ -34,7 +34,7 @@ export function mountQuickReplyRoutes(app: App, s: Services) {
   app.post("/quick-replies", async (c) => {
     const actor = c.get("operator");
     const input = await body(c, QuickReplyInput);
-    const created = await administer(s, actor, async (tx) => {
+    const created = await administer(s, c, async (tx) => {
       const rows = await list(tx, actor.organizationId);
       if (rows.length >= 50)
         throw new ApiFailure("conflict", 409, "Puoi salvare al massimo 50 risposte rapide.");
@@ -55,7 +55,7 @@ export function mountQuickReplyRoutes(app: App, s: Services) {
   app.put("/quick-replies/reorder", async (c) => {
     const actor = c.get("operator");
     const input = await body(c, ReorderQuickRepliesRequest);
-    const rows = await administer(s, actor, async (tx) => {
+    const rows = await administer(s, c, async (tx) => {
       const current = await list(tx, actor.organizationId);
       if (
         input.ids.length !== current.length ||
@@ -80,7 +80,7 @@ export function mountQuickReplyRoutes(app: App, s: Services) {
     const actor = c.get("operator");
     const id = parse(Id, c.req.param("id"));
     const input = await body(c, UpdateQuickReplyRequest);
-    const row = await administer(s, actor, async (tx) => {
+    const row = await administer(s, c, async (tx) => {
       const [updated] = await tx
         .update(quickReplies)
         .set(input)
@@ -95,7 +95,7 @@ export function mountQuickReplyRoutes(app: App, s: Services) {
   app.delete("/quick-replies/:id", async (c) => {
     const actor = c.get("operator");
     const id = parse(Id, c.req.param("id"));
-    await administer(s, actor, async (tx) => {
+    await administer(s, c, async (tx) => {
       const rows = await list(tx, actor.organizationId);
       if (!rows.some((row) => row.id === id)) throw notFound();
       await replaceOrder(

@@ -41,6 +41,7 @@ import { scheduleDocumentRecovery } from "./document-analysis";
 import { calculateMetrics, metricsRange } from "./operator-metrics";
 
 import { assertCaseVersion, nextCaseUpdate } from "./case-version";
+import { lockOperatorAccess } from "./operator-access";
 
 const transitions: Record<CaseRow["status"], CaseRow["status"][]> = {
   intake: ["closed"],
@@ -123,6 +124,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       .limit(1);
     if (!office) throw notFound();
     const { row, token } = await s.db.transaction(async (tx) => {
+      await lockOperatorAccess(tx, c, s);
       const created = await createCase(
         tx,
         office,
@@ -162,6 +164,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     const token = newToken();
     const row = await s.db.transaction(async (tx) => {
+      await lockOperatorAccess(tx, c, s);
       const [current] = await tx
         .select()
         .from(cases)
@@ -224,6 +227,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     let notificationId: string | undefined;
     const row = await s.db.transaction(async (tx) => {
+      await lockOperatorAccess(tx, c, s);
       const current = await caseById(tx, c.req.param("id"), operator.organizationId, true);
       assertCaseVersion(current, expectedUpdatedAt);
       if (input.assigneeId) {
@@ -311,6 +315,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const input = await body(c, ReviewChecklistItemRequest);
     const operator = c.get("operator");
     const row = await s.db.transaction(async (tx) => {
+      await lockOperatorAccess(tx, c, s);
       const current = await caseById(tx, c.req.param("id"), operator.organizationId, true);
       assertCaseVersion(current, input.expectedUpdatedAt);
       if (!["in_review", "needs_citizen"].includes(current.status))
@@ -383,6 +388,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       s.ai.translate(input.message, initial.language),
     );
     const row = await s.db.transaction(async (tx) => {
+      await lockOperatorAccess(tx, c, s);
       const current = await caseById(tx, initial.id, operator.organizationId, true);
       assertCaseVersion(current, input.expectedUpdatedAt);
       if (current.language !== initial.language) {

@@ -321,7 +321,9 @@ export default function HomePage() {
             sui documenti.
           </p>
         </div>
-        <div className="mt-12">
+        {/* Skipped until near the viewport: its Arabic and Bengali glyphs (270 KB of fonts) are
+            then fetched only by visitors who scroll this far. */}
+        <div className="mt-12 [contain-intrinsic-size:auto_32rem] [content-visibility:auto]">
           <LanguageShowcase />
         </div>
       </section>
