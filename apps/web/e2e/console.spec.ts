@@ -265,3 +265,31 @@ test("the pilot report is for administrators and downloads as a PDF", async ({ p
   await page.getByRole("link", { name: "Scarica PDF" }).click();
   expect((await download).suggestedFilename()).toMatch(/^rapporto-pilota-.*\.pdf$/);
 });
+
+test("an administrator adds the booking link and a note to an office", async ({ page }) => {
+  await logIn(page, ADMIN);
+  await page.getByRole("link", { name: "Impostazioni" }).click();
+  await page.getByRole("button", { name: /Modifica.*Milano Loreto/ }).click();
+  const form = page.getByRole("dialog");
+  const link = form.getByLabel(/Link per prenotare/);
+  await link.fill("http://prenota.example.it");
+  await form.getByRole("button", { name: "Salva modifiche" }).click();
+  await expect(
+    form.getByText("Incolla l'indirizzo completo, che inizia con https://"),
+  ).toBeVisible();
+
+  await link.fill("https://prenota.example.it/loreto");
+  await form.getByLabel("Nota per il cittadino").fill("Porta gli originali.");
+  await form.getByRole("button", { name: "Salva modifiche" }).click();
+  await expect(form).toBeHidden();
+
+  // Saved for real: the form opens again with the values, then they are cleared for other tests.
+  await page.getByRole("button", { name: /Modifica.*Milano Loreto/ }).click();
+  await expect(form.getByLabel(/Link per prenotare/)).toHaveValue(
+    "https://prenota.example.it/loreto",
+  );
+  await form.getByLabel(/Link per prenotare/).fill("");
+  await form.getByLabel("Nota per il cittadino").fill("");
+  await form.getByRole("button", { name: "Salva modifiche" }).click();
+  await expect(form).toBeHidden();
+});

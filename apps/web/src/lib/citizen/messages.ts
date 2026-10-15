@@ -193,6 +193,9 @@ const it = {
     ready: "La pratica è stata verificata dallo sportello.",
     inReview: "Un operatore sta controllando la pratica.",
     closed: "La pratica è chiusa.",
+    book: "Prenota l'appuntamento",
+    bookHint: "Si apre il sito di prenotazione dello sportello.",
+    officeNote: "Indicazioni dello sportello",
   },
   request: {
     untranslated:
@@ -426,6 +429,9 @@ const en: Widen<CitizenMessages> = {
     ready: "The desk has checked your application.",
     inReview: "An operator is reviewing your application.",
     closed: "This application is closed.",
+    book: "Book your appointment",
+    bookHint: "Opens the office's booking site.",
+    officeNote: "Notes from the office (in Italian)",
   },
   request: {
     untranslated: "The desk wrote in Italian: automatic translation was not available.",

@@ -189,6 +189,9 @@ export const fr: M = {
     ready: "Le guichet a vérifié votre demande.",
     inReview: "Un agent est en train de vérifier votre demande.",
     closed: "Cette demande est close.",
+    book: "Prendre rendez-vous",
+    bookHint: "Ouvre le site de réservation du guichet.",
+    officeNote: "Indications du guichet (en italien)",
   },
   request: {
     untranslated:
@@ -415,6 +418,9 @@ export const es: M = {
     ready: "La ventanilla ha revisado tu trámite.",
     inReview: "Un operador está revisando tu trámite.",
     closed: "Este trámite está cerrado.",
+    book: "Pide cita",
+    bookHint: "Se abre la web de citas de la oficina.",
+    officeNote: "Indicaciones de la oficina (en italiano)",
   },
   request: {
     untranslated:
@@ -641,6 +647,9 @@ export const ro: M = {
     ready: "Ghișeul a verificat cererea ta.",
     inReview: "Un operator verifică cererea ta.",
     closed: "Această cerere este închisă.",
+    book: "Fă o programare",
+    bookHint: "Se deschide site-ul de programări al ghișeului.",
+    officeNote: "Indicații de la ghișeu (în italiană)",
   },
   request: {
     untranslated: "Ghișeul a scris în italiană: traducerea automată nu a fost disponibilă.",
@@ -862,6 +871,9 @@ export const uk: M = {
     ready: "Вашу заяву перевірили у вікні обслуговування.",
     inReview: "Працівник перевіряє Вашу заяву.",
     closed: "Цю заяву закрито.",
+    book: "Записатися на прийом",
+    bookHint: "Відкриється сайт запису до офісу.",
+    officeNote: "Вказівки офісу (італійською)",
   },
   request: {
     untranslated:
@@ -1084,6 +1096,9 @@ export const ar: M = {
     ready: "راجع شباك الخدمة طلبك.",
     inReview: "موظف يراجع طلبك الآن.",
     closed: "هذا الطلب مغلق.",
+    book: "احجز موعدك",
+    bookHint: "يفتح موقع الحجز الخاص بالمكتب.",
+    officeNote: "تعليمات المكتب (بالإيطالية)",
   },
   request: {
     untranslated: "كتب شباك الخدمة بالإيطالية: لم تكن الترجمة الآلية متاحة.",
@@ -1306,6 +1321,9 @@ export const bn: M = {
     ready: "সেবা কাউন্টার আপনার আবেদন যাচাই করেছে।",
     inReview: "একজন কর্মী আপনার আবেদন দেখছেন।",
     closed: "এই আবেদনটি বন্ধ হয়ে গেছে।",
+    book: "অ্যাপয়েন্টমেন্ট বুক করুন",
+    bookHint: "অফিসের বুকিং সাইট খুলবে।",
+    officeNote: "অফিসের নির্দেশনা (ইতালীয় ভাষায়)",
   },
   request: {
     untranslated: "সেবা কাউন্টার ইতালীয় ভাষায় লিখেছে: স্বয়ংক্রিয় অনুবাদ পাওয়া যায়নি।",

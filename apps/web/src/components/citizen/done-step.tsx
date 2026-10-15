@@ -1,6 +1,16 @@
 "use client";
 
-import { Check, Copy, IdCard, MapPin, Phone } from "lucide-react";
+import {
+  CalendarCheck,
+  Check,
+  Copy,
+  ExternalLink,
+  IdCard,
+  Info,
+  MapPin,
+  Phone,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import type { StepProps } from "./citizen-app";
 import { SaveLinkActions } from "./save-link";
@@ -36,6 +46,20 @@ export function DoneStep({ data, m }: StepProps) {
         )}
       </div>
 
+      {data.office?.bookingUrl && (
+        <div className="grid gap-2">
+          <Button asChild size="lg">
+            {/* An external site chosen by the CAF: no referrer, no access to this page. */}
+            <a href={data.office.bookingUrl} target="_blank" rel="noopener noreferrer">
+              <CalendarCheck className="size-5" aria-hidden />
+              {m.done.book}
+              <ExternalLink className="size-4 opacity-70" aria-hidden />
+            </a>
+          </Button>
+          <p className="text-center text-sm text-ink-3">{m.done.bookHint}</p>
+        </div>
+      )}
+
       <dl className="rounded-lg bg-surface p-5 ring-1 ring-line">
         <dt className="text-sm text-ink-3">{m.done.reference}</dt>
         <dd
@@ -53,6 +77,17 @@ export function DoneStep({ data, m }: StepProps) {
           <IdCard className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
           <span>{m.done.bring}</span>
         </li>
+        {data.office?.citizenNote && (
+          <li className="flex gap-3">
+            <Info className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
+            <span>
+              <span className="block text-sm text-ink-3">{m.done.officeNote}</span>
+              <span lang="it" dir="ltr" className="block">
+                {data.office.citizenNote}
+              </span>
+            </span>
+          </li>
+        )}
         <li className="grid gap-3">
           <span className="flex gap-3">
             <Copy className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
