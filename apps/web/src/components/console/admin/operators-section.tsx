@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
+import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { timeAgo } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
@@ -132,29 +135,30 @@ export function OperatorsSection() {
 
   return (
     <section aria-labelledby="operators-title">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="operators-title" className="font-display text-xl font-semibold">
-            Operatori
-          </h2>
-          <p className="mt-1 text-ink-2">Chi può accedere alla console di questo CAF.</p>
-        </div>
-        <Button onClick={() => setAdding(true)}>
-          <UserPlus className="size-4" aria-hidden />
-          Aggiungi operatore
-        </Button>
-      </div>
+      <SectionHeader
+        id="operators-title"
+        title="Operatori"
+        lead="Chi può accedere alla console di questo CAF."
+        actions={
+          <Button onClick={() => setAdding(true)}>
+            <UserPlus className="size-4" aria-hidden />
+            Aggiungi operatore
+          </Button>
+        }
+      />
 
       {error && (
-        <p role="alert" className="mt-4 rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+        <Notice tone="danger" className="mt-4">
           {error}
-        </p>
+        </Notice>
       )}
 
       {list.status === "error" && !list.data ? (
-        <p className="mt-4 text-danger">Elenco non disponibile: {list.error.message}</p>
+        <Notice tone="danger" className="mt-4">
+          Elenco non disponibile: {list.error.message}
+        </Notice>
       ) : !list.data ? (
-        <div className="mt-4 h-32 animate-pulse rounded-lg bg-sunk" aria-hidden />
+        <Skeleton className="mt-4 h-32 rounded-lg" />
       ) : (
         <ul className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
           {list.data.map((operator) => {
@@ -258,11 +262,7 @@ export function OperatorsSection() {
               <span className="font-semibold text-ink">{confirming.operator.name}</span>{" "}
               {RISKY[confirming.kind].effect}
             </p>
-            {confirmError && (
-              <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-                {confirmError}
-              </p>
-            )}
+            {confirmError && <Notice tone="danger">{confirmError}</Notice>}
             <div className="flex flex-wrap gap-3">
               <Button
                 variant={RISKY[confirming.kind].danger ? "danger" : "primary"}
@@ -400,11 +400,7 @@ function AddOperatorForm({
           ))}
         </div>
       </fieldset>
-      {formError && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {formError}
-        </p>
-      )}
+      {formError && <Notice tone="danger">{formError}</Notice>}
       <Button type="submit" loading={pending}>
         Crea operatore
       </Button>

@@ -13,8 +13,10 @@ import type {
 } from "@avanti/contracts";
 import { LANGUAGES } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { LANGUAGE_IT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
@@ -225,29 +227,28 @@ function ReuseForm({
           {members.map((member, index) => (
             <li key={member.key} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
               {member.id ? (
-                <label className="flex flex-1 cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={member.keep}
-                    disabled={member.role === "richiedente"}
-                    onChange={(e) =>
-                      setMembers((list) =>
-                        list.map((m, i) => (i === index ? { ...m, keep: e.target.checked } : m)),
-                      )
-                    }
-                    className="size-4.5 accent-stamp"
-                  />
-                  <span>
-                    <span className="font-semibold">
-                      {member.firstName} {member.lastName}
-                    </span>
-                    <span className="text-sm text-ink-3">
-                      {" "}
-                      · {member.role === "richiedente" ? "richiedente" : member.role}
-                      {member.birthYear ? `, ${member.birthYear}` : ""}
-                    </span>
-                  </span>
-                </label>
+                <Checkbox
+                  className="flex-1"
+                  checked={member.keep}
+                  disabled={member.role === "richiedente"}
+                  onChange={(e) =>
+                    setMembers((list) =>
+                      list.map((m, i) => (i === index ? { ...m, keep: e.target.checked } : m)),
+                    )
+                  }
+                  label={
+                    <>
+                      <span className="font-semibold">
+                        {member.firstName} {member.lastName}
+                      </span>
+                      <span className="text-sm text-ink-3">
+                        {" "}
+                        · {member.role === "richiedente" ? "richiedente" : member.role}
+                        {member.birthYear ? `, ${member.birthYear}` : ""}
+                      </span>
+                    </>
+                  }
+                />
               ) : (
                 <div className="grid flex-1 gap-2 sm:grid-cols-[10rem_1fr_6rem]">
                   <Select
@@ -340,40 +341,36 @@ function ReuseForm({
           <ul className="max-h-64 divide-y divide-line overflow-y-auto rounded-md ring-1 ring-line">
             {eligible.map((doc) => (
               <li key={doc.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5">
-                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={doc.reuse}
+                <Checkbox
+                  className="min-w-0 flex-1"
+                  checked={doc.reuse}
+                  onChange={(e) =>
+                    setDocuments((list) =>
+                      list.map((d) => (d.id === doc.id ? { ...d, reuse: e.target.checked } : d)),
+                    )
+                  }
+                  label={
+                    <span className="block truncate">
+                      {doc.label}
+                      {doc.ownerName && (
+                        <span className="text-sm text-ink-3"> · {doc.ownerName}</span>
+                      )}
+                    </span>
+                  }
+                />
+                {!doc.applicant && doc.reuse && (
+                  <Checkbox
+                    className="text-sm text-ink-2"
+                    checked={doc.visible}
                     onChange={(e) =>
                       setDocuments((list) =>
-                        list.map((d) => (d.id === doc.id ? { ...d, reuse: e.target.checked } : d)),
+                        list.map((d) =>
+                          d.id === doc.id ? { ...d, visible: e.target.checked } : d,
+                        ),
                       )
                     }
-                    className="size-4.5 accent-stamp"
+                    label="Visibile al cittadino"
                   />
-                  <span className="min-w-0 truncate">
-                    {doc.label}
-                    {doc.ownerName && (
-                      <span className="text-sm text-ink-3"> · {doc.ownerName}</span>
-                    )}
-                  </span>
-                </label>
-                {!doc.applicant && doc.reuse && (
-                  <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-2">
-                    <input
-                      type="checkbox"
-                      checked={doc.visible}
-                      onChange={(e) =>
-                        setDocuments((list) =>
-                          list.map((d) =>
-                            d.id === doc.id ? { ...d, visible: e.target.checked } : d,
-                          ),
-                        )
-                      }
-                      className="size-4 accent-stamp"
-                    />
-                    Visibile al cittadino
-                  </label>
                 )}
               </li>
             ))}
@@ -381,27 +378,15 @@ function ReuseForm({
         </fieldset>
       )}
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-md bg-paper p-3">
-        <input
-          type="checkbox"
-          checked={confirmed}
-          onChange={(e) => setConfirmed(e.target.checked)}
-          className="mt-0.5 size-4.5 shrink-0 accent-stamp"
-        />
-        <span>
-          Ho verificato con il cittadino che il nucleo è aggiornato
-          <span className="block text-sm text-ink-3">
-            Le pratiche collegate restano della stessa famiglia anche per le cancellazioni su
-            richiesta.
-          </span>
-        </span>
-      </label>
+      <Checkbox
+        className="rounded-md bg-paper p-3"
+        checked={confirmed}
+        onChange={(e) => setConfirmed(e.target.checked)}
+        label="Ho verificato con il cittadino che il nucleo è aggiornato"
+        hint="Le pratiche collegate restano della stessa famiglia anche per le cancellazioni su richiesta."
+      />
 
-      {error && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {error}
-        </p>
-      )}
+      {error && <Notice tone="danger">{error}</Notice>}
       <Button type="submit" size="lg" loading={pending}>
         Crea la nuova pratica
       </Button>

@@ -6,7 +6,9 @@ import { useState, type FormEvent } from "react";
 import type { PilotLeadRequest } from "@avanti/contracts";
 import { isEmail, text } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
 type Errors = Partial<Record<string, string>>;
@@ -152,7 +154,7 @@ export function PilotForm() {
       </Field>
 
       {/* Honeypot for bots: hidden from people and assistive tech. */}
-      <div aria-hidden className="absolute -left-[9999px] h-0 overflow-hidden">
+      <div aria-hidden className="absolute -start-[9999px] h-0 overflow-hidden">
         <label>
           Sito web
           <input name="website" tabIndex={-1} autoComplete="off" />
@@ -160,22 +162,24 @@ export function PilotForm() {
       </div>
 
       <div className="grid gap-1.5">
-        <label className="flex items-start gap-3 text-sm text-ink-2">
-          <input
-            type="checkbox"
-            name="privacyAccepted"
-            aria-invalid={errors.privacyAccepted ? true : undefined}
-            aria-describedby={errors.privacyAccepted ? "privacy-error" : undefined}
-            className="mt-0.5 size-5 shrink-0 accent-stamp"
-          />
-          <span>
-            Acconsento a essere ricontattato per il programma pilota, come descritto nell&apos;
-            <Link href="/privacy" className="font-semibold text-stamp underline underline-offset-2">
-              informativa privacy
-            </Link>
-            .
-          </span>
-        </label>
+        <Checkbox
+          name="privacyAccepted"
+          aria-invalid={errors.privacyAccepted ? true : undefined}
+          aria-describedby={errors.privacyAccepted ? "privacy-error" : undefined}
+          className="text-sm text-ink-2"
+          label={
+            <>
+              Acconsento a essere ricontattato per il programma pilota, come descritto nell&apos;
+              <Link
+                href="/privacy"
+                className="font-semibold text-stamp underline underline-offset-2"
+              >
+                informativa privacy
+              </Link>
+              .
+            </>
+          }
+        />
         {errors.privacyAccepted && (
           <p id="privacy-error" role="alert" className="text-sm font-medium text-danger">
             {errors.privacyAccepted}
@@ -183,11 +187,7 @@ export function PilotForm() {
         )}
       </div>
 
-      {formError && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {formError}
-        </p>
-      )}
+      {formError && <Notice tone="danger">{formError}</Notice>}
 
       <div className="flex flex-wrap items-center gap-4">
         <Button type="submit" size="lg" loading={status === "sending"}>

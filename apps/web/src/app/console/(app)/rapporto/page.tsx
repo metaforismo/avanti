@@ -8,7 +8,10 @@ import { Suspense, useMemo, useState, type KeyboardEvent, type ReactNode } from 
 import type { PilotCount, PilotReport, PilotReportGroup, PilotThreshold } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
+import { Notice } from "@/components/ui/notice";
+import { PageContainer, PageHeader, SectionHeader } from "@/components/ui/page-header";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime, formatMinutes, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
@@ -111,10 +114,10 @@ export default function PilotReportPage() {
   const operator = useOperator();
   if (operator.role !== "admin") {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
+      <PageContainer width="3xl" className="py-16 text-center lg:py-16">
         <h1 className="font-display text-2xl font-semibold">Rapporto riservato</h1>
         <p className="mt-2 text-ink-2">Il rapporto del pilota lo prepara un amministratore.</p>
-      </div>
+      </PageContainer>
     );
   }
   return (
@@ -171,19 +174,17 @@ function ReportView() {
   const downloadable = validApplied && !draft;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="max-w-2xl">
-          <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">
-            Rapporto del pilota
-          </h1>
-          <p className="mt-1 text-ink-2">
+    <PageContainer width="6xl">
+      <PageHeader
+        title="Rapporto del pilota"
+        lead={
+          <>
             Numeri aggregati da condividere con chi decide. Nessun dato dei cittadini: i gruppi con
             meno di 5 pratiche compaiono come «&lt;5».
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {downloadable ? (
+          </>
+        }
+        actions={
+          downloadable ? (
             <>
               <Button variant="secondary" asChild>
                 <a href={`/api/reports/pilot?${query}&format=pdf`} download>
@@ -209,35 +210,26 @@ function ReportView() {
                 Scarica CSV
               </Button>
             </>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       <form
         className="mt-6 flex flex-wrap items-end gap-3 rounded-lg bg-surface p-4 ring-1 ring-line"
         onSubmit={(e) => e.preventDefault()}
       >
-        <div role="group" aria-label="Periodi frequenti" className="flex rounded-sm bg-sunk p-0.5">
-          {choices.map((choice) => (
-            <button
-              key={choice.key}
-              type="button"
-              aria-pressed={active === choice.key}
-              onClick={() => {
-                setDraft(null);
-                apply({ dal: choice.from, al: choice.to });
-              }}
-              className={cn(
-                "h-9 rounded-[5px] px-3 text-sm transition-colors",
-                active === choice.key
-                  ? "bg-surface font-semibold shadow-raised"
-                  : "text-ink-2 hover:text-ink",
-              )}
-            >
-              {choice.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Periodi frequenti"
+          size="md"
+          value={active ?? ""}
+          options={choices.map((choice) => ({ value: choice.key, label: choice.label }))}
+          onChange={(key) => {
+            const choice = choices.find((c) => c.key === key);
+            if (!choice) return;
+            setDraft(null);
+            apply({ dal: choice.from, al: choice.to });
+          }}
+        />
         <label className="grid gap-1 text-sm">
           <span className="text-ink-2">Dal</span>
           <Input
@@ -286,9 +278,9 @@ function ReportView() {
         )}
       </form>
       {draft && invalid && (
-        <p id="period-error" role="alert" className="mt-2 text-sm text-danger">
+        <Notice tone="danger" id="period-error" className="mt-2">
           {invalid}
-        </p>
+        </Notice>
       )}
       <p className="mt-2 text-sm text-ink-3">
         «—» indica un dato non ancora misurabile o nascosto perché, insieme agli altri, renderebbe
@@ -296,16 +288,26 @@ function ReportView() {
       </p>
 
       {report.status === "error" && !data ? (
-        <div role="alert" className="mt-8 rounded-lg bg-danger-wash p-6 text-danger">
-          <p className="font-semibold">Rapporto non disponibile.</p>
-          <p className="mt-1 text-sm">{report.error.message}</p>
-          <Button variant="secondary" className="mt-4" onClick={() => void report.reload()}>
-            Riprova
-          </Button>
-        </div>
+        <Notice
+          tone="danger"
+          size="page"
+          className="mt-8"
+          title="Rapporto non disponibile."
+          action={
+            <Button variant="secondary" onClick={() => void report.reload()}>
+              Riprova
+            </Button>
+          }
+        >
+          {report.error.message}
+        </Notice>
       ) : !data ? (
-        <div className="grid min-h-80 place-items-center text-ink-3">
-          <Spinner label="Preparazione del rapporto" />
+        <div className="mt-8 grid gap-10">
+          <p role="status" className="sr-only">
+            Preparazione del rapporto
+          </p>
+          <Skeleton className="h-56 rounded-lg" />
+          <Skeleton className="h-48 rounded-lg" />
         </div>
       ) : (
         <div
@@ -318,9 +320,9 @@ function ReportView() {
               : `Rapporto dal ${longDay(data.period.from)} al ${longDay(data.period.to)}.`}
           </p>
           {report.status === "error" && (
-            <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+            <Notice tone="danger">
               {report.error.message} Sotto resta il rapporto precedente.
-            </p>
+            </Notice>
           )}
           <Thresholds group={data.total} />
           <Totals group={data.total} report={data} />
@@ -363,20 +365,18 @@ function ReportView() {
           </p>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 
 function Thresholds({ group }: { group: PilotReportGroup }) {
   return (
     <section aria-labelledby="thresholds-title">
-      <h2 id="thresholds-title" className="font-display text-xl font-semibold">
-        Le tre soglie del pilota
-      </h2>
-      <p className="mt-1 max-w-2xl text-sm text-ink-2">
-        Decise prima di iniziare: dicono se ha senso proseguire. Con meno di 50 pratiche o con il
-        periodo ancora aperto, il rapporto non dà un esito.
-      </p>
+      <SectionHeader
+        id="thresholds-title"
+        title="Le tre soglie del pilota"
+        lead="Decise prima di iniziare: dicono se ha senso proseguire. Con meno di 50 pratiche o con il periodo ancora aperto, il rapporto non dà un esito."
+      />
       <ul className="mt-4 grid gap-4 md:grid-cols-3">
         {group.thresholds.map((threshold) => {
           const outcome = OUTCOME[threshold.outcome];
@@ -413,9 +413,7 @@ function Totals({ group, report }: { group: PilotReportGroup; report: PilotRepor
   const baseline = report.baseline.manualMinutesPerCase;
   return (
     <section aria-labelledby="totals-title">
-      <h2 id="totals-title" className="font-display text-xl font-semibold">
-        Cosa è successo nel periodo
-      </h2>
+      <SectionHeader id="totals-title" title="Cosa è successo nel periodo" />
       <dl className="mt-4 grid gap-px overflow-hidden rounded-lg bg-line ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="Pratiche avviate" value={count(group.starts)} />
         <Tile
@@ -473,12 +471,10 @@ function Totals({ group, report }: { group: PilotReportGroup; report: PilotRepor
 function Offices({ offices }: { offices: PilotReportGroup[] }) {
   return (
     <section aria-labelledby="offices-title">
-      <h2 id="offices-title" className="font-display text-xl font-semibold">
-        Per sportello
-      </h2>
+      <SectionHeader id="offices-title" title="Per sportello" />
       <div className="mt-4 overflow-x-auto rounded-lg bg-surface ring-1 ring-line">
         <table className="w-full text-sm">
-          <thead className="text-start text-ink-2">
+          <thead className="text-ink-2">
             <tr className="border-b border-line">
               <th scope="col" className="px-4 py-3 text-start font-medium">
                 Sportello

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import type { MfaRecoveryCodesResponse, MfaSetupResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Field, PasswordInput } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { QrCode } from "@/components/ui/qr-code";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { CodeField, codeError, normalizeCode } from "./code-field";
@@ -93,12 +94,9 @@ export function MfaSetupFlow({
   }
 
   const alert = formError && (
-    <p
-      role="alert"
-      className="animate-fade-in rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
-    >
+    <Notice tone="danger" className="animate-fade-in">
       {formError}
-    </p>
+    </Notice>
   );
 
   if (step.name === "password") {

@@ -4,7 +4,10 @@ import { AlertTriangle, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import type { AiUsageResponse, SystemStatus } from "@avanti/contracts";
+import { Notice } from "@/components/ui/notice";
+import { PageContainer, PageHeader, SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
@@ -45,12 +48,12 @@ export default function AiPage() {
   const operator = useOperator();
   if (operator.role !== "admin") {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
+      <PageContainer width="3xl" className="py-16 text-center lg:py-16">
         <h1 className="font-display text-2xl font-semibold">Pagina riservata</h1>
         <p className="mt-2 text-ink-2">
           L&apos;uso dell&apos;intelligenza artificiale lo vede un amministratore.
         </p>
-      </div>
+      </PageContainer>
     );
   }
   return <AiView />;
@@ -85,18 +88,18 @@ function AiView() {
     usage.data && usage.data.budgetEur > 0 ? usage.data.usedEur / usage.data.budgetEur : 0;
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-10 px-4 py-6 sm:px-6 lg:py-8">
-      <div>
-        <h1 className="flex items-center gap-2 font-display text-3xl font-bold tracking-[-0.025em]">
-          <Sparkles className="size-7 text-stamp" aria-hidden />
-          Intelligenza artificiale
-        </h1>
-        <p className="mt-1 max-w-2xl text-ink-2">
-          Cosa fa l&apos;AI in Avanti, con quale fornitore, quanto costa questo mese. Ogni funzione
-          ha un percorso senza AI: se il fornitore non risponde o il budget finisce, Avanti continua
-          con le regole.
-        </p>
-      </div>
+    <PageContainer width="5xl" className="grid gap-10">
+      <PageHeader
+        icon={<Sparkles className="size-7 text-stamp" aria-hidden />}
+        title="Intelligenza artificiale"
+        lead={
+          <>
+            Cosa fa l&apos;AI in Avanti, con quale fornitore, quanto costa questo mese. Ogni
+            funzione ha un percorso senza AI: se il fornitore non risponde o il budget finisce,
+            Avanti continua con le regole.
+          </>
+        }
+      />
 
       <section aria-labelledby="provider-title" className="grid gap-4 sm:grid-cols-2">
         <h2 id="provider-title" className="sr-only">
@@ -162,13 +165,13 @@ function AiView() {
       </section>
 
       <section aria-labelledby="budget-title">
-        <h2 id="budget-title" className="font-display text-xl font-semibold">
-          Questo mese
-        </h2>
+        <SectionHeader id="budget-title" title="Questo mese" />
         {usage.status === "error" && !usage.data ? (
-          <p className="mt-3 text-danger">Consumi non disponibili: {usage.error.message}</p>
+          <Notice tone="danger" className="mt-3">
+            Consumi non disponibili: {usage.error.message}
+          </Notice>
         ) : !usage.data || !totals ? (
-          <div className="mt-3 h-32 animate-pulse rounded-lg bg-sunk" aria-hidden />
+          <Skeleton className="mt-3 h-32 rounded-lg" />
         ) : (
           <>
             <div className="mt-3 rounded-lg bg-surface p-5 ring-1 ring-line">
@@ -223,9 +226,7 @@ function AiView() {
 
       {byTask.length > 0 && (
         <section aria-labelledby="tasks-title">
-          <h2 id="tasks-title" className="font-display text-xl font-semibold">
-            Per funzione
-          </h2>
+          <SectionHeader id="tasks-title" title="Per funzione" />
           <div className="mt-3 overflow-x-auto rounded-lg bg-surface ring-1 ring-line">
             <table className="w-full text-sm">
               <thead className="text-ink-2">
@@ -272,6 +273,6 @@ function AiView() {
           </p>
         </section>
       )}
-    </div>
+    </PageContainer>
   );
 }

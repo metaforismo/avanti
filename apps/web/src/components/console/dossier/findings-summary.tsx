@@ -1,5 +1,6 @@
-import { AlertOctagon, AlertTriangle, CheckCircle2, FileQuestion } from "lucide-react";
+import { AlertOctagon, AlertTriangle, FileQuestion } from "lucide-react";
 import type { CaseDossier, Finding } from "@avanti/contracts";
+import { Notice } from "@/components/ui/notice";
 import { cn } from "@/lib/cn";
 
 const MISSING_CODE = "checklist.missing";
@@ -15,11 +16,15 @@ export function FindingsSummary({ dossier }: { dossier: CaseDossier }) {
   const warnings = others.filter((f) => f.severity === "warning");
 
   if (missing.length === 0 && blockers.length === 0 && warnings.length === 0) {
+    // Already there when the page opens: announcing it would only be noise.
     return (
-      <p className="flex items-center gap-3 rounded-lg bg-ok-wash px-5 py-4 font-semibold text-ok">
-        <CheckCircle2 className="size-5 shrink-0" aria-hidden />
-        Nessun problema rilevato. Verifica le voci e segna la pratica come pronta.
-      </p>
+      <Notice
+        tone="ok"
+        size="md"
+        role="none"
+        className="px-5"
+        title="Nessun problema rilevato. Verifica le voci e segna la pratica come pronta."
+      />
     );
   }
 
@@ -55,7 +60,7 @@ export function FindingsSummary({ dossier }: { dossier: CaseDossier }) {
                   : `Mancano ${missing.length} documenti obbligatori`}
               </p>
               {/* Grouped by person: "what is Giulia still missing?" is the operator's question. */}
-              <dl className="mt-2 grid gap-2 text-[0.9375rem]">
+              <dl className="mt-2 grid gap-2 text-body-sm">
                 {groupByMember(missing, dossier.household).map(([member, items]) => (
                   <div key={member ?? ""}>
                     <dt className="text-sm font-semibold text-ink-2">
@@ -132,7 +137,7 @@ function FindingGroup({ findings }: { findings: Finding[] }) {
           <span className="flex-1">{title}</span>
           <span className="text-sm text-ink-3 group-open:hidden">Mostra</span>
         </summary>
-        <ul className="grid gap-1 px-5 ps-12 pb-3 text-[0.9375rem] text-ink-2">
+        <ul className="grid gap-1 px-5 ps-12 pb-3 text-body-sm text-ink-2">
           {findings.map((finding) => (
             <li key={finding.id}>
               {finding.checklistItemId ? (

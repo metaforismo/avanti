@@ -5,6 +5,7 @@ import { Dialog as Primitive } from "radix-ui";
 import { useEffect, useState, type FormEvent } from "react";
 import type { CaseDossier, ChecklistItem, DocumentSummary } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
 import { PdfPreview } from "./pdf-preview";
 import { CHECKLIST_STATUS, formatDateTime } from "@/lib/console/labels";
@@ -201,7 +202,7 @@ export function DocumentViewer({
                           {Math.round(analysis.confidence * 100)}%
                         </span>
                       </p>
-                      <dl className="mt-4 grid gap-3 text-[0.9375rem]">
+                      <dl className="mt-4 grid gap-3 text-body-sm">
                         <Row
                           label="Abbinato a"
                           value={
@@ -244,16 +245,13 @@ export function DocumentViewer({
                           {analysis.findings
                             .filter((f) => f.severity !== "ok")
                             .map((finding) => (
-                              <li
-                                key={finding.id}
-                                className={cn(
-                                  "rounded-sm px-3 py-2 text-sm",
-                                  finding.severity === "blocker"
-                                    ? "bg-danger-wash text-danger"
-                                    : "bg-warn-wash text-warn",
-                                )}
-                              >
-                                {finding.message}
+                              <li key={finding.id}>
+                                <Notice
+                                  tone={finding.severity === "blocker" ? "danger" : "warn"}
+                                  role="none"
+                                >
+                                  {finding.message}
+                                </Notice>
                               </li>
                             ))}
                         </ul>

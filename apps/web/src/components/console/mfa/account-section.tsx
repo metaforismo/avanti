@@ -5,6 +5,7 @@ import { useRef, useState, type FormEvent } from "react";
 import type { MfaRecoveryCodesResponse, MfaStatus } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Field, PasswordInput } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useReloadOperator } from "@/lib/console/operator-context";
@@ -51,14 +52,12 @@ export function MfaAccountSection() {
         qualcuno scopre la password, senza il telefono non entra nei fascicoli delle famiglie.
       </p>
       {notice && (
-        <p role="status" className="mb-5 rounded-md bg-ok-wash px-4 py-3 text-ok">
+        <Notice tone="ok" className="mb-5">
           {notice}
-        </p>
+        </Notice>
       )}
       {status.status === "error" && !status.data ? (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {status.error.message}
-        </p>
+        <Notice tone="danger">{status.error.message}</Notice>
       ) : !status.data ? (
         <Spinner label="Caricamento" />
       ) : typeof mode === "object" ? (
@@ -230,11 +229,7 @@ function SensitiveForm({
       >
         {kind === "totp" ? "Usa un codice di recupero" : "Usa il codice dell'app"}
       </button>
-      {formError && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {formError}
-        </p>
-      )}
+      {formError && <Notice tone="danger">{formError}</Notice>}
       <div className="flex flex-wrap gap-3">
         <Button type="submit" variant={mode === "disable" ? "danger" : "primary"} loading={pending}>
           {mode === "disable" ? "Disattiva" : "Crea nuovi codici"}

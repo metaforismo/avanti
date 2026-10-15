@@ -4,7 +4,13 @@ import { Check, Copy } from "lucide-react";
 import { useId, useState } from "react";
 import { Button, type ButtonProps } from "./button";
 
-type Labels = { copy: string; copied: string; failed: string };
+type Labels = {
+  copy: string;
+  copied: string;
+  failed: string;
+  /** What a screen reader hears after copying, when the visible "copied" is too terse. */
+  announce?: string;
+};
 
 const ITALIAN: Labels = {
   copy: "Copia link",
@@ -20,11 +26,14 @@ export function CopyButton({
   value,
   labels = ITALIAN,
   showValueOnFailure = true,
+  iconOnly = false,
   ...props
 }: Omit<ButtonProps, "onClick" | "value"> & {
   value: string;
   labels?: Labels;
   showValueOnFailure?: boolean;
+  /** Just the icon, named by `labels.copy`: for values in tables and dense rows. */
+  iconOnly?: boolean;
 }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const fallbackId = useId();
@@ -46,7 +55,9 @@ export function CopyButton({
     <span className="inline-grid gap-2">
       <Button
         type="button"
-        variant="secondary"
+        variant={iconOnly ? "ghost" : "secondary"}
+        size={iconOnly ? "icon-sm" : undefined}
+        aria-label={iconOnly ? labels.copy : undefined}
         disabled={!value}
         onClick={() => void copy()}
         {...props}
@@ -56,10 +67,14 @@ export function CopyButton({
         ) : (
           <Copy className="size-4" aria-hidden />
         )}
-        {state === "copied" ? labels.copied : labels.copy}
+        {!iconOnly && (state === "copied" ? labels.copied : labels.copy)}
       </Button>
       <span role="status" className="sr-only">
-        {state === "copied" ? labels.copied : ""}
+        {state === "copied"
+          ? (labels.announce ?? labels.copied)
+          : state === "failed" && !showValueOnFailure
+            ? labels.failed
+            : ""}
       </span>
       {state === "failed" && showValueOnFailure && (
         <span className="grid gap-1">

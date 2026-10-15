@@ -33,7 +33,7 @@ export function FullscreenQr({
             <Primitive.Description className="text-lg text-ink-2">{caption}</Primitive.Description>
           </div>
           <Primitive.Close asChild>
-            <Button variant="secondary" className="fixed top-4 right-4" aria-label="Chiudi">
+            <Button variant="secondary" className="fixed end-4 top-4" aria-label="Chiudi">
               <X className="size-4" aria-hidden />
               Chiudi
             </Button>

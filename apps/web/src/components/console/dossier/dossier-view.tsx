@@ -17,6 +17,8 @@ import type {
 } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { Notice } from "@/components/ui/notice";
+import { PageContainer } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, ApiRequestError } from "@/lib/api";
@@ -227,7 +229,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   const setStatus = (next: CaseStatus) => actions.update({ status: next });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+    <PageContainer width="7xl">
       <Link
         href="/console"
         className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
@@ -348,9 +350,9 @@ export function DossierView({ caseId }: { caseId: string }) {
       </header>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-md bg-danger-wash px-4 py-3 text-danger">
+        <Notice tone="danger" size="md" className="mt-4">
           {error}
-        </p>
+        </Notice>
       )}
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -488,7 +490,7 @@ export function DossierView({ caseId }: { caseId: string }) {
         }}
         onConflict={() => void dossier.reload()}
       />
-    </div>
+    </PageContainer>
   );
 }
 
@@ -496,7 +498,7 @@ function MenuItem({ children, onSelect }: { children: React.ReactNode; onSelect:
   return (
     <DropdownMenu.Item
       onSelect={onSelect}
-      className="flex h-10 cursor-pointer items-center rounded-sm px-3 text-[0.9375rem] outline-none data-[highlighted]:bg-sunk"
+      className="flex h-10 cursor-pointer items-center rounded-sm px-3 text-body-sm outline-none data-[highlighted]:bg-sunk"
     >
       {children}
     </DropdownMenu.Item>
@@ -517,7 +519,7 @@ function MenuLink({
       <a
         href={href}
         download
-        className="flex h-10 cursor-pointer items-center gap-2.5 rounded-sm px-3 text-[0.9375rem] outline-none data-[highlighted]:bg-sunk"
+        className="flex h-10 cursor-pointer items-center gap-2.5 rounded-sm px-3 text-body-sm outline-none data-[highlighted]:bg-sunk"
       >
         <Icon className="size-4 text-ink-3" aria-hidden />
         {children}

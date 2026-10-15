@@ -4,6 +4,7 @@ import { Check, FileText, Image as ImageIcon, RotateCcw, X } from "lucide-react"
 import { useState, type FormEvent } from "react";
 import type { CaseDossier, ChecklistItem, DocumentReuseAssessment } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { CHECKLIST_STATUS } from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
@@ -31,14 +32,15 @@ export function ChecklistSection({
 
   return (
     <section aria-labelledby="checklist-title">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="checklist-title" className="font-display text-xl font-semibold">
-          Documenti
-        </h2>
-        <p className="tabular text-sm text-ink-3">
-          {verified} di {dossier.checklist.length} verificati
-        </p>
-      </div>
+      <SectionHeader
+        id="checklist-title"
+        title="Documenti"
+        actions={
+          <p className="tabular text-sm text-ink-3">
+            {verified} di {dossier.checklist.length} verificati
+          </p>
+        }
+      />
       {readOnly && dossier.status === "intake" && (
         <p className="mt-2 text-sm text-ink-3">
           Il cittadino sta ancora compilando: potrai verificare dopo l&apos;invio.

@@ -5,7 +5,11 @@ import { useRef, useState, type FormEvent } from "react";
 import type { QuickReply } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
+import { SectionHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useResource } from "@/lib/console/use-resource";
 
@@ -71,44 +75,47 @@ export function QuickRepliesSection() {
 
   return (
     <section aria-labelledby="replies-title">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="max-w-2xl">
-          <h2 id="replies-title" className="font-display text-xl font-semibold">
-            Risposte rapide
-          </h2>
-          <p className="mt-1 text-ink-2">
+      <SectionHeader
+        id="replies-title"
+        title="Risposte rapide"
+        lead={
+          <>
             Le frasi che gli operatori scrivono più spesso quando chiedono un&apos;integrazione:
             compaiono come pulsanti sopra il messaggio. Il cittadino le riceve tradotte.
-          </p>
-        </div>
-        <Button
-          ref={addButton}
-          onClick={() => {
-            setDialogError(null);
-            setEditing("new");
-          }}
-          disabled={replies.length >= MAX_REPLIES || !list.data}
-        >
-          <Plus className="size-4" aria-hidden />
-          Aggiungi
-        </Button>
-      </div>
+          </>
+        }
+        actions={
+          <Button
+            ref={addButton}
+            onClick={() => {
+              setDialogError(null);
+              setEditing("new");
+            }}
+            disabled={replies.length >= MAX_REPLIES || !list.data}
+          >
+            <Plus className="size-4" aria-hidden />
+            Aggiungi
+          </Button>
+        }
+      />
 
       {error && (
-        <p role="alert" className="mt-4 rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+        <Notice tone="danger" className="mt-4">
           {error}
-        </p>
+        </Notice>
       )}
 
       {list.status === "error" && !list.data ? (
-        <p className="mt-4 text-danger">Risposte non disponibili: {list.error.message}</p>
+        <Notice tone="danger" className="mt-4">
+          Risposte non disponibili: {list.error.message}
+        </Notice>
       ) : !list.data ? (
-        <div className="mt-4 h-32 animate-pulse rounded-lg bg-sunk" aria-hidden />
+        <Skeleton className="mt-4 h-32 rounded-lg" />
       ) : replies.length === 0 ? (
-        <p className="mt-4 rounded-lg bg-surface p-5 text-ink-2 ring-1 ring-line">
-          Nessuna risposta rapida. Aggiungi le richieste che fate più spesso, per esempio «Foto
-          illeggibile» o «Manca la pagina con la firma».
-        </p>
+        <EmptyState title="Nessuna risposta rapida." className="mt-4 py-10">
+          Aggiungi le richieste che fate più spesso, per esempio «Foto illeggibile» o «Manca la
+          pagina con la firma».
+        </EmptyState>
       ) : (
         <ol className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
           {replies.map((reply, index) => (
@@ -216,12 +223,9 @@ export function QuickRepliesSection() {
         {removing && (
           <div className="flex flex-wrap gap-3">
             {dialogError && (
-              <p
-                role="alert"
-                className="w-full rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
-              >
+              <Notice tone="danger" className="w-full">
                 {dialogError}
-              </p>
+              </Notice>
             )}
             <Button
               variant="danger"
@@ -298,12 +302,8 @@ function ReplyForm({
           />
         )}
       </Field>
-      <p className="tabular -mt-3 text-right text-xs text-ink-3">{length}/1000</p>
-      {error && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {error}
-        </p>
-      )}
+      <p className="tabular -mt-3 text-end text-xs text-ink-3">{length}/1000</p>
+      {error && <Notice tone="danger">{error}</Notice>}
       <Button type="submit" loading={saving} className="w-fit">
         Salva
       </Button>

@@ -22,6 +22,8 @@ import type { Route } from "next";
 import type { LoginResponse, Operator } from "@avanti/contracts";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
+import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { OperatorProvider } from "@/lib/console/operator-context";
@@ -138,13 +140,19 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         {me.status === "loading" ? (
           <Spinner label="Caricamento della console" className="size-6" />
         ) : (
-          <div className="text-center">
-            <p className="text-lg font-semibold text-ink">Console non raggiungibile</p>
-            <p className="mt-1">{me.error?.message}</p>
-            <Button className="mt-5" onClick={() => void me.reload()}>
-              Riprova
-            </Button>
-          </div>
+          <Notice
+            tone="danger"
+            size="page"
+            className="mx-4 max-w-md"
+            title="Console non raggiungibile"
+            action={
+              <Button variant="secondary" onClick={() => void me.reload()}>
+                Riprova
+              </Button>
+            }
+          >
+            {me.error?.message}
+          </Notice>
         )}
       </div>
     );
@@ -179,12 +187,11 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
       <OperatorProvider value={{ operator, reload: me.reload, replace: me.setData }}>
         <main className="mx-auto grid min-h-dvh max-w-md content-center px-4 py-12">
           <Logo />
-          <h1 className="mt-8 font-display text-3xl font-bold tracking-[-0.025em]">
-            Scegli la tua password
-          </h1>
-          <p className="mt-2 mb-6 text-ink-2">
-            Stai usando una password temporanea. Scegline una tua per entrare nella console.
-          </p>
+          <PageHeader
+            className="mt-8 mb-6"
+            title="Scegli la tua password"
+            lead="Stai usando una password temporanea. Scegline una tua per entrare nella console."
+          />
           <PasswordForm submitLabel="Salva ed entra" onChanged={me.setData} />
         </main>
       </OperatorProvider>
@@ -207,7 +214,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     <OperatorProvider value={{ operator, reload: me.reload, replace: me.setData }}>
       <a
         href="#contenuto"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-contrast focus:px-4 focus:py-2 focus:text-on-contrast"
+        className="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-50 focus:rounded-sm focus:bg-contrast focus:px-4 focus:py-2 focus:text-on-contrast"
       >
         Vai al contenuto
       </a>
@@ -260,7 +267,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
                         href={href}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "flex h-10 items-center gap-3 rounded-sm px-3 text-[0.9375rem] transition-colors",
+                          "flex h-10 items-center gap-3 rounded-sm px-3 text-body-sm transition-colors",
                           active
                             ? "bg-stamp-wash font-semibold text-stamp"
                             : "text-ink-2 hover:bg-sunk hover:text-ink",
@@ -356,8 +363,7 @@ function Gate({
       )}
     >
       <Logo />
-      <h1 className="mt-8 font-display text-3xl font-bold tracking-[-0.025em]">{title}</h1>
-      <p className="mt-2 mb-6 text-ink-2">{intro}</p>
+      <PageHeader className="mt-8 mb-6" title={title} lead={intro} />
       {children}
     </main>
   );

@@ -1,6 +1,7 @@
 import type { CaseDossier } from "@avanti/contracts";
+import { SectionHeader } from "@/components/ui/page-header";
 import { formatDateTime } from "@/lib/console/labels";
-import { cn } from "@/lib/cn";
+import { MessageBubble } from "./message-bubble";
 
 export function AnswersSection({ dossier }: { dossier: CaseDossier }) {
   if (dossier.answers.length === 0) return null;
@@ -10,9 +11,7 @@ export function AnswersSection({ dossier }: { dossier: CaseDossier }) {
   }
   return (
     <section aria-labelledby="answers-title">
-      <h2 id="answers-title" className="font-display text-xl font-semibold">
-        Risposte del cittadino
-      </h2>
+      <SectionHeader id="answers-title" title="Risposte del cittadino" />
       <div className="mt-4 grid gap-5">
         {[...sections.entries()].map(([section, answers]) => (
           <div key={section}>
@@ -60,30 +59,14 @@ export function ConversationSection({ dossier }: { dossier: CaseDossier }) {
         </summary>
         <ol className="mt-4 grid gap-3">
           {messages.map((message) => (
-            <li
+            <MessageBubble
               key={message.id}
-              className={cn(
-                "max-w-[85%] rounded-lg px-4 py-3",
-                message.role === "citizen"
-                  ? "justify-self-end bg-stamp-wash"
-                  : "bg-surface ring-1 ring-line",
-              )}
-            >
-              <p className="text-xs font-semibold text-ink-3">
-                {ROLE_LABEL[message.role]}, {formatDateTime(message.createdAt)}
-              </p>
-              <p dir="auto" className="mt-1 break-words whitespace-pre-line">
-                {message.text}
-              </p>
-              {message.originalText && message.originalText !== message.text && (
-                <p className="mt-2 border-t border-line pt-2 text-sm text-ink-3">
-                  Originale:{" "}
-                  <span lang={dossier.language} dir="auto" className="whitespace-pre-line">
-                    {message.originalText}
-                  </span>
-                </p>
-              )}
-            </li>
+              fromCitizen={message.role === "citizen"}
+              meta={`${ROLE_LABEL[message.role]}, ${formatDateTime(message.createdAt)}`}
+              text={message.text}
+              originalText={message.originalText}
+              language={dossier.language}
+            />
           ))}
         </ol>
       </details>
@@ -124,30 +107,22 @@ export function AssistantTurnsSection({ dossier }: { dossier: CaseDossier }) {
         </p>
         <ol className="mt-4 grid gap-3">
           {turns.map((turn) => (
-            <li
+            <MessageBubble
               key={turn.id}
-              className={cn(
-                "max-w-[85%] rounded-lg px-4 py-3",
-                turn.role === "citizen"
-                  ? "justify-self-end bg-stamp-wash"
-                  : "bg-surface ring-1 ring-line",
-              )}
-            >
-              <p className="text-xs font-semibold text-ink-3">
-                {turn.role === "citizen" ? "Cittadino" : "Assistente automatico"},{" "}
-                {formatDateTime(turn.createdAt)}
-                {turn.intent && INTENT_NOTE[turn.intent] && (
-                  <span className="text-warn"> · {INTENT_NOTE[turn.intent]}</span>
-                )}
-              </p>
-              <p
-                dir="auto"
-                lang={dossier.language}
-                className="mt-1 break-words whitespace-pre-line"
-              >
-                {turn.text}
-              </p>
-            </li>
+              fromCitizen={turn.role === "citizen"}
+              meta={
+                <>
+                  {turn.role === "citizen" ? "Cittadino" : "Assistente automatico"},{" "}
+                  {formatDateTime(turn.createdAt)}
+                  {turn.intent && INTENT_NOTE[turn.intent] && (
+                    <span className="text-warn"> · {INTENT_NOTE[turn.intent]}</span>
+                  )}
+                </>
+              }
+              text={turn.text}
+              textLang={dossier.language}
+              language={dossier.language}
+            />
           ))}
         </ol>
       </details>

@@ -52,7 +52,7 @@ export function SiteHeader() {
               <li key={item.href}>
                 <a
                   href={item.href}
-                  className="rounded-sm px-3 py-2 text-[0.9375rem] text-ink-2 transition-colors hover:text-ink"
+                  className="rounded-sm px-3 py-2 text-body-sm text-ink-2 transition-colors hover:text-ink"
                 >
                   {item.label}
                 </a>

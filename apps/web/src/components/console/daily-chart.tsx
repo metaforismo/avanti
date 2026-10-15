@@ -2,6 +2,8 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 import type { Metrics } from "@avanti/contracts";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/cn";
 
 // Validated pair (light surface): passes lightness, chroma, CVD and contrast checks.
@@ -58,45 +60,51 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
       aria-labelledby={titleId}
       className="rounded-lg bg-surface p-5 ring-1 ring-line sm:p-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id={titleId} className="font-display text-xl font-semibold">
-          Pratiche al giorno
-        </h2>
-        <div className="flex items-center gap-4">
-          <ul className="flex gap-4 text-sm text-ink-2" aria-label="Legenda">
-            {SERIES.map((s) => (
-              <li key={s.key} className="flex items-center gap-1.5">
-                <span
-                  aria-hidden
-                  className="h-0.5 w-4 rounded-full"
-                  style={{ background: s.color }}
-                />
-                {s.label}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={() => setAsTable((v) => !v)}
-            className="rounded-sm text-sm font-semibold text-stamp hover:underline"
-          >
-            {asTable ? "Mostra grafico" : "Mostra tabella"}
-          </button>
-        </div>
-      </div>
+      <SectionHeader
+        id={titleId}
+        title="Pratiche al giorno"
+        className="items-center"
+        actions={
+          <div className="flex items-center gap-4">
+            <ul className="flex gap-4 text-sm text-ink-2" aria-label="Legenda">
+              {SERIES.map((s) => (
+                <li key={s.key} className="flex items-center gap-1.5">
+                  <span
+                    aria-hidden
+                    className="h-0.5 w-4 rounded-full"
+                    style={{ background: s.color }}
+                  />
+                  {s.label}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setAsTable((v) => !v)}
+              className="rounded-sm text-sm font-semibold text-stamp hover:underline"
+            >
+              {asTable ? "Mostra grafico" : "Mostra tabella"}
+            </button>
+          </div>
+        }
+      />
 
       {empty ? (
-        <p className="mt-6 rounded-md bg-sunk px-4 py-10 text-center text-ink-3">
-          Nessuna pratica nel periodo.
-        </p>
+        <EmptyState title="Nessuna pratica nel periodo." className="mt-6 py-10" />
       ) : asTable ? (
         <div className="mt-4 max-h-80 overflow-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-surface text-left text-ink-3">
+            <thead className="sticky top-0 bg-surface text-ink-3">
               <tr>
-                <th className="py-2 font-normal">Giorno</th>
-                <th className="py-2 text-end font-normal">Avviate</th>
-                <th className="py-2 text-end font-normal">Inviate</th>
+                <th scope="col" className="py-2 text-start font-normal">
+                  Giorno
+                </th>
+                <th scope="col" className="py-2 text-end font-normal">
+                  Avviate
+                </th>
+                <th scope="col" className="py-2 text-end font-normal">
+                  Inviate
+                </th>
               </tr>
             </thead>
             <tbody className="tabular divide-y divide-line">

@@ -3,7 +3,11 @@
 import { useState, type FormEvent } from "react";
 import type { OrganizationSettings } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Select } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
+import { SectionHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
@@ -23,16 +27,17 @@ export function SettingsSection() {
 
   return (
     <section aria-labelledby="settings-title">
-      <h2 id="settings-title" className="font-display text-xl font-semibold">
-        Parametri
-      </h2>
-      <p className="mt-1 text-ink-2">
-        Valgono per tutto il CAF e per le pratiche create da adesso.
-      </p>
+      <SectionHeader
+        id="settings-title"
+        title="Parametri"
+        lead="Valgono per tutto il CAF e per le pratiche create da adesso."
+      />
       {settings.status === "error" && !settings.data ? (
-        <p className="mt-4 text-danger">Parametri non disponibili: {settings.error.message}</p>
+        <Notice tone="danger" className="mt-4">
+          Parametri non disponibili: {settings.error.message}
+        </Notice>
       ) : !settings.data ? (
-        <div className="mt-4 h-40 animate-pulse rounded-lg bg-sunk" aria-hidden />
+        <Skeleton className="mt-4 h-40 rounded-lg" />
       ) : (
         <SettingsForm initial={settings.data} onSaved={settings.setData} />
       )}
@@ -156,25 +161,29 @@ function SettingsForm({
       </Field>
       <fieldset className="grid gap-3">
         <legend className="mb-2 text-sm font-semibold">Avvisi via email</legend>
-        <Toggle
+        <Checkbox
+          look="card"
           name="notifyCitizenSubmission"
           defaultChecked={initial.notifyCitizenSubmission}
           label="Ricevuta al cittadino quando invia la pratica"
           hint="Va all'email che il cittadino scrive, nella sua lingua: codice della pratica, sportello e cosa succede adesso. Nessun link e nessun dato dei documenti; al massimo due al giorno per indirizzo."
         />
-        <Toggle
+        <Checkbox
+          look="card"
           name="notifyCitizenReady"
           defaultChecked={initial.notifyCitizenReady}
           label="Avvisa il cittadino quando la pratica è pronta"
           hint="Solo se ha lasciato l'email, nella sua lingua: gli dice di prendere appuntamento allo sportello. Le richieste di integrazione gli arrivano sempre."
         />
-        <Toggle
+        <Checkbox
+          look="card"
           name="notifyOperatorDigest"
           defaultChecked={initial.notifyOperatorDigest}
           label="Riepilogo giornaliero agli operatori"
           hint="Quante pratiche aspettano la revisione, senza dati dei cittadini."
         />
-        <Toggle
+        <Checkbox
+          look="card"
           name="notifyCitizenReminders"
           defaultChecked={initial.notifyCitizenReminders}
           label="Ricorda al cittadino l'integrazione richiesta"
@@ -230,13 +239,15 @@ function SettingsForm({
       </Field>
       <fieldset className="grid gap-3">
         <legend className="mb-2 text-sm font-semibold">Intelligenza artificiale</legend>
-        <Toggle
+        <Checkbox
+          look="card"
           name="aiCitizenAssistant"
           defaultChecked={initial.aiCitizenAssistant}
           label="AI per i cittadini"
           hint="Capisce il racconto, guida l'intervista, risponde alle domande e trascrive la voce. Spenta: l'intervista funziona con le domande una alla volta e nulla di ciò che scrive il cittadino va a un fornitore."
         />
-        <Toggle
+        <Checkbox
+          look="card"
           name="aiCopilot"
           defaultChecked={initial.aiCopilot}
           label="Copilota per gli operatori"
@@ -245,7 +256,8 @@ function SettingsForm({
       </fieldset>
       <fieldset className="grid gap-3">
         <legend className="mb-2 text-sm font-semibold">Sicurezza degli accessi</legend>
-        <Toggle
+        <Checkbox
+          look="card"
           name="mfaRequired"
           defaultChecked={initial.mfaRequired}
           disabled={!canRequireMfa}
@@ -257,11 +269,7 @@ function SettingsForm({
           }
         />
       </fieldset>
-      {formError && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {formError}
-        </p>
-      )}
+      {formError && <Notice tone="danger">{formError}</Notice>}
       <div className="flex items-center gap-3">
         <Button type="submit" loading={state === "saving"}>
           Salva parametri
@@ -271,35 +279,5 @@ function SettingsForm({
         </span>
       </div>
     </form>
-  );
-}
-
-function Toggle({
-  name,
-  defaultChecked,
-  label,
-  hint,
-  disabled = false,
-}: {
-  name: string;
-  defaultChecked: boolean;
-  label: string;
-  hint: string;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-md p-3 ring-1 ring-line ring-inset has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp">
-      <input
-        type="checkbox"
-        name={name}
-        defaultChecked={defaultChecked}
-        disabled={disabled}
-        className="mt-0.5 size-4.5 shrink-0 accent-stamp disabled:opacity-50"
-      />
-      <span>
-        <span className="block font-semibold">{label}</span>
-        <span className="block text-sm text-ink-2">{hint}</span>
-      </span>
-    </label>
   );
 }

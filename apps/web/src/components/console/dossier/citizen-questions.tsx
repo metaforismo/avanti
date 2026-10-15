@@ -2,6 +2,7 @@ import { MessageCircleQuestion, Sparkles } from "lucide-react";
 import type { CaseDossier, ChatMessage } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/console/labels";
+import { MessageBubble } from "./message-bubble";
 
 /**
  * What the citizen wrote to the desk after sending the dossier and nobody has answered yet.
@@ -49,20 +50,15 @@ export function CitizenQuestions({
       </h2>
       <ol className="mt-3 grid gap-2">
         {questions.map((question) => (
-          <li key={question.id} className="rounded-md bg-stamp-wash px-4 py-3">
-            <p className="text-xs font-semibold text-ink-3">{formatDateTime(question.createdAt)}</p>
-            <p dir="auto" className="mt-1 break-words whitespace-pre-line">
-              {question.text}
-            </p>
-            {question.originalText && question.originalText !== question.text && (
-              <p className="mt-2 border-t border-stamp/15 pt-2 text-sm text-ink-3">
-                Originale:{" "}
-                <span lang={dossier.language} dir="auto" className="whitespace-pre-line">
-                  {question.originalText}
-                </span>
-              </p>
-            )}
-          </li>
+          <MessageBubble
+            key={question.id}
+            fromCitizen
+            fill
+            meta={formatDateTime(question.createdAt)}
+            text={question.text}
+            originalText={question.originalText}
+            language={dossier.language}
+          />
         ))}
       </ol>
       <div className="mt-4 flex flex-wrap items-center gap-3">
