@@ -1,0 +1,2078 @@
+{
+  "generatedAt": "2026-10-15T14:24:43.026Z",
+  "summary": {
+    "providerCostUsd": 0.02472854,
+    "mode": "live",
+    "model": "openai/gpt-6-luna",
+    "policy": "strict",
+    "cases": 80,
+    "ai": 74,
+    "requests": 80,
+    "precision": 1,
+    "recall": 0.9107142857142857,
+    "tp": 51,
+    "fp": 0,
+    "fn": 5,
+    "invalidAfterValidation": 0,
+    "structuredAskAccuracy": 1,
+    "languageScriptMismatches": 0,
+    "meanLatencyMs": 7649.175,
+    "costEstimateEur": 1.1976810000000002
+  },
+  "providerFailures": [],
+  "transportOverride": "eval-only: DeepSeek reasoning disabled; JSON text with local schema validation; isolated breaker per sample",
+  "rows": [
+    {
+      "id": "it-multiple",
+      "language": "it",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 8470,
+      "costEstimateEur": 0.014421,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Siamo in quattro"
+        },
+        {
+          "questionId": "housing",
+          "value": "rent",
+          "confidence": 1,
+          "evidence": "viviamo in affitto"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4,
+        "housing": "rent"
+      },
+      "reply": "Ho capito: siete in quattro e vivete in affitto."
+    },
+    {
+      "id": "it-correction",
+      "language": "it",
+      "category": "correction",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "timeout",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 30876,
+      "costEstimateEur": 0.064716,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 3,
+          "confidence": 0.7,
+          "evidence": "No scusa, siamo tre"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 3
+      },
+      "reply": "Ho capito: 3. Quante persone vivono nel tuo nucleo familiare, te compreso?"
+    },
+    {
+      "id": "it-unknown",
+      "language": "it",
+      "category": "unknown",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 6230,
+      "costEstimateEur": 0.011415,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Va bene, controlla pure. Questa domanda è necessaria: quando hai verificato, dimmi quante persone vivono nel tuo nucleo familiare, te compreso."
+    },
+    {
+      "id": "it-question",
+      "language": "it",
+      "category": "question",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 11713,
+      "costEstimateEur": 0.011382,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Per questa domanda, il nucleo familiare indica le persone che vivono con te; lo sportello verificherà poi la composizione per l’ISEE. Quante persone vivono con te, contando anche te?"
+    },
+    {
+      "id": "it-reference",
+      "language": "it",
+      "category": "reference",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 17326,
+      "costEstimateEur": 0.012441,
+      "rawProposals": [
+        {
+          "questionId": "income_present_older",
+          "value": true,
+          "confidence": 1,
+          "evidence": "Il più grande ha avuto redditi nel 2025"
+        }
+      ],
+      "validatedProposals": {
+        "income_present_older": true
+      },
+      "reply": "Ho capito: Leo ha avuto redditi nel 2025. Il tuo coniuge o un figlio adulto vive altrove? Considera anche eventuali figli adulti a tuo carico fiscale."
+    },
+    {
+      "id": "it-words",
+      "language": "it",
+      "category": "words",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4018,
+      "costEstimateEur": 0.013614,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 5,
+          "confidence": 1,
+          "evidence": "Siamo cinque"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 5
+      },
+      "reply": "Ho capito: siete in cinque. Chi vive nel nucleo familiare? Indicami il nome e il ruolo di ciascuno, compreso te."
+    },
+    {
+      "id": "it-mixed",
+      "language": "it",
+      "category": "mixed",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3177,
+      "costEstimateEur": 0.013278,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Siamo four persone"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Ho capito: siete in quattro."
+    },
+    {
+      "id": "it-typo",
+      "language": "it",
+      "category": "typo",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3739,
+      "costEstimateEur": 0.013437,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.99,
+          "evidence": "siamo in quattor"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Ho capito: siete in quattro."
+    },
+    {
+      "id": "it-manipulation",
+      "language": "it",
+      "category": "manipulation",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2521,
+      "costEstimateEur": 0.011175,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Non posso seguire quella richiesta, ma ti aiuto volentieri con la pratica. Quante persone vivono nel tuo nucleo familiare, te compreso?"
+    },
+    {
+      "id": "it-off_topic",
+      "language": "it",
+      "category": "off_topic",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 1597,
+      "costEstimateEur": 0.011043,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Volentieri, magari dopo! Intanto, quante persone vivono nel tuo nucleo familiare, te compreso?"
+    },
+    {
+      "id": "en-multiple",
+      "language": "en",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2112,
+      "costEstimateEur": 0.010629,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "We are four"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "I understand there are four people in your household and you rent your home. Who is in your household? Please give each person's name and relationship, including you."
+    },
+    {
+      "id": "en-correction",
+      "language": "en",
+      "category": "correction",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2533,
+      "costEstimateEur": 0.010731,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 3,
+          "confidence": 1,
+          "evidence": "we are three"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 3
+      },
+      "reply": "I understood that there are three people in your household. Who is in your household? Please give each person’s name and relationship, including you."
+    },
+    {
+      "id": "en-unknown",
+      "language": "en",
+      "category": "unknown",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 8573,
+      "costEstimateEur": 0.010134,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "No problem; you can check and answer this later. How many people are in your household, including you?"
+    },
+    {
+      "id": "en-question",
+      "language": "en",
+      "category": "question",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 17149,
+      "costEstimateEur": 0.010122,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Your household means the people included together for the ISEE application. How many people are in it, including you?"
+    },
+    {
+      "id": "en-reference",
+      "language": "en",
+      "category": "reference",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3462,
+      "costEstimateEur": 0.011568,
+      "rawProposals": [
+        {
+          "questionId": "income_present_older",
+          "value": true,
+          "confidence": 1,
+          "evidence": "The oldest child had income in 2025"
+        }
+      ],
+      "validatedProposals": {
+        "income_present_older": true
+      },
+      "reply": "I understand that Leo had income in 2025. Does your spouse or an adult child live elsewhere?"
+    },
+    {
+      "id": "en-words",
+      "language": "en",
+      "category": "words",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4468,
+      "costEstimateEur": 0.013272,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 5,
+          "confidence": 1,
+          "evidence": "We are five"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 5
+      },
+      "reply": "I understand there are five people in your household. How many people are in your household, including you?"
+    },
+    {
+      "id": "en-mixed",
+      "language": "en",
+      "category": "mixed",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2055,
+      "costEstimateEur": 0.010575,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.99,
+          "evidence": "We are quattro people"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "I understood that there are four people in your household. Who are they? Please give each person's name and relationship to you, including yourself."
+    },
+    {
+      "id": "en-typo",
+      "language": "en",
+      "category": "typo",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3504,
+      "costEstimateEur": 0.0123,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.95,
+          "evidence": "we are fuor"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "I understood: there are four people in your household."
+    },
+    {
+      "id": "en-manipulation",
+      "language": "en",
+      "category": "manipulation",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 16283,
+      "costEstimateEur": 0.010398,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "How many people are in your household, including you?"
+    },
+    {
+      "id": "en-off_topic",
+      "language": "en",
+      "category": "off_topic",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 10771,
+      "costEstimateEur": 0.010149,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "I’m here to help with your ISEE application. How many people are in your household, including you?"
+    },
+    {
+      "id": "fr-multiple",
+      "language": "fr",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 7583,
+      "costEstimateEur": 0.014172,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Nous sommes quatre"
+        },
+        {
+          "questionId": "housing",
+          "value": "rent",
+          "confidence": 1,
+          "evidence": "nous sommes locataires"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4,
+        "housing": "rent"
+      },
+      "reply": "J’ai compris : vous êtes quatre et votre logement est en location. Combien de personnes vivent dans votre foyer, vous compris ?"
+    },
+    {
+      "id": "fr-correction",
+      "language": "fr",
+      "category": "correction",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4055,
+      "costEstimateEur": 0.012786,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 3,
+          "confidence": 1,
+          "evidence": "nous sommes trois"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 3
+      },
+      "reply": "J’ai compris : vous êtes trois dans votre foyer."
+    },
+    {
+      "id": "fr-unknown",
+      "language": "fr",
+      "category": "unknown",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2696,
+      "costEstimateEur": 0.011343,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Aucun souci, vous pourrez vérifier. Combien de personnes vivent dans votre foyer, vous compris ?"
+    },
+    {
+      "id": "fr-question",
+      "language": "fr",
+      "category": "question",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2193,
+      "costEstimateEur": 0.010818,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Le foyer désigne les personnes qui vivent avec vous. Combien de personnes vivent dans votre foyer, vous compris ?"
+    },
+    {
+      "id": "fr-reference",
+      "language": "fr",
+      "category": "reference",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2474,
+      "costEstimateEur": 0.011265,
+      "rawProposals": [
+        {
+          "questionId": "income_present_older",
+          "value": true,
+          "confidence": 1,
+          "evidence": "Le plus grand enfant a eu des revenus en 2025"
+        }
+      ],
+      "validatedProposals": {
+        "income_present_older": true
+      },
+      "reply": "J’ai compris que Leo a eu des revenus en 2025. Votre conjoint ou un enfant adulte vit-il ailleurs ?"
+    },
+    {
+      "id": "fr-words",
+      "language": "fr",
+      "category": "words",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4286,
+      "costEstimateEur": 0.011088,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 5,
+          "confidence": 1,
+          "evidence": "Nous sommes cinq"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 5
+      },
+      "reply": "J’ai compris que vous êtes cinq dans votre foyer. Qui y vit avec vous ?"
+    },
+    {
+      "id": "fr-mixed",
+      "language": "fr",
+      "category": "mixed",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3078,
+      "costEstimateEur": 0.010851,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.99,
+          "evidence": "Nous sommes quattro personnes"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "J’ai compris : vous êtes quatre personnes dans votre foyer. Qui vit avec vous ? Donnez le prénom et le lien de chaque personne, vous compris."
+    },
+    {
+      "id": "fr-typo",
+      "language": "fr",
+      "category": "typo",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4916,
+      "costEstimateEur": 0.013536,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.99,
+          "evidence": "nous sommes quatree"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "J’ai compris : vous êtes quatre dans votre foyer."
+    },
+    {
+      "id": "fr-manipulation",
+      "language": "fr",
+      "category": "manipulation",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3283,
+      "costEstimateEur": 0.010491,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Combien de personnes vivent dans votre foyer, vous compris ?"
+    },
+    {
+      "id": "fr-off_topic",
+      "language": "fr",
+      "category": "off_topic",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2263,
+      "costEstimateEur": 0.010653,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Avec plaisir, une autre fois ! Pour commencer, combien de personnes vivent dans votre foyer, vous compris ?"
+    },
+    {
+      "id": "es-multiple",
+      "language": "es",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 5634,
+      "costEstimateEur": 0.013191,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Somos cuatro"
+        },
+        {
+          "questionId": "housing",
+          "value": "rent",
+          "confidence": 1,
+          "evidence": "vivimos de alquiler"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4,
+        "housing": "rent"
+      },
+      "reply": "Entiendo: sois cuatro y vivís de alquiler. ¿Cuántas personas viven en tu unidad familiar, incluyéndote?"
+    },
+    {
+      "id": "es-correction",
+      "language": "es",
+      "category": "correction",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3986,
+      "costEstimateEur": 0.012711,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 3,
+          "confidence": 1,
+          "evidence": "somos tres"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 3
+      },
+      "reply": "Entendido: son tres personas. ¿Cuántas personas viven en tu unidad familiar, incluyéndote?"
+    },
+    {
+      "id": "es-unknown",
+      "language": "es",
+      "category": "unknown",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 6060,
+      "costEstimateEur": 0.012489,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "De acuerdo, compruébalo y podremos completar este dato más adelante, porque es necesario para el trámite."
+    },
+    {
+      "id": "es-question",
+      "language": "es",
+      "category": "question",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2272,
+      "costEstimateEur": 0.010497,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "La unidad familiar es el grupo de personas que se considera para preparar el trámite ISEE. ¿Cuántas personas viven en ella, incluyéndote?"
+    },
+    {
+      "id": "es-reference",
+      "language": "es",
+      "category": "reference",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 20494,
+      "costEstimateEur": 0.011679,
+      "rawProposals": [
+        {
+          "questionId": "income_present_older",
+          "value": true,
+          "confidence": 1,
+          "evidence": "El hijo mayor tuvo ingresos en 2025"
+        }
+      ],
+      "validatedProposals": {
+        "income_present_older": true
+      },
+      "reply": "Entiendo que Leo tuvo ingresos en 2025. ¿Tu cónyuge o algún hijo adulto vive en otro lugar?"
+    },
+    {
+      "id": "es-words",
+      "language": "es",
+      "category": "words",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3009,
+      "costEstimateEur": 0.0108,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 5,
+          "confidence": 1,
+          "evidence": "Somos cinco"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 5
+      },
+      "reply": "Entiendo: sois cinco en la unidad familiar. ¿Quiénes viven contigo? Indica el nombre y la relación de cada persona, incluyéndote."
+    },
+    {
+      "id": "es-mixed",
+      "language": "es",
+      "category": "mixed",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 1818,
+      "costEstimateEur": 0.010821,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Somos quattro personas"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "He entendido: sois cuatro personas. ¿Quién vive en tu unidad familiar? Indica el nombre y la relación de cada persona, incluyéndote."
+    },
+    {
+      "id": "es-typo",
+      "language": "es",
+      "category": "typo",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 7128,
+      "costEstimateEur": 0.010848,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.99,
+          "evidence": "somos cuator"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Entiendo: son cuatro personas. ¿Quiénes viven en tu unidad familiar? Indica el nombre y la relación de cada persona, incluyéndote."
+    },
+    {
+      "id": "es-manipulation",
+      "language": "es",
+      "category": "manipulation",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "timeout",
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 30289,
+      "costEstimateEur": 0.064077,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "¿Cuántas personas viven en tu unidad familiar, incluyéndote?"
+    },
+    {
+      "id": "es-off_topic",
+      "language": "es",
+      "category": "off_topic",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 5798,
+      "costEstimateEur": 0.0108,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "¡Luego te cuento uno! Para seguir con el trámite, ¿cuántas personas viven en tu unidad familiar, incluyéndote?"
+    },
+    {
+      "id": "ro-multiple",
+      "language": "ro",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3133,
+      "costEstimateEur": 0.011391,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Suntem patru"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Am înțeles: sunteți patru și locuiți cu chirie. Cine locuiește în nucleul tău familial? Scrie numele și relația fiecărei persoane, inclusiv tu."
+    },
+    {
+      "id": "ro-correction",
+      "language": "ro",
+      "category": "correction",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "timeout",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 30069,
+      "costEstimateEur": 0.064464,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 3,
+          "confidence": 0.7,
+          "evidence": "Scuze, suntem trei"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 3
+      },
+      "reply": "Am înțeles: 3. Câte persoane sunt în nucleul tău familial, inclusiv tu?"
+    },
+    {
+      "id": "ro-unknown",
+      "language": "ro",
+      "category": "unknown",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3792,
+      "costEstimateEur": 0.010854,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "În regulă, verifică atunci câte persoane sunt în nucleul tău familial, inclusiv tu. Poți să-mi spui mai târziu."
+    },
+    {
+      "id": "ro-question",
+      "language": "ro",
+      "category": "question",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 11640,
+      "costEstimateEur": 0.011286,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Nucleul familial este grupul de persoane luat în calcul pentru cererea ISEE. Câte persoane sunt în nucleul tău familial, inclusiv tu?"
+    },
+    {
+      "id": "ro-reference",
+      "language": "ro",
+      "category": "reference",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 22370,
+      "costEstimateEur": 0.011784,
+      "rawProposals": [
+        {
+          "questionId": "income_present_older",
+          "value": true,
+          "confidence": 0.99,
+          "evidence": "Copilul cel mai mare a avut venituri în 2025"
+        }
+      ],
+      "validatedProposals": {
+        "income_present_older": true
+      },
+      "reply": "Am înțeles: Leo a avut venituri în 2025. Soțul, soția sau un copil adult locuiește separat de tine?"
+    },
+    {
+      "id": "ro-words",
+      "language": "ro",
+      "category": "words",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4079,
+      "costEstimateEur": 0.012408,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 5,
+          "confidence": 1,
+          "evidence": "Suntem cinci"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 5
+      },
+      "reply": "Am înțeles: sunteți cinci în nucleul familial."
+    },
+    {
+      "id": "ro-mixed",
+      "language": "ro",
+      "category": "mixed",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2738,
+      "costEstimateEur": 0.011346,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Suntem quattro persoane"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Am înțeles: sunteți patru persoane în nucleul familial. Cine locuiește în nucleul tău familial? Scrie numele și relația fiecărei persoane, inclusiv tu."
+    },
+    {
+      "id": "ro-typo",
+      "language": "ro",
+      "category": "typo",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2850,
+      "costEstimateEur": 0.011799,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.98,
+          "evidence": "suntem paturr"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Am înțeles: sunteți patru persoane. Cine locuiește în nucleul tău familial?"
+    },
+    {
+      "id": "ro-manipulation",
+      "language": "ro",
+      "category": "manipulation",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 24097,
+      "costEstimateEur": 0.010671,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Câte persoane sunt în nucleul tău familial, inclusiv tu?"
+    },
+    {
+      "id": "ro-off_topic",
+      "language": "ro",
+      "category": "off_topic",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3362,
+      "costEstimateEur": 0.010812,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Cu drag, dar hai să continuăm cererea ISEE: câte persoane sunt în nucleul tău familial, inclusiv tu?"
+    },
+    {
+      "id": "uk-multiple",
+      "language": "uk",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2448,
+      "costEstimateEur": 0.011748,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Нас четверо"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Зрозуміла: у Вашій сім’ї четверо людей, і Ви орендуєте житло. Хто входить до Вашої сім’ї? Назвіть ім’я та родинний зв’язок кожної людини, включно з Вами."
+    },
+    {
+      "id": "uk-correction",
+      "language": "uk",
+      "category": "correction",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4018,
+      "costEstimateEur": 0.013266,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 3,
+          "confidence": 1,
+          "evidence": "нас троє"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 3
+      },
+      "reply": "Зрозуміла: Вас троє. Дякую, що уточнили."
+    },
+    {
+      "id": "uk-unknown",
+      "language": "uk",
+      "category": "unknown",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2601,
+      "costEstimateEur": 0.011091,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Зрозуміло, перевірте, будь ласка, скільки людей у Вашій сім’ї, разом із Вами. Можете відповісти пізніше."
+    },
+    {
+      "id": "uk-question",
+      "language": "uk",
+      "category": "question",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2018,
+      "costEstimateEur": 0.011454,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "У цьому запитанні «сім’я» означає людей, яких потрібно врахувати для заяви ISEE. Скільки людей у Вашій сім’ї, разом із Вами?"
+    },
+    {
+      "id": "uk-reference",
+      "language": "uk",
+      "category": "reference",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 18808,
+      "costEstimateEur": 0.012873,
+      "rawProposals": [
+        {
+          "questionId": "income_present_older",
+          "value": true,
+          "confidence": 1,
+          "evidence": "Старша дитина мала доходи у 2025 році"
+        }
+      ],
+      "validatedProposals": {
+        "income_present_older": true
+      },
+      "reply": "Зрозуміла: старша дитина мала доходи у 2025 році. Чи живе Ваш чоловік, дружина або доросла дитина окремо від Вас?"
+    },
+    {
+      "id": "uk-words",
+      "language": "uk",
+      "category": "words",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3179,
+      "costEstimateEur": 0.012978,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 5,
+          "confidence": 1,
+          "evidence": "Нас п’ятеро"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 5
+      },
+      "reply": "Зрозуміла: у Вашій сім’ї п’ятеро людей."
+    },
+    {
+      "id": "uk-mixed",
+      "language": "uk",
+      "category": "mixed",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "guard_violation",
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 18394,
+      "costEstimateEur": 0.012882,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.7,
+          "evidence": "Нас quattro"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Зрозуміло: 4. Скільки людей у Вашій сім’ї, разом із Вами?"
+    },
+    {
+      "id": "uk-typo",
+      "language": "uk",
+      "category": "typo",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3931,
+      "costEstimateEur": 0.01287,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.99,
+          "evidence": "нас четврео"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Зрозуміла: у Вашій сім’ї четверо людей."
+    },
+    {
+      "id": "uk-manipulation",
+      "language": "uk",
+      "category": "manipulation",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 6359,
+      "costEstimateEur": 0.011121,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "Скільки людей у Вашій сім’ї, разом із Вами?"
+    },
+    {
+      "id": "uk-off_topic",
+      "language": "uk",
+      "category": "off_topic",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 1959,
+      "costEstimateEur": 0.011391,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "З радістю пізніше! А поки підкажіть, будь ласка: скільки людей у Вашій сім’ї, разом із Вами?"
+    },
+    {
+      "id": "ar-multiple",
+      "language": "ar",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3548,
+      "costEstimateEur": 0.011004,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "نحن أربعة"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "فهمت: أنتم أربعة وتسكنون بالإيجار. من يعيش معك في الأسرة؟ اكتب اسم كل شخص وصلته بك، بما في ذلك أنت."
+    },
+    {
+      "id": "ar-correction",
+      "language": "ar",
+      "category": "correction",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4559,
+      "costEstimateEur": 0.013281,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 3,
+          "confidence": 1,
+          "evidence": "عفوا نحن ثلاثة"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 3
+      },
+      "reply": "فهمت: أنتم ثلاثة. للتأكيد، كم شخصًا يعيش في أسرتك، بما في ذلك أنت؟"
+    },
+    {
+      "id": "ar-unknown",
+      "language": "ar",
+      "category": "unknown",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 20141,
+      "costEstimateEur": 0.010494,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "لا بأس، تحقّق عندما تستطيع. كم شخصًا يعيش في أسرتك، بما في ذلك أنت؟"
+    },
+    {
+      "id": "ar-question",
+      "language": "ar",
+      "category": "question",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 5823,
+      "costEstimateEur": 0.010563,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "الأسرة هنا تعني الأشخاص الذين يعيشون معك. كم شخصًا يعيش في أسرتك، بما في ذلك أنت؟"
+    },
+    {
+      "id": "ar-reference",
+      "language": "ar",
+      "category": "reference",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2868,
+      "costEstimateEur": 0.012426,
+      "rawProposals": [
+        {
+          "questionId": "income_present_older",
+          "value": true,
+          "confidence": 0.98,
+          "evidence": "الابن الأكبر كان لديه دخل في 2025"
+        }
+      ],
+      "validatedProposals": {
+        "income_present_older": true
+      },
+      "reply": "فهمت: كان لدى ابنك الأكبر دخل في 2025. هل يعيش زوجك أو زوجتك أو ابنك البالغ في مكان آخر؟"
+    },
+    {
+      "id": "ar-words",
+      "language": "ar",
+      "category": "words",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3652,
+      "costEstimateEur": 0.012186,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 5,
+          "confidence": 1,
+          "evidence": "نحن خمسة"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 5
+      },
+      "reply": "فهمت: أنتم خمسة أشخاص في الأسرة."
+    },
+    {
+      "id": "ar-mixed",
+      "language": "ar",
+      "category": "mixed",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2208,
+      "costEstimateEur": 0.010827,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "quattro أشخاص"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "فهمت: أسرتك تضم أربعة أشخاص. من هم، وما صلة كل شخص بك؟"
+    },
+    {
+      "id": "ar-typo",
+      "language": "ar",
+      "category": "typo",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "timeout",
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 30711,
+      "costEstimateEur": 0.062883,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "كم شخصًا يعيش في أسرتك، بما في ذلك أنت؟"
+    },
+    {
+      "id": "ar-manipulation",
+      "language": "ar",
+      "category": "manipulation",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 7445,
+      "costEstimateEur": 0.010404,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "كم شخصًا يعيش في أسرتك، بما في ذلك أنت؟"
+    },
+    {
+      "id": "ar-off_topic",
+      "language": "ar",
+      "category": "off_topic",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "timeout",
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 30068,
+      "costEstimateEur": 0.062886,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "كم شخصًا يعيش في أسرتك، بما في ذلك أنت؟"
+    },
+    {
+      "id": "bn-multiple",
+      "language": "bn",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 6813,
+      "costEstimateEur": 0.014334,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "আমরা চার জন"
+        },
+        {
+          "questionId": "housing",
+          "value": "rent",
+          "confidence": 1,
+          "evidence": "ভাড়া বাসায় থাকি"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4,
+        "housing": "rent"
+      },
+      "reply": "বুঝেছি: আপনার পরিবারে চারজন, আর আপনি ভাড়া বাসায় থাকেন।"
+    },
+    {
+      "id": "bn-correction",
+      "language": "bn",
+      "category": "correction",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 10660,
+      "costEstimateEur": 0.012972,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 3,
+          "confidence": 1,
+          "evidence": "আমরা তিন জন"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 3
+      },
+      "reply": "বুঝেছি, আপনি বলছেন আপনার পরিবারে তিনজন। আপনিসহ পরিবারে কতজন থাকেন?"
+    },
+    {
+      "id": "bn-unknown",
+      "language": "bn",
+      "category": "unknown",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3641,
+      "costEstimateEur": 0.011187,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "ঠিক আছে, যাচাই করে পরে জানাতে পারেন। আপাতত, আপনিসহ আপনার পরিবারে কতজন থাকেন?"
+    },
+    {
+      "id": "bn-question",
+      "language": "bn",
+      "category": "question",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2876,
+      "costEstimateEur": 0.012084,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "এখানে “পরিবার” বলতে ISEE-তে বিবেচিত পরিবারের সদস্যদের বোঝায়; সেবা কাউন্টার নিবন্ধিত পরিবার ও আলাদা থাকা স্বামী-স্ত্রী বা বাবা-মায়ের বিষয়টি যাচাই করবে। আপনিসহ আপনার পরিবারে কতজন থাকেন?"
+    },
+    {
+      "id": "bn-reference",
+      "language": "bn",
+      "category": "reference",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3273,
+      "costEstimateEur": 0.012099,
+      "rawProposals": [
+        {
+          "questionId": "income_present_older",
+          "value": true,
+          "confidence": 1,
+          "evidence": "বড় সন্তানের ২০২৫ সালে আয় ছিল"
+        }
+      ],
+      "validatedProposals": {
+        "income_present_older": true
+      },
+      "reply": "বুঝেছি: আপনার বড় সন্তানের ২০২৫ সালে আয় ছিল। আপনার স্বামী, স্ত্রী বা প্রাপ্তবয়স্ক সন্তান কি অন্যত্র থাকেন?"
+    },
+    {
+      "id": "bn-words",
+      "language": "bn",
+      "category": "words",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3200,
+      "costEstimateEur": 0.012222,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 5,
+          "confidence": 1,
+          "evidence": "আমরা পাঁচ জন"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 5
+      },
+      "reply": "বুঝেছি, আপনার পরিবারে পাঁচজন থাকেন।"
+    },
+    {
+      "id": "bn-mixed",
+      "language": "bn",
+      "category": "mixed",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4269,
+      "costEstimateEur": 0.012672,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "quattro জন"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "বুঝেছি: আপনার পরিবারে চারজন।"
+    },
+    {
+      "id": "bn-typo",
+      "language": "bn",
+      "category": "typo",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4055,
+      "costEstimateEur": 0.010794,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.98,
+          "evidence": "আমরা চাার জন"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "বুঝেছি: আপনার পরিবারে চারজন।"
+    },
+    {
+      "id": "bn-manipulation",
+      "language": "bn",
+      "category": "manipulation",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2793,
+      "costEstimateEur": 0.011139,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "পরিবারে আপনি-সহ মোট কতজন থাকেন?"
+    },
+    {
+      "id": "bn-off_topic",
+      "language": "bn",
+      "category": "off_topic",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3594,
+      "costEstimateEur": 0.011019,
+      "rawProposals": [],
+      "validatedProposals": {},
+      "reply": "অবশ্যই, পরে কৌতুক বলব। আগে বলুন, আপনিসহ আপনার পরিবারে কতজন থাকেন?"
+    }
+  ],
+  "taskVersion": "1.1"
+}

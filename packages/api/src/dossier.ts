@@ -1,3 +1,4 @@
+import { conversationState } from "./conversation-state";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
   cases,
@@ -248,6 +249,7 @@ export async function citizenView(
     reuseNotice: storedDocs.some((doc) => doc.reusedFromYear !== null && visibleToCitizen(doc, row))
       ? reuseNotice[language]
       : null,
+    conversation: conversationState(row, chat, evaluation.progress, now, language),
     messages: chat.map((m) => ({
       id: m.id,
       role: m.role,
@@ -331,6 +333,7 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
     ),
     findings: view.findings,
     messages: view.messages,
+    conversation: view.conversation,
     timeline: timeline.map((e) => ({
       id: e.id,
       at: iso(e.at),

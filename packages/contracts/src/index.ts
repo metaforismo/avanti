@@ -339,6 +339,46 @@ export const AnsweredQuestion = z.object({
 });
 export type AnsweredQuestion = z.infer<typeof AnsweredQuestion>;
 
+export const ConversationTurn = z.object({
+  id: Id,
+  role: z.enum(["citizen", "assistant"]),
+  text: SafeText,
+  kind: z.enum(["message", "question", "confirmation", "summary"]),
+  questionId: z.string().nullable(),
+  createdAt: IsoDateTime,
+});
+export type ConversationTurn = z.infer<typeof ConversationTurn>;
+export const Proposal = z.object({
+  id: Id,
+  questionId: z.string(),
+  questionText: SafeText,
+  value: AnswerValue,
+  display: SafeText,
+  evidence: SafeText.max(1000),
+  confidence: z.number().min(0).max(1),
+});
+export type Proposal = z.infer<typeof Proposal>;
+export const ConversationState = z.object({
+  turns: z.array(ConversationTurn),
+  proposals: z.array(Proposal),
+  ask: z.array(Question).max(2),
+  progress: Progress,
+  complete: z.boolean(),
+  engine: z.enum(["ai", "heuristic"]),
+});
+export type ConversationState = z.infer<typeof ConversationState>;
+export const ConversationRequest = z.object({ text: SafeText.trim().min(1).max(1000) });
+export const ConversationConfirmRequest = z
+  .object({
+    accept: z.array(z.object({ proposalId: Id, value: AnswerValue.optional() })).max(100),
+    reject: z.array(Id).max(100),
+  })
+  .superRefine((input, ctx) => {
+    const ids = [...input.accept.map((p) => p.proposalId), ...input.reject];
+    if (new Set(ids).size !== ids.length)
+      ctx.addIssue({ code: "custom", message: "Proposte duplicate." });
+  });
+
 /** Everything the citizen sees. Never contains operator-only notes or other cases. */
 export const CitizenCase = z.object({
   id: Id,
@@ -362,6 +402,7 @@ export const CitizenCase = z.object({
   practiceYear: z.number().int().optional(),
   reuseNotice: z.string().nullable().optional(),
   messages: z.array(ChatMessage),
+  conversation: ConversationState.optional(),
   /** Contact details the citizen already gave, to prefill a resubmission. */
   contact: CitizenContact.nullable().default(null),
   /** Blockers/warnings the citizen can act on. */
@@ -640,6 +681,7 @@ export const CaseDossier = CaseListItem.extend({
   dsuSheet: DsuSheetResponse.default(null),
   findings: z.array(Finding),
   messages: z.array(ChatMessage),
+  conversation: ConversationState.optional(),
   timeline: z.array(TimelineEvent),
   citizenNote: z.string().nullable(),
   internalNotes: z.string().nullable(),

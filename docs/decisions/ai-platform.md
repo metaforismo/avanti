@@ -79,13 +79,14 @@ risposte instabili e nessuna garanzia sui dati.
 
 **Cittadino**
 
-| Compito              | Cosa fa                                                                                                       | Quando                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `intake.understand`  | Classifica la pratica ed estrae i fatti dal racconto libero                                                   | Primo messaggio e ogni testo libero |
-| `interview.freeform` | Trasforma una risposta a parole nella risposta strutturata della domanda corrente, da confermare              | «Rispondi a parole tue»             |
-| `citizen.assistant`  | Risponde alle domande del cittadino sulla sua pratica, nella sua lingua, solo sulla base del contesto fornito | Ovunque nel percorso                |
-| `document.analyze`   | Riconosce il documento, legge intestatario, anno, scadenza, pagine e leggibilità                              | Ogni caricamento                    |
-| `translate`          | Traduce i messaggi dell'operatore al cittadino                                                                | Ogni richiesta d'integrazione       |
+| Compito              | Cosa fa                                                                                                            | Quando                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `intake.understand`  | Classifica la pratica ed estrae i fatti dal racconto libero                                                        | Primo messaggio e ogni testo libero |
+| `interview.converse` | Conduce la conversazione, estrae più proposte con citazioni e formula le domande scelte dal server; livello `fast` | Intervista cittadino                |
+| `interview.freeform` | Trasforma una risposta a parole nella risposta strutturata della domanda corrente, da confermare                   | «Rispondi a parole tue»             |
+| `citizen.assistant`  | Risponde alle domande del cittadino sulla sua pratica, nella sua lingua, solo sulla base del contesto fornito      | Ovunque nel percorso                |
+| `document.analyze`   | Riconosce il documento, legge intestatario, anno, scadenza, pagine e leggibilità                                   | Ogni caricamento                    |
+| `translate`          | Traduce i messaggi dell'operatore al cittadino                                                                     | Ogni richiesta d'integrazione       |
 
 **Operatore**
 
@@ -180,3 +181,26 @@ Il catalogo pubblico OpenRouter è stato letto il 15 ottobre 2026: 14 modelli `:
 prova: [catalogo ufficiale](https://openrouter.ai/api/v1/models).
 I report `ai-eval-2026-10-15-live` e `ai-stress-2026-10-15-live` registrano BLOCKED quando la
 chiave non è esportata; non trasformare quei risultati in prove del provider.
+
+## Conversazione guidata — 15 ottobre 2026
+
+Il contratto condiviso è `ConversationTurn`, `Proposal`, `ConversationState` in
+`@avanti/contracts`. Il task riusa il prompt `interview-conversation.ts`, aggiornato alla versione 2
+per impedire al testo di anticipare una domanda diversa da `ask_next` quando è stata
+estratta una proposta ancora da confermare. Il core decide le domande aperte; proposte e conferme sono separate.
+Le condizioni sono convalidate sia alla proposta sia alla conferma con `applyAnswer`.
+La correzione di una risposta confermata passa prima da `turn:edit`, così il modello non
+può riaprire autonomamente dati confermati. Le proposte ancora aperte possono essere
+sostituite da un messaggio successivo senza alterare le risposte.
+
+Sono state confrontate due forme di persistenza: una tabella nuova per turni e proposte,
+oppure messaggi del fascicolo con stato pendente nella pratica. La seconda riusa retention,
+export e vista operatore esistenti, evita una seconda cronologia e richiede una sola
+migrazione. Il lock della pratica ordina append, conferme e modifiche; la rete avviene
+prima del lock e il risultato viene rifiutato se la versione della pratica è cambiata.
+
+L'euristica conserva i controlli rapidi e i testi del catalogo nelle otto lingue. Gestisce
+le estrazioni già presenti nel core, numeri e risposte esatte sì/no/opzioni/date; comprensione
+referenziale, refusi e lingue miste hanno copertura limitata e vengono misurati nelle eval.
+Il modello non può completare l'intervista o modificare la checklist senza conferme.
+Prove e limiti: [ai-eval-interview.md](../verification/ai-eval-interview.md).

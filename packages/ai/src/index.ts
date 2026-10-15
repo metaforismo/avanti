@@ -25,3 +25,5 @@ export * from "./prompts/citizen-assistant";
 export * from "./prompts/operator-copilot";
 
 export { constitution, CONSTITUTION_VERSION } from "./prompts/constitution";
+export { converseTask, ConverseInput, ConverseOutput, deterministicReply } from "./conversation";
+export * from "./prompts/interview-conversation";

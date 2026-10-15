@@ -274,3 +274,24 @@ simulati; lo stato `sent` indica l'accettazione del provider, non la lettura.
 
 Questa modifica backend fornisce contratti e API; i controlli visuali e i moduli
 per queste nuove indicazioni sono gestiti nell'interfaccia in parallelo.
+
+## Intervista come conversazione
+
+Il cittadino può raccontare più cose nello stesso messaggio. Avanti presenta schede con
+ciò che ha capito: il cittadino può confermarle, correggerne il valore o rifiutarle.
+Solo le conferme entrano nelle risposte e nella checklist. Le domande obbligatorie
+restano aperte fino a una risposta valida; «non lo so» non completa una domanda.
+I pulsanti rapidi e l'editor del nucleo restano disponibili dentro la conversazione.
+Senza AI il percorso continua con una domanda alla volta nella lingua del cittadino.
+
+Nel fascicolo, i messaggi mostrano il racconto originale, le risposte dell'assistente
+e i valori confermati anche quando sono stati scelti con un pulsante. Controlla sempre
+le proposte e le correzioni: una confidenza alta non attesta la correttezza del dato.
+Una risposta già confermata va riaperta con la funzione di modifica; un nuovo racconto
+non la sovrascrive. Cambiare il numero dei componenti conserva l'elenco confermato e
+richiede di riallinearlo se necessario.
+
+Il dialogo e le proposte pendenti seguono la retention del fascicolo e sono inclusi
+nell'export JSON del CAF per rispondere alle richieste dell'interessato. La cancellazione
+del fascicolo li elimina insieme alle risposte. La disponibilità dei controlli visuali
+dipende dall'allineamento dell'interfaccia ai contratti della conversazione.

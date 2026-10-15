@@ -339,8 +339,13 @@ describe("citizen to operator integration", () => {
     const view = CitizenCase.parse(await turn.json());
     expect(view.engine).toBe("heuristic");
     expect(view.practice?.id).toBe("isee_ordinario");
-    expect(view.answers.accounts_count).toBe(2);
-    expect(view.answers.vehicles_count).toBe(0);
+    expect(view.answers).toEqual({});
+    expect(view.conversation?.proposals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ questionId: "accounts_count", value: 2 }),
+        expect.objectContaining({ questionId: "vehicles_count", value: 0 }),
+      ]),
+    );
     expect(view.messages.some((message) => message.role === "assistant")).toBe(true);
     const changed = await request(`/api/c/${intake.token}/language`, "PUT", { language: "ar" });
     expect(changed.status).toBe(200);
@@ -1019,21 +1024,23 @@ describe("second backend review", () => {
       expect(view.timeline.some((e) => e.type === "case.assigned")).toBe(true);
     },
   );
-  it("7,27,30,32,33: free text has readable inferred answers, roles and an acknowledgement", async () => {
+  it("7,27,30,32,33: free text has readable pending proposals and an acknowledgement", async () => {
     const intake = await start();
     const response = await request(`/api/c/${intake.token}/turn`, "POST", {
       type: "text",
       text: "ISEE vivo con mia madre sotto lo stesso tetto, mio padre non vive con noi, ho un conto Fineco e una macchina",
     });
     const view = CitizenCase.parse(await response.json());
-    expect(view.answered.find((a) => a.questionId === "household_count")).toMatchObject({
-      answer: "2",
-      editable: false,
-    });
-    expect(view.answers.household_roles).toEqual(["richiedente", "genitore"]);
-    expect(view.answers.nonresident_parent).toBeUndefined();
-    expect(view.answers.applicant_parent_nonresident).toBe(true);
-    expect(view.messages.find((m) => m.role === "assistant")?.text).toContain("Fineco");
+    expect(view.answered).toEqual([]);
+    expect(view.answers).toEqual({});
+    expect(view.conversation?.proposals).toContainEqual(
+      expect.objectContaining({
+        questionId: "household_count",
+        value: 2,
+        display: "2",
+      }),
+    );
+    expect(view.messages.find((m) => m.role === "assistant")?.text).toContain("Ho capito");
     expect(view.messages.find((m) => m.role === "assistant")?.text).not.toBe(
       view.nextQuestion?.prompt,
     );

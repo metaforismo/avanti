@@ -1,0 +1,287 @@
+{
+  "generatedAt": "2026-10-15T14:23:57.735Z",
+  "taskVersion": "1.2",
+  "summary": {
+    "providerCostUsd": 0.00245075,
+    "mode": "live",
+    "model": "openai/gpt-6-luna",
+    "policy": "strict",
+    "cases": 8,
+    "ai": 5,
+    "requests": 8,
+    "precision": 1,
+    "recall": 0.75,
+    "tp": 12,
+    "fp": 0,
+    "fn": 4,
+    "invalidAfterValidation": 0,
+    "structuredAskAccuracy": 1,
+    "languageScriptMismatches": 0,
+    "meanLatencyMs": 13586.125,
+    "costEstimateEur": 0.25527299999999997
+  },
+  "providerFailures": [],
+  "transportOverride": "eval-only: DeepSeek reasoning disabled; JSON text with local schema validation; isolated breaker per sample",
+  "rows": [
+    {
+      "id": "it-multiple",
+      "language": "it",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 3520,
+      "costEstimateEur": 0.012189,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Siamo in quattro"
+        },
+        {
+          "questionId": "housing",
+          "value": "rent",
+          "confidence": 1,
+          "evidence": "viviamo in affitto"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4,
+        "housing": "rent"
+      },
+      "reply": "Ho capito: siete in quattro e vivete in affitto. Mi confermi che nel tuo nucleo familiare siete quattro?"
+    },
+    {
+      "id": "en-multiple",
+      "language": "en",
+      "category": "multiple",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "timeout",
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 30403,
+      "costEstimateEur": 0.065076,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.7,
+          "evidence": "We are four and rent our home"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "I understood: 4. How many people are in your household, including you?"
+    },
+    {
+      "id": "fr-multiple",
+      "language": "fr",
+      "category": "multiple",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "timeout",
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 30282,
+      "costEstimateEur": 0.065274,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.7,
+          "evidence": "Nous sommes quatre et nous sommes locataires"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "J’ai compris: 4. Combien de personnes vivent dans votre foyer, vous compris ?"
+    },
+    {
+      "id": "es-multiple",
+      "language": "es",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2750,
+      "costEstimateEur": 0.010986,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Somos cuatro"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "He entendido que son cuatro. ¿Me confirmas que viven cuatro personas en tu unidad familiar, incluyéndote?"
+    },
+    {
+      "id": "ro-multiple",
+      "language": "ro",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 1,
+      "fp": 0,
+      "fn": 1,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4070,
+      "costEstimateEur": 0.011616,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Suntem patru"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4
+      },
+      "reply": "Am înțeles: sunteți patru și locuiți cu chirie. Îmi confirmi că în nucleul tău familial sunt patru persoane, inclusiv tu?"
+    },
+    {
+      "id": "uk-multiple",
+      "language": "uk",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 2941,
+      "costEstimateEur": 0.012795,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "Нас четверо"
+        },
+        {
+          "questionId": "housing",
+          "value": "rent",
+          "confidence": 1,
+          "evidence": "ми орендуємо житло"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4,
+        "housing": "rent"
+      },
+      "reply": "Зрозуміла: Вас четверо, і Ви орендуєте житло. Підтверджуєте, що у Вашій сім’ї четверо людей, разом із Вами?"
+    },
+    {
+      "id": "ar-multiple",
+      "language": "ar",
+      "category": "multiple",
+      "engine": "heuristic",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": "timeout",
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 30076,
+      "costEstimateEur": 0.064284,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 0.7,
+          "evidence": "نحن أربعة ونسكن بالإيجار"
+        },
+        {
+          "questionId": "housing",
+          "value": "rent",
+          "confidence": 0.7,
+          "evidence": "نحن أربعة ونسكن بالإيجار"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4,
+        "housing": "rent"
+      },
+      "reply": "فهمت: 4; إيجار. كم شخصًا يعيش في أسرتك، بما في ذلك أنت؟"
+    },
+    {
+      "id": "bn-multiple",
+      "language": "bn",
+      "category": "multiple",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "attempts": 1,
+      "fallbackReason": null,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "invalid": 0,
+      "structuredAskCorrect": true,
+      "languageScriptMismatch": false,
+      "latencyMs": 4647,
+      "costEstimateEur": 0.013053,
+      "rawProposals": [
+        {
+          "questionId": "household_count",
+          "value": 4,
+          "confidence": 1,
+          "evidence": "আমরা চার জন"
+        },
+        {
+          "questionId": "housing",
+          "value": "rent",
+          "confidence": 1,
+          "evidence": "ভাড়া বাসায় থাকি"
+        }
+      ],
+      "validatedProposals": {
+        "household_count": 4,
+        "housing": "rent"
+      },
+      "reply": "বুঝেছি: আপনার পরিবারে চারজন এবং আপনি ভাড়া বাসায় থাকেন। নিশ্চিত করবেন, আপনাদের পরিবারে মোট চারজন?"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { mountConversationRoutes } from "./conversation-routes";
 import { mfaCipher } from "./mfa";
 import { mountMfaRoutes } from "./routes/mfa";
 import { mountQuickReplyRoutes } from "./routes/quick-replies";
@@ -99,6 +100,7 @@ export function createApp(options: ApiOptions) {
   mountAuthRoutes(app, services);
   mountMfaRoutes(app, services);
   mountCitizenRoutes(app, services);
+  mountConversationRoutes(app, services);
   mountOperatorRoutes(app, services);
   mountFamilyReuseRoutes(app, services);
   mountAdministrationRoutes(app, services);

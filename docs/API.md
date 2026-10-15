@@ -697,3 +697,69 @@ Esempi completi, semantica di visibilità, cancellazione dell'intero gruppo e
 migrazione unica sono in [Riuso di nucleo e documenti](decisions/document-reuse.md).
 La ricerca usa POST per evitare dati personali negli URL; il riuso richiede la
 conferma dell'operatore e non avviene tra link indipendenti.
+
+## Intervista come conversazione guidata
+
+`GET /c/:token/conversation` e il campo `CitizenCase.conversation` restituiscono
+`ConversationState`: `turns`, `proposals`, `ask` (1–2 domande localizzate), `progress`,
+`complete`, `engine`. Senza AI viene chiesta una domanda alla volta dal catalogo.
+`complete` dipende dalle risposte confermate e dalle condizioni del core, mai dal modello.
+
+`POST /c/:token/conversation` accetta `{ "text": "Siamo in quattro e viviamo in affitto" }`
+(1–1000 caratteri, `SafeText`). Una richiesta esegue un solo `interview.converse` di livello
+`fast`; retry e fallback restano responsabilità del runtime. Il modello riceve domande aperte
+in ordine, `ask_next` scelto dal server, risposte confermate e gli ultimi 8 turni come dati
+non fidati. Il server scarta proposte fuori schema o per domande nascoste/già risposte,
+controlla le citazioni sui messaggi del cittadino e abbassa a massimo 0,3 la confidenza senza
+riscontro. Tutte le proposte richiedono conferma, qualunque sia la confidenza.
+
+Esempio di proposta (gli ID reali sono opachi):
+
+```json
+{
+  "id": "proposal-1",
+  "questionId": "household_count",
+  "questionText": "Quante persone fanno parte del tuo nucleo familiare?",
+  "value": 4,
+  "display": "4",
+  "evidence": "Siamo in quattro",
+  "confidence": 0.95
+}
+```
+
+`POST /c/:token/conversation/confirm` accetta conferme parziali e correzioni:
+
+```json
+{
+  "accept": [{ "proposalId": "proposal-1", "value": 3 }],
+  "reject": ["proposal-2"]
+}
+```
+
+Il valore omesso accetta quello proposto. L'intera richiesta è atomica: un valore non valido
+causa 400 senza modificare risposte, proposte o messaggi; ID duplicati danno 400, ID scaduti
+o appartenenti a un'altra pratica danno 409. Il rifiuto rimuove la proposta e lascia aperta
+la domanda. La conferma usa la stessa validazione, gli stessi eventi `answer.updated` e lo
+stesso ricalcolo della checklist di `turn:answer`. Le risposte con pulsanti/editor passano
+ancora da `/turn` e sono registrate come turni del cittadino leggibili.
+
+Il primo racconto usa ancora `turn:text` e `intake.understand`: classifica la pratica, ma
+le informazioni estratte diventano proposte, senza entrare automaticamente nelle risposte.
+Il racconto intero è usato come citazione iniziale, con confidenza limitata a 0,7.
+Per correggere una risposta già confermata, inviare prima `turn:edit` con `questionId`;
+la domanda riaperta può ricevere una nuova proposta. I componenti confermati vengono
+conservati durante la correzione del numero di persone; se il numero non coincide con
+l'elenco, l'editor dei componenti resta aperto. Nomi nuovi senza riscontro sono scartati;
+gli ID nuovi dei componenti sono assegnati dal server alla conferma.
+
+Messaggi liberi (`conversation` e `turn:text`) e conferme condividono il limite di 60/ora
+per capability; i pulsanti rapidi mantengono il limite esistente di 400/ora e 60/minuto.
+429 include `Retry-After` e messaggio localizzato. Il limite di lunghezza è localizzato.
+Le mutazioni richiedono pratica modificabile e link corrente anche dopo l'attesa AI:
+un turno divenuto obsoleto durante un'altra modifica restituisce 409 senza salvare messaggi.
+
+I turni sono righe di `messages` con `kind` e `questionId`; l'ordine resta stabile anche
+con clock uguali. Proposte e motore sono nella pratica (migrazione `0016_interview_conversation`).
+Il fascicolo operatore espone anche `conversation` con i metadati dei turni e mantiene `messages`; l'export JSON del CAF include messaggi,
+metadati e proposte pendenti. La cancellazione della pratica e la retention eliminano anche
+questi dati. I log e gli eventi contengono solo conteggi e metadati, mai il testo del dialogo.

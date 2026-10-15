@@ -131,6 +131,14 @@ export const cases = pgTable(
     citizenReminderSentAt: instant("citizen_reminder_sent_at"),
     editingQuestion: text("editing_question"),
     confirmedAnswers: jsonb("confirmed_answers").$type<string[]>().notNull().default([]),
+    conversationProposals: jsonb("conversation_proposals")
+      .$type<import("@avanti/contracts").Proposal[]>()
+      .notNull()
+      .default([]),
+    conversationEngine: text("conversation_engine")
+      .$type<"ai" | "heuristic">()
+      .notNull()
+      .default("heuristic"),
     answers: jsonb("answers").$type<Record<string, AnswerValue>>().notNull().default({}),
     contact: jsonb("contact").$type<Partial<CitizenContactRequest>>(),
     citizenNote: text("citizen_note"),
@@ -261,6 +269,11 @@ export const messages = pgTable(
       .references(() => cases.id, { onDelete: "cascade" }),
     role: text("role").$type<"citizen" | "assistant" | "operator" | "system">().notNull(),
     text: text("text").notNull(),
+    kind: text("kind")
+      .$type<import("@avanti/contracts").ConversationTurn["kind"]>()
+      .notNull()
+      .default("message"),
+    questionId: text("question_id"),
     originalText: text("original_text"),
     createdAt: instant("created_at").notNull(),
   },

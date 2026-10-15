@@ -29,6 +29,7 @@ export const RATE_POLICIES = {
   // Answers are quick taps (a large family can give 30 in a minute) and only free text reaches
   // the AI; the IP ceiling assumes a full waiting room on one Wi-Fi, all tapping at once.
   turn: { category: "turn", primary: [minute(60), hour(400)], ip: [minute(1500), hour(15000)] },
+  conversation: { category: "conversation", primary: [hour(60)], ip: [minute(1500), hour(15000)] },
   upload: { category: "upload", primary: [minute(30), hour(120)], ip: [minute(400), hour(4000)] },
   leads: { category: "leads", primary: [], ip: [minute(5)] },
   export: { category: "export", primary: [minute(20)], ip: [minute(200)] },
@@ -49,6 +50,7 @@ function policy(path: string, method: string): Policy | null {
   if (["/api/auth/login", "/api/auth/password"].includes(path)) return RATE_POLICIES.login;
   if (path === "/api/intake") return RATE_POLICIES.intake;
   if (path === "/api/leads") return RATE_POLICIES.leads;
+  if (/^\/api\/c\/[^/]+\/conversation(?:\/confirm)?$/.test(path)) return RATE_POLICIES.conversation;
   if (/^\/api\/c\/[^/]+\/turn$/.test(path)) return RATE_POLICIES.turn;
   if (/^\/api\/c\/[^/]+\/documents$/.test(path)) return RATE_POLICIES.upload;
   return null;
@@ -68,7 +70,12 @@ export function remoteAddress(context: ApiContext, services: Services): string |
 export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
   const secret = rateLimitSecret(services.rateLimitSecret);
   return async (context, next) => {
-    const rule = policy(context.req.path, context.req.method);
+    let rule = policy(context.req.path, context.req.method);
+    if (rule?.category === "turn") {
+      const input: unknown = await context.req.json().catch(() => null);
+      if (input && typeof input === "object" && "type" in input && input.type === "text")
+        rule = RATE_POLICIES.conversation;
+    }
     // Password attempts use the authenticated email, never a client-supplied identity.
     if (
       (context.req.path === "/api/auth/password" || rule?.category === "mfa") &&

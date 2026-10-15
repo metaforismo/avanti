@@ -1,3 +1,4 @@
+import type { ConverseInput, ConverseOutput } from "@avanti/ai";
 import type { DocumentAnalysis, Language, PracticeId, Question } from "@avanti/contracts";
 import { loadAiConfig, publicAiConfig, type AiConfig } from "@avanti/ai/config";
 import type { AiRuntime, TaskResult, Transport } from "@avanti/ai";
@@ -21,6 +22,7 @@ export interface Intelligence {
     questions: Question[],
     now: Date,
   ): Promise<IntakeProposal>;
+  converse?(input: ConverseInput): Promise<ConverseOutput & { engine: "ai" | "heuristic" }>;
   analyze(
     bytes: Uint8Array,
     mime: string,
@@ -106,6 +108,17 @@ export class AiIntelligence implements Intelligence {
     );
     const { manipulation: _manipulation, ...output } = result.output;
     return { ...output, engine: result.engine };
+  }
+  async converse(input: ConverseInput): Promise<ConverseOutput & { engine: "ai" | "heuristic" }> {
+    const [runtime, { converseTask }] = await Promise.all([
+      this.getRuntime(),
+      import("@avanti/ai/tasks"),
+    ]);
+    const result = this.observe(
+      "converse",
+      await runtime.runTask(converseTask, input, aiContext.getStore()),
+    );
+    return { ...result.output, engine: result.engine };
   }
   async analyze(
     bytes: Uint8Array,

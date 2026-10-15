@@ -1,0 +1,288 @@
+{
+  "requests": 353,
+  "runs": [
+    {
+      "run": "luna",
+      "summary": {
+        "mode": "live",
+        "model": "openai/gpt-6-luna",
+        "policy": "strict",
+        "cases": 16,
+        "ai": 0,
+        "requests": 3,
+        "precision": 1,
+        "recall": 0.7083333333333334,
+        "tp": 17,
+        "fp": 0,
+        "fn": 7,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 710.8125,
+        "costEstimateEur": 0.19239599999999998
+      }
+    },
+    {
+      "run": "deepseek",
+      "summary": {
+        "mode": "live",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "policy": "strict",
+        "cases": 16,
+        "ai": 1,
+        "requests": 4,
+        "precision": 1,
+        "recall": 0.6666666666666666,
+        "tp": 16,
+        "fp": 0,
+        "fn": 8,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 1239.875,
+        "costEstimateEur": 0.068292
+      }
+    },
+    {
+      "run": "probe-luna",
+      "summary": {
+        "mode": "live",
+        "model": "openai/gpt-6-luna",
+        "policy": "strict",
+        "cases": 1,
+        "ai": 0,
+        "requests": 1,
+        "precision": 1,
+        "recall": 1,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 2138,
+        "costEstimateEur": 0.064377
+      }
+    },
+    {
+      "run": "probe-deepseek",
+      "summary": {
+        "mode": "live",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "policy": "strict",
+        "cases": 1,
+        "ai": 1,
+        "requests": 1,
+        "precision": 0.16666666666666666,
+        "recall": 0.5,
+        "tp": 1,
+        "fp": 5,
+        "fn": 1,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 4634,
+        "costEstimateEur": 0.018444
+      }
+    },
+    {
+      "run": "luna-retry",
+      "summary": {
+        "providerCostUsd": 0.00052055,
+        "mode": "live",
+        "model": "openai/gpt-6-luna",
+        "policy": "strict",
+        "cases": 1,
+        "ai": 1,
+        "requests": 2,
+        "precision": 1,
+        "recall": 1,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 12429,
+        "costEstimateEur": 0.077487
+      }
+    },
+    {
+      "run": "luna-full",
+      "summary": {
+        "providerCostUsd": 0,
+        "mode": "live",
+        "model": "openai/gpt-6-luna",
+        "policy": "strict",
+        "cases": 80,
+        "ai": 0,
+        "requests": 3,
+        "precision": 1,
+        "recall": 0.5714285714285714,
+        "tp": 32,
+        "fp": 0,
+        "fn": 24,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 237.1375,
+        "costEstimateEur": 0.19347
+      }
+    },
+    {
+      "run": "deepseek-full",
+      "summary": {
+        "providerCostUsd": 0.000829965,
+        "mode": "live",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "policy": "strict",
+        "cases": 80,
+        "ai": 0,
+        "requests": 3,
+        "precision": 1,
+        "recall": 0.5714285714285714,
+        "tp": 32,
+        "fp": 0,
+        "fn": 24,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 95.4375,
+        "costEstimateEur": 0.031632
+      }
+    },
+    {
+      "run": "luna-quality",
+      "summary": {
+        "providerCostUsd": 0.02472854,
+        "mode": "live",
+        "model": "openai/gpt-6-luna",
+        "policy": "strict",
+        "cases": 80,
+        "ai": 74,
+        "requests": 80,
+        "precision": 1,
+        "recall": 0.9107142857142857,
+        "tp": 51,
+        "fp": 0,
+        "fn": 5,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 7649.175,
+        "costEstimateEur": 1.1976810000000002
+      }
+    },
+    {
+      "run": "deepseek-quality",
+      "summary": {
+        "providerCostUsd": 0.041828894200000015,
+        "mode": "live",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "policy": "strict",
+        "cases": 80,
+        "ai": 80,
+        "requests": 80,
+        "precision": 1,
+        "recall": 1,
+        "tp": 56,
+        "fp": 0,
+        "fn": 0,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 1592.0125,
+        "costEstimateEur": 0.9561509999999998
+      }
+    },
+    {
+      "run": "deepseek-v2-probe",
+      "summary": {
+        "providerCostUsd": 0.0042234992,
+        "mode": "live",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "policy": "strict",
+        "cases": 8,
+        "ai": 8,
+        "requests": 8,
+        "precision": 1,
+        "recall": 0.9375,
+        "tp": 15,
+        "fp": 0,
+        "fn": 1,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 2170.625,
+        "costEstimateEur": 0.099102
+      }
+    },
+    {
+      "run": "deepseek-v2-full",
+      "summary": {
+        "providerCostUsd": 0.035899007800000014,
+        "mode": "live",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "policy": "strict",
+        "cases": 80,
+        "ai": 80,
+        "requests": 80,
+        "precision": 1,
+        "recall": 1,
+        "tp": 56,
+        "fp": 0,
+        "fn": 0,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 1546.4375,
+        "costEstimateEur": 0.9650700000000002
+      }
+    },
+    {
+      "run": "luna-v2-probe",
+      "summary": {
+        "providerCostUsd": 0.00245075,
+        "mode": "live",
+        "model": "openai/gpt-6-luna",
+        "policy": "strict",
+        "cases": 8,
+        "ai": 5,
+        "requests": 8,
+        "precision": 1,
+        "recall": 0.75,
+        "tp": 12,
+        "fp": 0,
+        "fn": 4,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 13586.125,
+        "costEstimateEur": 0.25527299999999997
+      }
+    },
+    {
+      "run": "luna-v2-full",
+      "summary": {
+        "concurrency": 4,
+        "providerCostUsd": 0.021882195000000007,
+        "mode": "live",
+        "model": "openai/gpt-6-luna",
+        "policy": "strict",
+        "cases": 80,
+        "ai": 75,
+        "requests": 80,
+        "precision": 1,
+        "recall": 0.8928571428571429,
+        "tp": 50,
+        "fp": 0,
+        "fn": 6,
+        "invalidAfterValidation": 0,
+        "structuredAskAccuracy": 1,
+        "languageScriptMismatches": 0,
+        "meanLatencyMs": 9483.725,
+        "costEstimateEur": 1.1810400000000003
+      }
+    }
+  ]
+}

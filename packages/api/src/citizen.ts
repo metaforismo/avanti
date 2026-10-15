@@ -1,3 +1,8 @@
+import { turnAcknowledgement } from "./turn-acknowledgement";
+import { appendConversationTurns } from "./conversation-messages";
+import { readConversationText } from "./conversation-routes";
+import { validateProposals, mergeProposals, pendingProposals } from "./conversation-state";
+import { readableAnswer } from "@avanti/core";
 import { and, eq, gt, like } from "drizzle-orm";
 import { observeAi } from "./operational-telemetry";
 import {
@@ -44,7 +49,7 @@ import {
 } from "./security";
 import { citizenView, audit, type CaseRow } from "./dossier";
 import { automaticAssistanceNotice } from "./disclosure";
-import { currentCitizenLink } from "./citizen-link";
+import { currentCitizenLink, lockCase } from "./citizen-link";
 import { body, parse, mutableCitizen, type App, type Services, type ApiContext } from "./context";
 
 import { visibleToCitizen } from "./document-visibility";
@@ -100,11 +105,6 @@ export async function createCase(
   });
   await audit(db, row, actor, "case.created", now, actorId);
   return { token, row };
-}
-async function lockCase(db: Database, row: CaseRow, now: Date) {
-  const fresh = await currentCitizenLink(db, row, now, true);
-  mutableCitizen(fresh);
-  return fresh;
 }
 async function touchCase(db: Database, row: CaseRow, now: Date) {
   const [updated] = await db
@@ -204,9 +204,12 @@ export function mountCitizenRoutes(app: App, s: Services) {
     return c.json(view);
   });
   app.post("/c/:token/turn", async (c) => {
-    const input = await body(c, IntakeTurn);
     const initial = c.get("citizen");
     mutableCitizen(initial);
+    const raw: unknown = await c.req.json().catch(() => null);
+    if (raw && typeof raw === "object" && "type" in raw && raw.type === "text")
+      await readConversationText(c, initial);
+    const input = await body(c, IntakeTurn);
     const proposal =
       input.type === "text"
         ? await observeAi(s, initial.organizationId, () =>
@@ -226,9 +229,35 @@ export function mountCitizenRoutes(app: App, s: Services) {
       const now = s.clock();
       if (proposal) assertProposalCurrent(initial, current);
       const { practiceId, answers, unavailablePractice } = applyTurn(current, input, proposal, now);
+      const candidate = { ...current, practiceId, answers };
+      const initialProposals =
+        proposal && input.type === "text" && !unavailablePractice
+          ? validateProposals(
+              candidate,
+              Object.entries(
+                proposal.practiceId === "isee_universitario"
+                  ? { ...proposal.answers, university: true }
+                  : proposal.answers,
+              ).map(([questionId, value]) => ({
+                questionId,
+                value,
+                confidence: Math.min(proposal.confidence, 0.7),
+                evidence: input.text,
+              })),
+              [input.text],
+              now,
+            )
+          : [];
       const [updated] = await tx
         .update(cases)
         .set({
+          conversationProposals: mergeProposals(
+            input.type === "choose_practice" && practiceId !== current.practiceId
+              ? []
+              : pendingProposals(candidate, s.clock()),
+            initialProposals,
+          ),
+          ...(proposal ? { conversationEngine: proposal.engine } : {}),
           practiceId,
           citizenRequestId: null,
           answers,
@@ -249,29 +278,62 @@ export function mountCitizenRoutes(app: App, s: Services) {
         null,
         { answersCount: Object.keys(answers).length, heuristic: proposal?.engine === "heuristic" },
       );
+      if (input.type === "answer" && practiceId) {
+        const question = getQuestions(practiceId, current.answers, current.language).find(
+          (q) => q.id === input.questionId,
+        );
+        if (question)
+          await appendConversationTurns(tx, current.id, now, [
+            {
+              role: "citizen",
+              kind: "confirmation",
+              questionId: question.id,
+              text: readableAnswer(answers[question.id]!, question, current.language),
+            },
+          ]);
+      }
       if (input.type === "text") {
-        await tx.insert(messages).values({
-          id: crypto.randomUUID(),
-          caseId: current.id,
-          role: "citizen",
-          text: input.text,
-          createdAt: now.toISOString(),
-        });
+        await appendConversationTurns(tx, current.id, now, [
+          { role: "citizen", text: input.text, kind: "message", questionId: null },
+        ]);
         const view = await citizenView(tx, updated, now);
-        await tx.insert(messages).values({
-          id: crypto.randomUUID(),
-          caseId: current.id,
-          role: "assistant",
-          text: assistantReply(
-            view,
-            proposal,
-            current.answers,
-            input.text,
-            current.practiceId,
-            unavailablePractice,
-          ),
-          createdAt: s.clock().toISOString(),
-        });
+        await appendConversationTurns(tx, current.id, now, [
+          {
+            role: "assistant",
+            text:
+              unavailablePractice || !proposal
+                ? assistantReply(
+                    view,
+                    proposal,
+                    current.answers,
+                    input.text,
+                    current.practiceId,
+                    unavailablePractice,
+                  )
+                : [
+                    turnAcknowledgement(
+                      {
+                        ...view,
+                        answers: {
+                          ...view.answers,
+                          ...Object.fromEntries(
+                            initialProposals.map((p) => [p.questionId, p.value]),
+                          ),
+                        },
+                      },
+                      proposal,
+                      current.answers,
+                      input.text,
+                      current.practiceId,
+                    ),
+                    assistantReply(view, null),
+                  ]
+                    .filter(Boolean)
+                    .join(" "),
+            kind: view.nextQuestion ? "question" : "summary",
+            questionId: view.nextQuestion?.id ?? null,
+          },
+        ]);
       }
       return { row: updated, unavailablePractice };
     });
