@@ -240,3 +240,37 @@ all'introduzione della funzione richiedono una nuova richiesta di integrazione.
 
 Questa modifica fornisce contratti e API per i controlli della console; la disponibilità
 dei pulsanti dipende dall'integrazione dell'interfaccia.
+
+## Dopo l'invio: indicazioni e ricevuta
+
+Per ogni sportello l'admin può configurare indirizzo, orari brevi, telefono,
+link HTTPS al sistema di prenotazione del CAF e una nota breve, per esempio
+«Porta gli originali dei documenti d'identità». Sono indicazioni pubbliche:
+non inserire informazioni dei cittadini. Sono tutte facoltative; indirizzo
+vuoto e gli altri campi vuoti/null non devono mostrare indicazioni inventate.
+Il nome e la città dello sportello restano necessari alla creazione.
+
+Questi dati sono disponibili nell'API sia all'ingresso dello sportello sia
+nella pratica inviata. Il cittadino deve poter capire come contattarvi o
+prenotare, dove andare e cosa portare. Mantenete orari e destinazione aggiornati:
+Avanti non verifica il sito e non prenota appuntamenti. Le modifiche conservano
+il link e il QR già stampati. I testi liberi restano nella lingua in cui li
+scrivete; non vengono tradotti automaticamente.
+
+L'impostazione admin `notifyCitizenSubmission` abilita una ricevuta al primo
+invio del fascicolo. È spenta per default per limitare ciò che può comparire in
+una casella condivisa; abilitatela dopo aver valutato l'uso dell'email e
+l'informativa del servizio. Chi non lascia l'email prosegue normalmente.
+
+La ricevuta è nella lingua scelta dal cittadino, con numero di riferimento,
+nome dello sportello e spiegazione del passaggio successivo. Non contiene link:
+invita a consultare la pagina della pratica già salvata per le indicazioni di
+prenotazione, gli orari e cosa portare, oppure a chiedere allo sportello.
+L'invio del fascicolo non equivale a prenotare o a concludere la pratica.
+Reinvii per integrazioni e riaperture non mandano altre ricevute, nemmeno se
+l'email è stata aggiunta dopo o l'opzione è stata appena abilitata. Disattivare
+l'opzione annulla le ricevute ancora in attesa. In locale gli invii sono
+simulati; lo stato `sent` indica l'accettazione del provider, non la lettura.
+
+Questa modifica backend fornisce contratti e API; i controlli visuali e i moduli
+per queste nuove indicazioni sono gestiti nell'interfaccia in parallelo.

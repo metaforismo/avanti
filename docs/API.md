@@ -610,3 +610,81 @@ elenco documenti o contenuto della richiesta. Nel dossier `timeline` riporta
 produce `citizen.reminder_simulated` («Invio promemoria simulato»). Nessun invio viene
 annotato prima della conferma del dispatcher; il promemoria non modifica `updatedAt`
 e non sposta la pratica in coda.
+
+## Indicazioni dello sportello e ricevuta del primo invio
+
+`OfficeInput`, `UpdateOfficeRequest` e `Office` aggiungono `bookingUrl` e
+`citizenNote`. La modifica del contratto è necessaria per condividere con la UI le
+indicazioni dello sportello e la preferenza della ricevuta. Il backend restituisce
+sempre i nuovi campi, anche quando valgono `null`; nel DTO `Office` sono opzionali
+per compatibilità con i consumatori precedenti.
+
+Nome e città restano obbligatori alla creazione. L'indirizzo è ora omissibile
+(default `""`, anche per cancellarlo); `phone`, `openingHours`, `bookingUrl` e
+`citizenNote` sono omissibili o `null`. Un PATCH conserva ogni campo omesso,
+compreso l'indirizzo. I limiti sono: indirizzo 200 caratteri su una riga, telefono
+30 su una riga, orari 200 e nota 300 anche su più righe. Si applicano `SafeName` e
+`SafeText` esistenti. Questi contenuti sono pubblici, inseriti dal CAF e non
+tradotti automaticamente.
+
+`bookingUrl` accetta al massimo 2048 caratteri dopo trim: URL assoluto con
+prefisso `https://`, host valido, senza credenziali, spazi interni, controlli o
+backslash. Nessun redirect o fetch server; HTTPS non certifica l'affidabilità
+della destinazione. Il frontend deve identificare la destinazione esterna e
+trattare tutti gli altri campi come testo, secondo [SECURITY.md](SECURITY.md).
+
+```http
+PATCH /api/offices/office-id
+Content-Type: application/json
+
+{
+  "address": "Via Roma 10",
+  "openingHours": "Lun–Ven 9–13; pomeriggio su appuntamento",
+  "phone": "+39 06 123456",
+  "bookingUrl": "https://prenota.example.test/sede",
+  "citizenNote": "Porta gli originali dei documenti d'identità"
+}
+```
+
+Solo l'admin del CAF proprietario può modificare questi campi; un altro CAF
+riceve 404, un operatore senza ruolo admin 403. Lo slug e i QR restano invariati.
+`GET /offices/:slug` e `CitizenCase.office` (anche nella risposta di
+`POST /c/:token/submit` e nelle letture successive) restituiscono le stesse
+indicazioni aggiornate. Nessuna prenotazione è creata da Avanti.
+
+```http
+PATCH /api/settings
+Content-Type: application/json
+
+{ "notifyCitizenSubmission": true }
+```
+
+`OrganizationSettings.notifyCitizenSubmission` è un booleano, **false per
+default**, anche senza una riga `settings`. Un PATCH che lo omette lo conserva.
+Se abilitato al primo invio e il contatto contiene un'email, la transazione di
+submit accoda `citizen_submission`; dopo il commit si programma il dispatcher
+esistente. Il corpo include soltanto riferimento, nome dello sportello e cosa
+succede adesso in una delle otto lingue del cittadino. Non contiene URL, token,
+tipo di pratica, nomi o note del cittadino, dati dei documenti, recapiti o note
+libere dello sportello. La punteggiatura di indirizzi web/email nel nome dello
+sportello è resa spazio per impedire gli autolink dei client email.
+
+Esempio del corpo italiano:
+
+```text
+Riferimento della pratica: AV-2027-000123
+
+Sportello: Roma Centro
+
+Lo sportello controllerà il fascicolo. L'invio non prenota un appuntamento e non conclude la pratica. Apri la pagina della pratica che hai salvato per trovare le indicazioni dello sportello su prenotazione, orari e cosa portare. Se non trovi queste indicazioni, chiedi allo sportello come proseguire.
+```
+
+Un reinvio dopo un'integrazione o una riapertura non genera altre ricevute,
+anche se la precedente è già stata eliminata dalla retention dell'outbox. Non
+ci sono invii retroattivi abilitando l'opzione o aggiungendo un'email dopo il
+primo invio. Richieste concorrenti producono un solo submit riuscito; la seconda
+riceve 409 con il consueto `ApiError`. Senza email o con opzione spenta il submit
+riesce senza accodare nulla. Un errore nell'accodamento annulla anche submit e
+audit. Prima della consegna si ricontrollano preferenza del CAF, lingua,
+contatto e scadenza: se cambiano, la ricevuta pendente è annullata. Retry,
+simulazione locale e idempotenza del provider seguono l'outbox esistente.

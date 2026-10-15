@@ -15,6 +15,7 @@ import {
   offices,
   operators,
   organizations,
+  rateLimits,
   sessions,
   settings,
   type Database,
@@ -36,16 +37,19 @@ import {
   enqueueCitizen,
   enqueueDigests,
   enqueueNotification,
+  enqueueSubmissionReceipt,
   maintainNotifications,
   NOTIFICATION_BATCH,
   scheduleNotificationDelivery,
   sendNotifications,
 } from "./notifications";
 import { citizenNotification } from "./notification-copy";
+import { submissionReceipt } from "./submission-receipt";
 
 const initial = "2027-01-15T10:00:00.000Z";
 const origin = "http://localhost:3400";
 const sessionToken = "o".repeat(43);
+const citizenToken = "c".repeat(43);
 let db: Database, close: () => Promise<void>, now: Date, s: Services;
 let options: NotificationOptions;
 let send: ReturnType<typeof vi.fn<(delivery: Delivery) => Promise<void>>>;
@@ -69,7 +73,9 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   // system_jobs holds the cron lock: every test restarts the clock, so a stale run would skip it.
-  await db.execute(sql`truncate organizations, leads, notifications, system_jobs cascade`);
+  await db.execute(
+    sql`truncate organizations, leads, notifications, system_jobs, rate_limits cascade`,
+  );
   now = new Date(initial);
   logs = [];
   send = vi.fn(async (_delivery: Delivery) => {});
@@ -89,6 +95,7 @@ beforeEach(async () => {
     notifications: options,
     mfa: mfaCipher({ key: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }),
     cronSecret: "test-cron",
+    rateLimitSecret: "test-receipt-rate-secret",
     errorLogger: (record) => logs.push(record),
     logger: (record) => logs.push(record),
   };
@@ -160,7 +167,7 @@ async function fixture(email: string | undefined = "citizen@example.test") {
       organizationId: "a",
       officeId: "office",
       reference: "AV-2027-TEST",
-      tokenHash: hashToken("case-link"),
+      tokenHash: hashToken(citizenToken),
       practiceId: "isee_ordinario",
       language: "it",
       status: "in_review",
@@ -851,4 +858,304 @@ it("terminal provider rejection fails without repeated attempts", async () => {
     attempts: 1,
     lastError: "provider_rejected",
   });
+});
+
+async function prepareSubmission(language: Language = "it") {
+  const row = await fixture();
+  const answers: Record<string, AnswerValue> = {
+    ...row.answers,
+    account_owner_0: "m_richiedente_0",
+    properties_count: 0,
+    vehicles_count: 0,
+    housing: "hosted",
+    income_present_m_richiedente_0: false,
+  };
+  for (let pass = 0; pass < 10; pass++) {
+    const missing = getQuestions("isee_ordinario", answers, language).filter(
+      (q) => !Object.hasOwn(answers, q.id),
+    );
+    if (!missing.length) break;
+    for (const question of missing) {
+      expect(question.kind, question.id).toBe("yes_no");
+      answers[question.id] = false;
+    }
+  }
+  await db
+    .update(cases)
+    .set({ status: "intake", language, answers, confirmedAnswers: Object.keys(answers) })
+    .where(eq(cases.id, row.id));
+  return row;
+}
+const submission = (email: string | undefined = "citizen@example.test") => ({
+  confirmed: true,
+  contact: { firstName: "Persona", lastName: "Riservata", ...(email ? { email } : {}) },
+  note: "Testo personale da escludere dalle email",
+});
+async function enableReceipts() {
+  await db
+    .update(settings)
+    .set({ notifyCitizenSubmission: true })
+    .where(eq(settings.organizationId, "a"));
+}
+
+for (const language of Language.options) {
+  it(`${language}: first submission atomically queues a minimal localized receipt after commit`, async () => {
+    const jobs = captureBackground();
+    const row = await prepareSubmission(language);
+    await enableReceipts();
+    await db.update(offices).set({
+      bookingUrl: "https://booking.example.test",
+      citizenNote: "Nota privata dello sportello",
+    });
+    const response = await request(`/c/${citizenToken}/submit`, "POST", submission());
+    expect(response.status, JSON.stringify(await response.clone().json())).toBe(200);
+    expect(await response.json()).toMatchObject({
+      status: "submitted",
+      office: {
+        bookingUrl: "https://booking.example.test",
+        citizenNote: "Nota privata dello sportello",
+      },
+    });
+    const [notice] = await db.select().from(notifications);
+    expect(notice).toMatchObject({
+      kind: "citizen_submission",
+      language,
+      organizationId: "a",
+      caseId: row.id,
+      dedupeKey: `citizen_submission:${row.id}`,
+    });
+    const mail = envelope(notice!);
+    expect(mail).toEqual({
+      to: "citizen@example.test",
+      from: options.from,
+      ...submissionReceipt(language, row.reference, "Sportello"),
+    });
+    expect(mail.text).toContain(row.reference);
+    expect(mail.text).toContain("Sportello");
+    expect(mail.text).not.toMatch(
+      /Persona|Riservata|personale|Banca|ISEE|isee|https?:|www\.|case-link|\/pratica\/|Nota privata/,
+    );
+    expect(mail.subject).not.toContain(row.reference);
+    expect(jobs).toHaveLength(1);
+    expect(send).not.toHaveBeenCalled();
+    await Promise.all([jobs[0]!(), jobs[0]!()]);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(logs)).not.toMatch(/Persona|Riservata|citizen@example|AV-2027/);
+    if (language !== "it") expect(mail.text).not.toContain("Lo sportello controllerà");
+    if (language === "uk") expect(mail.text).toContain("Ваш");
+    if (language === "bn") expect(mail.text).toContain("আপনার");
+  });
+}
+
+it("submission receipts are off by default, tenant-scoped, and not backfilled on resubmission", async () => {
+  captureBackground();
+  await prepareSubmission();
+  await db.insert(settings).values({ organizationId: "b", notifyCitizenSubmission: true });
+  expect((await (await request("/settings")).json()).notifyCitizenSubmission).toBe(false);
+  expect((await request("/settings", "PATCH", { notifyCitizenSubmission: "true" })).status).toBe(
+    400,
+  );
+  expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(200);
+  expect(await db.select().from(notifications)).toHaveLength(0);
+  expect((await request("/settings", "PATCH", { notifyCitizenSubmission: true })).status).toBe(200);
+  expect(await (await request("/settings", "PATCH", { linkDays: 7 })).json()).toMatchObject({
+    notifyCitizenSubmission: true,
+  });
+  await db.update(cases).set({ status: "needs_citizen" });
+  expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(200);
+  expect(await db.select().from(notifications)).toHaveLength(0);
+});
+
+it("no email on first submission means no receipt, even if added on resubmission", async () => {
+  const jobs = captureBackground();
+  await prepareSubmission();
+  await enableReceipts();
+  expect((await request(`/c/${citizenToken}/submit`, "POST", submission(""))).status).toBe(200);
+  expect(await db.select().from(notifications)).toHaveLength(0);
+  expect(jobs).toHaveLength(0);
+  await db.update(cases).set({ status: "needs_citizen" });
+  expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(200);
+  expect(await db.select().from(notifications)).toHaveLength(0);
+});
+
+it("concurrent submissions queue one receipt; reinvios and outbox cleanup cannot create another", async () => {
+  const jobs = captureBackground();
+  const row = await prepareSubmission();
+  await enableReceipts();
+  const responses = await Promise.all([
+    request(`/c/${citizenToken}/submit`, "POST", submission()),
+    request(`/c/${citizenToken}/submit`, "POST", submission()),
+  ]);
+  expect(responses.map((r) => r.status).sort()).toEqual([200, 409]);
+  expect(await db.select().from(notifications)).toHaveLength(1);
+  expect(jobs).toHaveLength(1);
+  await jobs[0]!();
+  await db.update(cases).set({ status: "needs_citizen" });
+  expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(200);
+  expect(await db.select().from(notifications)).toHaveLength(1);
+  await db.delete(notifications);
+  await db.update(cases).set({ status: "intake" });
+  expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(200);
+  expect(await db.select().from(notifications)).toHaveLength(0);
+  expect(new Date((await db.select().from(cases))[0]!.submittedAt!).toISOString()).toBe(initial);
+  expect(row.reference).toBe("AV-2027-TEST");
+});
+
+async function receiptCase(email: string, organizationId = "a") {
+  const [template] = await db.select().from(cases).where(eq(cases.id, "case"));
+  const id = crypto.randomUUID();
+  const [row] = await db
+    .insert(cases)
+    .values({
+      ...template!,
+      id,
+      reference: id,
+      tokenHash: hashToken(id),
+      organizationId,
+      officeId: organizationId === "a" ? "office" : "office-b",
+      contact: { firstName: "Persona", lastName: "Riservata", email },
+    })
+    .returning();
+  return db.transaction((tx) => enqueueSubmissionReceipt(tx, s, row!));
+}
+
+it("suppresses the third receipt globally across tenants without blocking submission", async () => {
+  const jobs = captureBackground();
+  await prepareSubmission();
+  await enableReceipts();
+  await db.insert(settings).values({ organizationId: "b", notifyCitizenSubmission: true });
+  await db.insert(offices).values({
+    id: "office-b",
+    organizationId: "b",
+    slug: "other-receipts",
+    name: "Altro sportello",
+    city: "Roma",
+    address: "Via Test",
+  });
+  expect(await receiptCase("citizen@example.test")).toBeTypeOf("string");
+  expect(await receiptCase("citizen@example.test", "b")).toBeTypeOf("string");
+  const response = await request(`/c/${citizenToken}/submit`, "POST", submission());
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({ status: "submitted" });
+  expect(await db.select().from(notifications)).toHaveLength(2);
+  expect(
+    (await db.select().from(cases).where(eq(cases.id, "case")))[0]!.submittedAt,
+  ).not.toBeNull();
+  expect(jobs).toHaveLength(0);
+  expect((await db.select().from(rateLimits))[0]).toMatchObject({ count: 3 });
+  expect(JSON.stringify(logs)).not.toContain("citizen@example.test");
+});
+
+it("normalizes receipt recipients, keeps independent HMAC counters, and expires at 24 hours", async () => {
+  await fixture();
+  await enableReceipts();
+  expect(await receiptCase("Citizen@EXAMPLE.test")).toBeTypeOf("string");
+  expect(await receiptCase("citizen@example.test")).toBeTypeOf("string");
+  now = new Date(Date.parse(initial) + 86400_000 - 1);
+  expect(await receiptCase("  CITIZEN@example.test  ")).toBeUndefined();
+  expect(await receiptCase("other@example.test")).toBeTypeOf("string");
+  expect(await receiptCase("other@example.test")).toBeTypeOf("string");
+  expect(await receiptCase("other@example.test")).toBeUndefined();
+  const counters = await db.select().from(rateLimits);
+  expect(counters).toHaveLength(2);
+  expect(counters.map((row) => row.count)).toEqual([3, 3]);
+  expect(counters.every((row) => /^[a-f0-9]{64}$/.test(row.key))).toBe(true);
+  expect(JSON.stringify(counters)).not.toMatch(/citizen|other|example|@/i);
+  now = new Date(Date.parse(initial) + 86400_000);
+  expect(await receiptCase("citizen@example.test")).toBeTypeOf("string");
+  expect((await db.select().from(rateLimits)).map((row) => row.count).sort()).toEqual([1, 3]);
+  expect(await db.select().from(notifications)).toHaveLength(5);
+});
+
+it.each([
+  ["Vittima+1@EXAMPLE.test", "vittima+2@example.test", "vittima@example.test"],
+  ["V.Ittima+1@GoogleMail.com", "vit.tima+2@gmail.com", "vittima@gmail.com"],
+])("receipt aliases share a budget and preserve delivery addresses: %s", async (...aliases) => {
+  await fixture();
+  await enableReceipts();
+  expect(await receiptCase(aliases[0])).toBeTypeOf("string");
+  expect(await receiptCase(aliases[1])).toBeTypeOf("string");
+  expect(await receiptCase(aliases[2])).toBeUndefined();
+  const queued = await db.select().from(notifications);
+  expect(queued).toHaveLength(2);
+  expect(
+    queued.map((row) => unseal(options, `${row.id}:${row.kind}:${row.language}`, row.envelope!).to),
+  ).toEqual(expect.arrayContaining(aliases.slice(0, 2)));
+  expect(await db.select().from(rateLimits)).toMatchObject([{ count: 3 }]);
+  const domain = aliases[2].split("@")[1]!;
+  expect(await receiptCase(`other@${domain}`)).toBeTypeOf("string");
+});
+
+it("concurrent receipts for different cases share the atomic recipient budget", async () => {
+  await fixture();
+  await enableReceipts();
+  const ids = await Promise.all(
+    Array.from({ length: 5 }, (_, index) => receiptCase(`citizen+${index}@example.test`)),
+  );
+  expect(ids.filter(Boolean)).toHaveLength(2);
+  expect(await db.select().from(notifications)).toHaveLength(2);
+  expect((await db.select().from(rateLimits))[0]).toMatchObject({ count: 5 });
+});
+
+it("receipt encryption failure rolls back submission and audit and schedules no delivery", async () => {
+  const jobs = captureBackground();
+  await prepareSubmission();
+  await enableReceipts();
+  s.notifications = { ...options, key: Buffer.alloc(1) };
+  expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(500);
+  expect((await db.select().from(cases))[0]).toMatchObject({ status: "intake", submittedAt: null });
+  expect(await db.select().from(events)).toHaveLength(0);
+  expect(await db.select().from(notifications)).toHaveLength(0);
+  expect(await db.select().from(rateLimits)).toHaveLength(0);
+  expect(jobs).toHaveLength(0);
+});
+
+it.each(["preference", "language", "email", "expired"])(
+  "pending receipt cancels after %s changes",
+  async (change) => {
+    captureBackground();
+    await prepareSubmission();
+    await enableReceipts();
+    expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(200);
+    if (change === "preference") await db.update(settings).set({ notifyCitizenSubmission: false });
+    if (change === "language") await db.update(cases).set({ language: "en" });
+    if (change === "email")
+      await db.update(cases).set({ contact: { firstName: "Persona", lastName: "Riservata" } });
+    if (change === "expired") await db.update(cases).set({ expiresAt: initial });
+    await sendNotifications(s, now);
+    expect(send).not.toHaveBeenCalled();
+    expect((await db.select().from(notifications))[0]).toMatchObject({
+      state: "cancelled",
+      envelope: null,
+    });
+  },
+);
+
+it("receipt association cannot cross tenants", async () => {
+  const row = await prepareSubmission();
+  await expect(
+    enqueueNotification(
+      db,
+      options,
+      {
+        kind: "citizen_submission",
+        language: "it",
+        organizationId: "b",
+        caseId: row.id,
+        dedupeKey: "foreign-receipt",
+        to: row.contact!.email!,
+        email: submissionReceipt("it", row.reference, "Altro sportello"),
+      },
+      now,
+    ),
+  ).rejects.toThrow();
+});
+
+it("even an office named after a URL cannot insert clickable addresses in a receipt", () => {
+  const mail = submissionReceipt(
+    "it",
+    "AV-2027-TEST",
+    "https://evil.example/a www.example.test mail@evil.test evil。test",
+  );
+  expect(mail.text).not.toMatch(/https?:|www\.|@|evil[.。]test/);
 });

@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import type { Office, OfficeInput } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Textarea } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useOperator } from "@/lib/console/operator-context";
 import { focusFirstError, text } from "@/lib/validation";
@@ -95,6 +95,8 @@ function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () =>
       city: text(data.get("city")),
       phone: text(data.get("phone")) || null,
       openingHours: text(data.get("openingHours")) || null,
+      bookingUrl: text(data.get("bookingUrl")) || null,
+      citizenNote: text(data.get("citizenNote")) || null,
     };
     const next: typeof errors = {};
     if (input.name.length < 2) next.name = "Scrivi il nome dello sportello.";
@@ -102,6 +104,8 @@ function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () =>
       next.name = "C'è già uno sportello con questo nome.";
     if (input.address.length < 2) next.address = "Scrivi l'indirizzo.";
     if (input.city.length < 2) next.city = "Scrivi la città.";
+    if (input.bookingUrl && !/^https:\/\/[^\s/]+\.[^\s]+$/i.test(input.bookingUrl))
+      next.bookingUrl = "Incolla l'indirizzo completo, che inizia con https://";
     setErrors(next);
     if (focusFirstError(event.currentTarget, next)) return;
     setPending(true);
@@ -161,6 +165,40 @@ function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () =>
             name="openingHours"
             defaultValue={office?.openingHours ?? ""}
             autoComplete="off"
+          />
+        )}
+      </Field>
+      <Field
+        label="Link per prenotare l'appuntamento"
+        optional="facoltativo"
+        hint="La pagina del vostro sistema di prenotazione: il cittadino la vede dopo l'invio."
+        error={errors.bookingUrl}
+      >
+        {(p) => (
+          <Input
+            {...p}
+            name="bookingUrl"
+            type="url"
+            inputMode="url"
+            placeholder="https://"
+            defaultValue={office?.bookingUrl ?? ""}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        )}
+      </Field>
+      <Field
+        label="Nota per il cittadino"
+        optional="facoltativo"
+        hint="Breve, in italiano: per esempio «Porta gli originali dei documenti d'identità»."
+      >
+        {(p) => (
+          <Textarea
+            {...p}
+            name="citizenNote"
+            rows={2}
+            maxLength={300}
+            defaultValue={office?.citizenNote ?? ""}
           />
         )}
       </Field>

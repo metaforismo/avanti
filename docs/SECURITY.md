@@ -456,3 +456,69 @@ TOTP non resiste al phishing in tempo reale; resta necessaria la protezione dell
 sessione. È una misura nel quadro di sicurezza richiesto dall'
 [art. 32 GDPR](https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita), che richiede misure
 adeguate al rischio: questa implementazione da sola non certifica la conformità.
+
+## Link di prenotazione esterno e ricevuta invio (15 ottobre 2026)
+
+L'admin del CAF può pubblicare per ogni sportello un `bookingUrl` HTTPS assoluto
+(max 2048 caratteri), senza credenziali, spazi interni, controlli o backslash.
+Schemi `javascript:`, `data:`, HTTP, URL relativi e protocol-relative sono rifiutati
+con `ApiError`. I campi descrittivi seguono le regole `SafeText`/`SafeName` e i
+limiti documentati nell'API; restano testo, mai HTML. Lo slug pubblico espone
+queste indicazioni intenzionalmente: non inserire dati dei cittadini nelle note,
+negli orari, nei recapiti o nel link di prenotazione.
+
+Il link porta al sistema del CAF e Avanti non lo scarica, non lo verifica via
+rete, non lo incorpora e non crea appuntamenti. HTTPS protegge il trasporto,
+non attesta il gestore del sito. La UI deve mostrare che la destinazione è
+esterna, permetterne la lettura prima di aprirla e usare `rel="noopener
+noreferrer"` se apre una nuova scheda; usare una policy `no-referrer` per non
+trasmettere il token presente nell'URL della pratica. Non aggiungere token,
+riferimenti o dati del cittadino al link. Il server non segue redirect, quindi
+questa configurazione non apre un fetch SSRF. Le mutazioni restano soggette ad
+auth admin, CSRF, lock del tenant e predicato organizzazione; lo slug non è
+un'autorizzazione di scrittura.
+
+La ricevuta `citizen_submission` è **spenta per default**. Il rapporto con un
+CAF può essere visibile a chi accede alla casella: il responsabile abilita il
+canale dopo averne valutato l'uso nel servizio e nell'informativa esistente.
+Questa è una scelta di minimizzazione del prodotto; non introduce un consenso
+generale. Senza email lasciata dal cittadino non viene ricavato alcun recapito.
+
+La ricevuta non include link, neppure il link di prenotazione, né testi liberi
+dello sportello o del cittadino. Include riferimento, nome pubblico dello
+sportello e istruzioni generiche localizzate. Nel nome dello sportello la
+punteggiatura che può generare autolink viene sostituita da spazi. Cifratura,
+retention, tentativi e pulizia dell'outbox restano quelli già descritti. La
+preferenza viene ricontrollata prima di inviare; rimozione/modifica del contatto,
+cambio lingua e scadenza annullano gli invii pendenti. I log non contengono
+riferimenti, indirizzi email, contenuti o URL di prenotazione.
+
+L'indirizzo digitato dal cittadino non è verificato: uno script potrebbe inviare
+pratiche per far recapitare ricevute a terzi e danneggiare la reputazione del
+mittente. Prima dell'accodamento si applica un limite globale di **2 ricevute per
+casella canonica ogni 24 ore**, condiviso da tutti i CAF. La finestra fissa parte dal primo
+accodamento ammesso e scade dopo 24 ore; il controllo atomico e l'outbox partecipano
+alla transazione di submit. La terza ricevuta e le successive vengono soppresse
+senza errore al cittadino: la pratica viene comunque inviata.
+
+Il bucket in `rate_limits` usa HMAC-SHA-256 con `RATE_LIMIT_SECRET`, dominio distinto
+e indirizzo canonico: spazi esterni rimossi, lettere minuscole, dominio senza punto
+finale e parte locale senza `+suffisso` per tutti i domini. Solo per `gmail.com` e
+`googlemail.com` si rimuovono anche i punti dalla parte locale e si mappa
+`googlemail.com` a `gmail.com`. Questa normalizzazione riguarda esclusivamente la
+chiave del limite: il destinatario nell'outbox e nell'invio resta quello digitato.
+Il bucket non contiene email in chiaro, ID pratica o organizzazione. Il contatore include i tentativi soppressi
+(`count > 2`); i bucket scaduti vengono rimossi dalla manutenzione esistente.
+Il fallback senza configurazione usa lo stesso segreto casuale di processo degli
+altri rate limit locali; in produzione il segreto stabile è obbligatorio.
+Il limite riduce l'abuso verso la stessa casella, senza verificare il possesso
+né impedire invii distribuiti su molti indirizzi o alias diversi da quelli descritti.
+La rimozione di `+suffisso` è una scelta conservativa antiabuso anche sui domini
+che potrebbero trattare tali indirizzi come caselle distinte. Non si aggiunge un
+budget per dominio: anche quelli non comuni possono ospitare molti utenti legittimi;
+una quota condivisa consentirebbe di esaurire il budget per tutti loro. I test
+`canonical-mailbox.test.ts` e `notifications.test.ts` coprono normalizzazione,
+budget condiviso tra alias (anche concorrenti) e destinatario originale nell'outbox.
+Gli altri avvisi al cittadino
+restano collegati all'azione dell'operatore; i promemoria richiedono una sua
+precedente richiesta di integrazione.

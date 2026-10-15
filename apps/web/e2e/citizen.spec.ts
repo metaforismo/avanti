@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, request, test, type Page } from "@playwright/test";
 import type { Language } from "@avanti/contracts";
 import { LANGUAGES } from "@avanti/contracts/constants";
 import { messagesFor } from "../src/lib/citizen/messages";
@@ -54,7 +54,26 @@ async function startCase(page: Page, story?: string, language: Language = "it") 
   return token;
 }
 
+/** Sets the demo office's booking link and note as its admin would, in a separate session. */
+async function setOfficeNextSteps(bookingUrl: string | null, citizenNote: string | null) {
+  const baseURL = test.info().project.use.baseURL!;
+  const admin = await request.newContext({ baseURL, extraHTTPHeaders: origin() });
+  const login = await admin.post("/api/auth/login", {
+    data: { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" },
+  });
+  expect(login.ok(), await login.text()).toBeTruthy();
+  const office = (await (await admin.get("/api/offices/demo-milano-centro")).json()) as {
+    office: { id: string };
+  };
+  const updated = await admin.patch(`/api/offices/${office.office.id}`, {
+    data: { bookingUrl, citizenNote },
+  });
+  expect(updated.ok(), await updated.text()).toBeTruthy();
+  await admin.dispose();
+}
+
 test("a citizen goes from the office QR to a submitted dossier", async ({ page }) => {
+  await setOfficeNextSteps("https://prenota.example.it/milano", "Porta gli originali.");
   await page.goto("/s/demo-milano-centro");
   await expect(page.getByRole("banner").getByText("CAF Demo Milano")).toBeVisible();
   await expect(page.getByText(/assistente automatico/)).toBeVisible();
@@ -106,6 +125,12 @@ test("a citizen goes from the office QR to a submitted dossier", async ({ page }
     page.getByRole("heading", { name: "Fatto. La pratica è allo sportello." }),
   ).toBeVisible();
   await expect(page.getByText(/AV-\d{4}-\d{6}/)).toBeVisible();
+  // What to do next: the office's own booking site, opened without a referrer, and its note.
+  const book = page.getByRole("link", { name: /Prenota l'appuntamento/ });
+  await expect(book).toHaveAttribute("href", "https://prenota.example.it/milano");
+  await expect(book).toHaveAttribute("rel", /noreferrer/);
+  await expect(page.getByText("Porta gli originali.")).toBeVisible();
+  await setOfficeNextSteps(null, null);
 });
 
 test("an invalid link explains what to do", async ({ page }) => {

@@ -556,6 +556,7 @@ describe("organization administration", () => {
       linkDays: 60,
       retentionDays: 180,
       notifyCitizenReady: false,
+      notifyCitizenSubmission: false,
       notifyOperatorDigest: false,
       notifyCitizenReminders: false,
       citizenReminderDays: [3, 4],
@@ -583,6 +584,7 @@ describe("organization administration", () => {
       linkDays: 7,
       retentionDays: 90,
       notifyCitizenReady: false,
+      notifyCitizenSubmission: false,
       notifyOperatorDigest: false,
       notifyCitizenReminders: false,
       citizenReminderDays: [3, 4],
@@ -1015,4 +1017,94 @@ it("citizen member edits align count and preserve surviving identities, document
   });
   expect(added.status).toBe(200);
   expect(CitizenCase.parse(await added.json()).answers.household_count).toBe(3);
+});
+
+it("admin next steps stay tenant-scoped and reach public and submitted citizen views", async () => {
+  const input = {
+    name: "Centro informazioni",
+    city: "Roma",
+    openingHours: "Lun–Ven 9–13\nSab su appuntamento",
+    phone: "+39 06 123456",
+    bookingUrl: "https://prenota.example.test/sede?servizio=caf",
+    citizenNote: "Porta gli originali dei documenti d'identità",
+  };
+  await fails(await request("/offices", "POST", input, normal), 403, "forbidden");
+  const created = await request("/offices", "POST", input, admin);
+  expect(created.status).toBe(201);
+  const office = Office.parse(await created.json());
+  expect(office).toMatchObject({ ...input, address: "" });
+  const changed = { address: "Via Roma 10", citizenNote: "Porta gli originali" };
+  await fails(await request(`/offices/${office.id}`, "PATCH", changed, foreign), 404, "not_found");
+  await fails(await request(`/offices/${office.id}`, "PATCH", changed, normal), 403, "forbidden");
+  expect((await request(`/offices/${office.id}`, "PATCH", changed, admin)).status).toBe(200);
+  // Defaults on create must not clear an address during an unrelated PATCH.
+  expect((await request(`/offices/${office.id}`, "PATCH", { phone: null }, admin)).status).toBe(
+    200,
+  );
+  const expected = { ...input, ...changed, phone: null };
+  expect((await (await request(`/offices/${office.slug}`)).json()).office).toMatchObject(expected);
+  const token = newToken();
+  await caseFixture("next-steps", {
+    officeId: office.id,
+    tokenHash: hashToken(token),
+    status: "submitted",
+    submittedAt: initial,
+  });
+  const response = await request(`/c/${token}`);
+  expect(response.status).toBe(200);
+  const view = CitizenCase.parse(await response.json());
+  expect(view.office).toMatchObject(expected);
+  expect(
+    (
+      await request(
+        `/offices/${office.id}`,
+        "PATCH",
+        { bookingUrl: null, citizenNote: null, address: "", openingHours: null },
+        admin,
+      )
+    ).status,
+  ).toBe(200);
+  expect((await (await request(`/offices/${office.slug}`)).json()).office).toMatchObject({
+    bookingUrl: null,
+    citizenNote: null,
+    address: "",
+    openingHours: null,
+  });
+  expect(JSON.stringify(logs)).not.toContain(input.bookingUrl);
+});
+
+it.each([
+  "javascript:alert(1)",
+  "data:text/html,test",
+  "http://example.test",
+  "//example.test",
+  "https:example.test",
+  "https://user:secret@example.test",
+  "https://example.test\\@evil.test",
+  "https://example.test/\nnext",
+  "https://example.test/\u202Etxt",
+  "https://",
+  "not a URL",
+  `https://example.test/${"x".repeat(2048)}`,
+])("rejects hostile booking URL %s on both office mutations", async (bookingUrl) => {
+  const input = { name: "Centro", city: "Roma", bookingUrl };
+  await fails(await request("/offices", "POST", input, admin), 400, "bad_request");
+  await fails(
+    await request("/offices/office-a", "PATCH", { bookingUrl }, admin),
+    400,
+    "bad_request",
+  );
+  expect(
+    (await db.select().from(offices).where(eq(offices.id, "office-a")))[0]!.bookingUrl,
+  ).toBeNull();
+});
+
+it.each([
+  { citizenNote: "x".repeat(301) },
+  { openingHours: "x".repeat(201) },
+  { citizenNote: "test\u0000" },
+  { address: "test\naddress" },
+  { phone: "x".repeat(31) },
+])("validates next-step text with existing safe-text rules: %j", async (input) => {
+  await fails(await request("/offices/office-a", "PATCH", input, admin), 400, "bad_request");
 });

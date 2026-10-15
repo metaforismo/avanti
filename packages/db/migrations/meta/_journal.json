@@ -92,6 +92,13 @@
       "when": 1792058651060,
       "tag": "0012_quick_replies_citizen_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792065454480,
+      "tag": "0013_office_next_steps_submission_receipt",
+      "breakpoints": true
     }
   ]
 }

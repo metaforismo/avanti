@@ -1,7 +1,9 @@
 import { and, asc, eq, gt, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
 import {
   cases,
+  consumeRateLimit,
   notifications,
+  offices,
   operators,
   organizations,
   settings,
@@ -17,6 +19,9 @@ import { seal, unseal, type Envelope, type NotificationOptions } from "./notific
 import { audit } from "./dossier";
 import { reminderNotification } from "./reminder-copy";
 import { DeliveryFailure } from "./email";
+import { submissionReceipt } from "./submission-receipt";
+import { rateKey, rateLimitSecret } from "./rate-limit-key";
+import { canonicalMailbox } from "./canonical-mailbox";
 
 export const NOTIFICATION_ATTEMPTS = 5;
 export const NOTIFICATION_BATCH = 5;
@@ -125,6 +130,50 @@ export async function enqueueCitizen(
   );
 }
 
+/** Called only in the transaction that records the first submission. */
+export async function enqueueSubmissionReceipt(db: Database, s: Services, row: CaseRow) {
+  if (!row.contact?.email) return;
+  const [prefs] = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.organizationId, row.organizationId));
+  if (!prefs?.notifyCitizenSubmission) return;
+  const [office] = await db
+    .select()
+    .from(offices)
+    .where(and(eq(offices.id, row.officeId), eq(offices.organizationId, row.organizationId)));
+  if (!office) throw new Error("Notification office missing");
+  const now = s.clock();
+  // Global recipient budget: neither tenant nor case identity may let a caller bypass it.
+  const limit = await consumeRateLimit(
+    db,
+    rateKey(
+      rateLimitSecret(s.rateLimitSecret),
+      "citizen_submission:email:86400",
+      canonicalMailbox(row.contact.email),
+    ),
+    now,
+    2,
+    86400,
+  );
+  // rate_limits.count records suppressed attempts too, without plaintext recipient data.
+  if (!limit.allowed) return;
+  return enqueueNotification(
+    db,
+    s.notifications,
+    {
+      kind: "citizen_submission",
+      language: row.language,
+      dedupeKey: `citizen_submission:${row.id}`,
+      organizationId: row.organizationId,
+      caseId: row.id,
+      to: row.contact.email,
+      email: submissionReceipt(row.language, row.reference, office.name),
+    },
+    now,
+  );
+}
+
 export async function enqueueDigests(s: Services, now: Date): Promise<number> {
   const day = now.toISOString().slice(0, 10);
   const ids = await s.db.transaction(async (tx) => {
@@ -219,13 +268,22 @@ async function stillRelevant(db: Database, row: Row, envelope: Envelope, now: Da
     if (row.kind === "citizen_request" && current.status !== "needs_citizen") return false;
     if (row.kind === "citizen_ready" && current.status !== "ready") return false;
   }
-  if (row.kind === "citizen_ready" || row.kind === "operator_digest") {
+  if (
+    row.kind === "citizen_ready" ||
+    row.kind === "citizen_submission" ||
+    row.kind === "operator_digest"
+  ) {
     const [prefs] = await db
       .select()
       .from(settings)
       .where(eq(settings.organizationId, row.organizationId!));
-    if (row.kind === "citizen_ready" ? !prefs?.notifyCitizenReady : !prefs?.notifyOperatorDigest)
-      return false;
+    const enabled =
+      row.kind === "citizen_ready"
+        ? prefs?.notifyCitizenReady
+        : row.kind === "citizen_submission"
+          ? prefs?.notifyCitizenSubmission
+          : prefs?.notifyOperatorDigest;
+    if (!enabled) return false;
   }
   if (row.operatorId) {
     const [operator] = await db.select().from(operators).where(eq(operators.id, row.operatorId));

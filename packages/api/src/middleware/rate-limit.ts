@@ -1,4 +1,3 @@
-import { createHmac, randomBytes } from "node:crypto";
 import { isIP } from "node:net";
 import { consumeRateLimit, operators } from "@avanti/db";
 import { eq } from "drizzle-orm";
@@ -9,6 +8,8 @@ import { ApiFailure } from "../security";
 import { limitLanguage, limitMessage } from "./limit-message";
 import { recordMfaFailure } from "../mfa";
 import { recordActivity } from "../audit-log";
+import { rateKey, rateLimitSecret } from "../rate-limit-key";
+export { rateKey } from "../rate-limit-key";
 
 interface WindowLimit {
   limit: number;
@@ -55,9 +56,6 @@ export function proxyAddress(headers: Headers, vercel: boolean): string | null {
     : headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();
   return candidate && isIP(candidate) ? candidate : null;
 }
-export function rateKey(secret: string, category: string, value: string): string {
-  return createHmac("sha256", secret).update(`${category}:${value}`).digest("hex");
-}
 export function remoteAddress(context: ApiContext, services: Services): string | null {
   if (services.trustProxy) return proxyAddress(context.req.raw.headers, services.vercel ?? false);
   const address = services.clientAddress?.(context) ?? context.env?.incoming?.socket.remoteAddress;
@@ -65,7 +63,7 @@ export function remoteAddress(context: ApiContext, services: Services): string |
   return null;
 }
 export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
-  const secret = services.rateLimitSecret ?? randomBytes(32).toString("hex");
+  const secret = rateLimitSecret(services.rateLimitSecret);
   return async (context, next) => {
     const rule = policy(context.req.path, context.req.method);
     // Password attempts use the authenticated email, never a client-supplied identity.

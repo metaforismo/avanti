@@ -261,6 +261,20 @@ export const ChatMessage = z.object({
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
+/** External destination, never fetched by Avanti or included in notification emails. */
+export const BookingUrl = SafeName.trim()
+  .max(2048)
+  .url()
+  .refine((value) => {
+    if (!/^https:\/\//i.test(value) || /[\s\\]/u.test(value)) return false;
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" && !url.username && !url.password;
+    } catch {
+      return false;
+    }
+  }, "Inserisci un link HTTPS valido, senza credenziali.");
+
 export const Office = z.object({
   id: Id,
   slug: z.string(),
@@ -269,6 +283,8 @@ export const Office = z.object({
   city: z.string(),
   phone: z.string().nullable(),
   openingHours: z.string().nullable(),
+  bookingUrl: BookingUrl.nullable().optional(),
+  citizenNote: SafeText.trim().max(300).nullable().optional(),
 });
 export type Office = z.infer<typeof Office>;
 
@@ -991,6 +1007,8 @@ export const OrganizationSettings = z.object({
   retentionDays: z.number().int().min(30).max(3650),
   /** Service email when the operator marks a case ready. Off unless enabled by the CAF. */
   notifyCitizenReady: z.boolean().default(false),
+  /** First-submission receipt. Off until the organization enables the email channel. */
+  notifyCitizenSubmission: z.boolean().default(false),
   /** Daily UTC aggregate, sent to active operators. No citizen data. */
   notifyOperatorDigest: z.boolean().default(false),
   notifyCitizenReminders: z.boolean().default(false),
@@ -1004,6 +1022,7 @@ export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 export const UpdateSettingsRequest = OrganizationSettings.partial().extend({
   mfaRequired: z.boolean().optional(),
   notifyCitizenReady: z.boolean().optional(),
+  notifyCitizenSubmission: z.boolean().optional(),
   notifyOperatorDigest: z.boolean().optional(),
   notifyCitizenReminders: z.boolean().optional(),
   citizenReminderDays: CitizenReminderDays.optional(),
@@ -1046,10 +1065,12 @@ export type UpdateOperatorRequest = z.infer<typeof UpdateOperatorRequest>;
 
 export const OfficeInput = z.object({
   name: SafeName.trim().min(2).max(120),
-  address: SafeName.trim().min(2).max(200),
+  address: SafeName.trim().max(200).default(""),
   city: SafeName.trim().min(2).max(120),
   phone: SafeName.trim().max(30).nullable().optional(),
   openingHours: SafeText.trim().max(200).nullable().optional(),
+  bookingUrl: BookingUrl.nullable().optional(),
+  citizenNote: SafeText.trim().max(300).nullable().optional(),
 });
 export type OfficeInput = z.infer<typeof OfficeInput>;
 
@@ -1075,7 +1096,10 @@ export const OrganizationExportRequest = z.object({
   login: LoginRequest.extend({ code: MfaCode.optional() }),
 });
 
-export const UpdateOfficeRequest = OfficeInput.partial();
+export const UpdateOfficeRequest = OfficeInput.partial().extend({
+  // A create default must not erase the address during an unrelated PATCH.
+  address: SafeName.trim().max(200).optional(),
+});
 export type UpdateOfficeRequest = z.infer<typeof UpdateOfficeRequest>;
 
 /**

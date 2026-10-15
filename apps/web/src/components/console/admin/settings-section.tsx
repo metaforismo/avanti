@@ -72,6 +72,7 @@ function SettingsForm({
       else values[key] = n;
     }
     values.notifyCitizenReady = data.get("notifyCitizenReady") === "on";
+    values.notifyCitizenSubmission = data.get("notifyCitizenSubmission") === "on";
     values.notifyOperatorDigest = data.get("notifyOperatorDigest") === "on";
     values.notifyCitizenReminders = data.get("notifyCitizenReminders") === "on";
     const first = Number(data.get("reminderFirst"));
@@ -151,6 +152,12 @@ function SettingsForm({
       </Field>
       <fieldset className="grid gap-3">
         <legend className="mb-2 text-sm font-semibold">Avvisi via email</legend>
+        <Toggle
+          name="notifyCitizenSubmission"
+          defaultChecked={initial.notifyCitizenSubmission}
+          label="Ricevuta al cittadino quando invia la pratica"
+          hint="Va all'email che il cittadino scrive, nella sua lingua: codice della pratica, sportello e cosa succede adesso. Nessun link e nessun dato dei documenti; al massimo due al giorno per indirizzo."
+        />
         <Toggle
           name="notifyCitizenReady"
           defaultChecked={initial.notifyCitizenReady}

@@ -51,6 +51,8 @@ export const offices = pgTable(
     city: text("city").notNull(),
     phone: text("phone"),
     openingHours: text("opening_hours"),
+    bookingUrl: text("booking_url"),
+    citizenNote: text("citizen_note"),
   },
   (t) => [
     unique("offices_id_org_unique").on(t.id, t.organizationId),
@@ -330,6 +332,7 @@ export const settings = pgTable(
     retentionDays: integer("retention_days").notNull().default(180),
     linkDays: integer("link_days").notNull().default(60),
     notifyCitizenReady: boolean("notify_citizen_ready").notNull().default(false),
+    notifyCitizenSubmission: boolean("notify_citizen_submission").notNull().default(false),
     notifyOperatorDigest: boolean("notify_operator_digest").notNull().default(false),
     notifyCitizenReminders: boolean("notify_citizen_reminders").notNull().default(false),
     citizenReminderDays: jsonb("citizen_reminder_days")
@@ -391,7 +394,12 @@ export const storageDeletions = pgTable("storage_deletions", {
 });
 
 export type NotificationKind =
-  "pilot_lead" | "citizen_request" | "citizen_ready" | "citizen_reminder" | "operator_digest";
+  | "pilot_lead"
+  | "citizen_request"
+  | "citizen_ready"
+  | "citizen_submission"
+  | "citizen_reminder"
+  | "operator_digest";
 export const notifications = pgTable(
   "notifications",
   {
@@ -429,7 +437,7 @@ export const notifications = pgTable(
     index("notifications_completed_idx").on(t.completedAt),
     check(
       "notifications_kind_check",
-      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'citizen_reminder', 'operator_digest')`,
+      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'citizen_submission', 'citizen_reminder', 'operator_digest')`,
     ),
     check(
       "notifications_reminder_check",
