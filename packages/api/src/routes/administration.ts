@@ -30,7 +30,11 @@ function requireAdmin(operator: OperatorRow) {
 }
 
 // All admin mutations serialize per tenant and recheck the actor after acquiring the lock.
-export async function administer<T>(s: Services, c: ApiContext, action: (tx: Database) => Promise<T>) {
+export async function administer<T>(
+  s: Services,
+  c: ApiContext,
+  action: (tx: Database) => Promise<T>,
+) {
   const actor = c.get("operator");
   requireAdmin(actor);
   return s.db.transaction(async (tx) => {
