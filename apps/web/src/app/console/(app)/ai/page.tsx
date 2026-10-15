@@ -120,6 +120,7 @@ function AiView() {
                   ["Conversazione e testi", config.models.fast],
                   ["Riepiloghi e controlli", config.models.reasoning],
                   ["Lettura dei documenti", config.models.vision],
+                  ["Riserva", config.fallbacks.join(", ")],
                 ] as const
               ).map(([label, model]) => (
                 <div key={label} className="flex justify-between gap-3">

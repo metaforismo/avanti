@@ -885,6 +885,8 @@ export const SystemStatus = z
             .object({
               provider: z.enum(["openrouter", "openai", "anthropic", "gateway", "none"]),
               models: z.object({ fast: z.string(), reasoning: z.string(), vision: z.string() }),
+              /** Backup chain tried when the tier model is slow or down. */
+              fallbacks: z.array(z.string()).default([]),
               dataPolicy: z.enum(["strict", "permissive"]),
               keyPresent: z.boolean(),
               monthlyBudgetEur: z.number(),

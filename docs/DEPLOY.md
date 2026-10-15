@@ -596,7 +596,7 @@ AI_DATA_POLICY=strict
 AI_MODEL_FAST=deepseek/deepseek-v4.1-flash
 AI_MODEL_REASONING=deepseek/deepseek-v4.1-flash
 AI_MODEL_VISION=openai/gpt-6-luna
-AI_MODEL_FALLBACKS=openai/gpt-6-luna
+AI_MODEL_FALLBACKS=google/gemini-3.1-flash-lite
 AI_REASONING_FAST=off
 AI_REASONING_REASONING=minimal
 AI_REASONING_VISION=minimal
@@ -605,10 +605,16 @@ AI_ATTEMPT_TIMEOUT_MS_REASONING=15000
 AI_ATTEMPT_TIMEOUT_MS_VISION=20000
 AI_TOTAL_TIMEOUT_MS=45000
 AI_MAX_ATTEMPTS=3
-AI_PRICES='{"deepseek/deepseek-v4.1-flash":[0.03,0.70],"openai/gpt-6-luna":[0.10,0.50]}'
+AI_PRICES='{"deepseek/deepseek-v4.1-flash":[0.03,0.70],"openai/gpt-6-luna":[0.10,0.50],"google/gemini-3.1-flash-lite":[0.25,1.50]}'
 ```
 
 Risultati finali: A mediana testo **1.228 s**, p95 **3.559 s**, **1/74 ripieghi (1,35%)**, costo stimato **€0.016804**. B: **1.510 s**, p95 **7.873 s**, **0/74 ripieghi**, costo **€0.026836**; 68 risposte B sono state servite da DeepSeek. Entrambe: zero violazioni rilevate e 58/58 casi annotati corretti. Stress A: **40/40 AI**, concorrenza **8**, mediana **1.065 s**, p95 **1.664 s**, zero ripieghi e violazioni. A mantiene un timeout sulla sola immagine ostile; il fallback non attesta una lettura vision riuscita.
+
+Riserva: Luna risponde in 2–9 s anche a richieste banali, troppo per il timeout di 6 s del
+livello veloce; quando DeepSeek rallenta, la catena finiva nell'euristica. La riserva è quindi
+Gemini 3.1 Flash-Lite (endpoint Google ZDR, ragionamento disattivabile): da sola, sulla stessa
+eval, **74/74 AI**, 58/58 annotati corretti, zero violazioni, mediana **1,76 s**, p95 **3,28 s**
+([rapporto](verification/ai-eval-2026-10-15-live-gemini-lite.md)). Luna resta il modello vision.
 
 Provata anche B con `AI_REASONING_FAST=minimal`: mediana **2,324 s**, p95 **9,051 s**, **2/74 ripieghi**, costo stimato **€0,036394**; 66 risposte DeepSeek e 6 Luna. Il fallback eredita il ragionamento del livello. La raccomandazione resta A.
 
