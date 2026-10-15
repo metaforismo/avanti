@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import type { CaseDossier } from "@avanti/contracts";
+import type { CaseDossier, QuickReply } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { LANGUAGE_IT } from "@/lib/console/labels";
+import { useResource } from "@/lib/console/use-resource";
 
 const NEEDS_ACTION = new Set(["missing", "rejected", "issue"]);
 
@@ -93,6 +94,30 @@ function RequestForm({
   };
   const [message, setMessage] = useState(() => defaultMessage(dossier, selected.map(label)));
   const [touched, setTouched] = useState(false);
+  const replies = useResource<QuickReply[]>("/api/quick-replies");
+  const textarea = useRef<HTMLTextAreaElement>(null);
+
+  // A quick reply goes where the cursor is (or at the end), as if typed: the draft is then
+  // the operator's own and no longer follows the ticked items.
+  const insertReply = (reply: QuickReply) => {
+    const field = textarea.current;
+    const start = field?.selectionStart ?? message.length;
+    const end = field?.selectionEnd ?? message.length;
+    const before = message.slice(0, start).replace(/\s*$/, "");
+    const after = message.slice(end).replace(/^\s*/, "");
+    const glue = (left: string, right: string) =>
+      left && right ? `${left}\n${right}` : left || right;
+    const next = glue(glue(before, reply.text), after).slice(0, 1000);
+    setMessage(next);
+    setTouched(true);
+    setError(null);
+    onEdited();
+    requestAnimationFrame(() => {
+      const caret = Math.min(next.length, glue(before, reply.text).length);
+      field?.focus();
+      field?.setSelectionRange(caret, caret);
+    });
+  };
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,7 +203,23 @@ function RequestForm({
         <label htmlFor="request-message" className="text-sm font-semibold">
           Messaggio
         </label>
+        {replies.data && replies.data.length > 0 && (
+          <div role="group" aria-label="Risposte rapide" className="flex flex-wrap gap-1.5">
+            {replies.data.map((reply) => (
+              <button
+                key={reply.id}
+                type="button"
+                title={reply.text}
+                onClick={() => insertReply(reply)}
+                className="rounded-full bg-sunk px-3 py-1 text-sm text-ink-2 transition-colors hover:bg-stamp-wash hover:text-ink focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none"
+              >
+                + {reply.title}
+              </button>
+            ))}
+          </div>
+        )}
         <textarea
+          ref={textarea}
           id="request-message"
           value={message}
           onChange={(e) => {

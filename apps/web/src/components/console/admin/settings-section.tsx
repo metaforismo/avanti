@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import type { OrganizationSettings } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
@@ -73,6 +73,10 @@ function SettingsForm({
     }
     values.notifyCitizenReady = data.get("notifyCitizenReady") === "on";
     values.notifyOperatorDigest = data.get("notifyOperatorDigest") === "on";
+    values.notifyCitizenReminders = data.get("notifyCitizenReminders") === "on";
+    const first = Number(data.get("reminderFirst"));
+    const second = Number(data.get("reminderSecond"));
+    values.citizenReminderDays = second ? [first, second] : [first];
     // A disabled checkbox is not submitted: leave the policy untouched rather than turning it off.
     if (canRequireMfa) values.mfaRequired = data.get("mfaRequired") === "on";
     setErrors(next);
@@ -159,6 +163,43 @@ function SettingsForm({
           label="Riepilogo giornaliero agli operatori"
           hint="Quante pratiche aspettano la revisione, senza dati dei cittadini."
         />
+        <Toggle
+          name="notifyCitizenReminders"
+          defaultChecked={initial.notifyCitizenReminders}
+          label="Ricorda al cittadino l'integrazione richiesta"
+          hint="Se dopo qualche giorno non ha ancora risposto, gli arriva un promemoria nella sua lingua (solo se ha lasciato l'email). Si ferma appena risponde o la pratica cambia stato."
+        />
+        <div className="flex flex-wrap gap-4 ps-3">
+          <label className="grid gap-1 text-sm">
+            <span className="text-ink-2">Primo promemoria dopo</span>
+            <Select
+              name="reminderFirst"
+              defaultValue={String(initial.citizenReminderDays[0] ?? 3)}
+              compact
+            >
+              {[2, 3, 5, 7].map((d) => (
+                <option key={d} value={d}>
+                  {d} giorni
+                </option>
+              ))}
+            </Select>
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-ink-2">Secondo promemoria</span>
+            <Select
+              name="reminderSecond"
+              defaultValue={String(initial.citizenReminderDays[1] ?? 0)}
+              compact
+            >
+              <option value="0">Nessuno</option>
+              {[3, 4, 7].map((d) => (
+                <option key={d} value={d}>
+                  dopo altri {d} giorni
+                </option>
+              ))}
+            </Select>
+          </label>
+        </div>
       </fieldset>
       <fieldset className="grid gap-3">
         <legend className="mb-2 text-sm font-semibold">Sicurezza degli accessi</legend>

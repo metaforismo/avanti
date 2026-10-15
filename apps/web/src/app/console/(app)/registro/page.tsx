@@ -23,6 +23,7 @@ const QUESTIONS: { label: string; action?: AuditAction }[] = [
   { label: "Rapporti del pilota", action: "pilot_report.exported" },
   { label: "Documenti scaricati", action: "document.downloaded" },
   { label: "Link rigenerati", action: "case.link_regenerated" },
+  { label: "Promemoria ai cittadini", action: "citizen.reminder_sent" },
   { label: "Cancellazioni definitive", action: "case.deleted" },
   { label: "Cancellazioni per fine conservazione", action: "case.retention_deleted" },
   { label: "Password reimpostate", action: "operator.password_reset" },
