@@ -463,7 +463,7 @@ export const texts = {
     "Vérifiez ci-dessous ce que j’ai compris : cela devient une réponse seulement quand vous confirmez.",
     "Revisa abajo lo que he entendido: solo se convierte en respuesta cuando lo confirmas.",
     "Verifică mai jos ce am înțeles: devine răspuns doar după ce confirmi.",
-    "Перевірте нижче, що я зрозумів: це стане відповіддю лише після вашого підтвердження.",
+    "Перевірте нижче, що я зрозумів: це стане відповіддю лише після Вашого підтвердження.",
     "تحقق أدناه مما فهمته: لا يصبح إجابة إلا عندما تؤكده.",
     "আমি যা বুঝেছি তা নিচে দেখে নিন: আপনি নিশ্চিত করলে তবেই এটি উত্তর হবে।",
   ],

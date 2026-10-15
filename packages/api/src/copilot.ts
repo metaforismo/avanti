@@ -138,7 +138,13 @@ async function cached<T>(
         const analysis = DossierConsistency.parse(value);
         await tx
           .update(cases)
-          .set({ aiAttention: analysis.issues.filter((i) => i.severity !== "info").length })
+          .set({
+            // "Check by eye" sits on every document read without AI: counting it would put
+            // every case in the attention lane.
+            aiAttention: analysis.issues.filter(
+              (i) => i.severity !== "info" && !i.id.startsWith("document.unchecked"),
+            ).length,
+          })
           .where(eq(cases.id, row.id));
       }
     });

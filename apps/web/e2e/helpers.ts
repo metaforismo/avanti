@@ -1,22 +1,32 @@
 import { expect, type Page } from "@playwright/test";
 
 /**
- * Opens the first case in the "Pronte" tab. The URL changes before the list does, so it waits
- * for the filtered response: clicking earlier opens a case from the previous tab.
+ * Opens the first case of a queue tab. The URL and the response arrive before the list is
+ * rendered: clicking earlier opens a case from the previous tab, and acting on it changes demo
+ * data other tests rely on. The screen-reader count names the tab once the list is shown.
  */
-export async function openFirstReadyCase(page: Page) {
+export async function openFirstCaseIn(
+  page: Page,
+  tab: { button: RegExp; status: string; label: string },
+) {
   const filtered = page.waitForResponse(
-    (response) => /\/api\/cases\?.*status=ready/.test(response.url()) && response.ok(),
+    (response) =>
+      new RegExp(`/api/cases\\?.*status=${tab.status}`).test(response.url()) && response.ok(),
   );
-  await page.getByRole("button", { name: /^Pronte/ }).click();
+  await page.getByRole("button", { name: tab.button }).click();
   await filtered;
-  await expect(page.getByRole("button", { name: /^Pronte/ })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(
+    page.getByRole("status").filter({ hasText: new RegExp(`pratiche: ${tab.label}`) }),
+  ).toBeAttached();
   await page.locator('a[href^="/console/pratiche/"]').first().click();
   await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
 }
+
+export const openFirstReadyCase = (page: Page) =>
+  openFirstCaseIn(page, { button: /^Pronte/, status: "ready", label: "pronte" });
+
+export const openFirstCaseInReview = (page: Page) =>
+  openFirstCaseIn(page, { button: /^In revisione/, status: "in_review", label: "in revisione" });
 
 /**
  * Signs in through the form. The demo accounts sign in many times a minute across the suite and

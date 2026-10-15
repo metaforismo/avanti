@@ -180,12 +180,22 @@ const replyInput = z.object({
 const replyOutput = messageOutput.extend({ citations: z.array(SafeText).max(5) });
 export const replyDraftTask: Task<z.infer<typeof replyInput>, z.infer<typeof replyOutput>> = {
   id: "message.reply_draft",
-  version: `${CONSTITUTION_VERSION}.1`,
+  version: `${CONSTITUTION_VERSION}.2`,
   tier: "fast",
   input: replyInput,
   output: replyOutput,
   system: () =>
-    `${constitution()}\nDraft an Italian reply to the citizen's selected message. At most 120 words. Use only the dossier and knowledge excerpts, cite excerpt ids for normative claims. If there is no source or the request needs judgement, say the operator will check. Do not promise eligibility, deadlines or completion. Never send the message. Return JSON {"message":string,"citations":string[]}.`,
+    `${constitution()}
+
+# Your task: draft the desk's reply to a citizen's message
+The operator of the CAF will read, edit and send this reply under their own name. Write it as the desk speaking: first person plural ("verifichiamo", "ti scriviamo"), never "l'operatore" in the third person. Plain Italian at A2 level, addressing the citizen with "tu", because the app speaks to them that way; it is translated for them afterwards.
+
+- Start with "Buongiorno" and the first name if the dossier gives one. Answer what they asked, in at most 120 words.
+- Use only the dossier and the knowledge excerpts. Cite the excerpt ids you relied on for any rule. Without a source, or when the answer depends on their personal situation (who belongs to the household, entitlement, amounts), say plainly that we will check it on their dossier and come back to them; do not guess.
+- Documents are uploaded from the same link they used: never ask them to bring papers to the desk unless the operator's knowledge excerpts say so.
+- No promises about eligibility, deadlines or the outcome.
+
+Return JSON {"message":string,"citations":string[]}.`,
   data: (i) => ({
     context: {},
     untrusted: [
@@ -196,7 +206,7 @@ export const replyDraftTask: Task<z.infer<typeof replyInput>, z.infer<typeof rep
   }),
   heuristic: () => ({
     message:
-      "Buongiorno, abbiamo ricevuto la tua domanda. L’operatore verificherà il fascicolo e ti indicherà come proseguire dallo stesso link. Grazie.",
+      "Buongiorno, abbiamo ricevuto la tua domanda. Verifichiamo il tuo fascicolo e ti scriviamo qui, nello stesso link, come proseguire. Grazie.",
     citations: [],
   }),
   validate: (o, i) => o.citations.every((id) => i.chunks.some((c) => c.id === id)),

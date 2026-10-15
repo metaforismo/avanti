@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { logIn } from "./helpers";
+import { logIn, openFirstCaseInReview } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -8,16 +8,11 @@ test("in the document viewer, V verifies the item and moves to the next file to 
   page,
 }) => {
   await logIn(page, DEMO);
-  const inReview = page.waitForResponse(
-    (r) => /\/api\/cases\?.*status=in_review/.test(r.url()) && r.ok(),
-  );
-  await page.getByRole("button", { name: /^In revisione/ }).click();
-  await inReview;
-  await page.locator('a[href^="/console/pratiche/"]').first().click();
-  await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+  await openFirstCaseInReview(page);
 
   // Open the first document of an item that still needs a decision.
   const undecided = page
+    .locator("section", { has: page.getByRole("heading", { name: "Documenti", exact: true }) })
     .getByRole("listitem")
     .filter({ has: page.getByRole("button", { name: "Verifica", exact: true }) })
     .first();
@@ -39,7 +34,11 @@ test("in the document viewer, V verifies the item and moves to the next file to 
 
   // Undo, so the demo case is left as the seed made it.
   await page.keyboard.press("Escape");
-  const row = page.getByRole("listitem").filter({ hasText: itemTitle }).first();
+  // Rows of the checklist only: the copilot's points also cite item titles.
+  const checklist = page.locator("section", {
+    has: page.getByRole("heading", { name: "Documenti", exact: true }),
+  });
+  const row = checklist.getByRole("listitem").filter({ hasText: itemTitle }).first();
   await row
     .getByRole("button", { name: new RegExp(`^Annulla la decisione su ${itemTitle}`) })
     .click();
