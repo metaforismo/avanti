@@ -299,3 +299,32 @@
     );
   }
 }
+
+/* "Thinking" line in chats: the text itself shimmers, nothing else moves. With reduced motion
+   the global rule stops it on the plain ink-3 colour. */
+@layer utilities {
+  .text-shimmer {
+    color: var(--ink-3);
+    background: linear-gradient(
+        90deg,
+        var(--ink-3) 0%,
+        var(--ink-3) 40%,
+        var(--ink) 50%,
+        var(--ink-3) 60%,
+        var(--ink-3) 100%
+      )
+      0 0 / 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 1.8s linear infinite;
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -150% 0;
+    }
+  }
+}

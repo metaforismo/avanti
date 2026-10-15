@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { forgetRecentCases } from "./recent-cases";
 
 type Flags = {
   /** A different path is loading: the data shown belongs to the previous one. */
@@ -36,8 +37,10 @@ function remember(path: string, data: unknown) {
   if (cache.size > CACHE_SIZE) cache.delete(cache.keys().next().value!);
 }
 
+/** Everything an operator's session leaves in this browser goes with it (logout, expiry, login). */
 export function clearResourceCache() {
   cache.clear();
+  forgetRecentCases();
 }
 
 /**
