@@ -27,6 +27,8 @@ export function copilotDossier(d: CaseDossier): CopilotDossier {
     documents: d.documents.map(
       ({ fileName: _name, mimeType: _mime, sizeBytes: _size, uploadedAt: _at, ...doc }) => ({
         ...doc,
+        // Citizen-facing check messages quote the file name: only the status reaches the model.
+        citizenCheck: { status: doc.citizenCheck.status, messages: [] },
         analysis: doc.analysis
           ? {
               ...doc.analysis,

@@ -284,9 +284,19 @@ it("validates tier controls and model price maps, with legacy timeout precedence
     AI_REASONING_FAST: "low",
     AI_PRICES: '{"test/a":[0.03,0.7]}',
   });
-  expect(c.attemptTimeoutMs).toEqual({ fast: 9000, reasoning: 9000, vision: 21000 });
-  expect(c.reasoning).toEqual({ fast: "low", reasoning: "minimal", vision: "minimal" });
-  expect(loadAiConfig().attemptTimeoutMs).toEqual({ fast: 6000, reasoning: 15000, vision: 20000 });
+  expect(c.attemptTimeoutMs).toEqual({ fast: 9000, reasoning: 9000, vision: 21000, audio: 9000 });
+  expect(c.reasoning).toEqual({
+    fast: "low",
+    reasoning: "minimal",
+    vision: "minimal",
+    audio: "minimal",
+  });
+  expect(loadAiConfig().attemptTimeoutMs).toEqual({
+    fast: 6000,
+    reasoning: 15000,
+    vision: 20000,
+    audio: 20000,
+  });
   for (const env of [
     { AI_REASONING_FAST: "high" },
     { AI_PRICES: '{"test/a":[-1,2]}' },

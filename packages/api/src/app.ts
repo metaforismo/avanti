@@ -102,7 +102,9 @@ export function createApp(options: ApiOptions) {
   mountAuthRoutes(app, services);
   mountMfaRoutes(app, services);
   mountCitizenRoutes(app, services);
-  app.use("/c/:token/*", limited);
+  // Assistant and voice quotas are per case, so they run again once the capability is resolved.
+  // Hono's "/assistant/*" also matches "/assistant".
+  for (const path of ["/c/:token/assistant/*", "/c/:token/transcribe"]) app.use(path, limited);
   mountCitizenAssistant(app, services);
   mountConversationRoutes(app, services);
   mountOperatorRoutes(app, services);

@@ -45,25 +45,21 @@ beforeAll(async () => {
       citizenNote: "Solo su appuntamento",
     })
     .returning()) as [typeof offices.$inferSelect];
-  await db
-    .insert(operators)
-    .values({
-      id: "op-other",
-      organizationId: "other",
-      name: "Other",
-      email: "other@example.test",
-      passwordHash: "unused",
-      role: "operator",
-    });
-  await db
-    .insert(sessions)
-    .values({
-      id: "session-other",
-      tokenHash: hashToken("o".repeat(43)),
-      operatorId: "op-other",
-      createdAt: now.toISOString(),
-      expiresAt: new Date(+now + 3600000).toISOString(),
-    });
+  await db.insert(operators).values({
+    id: "op-other",
+    organizationId: "other",
+    name: "Other",
+    email: "other@example.test",
+    passwordHash: "unused",
+    role: "operator",
+  });
+  await db.insert(sessions).values({
+    id: "session-other",
+    tokenHash: hashToken("o".repeat(43)),
+    operatorId: "op-other",
+    createdAt: now.toISOString(),
+    expiresAt: new Date(+now + 3600000).toISOString(),
+  });
 }, 60000);
 afterAll(async () => close?.());
 const app = () =>
@@ -206,19 +202,17 @@ describe("citizen assistant capability and persistence", () => {
     const { token, row } = await fresh(),
       other = await fresh(),
       a = app();
-    await db
-      .insert(documents)
-      .values({
-        id: "doc-keep",
-        caseId: row.id,
-        fileName: "esempio.pdf",
-        mimeType: "application/pdf",
-        sizeBytes: 10,
-        storageKey: "unused",
-        sha256: "hash",
-        status: "analyzed",
-        uploadedAt: now.toISOString(),
-      });
+    await db.insert(documents).values({
+      id: "doc-keep",
+      caseId: row.id,
+      fileName: "esempio.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 10,
+      storageKey: "unused",
+      sha256: "hash",
+      status: "analyzed",
+      uploadedAt: now.toISOString(),
+    });
     expect((await post(a, `/api/c/${other.token}/documents/doc-keep/keep`, {})).status).toBe(404);
     expect((await post(a, `/api/c/${token}/documents/doc-keep/keep`, {})).status).toBe(200);
     const view = CitizenCase.parse(await (await a.request(`/api/c/${token}`)).json());
@@ -262,13 +256,11 @@ describe("citizen assistant capability and persistence", () => {
 it("keeps the daily quota across capability rotation and localizes the voice quota", async () => {
   const { token, row } = await fresh("fr"),
     a = app();
-  await db
-    .insert(rateLimits)
-    .values({
-      key: rateKey(rateLimitSecret(undefined), "assistant:86400", `case:${row.id}`),
-      count: 79,
-      resetAt: new Date(+now + 86400000).toISOString(),
-    });
+  await db.insert(rateLimits).values({
+    key: rateKey(rateLimitSecret(undefined), "assistant:86400", `case:${row.id}`),
+    count: 79,
+    resetAt: new Date(+now + 86400000).toISOString(),
+  });
   expect((await post(a, `/api/c/${token}/assistant`, { message: "Bonjour" })).status).toBe(200);
   expect(
     AssistantHistory.parse(await (await a.request(`/api/c/${token}/assistant`)).json())
@@ -281,13 +273,11 @@ it("keeps the daily quota across capability rotation and localizes the voice quo
     .where(eq(cases.id, row.id));
   expect((await post(a, `/api/c/${next}/assistant`, { message: "Bonjour" })).status).toBe(429);
   const audioCase = await fresh("bn");
-  await db
-    .insert(rateLimits)
-    .values({
-      key: rateKey(rateLimitSecret(undefined), "transcribe:3600", `case:${audioCase.row.id}`),
-      count: 20,
-      resetAt: new Date(+now + 3600000).toISOString(),
-    });
+  await db.insert(rateLimits).values({
+    key: rateKey(rateLimitSecret(undefined), "transcribe:3600", `case:${audioCase.row.id}`),
+    count: 20,
+    resetAt: new Date(+now + 3600000).toISOString(),
+  });
   const blocked = await post(a, `/api/c/${audioCase.token}/transcribe`, {});
   expect(blocked.status).toBe(429);
   expect(((await blocked.json()) as { error: { message: string } }).error.message).toMatch(
@@ -298,13 +288,11 @@ it("applies the shared trusted IP ceiling after the case quota", async () => {
   const { token } = await fresh(),
     secret = "test-rate-secret",
     ip = "203.0.113.19";
-  await db
-    .insert(rateLimits)
-    .values({
-      key: rateKey(secret, "assistant:60", `ip:${ip}`),
-      count: 1500,
-      resetAt: new Date(+now + 60000).toISOString(),
-    });
+  await db.insert(rateLimits).values({
+    key: rateKey(secret, "assistant:60", `ip:${ip}`),
+    count: 1500,
+    resetAt: new Date(+now + 60000).toISOString(),
+  });
   const a = createApp({
     db,
     clock: () => now,
@@ -337,4 +325,44 @@ it("returns editable transcription without saving audio or text in the dossier",
   const history = await db.select().from(messages).where(eq(messages.caseId, row.id));
   expect(history).toHaveLength(1);
   expect(await db.select().from(documents).where(eq(documents.caseId, row.id))).toHaveLength(0);
+});
+it("never calls a provider when the CAF switched off AI for citizens", async () => {
+  const { settings } = await import("@avanti/db");
+  const { token } = await fresh();
+  const { readFile } = await import("node:fs/promises");
+  const bytes = await readFile(new URL("./fixtures/synthetic-audio.ogg", import.meta.url));
+  let calls = 0;
+  const ai = new AiIntelligence({
+    config: loadAiConfig({ AI_PROVIDER: "openrouter", OPENROUTER_API_KEY: "synthetic" }),
+    transport: async () => {
+      calls++;
+      return { output: { text: "non deve arrivare" } };
+    },
+  });
+  await db
+    .insert(settings)
+    .values({ organizationId: "caf", aiCitizenAssistant: false })
+    .onConflictDoUpdate({ target: settings.organizationId, set: { aiCitizenAssistant: false } });
+  try {
+    const a = createApp({ db, clock: () => now, ai, storage: new MemoryStorage() });
+    const reply = AssistantReply.parse(
+      await (await post(a, `/api/c/${token}/assistant`, { message: "Cos'è l'ISEE?" })).json(),
+    );
+    expect(reply.engine).toBe("heuristic");
+    const form = new FormData();
+    form.set("file", new File([bytes], "voce.ogg", { type: "audio/ogg" }));
+    form.set("language", "it");
+    const voice = await a.request(`/api/c/${token}/transcribe`, {
+      method: "POST",
+      headers: { Origin: "http://localhost:3400" },
+      body: form,
+    });
+    expect(voice.status).toBe(503);
+    expect(calls).toBe(0);
+  } finally {
+    await db
+      .update(settings)
+      .set({ aiCitizenAssistant: true })
+      .where(eq(settings.organizationId, "caf"));
+  }
 });

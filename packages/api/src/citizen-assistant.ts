@@ -1,5 +1,5 @@
 import { and, eq, desc } from "drizzle-orm";
-import { cases, documents, messages, rateLimits } from "@avanti/db";
+import { cases, documents, messages, rateLimits, settings } from "@avanti/db";
 import {
   AskDesk,
   AssistantAsk,
@@ -34,6 +34,14 @@ async function assistantBody<T>(c: ApiContext, schema: z.ZodType<T>) {
       citizenAssistantCopy("invalid", c.get("citizen").language),
     );
   }
+}
+/** A CAF can switch off AI for citizens: then nothing they write or say reaches a provider. */
+async function citizenAiAllowed(s: Services, organizationId: string) {
+  const [policy] = await s.db
+    .select({ enabled: settings.aiCitizenAssistant })
+    .from(settings)
+    .where(eq(settings.organizationId, organizationId));
+  return policy?.enabled !== false;
 }
 export function mountCitizenAssistant(app: App, s: Services) {
   app.get("/c/:token/assistant", async (c) => {
@@ -78,7 +86,9 @@ export function mountCitizenAssistant(app: App, s: Services) {
       })),
     };
     const result =
-      s.ai.assistant && !assistantSafetyIntent(input.message)
+      s.ai.assistant &&
+      !assistantSafetyIntent(input.message) &&
+      (await citizenAiAllowed(s, row.organizationId))
         ? await observeAi(s, row.organizationId, () => s.ai.assistant!(taskInput))
         : { ...heuristicAssistant(taskInput), engine: "heuristic" as const };
     const safe = safeAssistantOutput(result, taskInput);
@@ -183,7 +193,11 @@ export function mountCitizenAssistant(app: App, s: Services) {
   });
   app.post("/c/:token/transcribe", async (c) => {
     const row = c.get("citizen");
-    if (!s.ai.transcribe || s.ai.configured === false)
+    if (
+      !s.ai.transcribe ||
+      s.ai.configured === false ||
+      !(await citizenAiAllowed(s, row.organizationId))
+    )
       throw new ApiFailure(
         "transcription_unavailable",
         503,
