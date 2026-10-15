@@ -48,3 +48,4 @@ export {
 } from "./intake-safety";
 
 export { questionEstimate } from "./question-estimate";
+export { heuristicDossierAsk, type DossierStatement } from "./dossier-ask";

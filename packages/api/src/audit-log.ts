@@ -19,6 +19,7 @@ export const AUDIT_RETENTION_BATCH = 1000;
 export const AUDIT_EXPORT_MAX_ROWS = 5000;
 
 const labels: Partial<Record<AuditAction, string>> = {
+  "copilot.asked": "Domanda dell’operatore al fascicolo",
   "family.searched": "Ricerca famiglia nel CAF",
   "case.reused": "Nucleo e documenti riusati per una nuova pratica",
   "document.reuse_checked": "Validità del documento riusato controllata",

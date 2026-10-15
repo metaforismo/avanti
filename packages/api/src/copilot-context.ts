@@ -5,8 +5,34 @@ export function redactContact(text: string): string {
     .replace(/https?:\/\/\S+|\bwww\.\S+|\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi, "[contatto omesso]")
     .replace(/(?<!\w)\+?\d[\d ().-]{7,}\d(?!\w)/g, "[contatto omesso]");
 }
+/**
+ * Model text sometimes quotes the evidence ids it was told to cite ("(answer account_owner_0)",
+ * a uuid). Those mean nothing to an operator: they are removed before anything is shown.
+ */
+export function stripInternalIds(text: string): string {
+  return (
+    text
+      .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "")
+      // Italian prose never contains underscores: any such token is a key or an id.
+      .replace(/[^\s(),;]*_[^\s(),;]*/g, "")
+      .replace(/\b(?:answer|checklist|document|finding)\b(?=[\s,;)]*(?:[,;)]|$))/gi, "")
+      .replace(/\(\s*[,;\s]*\)/g, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+([.,;:)])/g, "$1")
+      .trim()
+  );
+}
+
 export function copilotDossier(d: CaseDossier): CopilotDossier {
-  const clean = redactContact;
+  // Rule findings also embed filenames; omitting only documents.fileName is insufficient.
+  const names = d.documents
+    .map((doc) => doc.fileName)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  const clean = (text: string) =>
+    redactContact(
+      names.reduce((value, name) => value.split(name).join("Documento caricato"), text),
+    );
   const count = d.answers.find((a) => a.questionId === "accounts_count")?.answer;
   return {
     practice: d.practice,

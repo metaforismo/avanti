@@ -143,3 +143,10 @@ tentativi e finding ripetuti prima/dopo la stessa deduplicazione usata dall'API.
 inatteso fallisce il gate live. Include regressioni su evidenze e letture PDF con valuta.
 Il trasporto di produzione espone stime EUR; il costo fatturato USD rimane null se non misurato.
 File sintetici creati in memoria; nessun dato reale, chiave o contenuto di cittadini nei report.
+
+`@avanti/ai/dossier-ask-task` aggiunge `dossierAskTask` (`dossier.ask`, reasoning,
+costituzione 1/prompt 2). Restituisce affermazioni con ID di evidenze/citazioni o
+astensioni esplicite; il server risolve i riferimenti e compone `DossierAskResponse`.
+Chat e contratti UI in [dossier-ask.md](../../docs/decisions/dossier-ask.md).
+Eval sintetico con trasporto di produzione: `AI_LIVE=1 pnpm --filter @avanti/ai exec tsx eval/dossier-ask.ts`;
+senza `AI_LIVE`, esercita i fallback. `AI_EVAL_TAG` conserva esecuzioni distinte.

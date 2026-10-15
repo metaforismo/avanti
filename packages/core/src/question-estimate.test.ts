@@ -5,9 +5,8 @@ import { getQuestions, type Answers } from "./catalog";
 import { evaluateDossier } from "./evaluation";
 
 const now = new Date("2027-01-15T12:00:00Z");
-it("reserves every conditional question and never increases the upper bound along an interview", () => {
+it("updates a planning range as branch sizes become known and ends at zero", () => {
   let answers: Answers = {};
-  let previous = questionEstimate("isee_ordinario", answers, "it").max;
   const values: Answers = {
     household_count: 4,
     members: [
@@ -34,9 +33,7 @@ it("reserves every conditional question and never increases the upper bound alon
           : (question.options?.[0]?.value ?? "Esempio"));
     answers = applyAnswer("isee_ordinario", answers, question.id, value, "it", now);
     const estimate = questionEstimate("isee_ordinario", answers, "it");
-    expect(estimate.max, question.id).toBeLessThanOrEqual(previous);
     expect(estimate.min).toBeLessThanOrEqual(estimate.max);
-    previous = estimate.max;
   }
   expect(questionEstimate("isee_ordinario", answers, "it")).toEqual({ min: 0, max: 0 });
   expect(
@@ -81,4 +78,37 @@ it("counts per person, per account and per vehicle in advance", () => {
   expect(questionEstimate("isee_ordinario", { ...base, vehicles_count: 2 }, "it").max).toBe(
     before.max + 4,
   );
+});
+
+it("does not project catalog maxima for unknown accounts, properties and vehicles", () => {
+  const unknown = questionEstimate("isee_ordinario", {}, "it");
+  expect(unknown.max).toBeLessThan(65);
+  expect(unknown.max).toBeGreaterThan(unknown.min);
+  expect(
+    questionEstimate(
+      "isee_ordinario",
+      { household_count: 3, accounts_count: 3, properties_count: 2, vehicles_count: 2 },
+      "it",
+    ).max,
+  ).toBe(unknown.max - 4);
+});
+it("honors large explicit counts instead of clamping a citizen to typical sizes", () => {
+  const typical = questionEstimate(
+    "isee_ordinario",
+    { household_count: 3, accounts_count: 3 },
+    "it",
+  );
+  const declared = questionEstimate(
+    "isee_ordinario",
+    { household_count: 8, accounts_count: 12 },
+    "it",
+  );
+  expect(declared.max).toBeGreaterThan(typical.max);
+});
+
+it("projects declared people still unnamed after a partial narrative", () => {
+  const members = [{ id: "a", role: "richiedente" as const, firstName: "Ada" }];
+  const small = questionEstimate("isee_ordinario", { members, household_count: 1 }, "it");
+  const partial = questionEstimate("isee_ordinario", { members, household_count: 5 }, "it");
+  expect(partial.max).toBe(small.max + 4);
 });

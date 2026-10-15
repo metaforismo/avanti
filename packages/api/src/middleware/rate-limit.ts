@@ -49,7 +49,8 @@ export const RATE_POLICIES = {
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
-  if (path === "/api/ai/ask" && method === "POST") return RATE_POLICIES.copilot;
+  if ((path === "/api/ai/ask" || /^\/api\/cases\/[^/]+\/ai\/ask$/.test(path)) && method === "POST")
+    return RATE_POLICIES.copilot;
   if (
     /^\/api\/cases\/[^/]+\/ai\/(brief|request-draft|reply-draft)$/.test(path) &&
     method === "POST"

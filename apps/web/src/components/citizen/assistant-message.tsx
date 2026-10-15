@@ -1,6 +1,6 @@
 import type { ChatMessage } from "@avanti/contracts";
 import { WithCallLinks } from "./call-links";
-import { AssistantMark } from "./chat-bubble";
+import { AssistantAvatar } from "./chat-bubble";
 
 /** Latest assistant reply, always labelled as automated (AI Act art. 50 transparency). */
 export function AssistantMessage({
@@ -24,9 +24,13 @@ export function AssistantMessage({
 
 function Bubble({ message, label }: { message: ChatMessage; label: string }) {
   return (
-    <div key={message.id} className="grid animate-rise gap-1.5">
-      <AssistantMark label={label} />
-      <p dir="auto" className="ps-8 text-[1.0625rem] leading-relaxed whitespace-pre-line text-ink">
+    <div key={message.id} className="flex animate-rise gap-3">
+      <AssistantAvatar />
+      <p
+        dir="auto"
+        className="min-w-0 flex-1 pt-0.5 text-[1.0625rem] leading-relaxed whitespace-pre-line text-ink"
+      >
+        <span className="sr-only">{label}: </span>
         <WithCallLinks text={message.text} />
       </p>
     </div>

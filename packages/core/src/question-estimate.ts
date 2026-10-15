@@ -1,8 +1,10 @@
 import type { Language, PracticeId } from "@avanti/contracts";
 import { getQuestions, type Answers } from "./catalog";
-import { buildHousehold } from "./household";
+import { buildHousehold, householdMinimum } from "./household";
 
-/** Bounds on remaining questions, including branches whose selector is not answered yet. */
+/** Planning range, not a catalog maximum. Unknown sizes assume 3 people, 3 financial
+ * relationships, 2 properties and 2 vehicles. Explicit counts always override these
+ * product assumptions; the range may grow when a larger household is declared. */
 export function questionEstimate(practiceId: PracticeId, answers: Answers, language: Language) {
   const active = getQuestions(practiceId, answers, language);
   const answered = active.filter((q) => Object.hasOwn(answers, q.id)).length;
@@ -10,19 +12,29 @@ export function questionEstimate(practiceId: PracticeId, answers: Answers, langu
     return { min: active.length - answered, max: active.length - answered };
   function bound(upper: boolean) {
     const projected: Answers = { ...answers };
-    if (!buildHousehold(answers).length) {
-      const count =
-        typeof answers.household_count === "number" ? answers.household_count : upper ? 20 : 1;
-      projected.members = Array.from({ length: count }, (_, index) => ({
-        id: `estimate_${index}`,
-        role: index === 0 ? ("richiedente" as const) : ("altro" as const),
-        firstName: "Stima",
-      }));
+    const people = buildHousehold(answers);
+    const count = Math.max(
+      people.length,
+      typeof answers.household_count === "number"
+        ? answers.household_count
+        : upper
+          ? Math.max(3, householdMinimum(answers))
+          : householdMinimum(answers),
+    );
+    if (people.length < count) {
+      projected.members = [
+        ...people,
+        ...Array.from({ length: count - people.length }, (_, index) => ({
+          id: `estimate_${index}`,
+          role: people.length === 0 && index === 0 ? ("richiedente" as const) : ("altro" as const),
+          firstName: "Stima",
+        })),
+      ];
     }
-    // Read catalog maxima instead of silently assuming one account/vehicle per family.
+    // These are planning assumptions, never input limits or inferred citizen answers.
     for (const id of ["accounts_count", "properties_count", "vehicles_count"]) {
       if (!Object.hasOwn(answers, id))
-        projected[id] = upper ? active.find((q) => q.id === id)!.max! : 0;
+        projected[id] = upper ? (id === "accounts_count" ? 3 : 2) : 0;
     }
     for (const id of [
       "disability",
