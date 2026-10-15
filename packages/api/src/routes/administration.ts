@@ -71,6 +71,10 @@ function operatorSummary(row: OperatorRow): OperatorSummary {
 }
 function settingsView(row?: typeof settings.$inferSelect): OrganizationSettings {
   return {
+    nearReadyMode: row?.nearReadyMode ?? "shadow",
+    nearReadyCriticalThreshold: row?.nearReadyCriticalThreshold ?? 0.98,
+    nearReadyOtherThreshold: row?.nearReadyOtherThreshold ?? 0.95,
+    nearReadySuspendedAt: row?.nearReadySuspendedAt ? iso(row.nearReadySuspendedAt) : null,
     mfaRequired: row?.mfaRequired ?? false,
     aiMonthlyBudgetEur: row?.aiMonthlyBudgetEur ?? null,
     aiCopilot: row?.aiCopilot ?? true,

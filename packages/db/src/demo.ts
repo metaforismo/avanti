@@ -281,9 +281,14 @@ export async function seedDemo(
       answers.members = MemberInput.array()
         .parse(answers.members)
         .map((member) => ({ ...member, id: crypto.randomUUID() }));
+    // Case 2 is the clean rapid-review fixture: all facts remain explicitly synthetic.
+    if (position === 1) {
+      answers.accounts_count = 0;
+      answers.vehicles_count = 0;
+    }
     const household = (options.buildHousehold ?? buildHousehold)(answers);
     for (const member of household) {
-      answers[`income_present_${member.id}`] = true;
+      answers[`income_present_${member.id}`] = position !== 1;
     }
     answers.account_owner_0 = household[0]?.id ?? "joint";
     answers.vehicle_owner_0 = household[0]?.id ?? "joint";
@@ -369,6 +374,7 @@ export async function seedDemo(
           practiceId: "isee_ordinario",
           status,
           answers,
+          confirmedAnswers: getQuestions("isee_ordinario", answers, "it").map((q) => q.id),
           contact:
             status === "intake"
               ? null
@@ -517,6 +523,28 @@ async function examplePdf(
     size: 11,
     font,
   });
+  if (number === 2) {
+    const mother = ownerName?.startsWith("Madre") ?? false;
+    page.drawText(`Data nascita: ${mother ? "01/01/1960" : "01/01/1985"} - Milano`, {
+      x: 30,
+      y: 205,
+      size: 10,
+      font,
+    });
+    page.drawText(`Codice fiscale: ${mother ? "SMPMDR60A41F205P" : "SMPPSN85A01F205L"}`, {
+      x: 30,
+      y: 110,
+      size: 10,
+      font,
+    });
+    if (/identit/i.test(label))
+      page.drawText("Scadenza: 31/12/2030 - Pagina 1 di 1 (fronte e retro)", {
+        x: 30,
+        y: 65,
+        size: 10,
+        font,
+      });
+  }
   page.drawText("Nessun dato personale reale. Non usare per pratiche.", {
     x: 30,
     y: 90,

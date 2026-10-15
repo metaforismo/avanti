@@ -4,6 +4,8 @@
  * imports the inferred types. Changing a schema is a breaking API change.
  */
 import { z } from "zod";
+import { NearReady } from "./near-ready";
+export * from "./near-ready";
 import { LANGUAGES, PASSWORD_MIN_LENGTH, PRACTICE_IDS } from "./constants";
 
 export {
@@ -617,6 +619,7 @@ export const MfaStatus = z.object({
 export type MfaStatus = z.infer<typeof MfaStatus>;
 
 export const CaseListItem = z.object({
+  nearReadyBadge: z.boolean().default(false),
   hasCitizenQuestion: z.boolean().default(false),
   id: Id,
   reference: z.string(),
@@ -630,7 +633,10 @@ export const CaseListItem = z.object({
   blockers: z.number().int().nonnegative(),
   warnings: z.number().int().nonnegative(),
   aiAttention: z.number().int().nonnegative().nullable().default(null),
-  aiPriority: z.enum(["quick_review", "attention", "citizen_question"]).nullable().default(null),
+  aiPriority: z
+    .enum(["quick_review", "attention", "citizen_question", "near_ready"])
+    .nullable()
+    .default(null),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
   submittedAt: IsoDateTime.nullable(),
@@ -638,7 +644,7 @@ export const CaseListItem = z.object({
 export type CaseListItem = z.infer<typeof CaseListItem>;
 
 export const CaseListQuery = z.object({
-  ai: z.enum(["quick_review", "attention", "citizen_question"]).optional(),
+  ai: z.enum(["quick_review", "attention", "citizen_question", "near_ready"]).optional(),
   status: CaseStatus.optional(),
   practiceId: PracticeId.optional(),
   officeId: Id.optional(),
@@ -653,6 +659,9 @@ export const CaseListResponse = z.object({
   items: z.array(CaseListItem),
   nextCursor: z.string().nullable(),
   counts: z.record(CaseStatus, z.number().int().nonnegative()),
+  priorityCounts: z
+    .object({ near_ready: z.number().int().nonnegative() })
+    .default({ near_ready: 0 }),
 });
 export type CaseListResponse = z.infer<typeof CaseListResponse>;
 
@@ -741,6 +750,7 @@ export const DsuSheetResponse = DsuSheet.nullable();
 
 /** Full dossier for operators. Everything is in Italian regardless of the citizen language. */
 export const CaseDossier = CaseListItem.extend({
+  nearReady: NearReady.nullable().default(null),
   assistantTurns: z.array(AssistantTurn).default([]),
   citizen: z.object({
     firstName: SafeName.nullable(),
@@ -1226,6 +1236,10 @@ export const CitizenReminderDays = z.array(z.number().int().min(1).max(30)).min(
 export type CitizenReminderDays = z.infer<typeof CitizenReminderDays>;
 
 export const OrganizationSettings = z.object({
+  nearReadyMode: z.enum(["off", "shadow", "visible"]).default("shadow"),
+  nearReadyCriticalThreshold: z.number().min(0).max(1).default(0.98),
+  nearReadyOtherThreshold: z.number().min(0).max(1).default(0.95),
+  nearReadySuspendedAt: IsoDateTime.nullable().default(null),
   mfaRequired: z.boolean().default(false),
   aiCopilot: z.boolean().default(true),
   aiCitizenAssistant: z.boolean().default(true),
@@ -1250,17 +1264,22 @@ export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 
 // PATCH must preserve omitted preferences: Zod defaults would otherwise reset them
 // (an unrelated PATCH would turn off required MFA or the email notices).
-export const UpdateSettingsRequest = OrganizationSettings.partial().extend({
-  aiMonthlyBudgetEur: OrganizationSettings.shape.aiMonthlyBudgetEur.removeDefault().optional(),
-  aiCopilot: z.boolean().optional(),
-  aiCitizenAssistant: z.boolean().optional(),
-  mfaRequired: z.boolean().optional(),
-  notifyCitizenReady: z.boolean().optional(),
-  notifyCitizenSubmission: z.boolean().optional(),
-  notifyOperatorDigest: z.boolean().optional(),
-  notifyCitizenReminders: z.boolean().optional(),
-  citizenReminderDays: CitizenReminderDays.optional(),
-});
+export const UpdateSettingsRequest = OrganizationSettings.omit({ nearReadySuspendedAt: true })
+  .partial()
+  .extend({
+    nearReadyMode: z.enum(["off", "shadow", "visible"]).optional(),
+    nearReadyCriticalThreshold: z.number().min(0).max(1).optional(),
+    nearReadyOtherThreshold: z.number().min(0).max(1).optional(),
+    aiMonthlyBudgetEur: OrganizationSettings.shape.aiMonthlyBudgetEur.removeDefault().optional(),
+    aiCopilot: z.boolean().optional(),
+    aiCitizenAssistant: z.boolean().optional(),
+    mfaRequired: z.boolean().optional(),
+    notifyCitizenReady: z.boolean().optional(),
+    notifyCitizenSubmission: z.boolean().optional(),
+    notifyOperatorDigest: z.boolean().optional(),
+    notifyCitizenReminders: z.boolean().optional(),
+    citizenReminderDays: CitizenReminderDays.optional(),
+  });
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
 export const OperatorSummary = z.object({
