@@ -5,29 +5,16 @@ import { useId, useState, type FormEvent } from "react";
 import type { MemberRole } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
-import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
-import { format } from "@/lib/citizen/messages";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import { ActionErrorNotice } from "./action-error";
 import { AssistantMessage, lastMessage } from "./assistant-message";
 import type { StepProps } from "./citizen-app";
+import { InterviewProgressBar, RemainingQuestions } from "./interview-progress";
 import { QuestionCard } from "./question-card";
 
 export function InterviewStep({ api, data, m }: StepProps) {
   const question = data.nextQuestion;
-  const { questionsAnswered, questionsTotal } = data.progress;
-  const remaining = Math.max(0, questionsTotal - questionsAnswered);
-  const percent = questionsTotal > 0 ? (questionsAnswered / questionsTotal) * 100 : 0;
-  // Answers can open new questions: while the citizen moves forward the bar must not go back.
-  const [bar, setBar] = useState({ answered: questionsAnswered, percent });
-  if (bar.answered !== questionsAnswered) {
-    const forward = questionsAnswered > bar.answered;
-    setBar({
-      answered: questionsAnswered,
-      percent: forward ? Math.max(bar.percent, percent) : percent,
-    });
-  }
   const showAssistant = api.lastTurn === "text" || api.lastTurn === "choose_practice";
   const assistant = showAssistant ? lastMessage(data.messages, "assistant") : undefined;
 
@@ -42,24 +29,9 @@ export function InterviewStep({ api, data, m }: StepProps) {
           >
             {data.practice?.name ?? m.steps.interview}
           </h1>
-          {remaining > 0 && (
-            <p aria-hidden className="text-sm text-ink-3">
-              {remaining === 1
-                ? m.interview.remainingOne
-                : format(m.interview.remainingMany, { n: remaining })}
-            </p>
-          )}
+          <RemainingQuestions progress={data.progress} m={m} />
         </div>
-        {questionsTotal > 0 && (
-          <ProgressBar
-            value={bar.percent}
-            label={format(m.interview.progressLabel, {
-              n: questionsAnswered,
-              total: questionsTotal,
-            })}
-            className="mt-2"
-          />
-        )}
+        <InterviewProgressBar progress={data.progress} m={m} />
       </div>
 
       <AssistantMessage

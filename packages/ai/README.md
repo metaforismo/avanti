@@ -126,9 +126,20 @@ root. Le sezioni con link esterni commerciali vengono escluse anziché attribuir
 fonte istituzionale. L'indice non certifica che una norma sia tuttora vigente.
 
 Eval del copilota: `pnpm --filter @avanti/ai exec tsx eval/operator.ts`, offline per default.
-Live richiede `AI_LIVE=1 AI_PROVIDER=openrouter`. `AI_EVAL_TAG` distingue i report;
-`AI_EVAL_ISOLATED=1` isola il breaker fra casi. Il transport override dell'eval usa
-`strict:false` nello schema, disabilita reasoning DeepSeek e usa `minimal` su Luna;
-non modifica l'adattatore di produzione della sessione runtime parallela. Report senza
-contenuti di cittadini o chiavi; file sintetici creati in memoria. Costi riportati dal
-provider in USD separati dalla stima prudenziale EUR del runtime.
+Live richiede `AI_LIVE=1 AI_PROVIDER=openrouter` e la configurazione A di `docs/DEPLOY.md`.
+Il default `AI_EVAL_TRANSPORT=production` costruisce `AiRuntime` senza override: usa lo stesso
+`createTransport`, schemi, reasoning, timeout, retry e policy strict della produzione.
+`AI_EVAL_SUITE=realistic` limita la prova ai dieci compiti sui cinque fascicoli realistici;
+usare un `AI_EVAL_TAG` distinto per conservarne la ricevuta.
+`AI_EVAL_TRANSPORT=legacy` conserva il precedente adattatore solo per confronti espliciti,
+con report separati. `AI_EVAL_TAG` distingue le esecuzioni; `AI_EVAL_ISOLATED=1` isola il breaker.
+
+Il dataset aggiunge cinque dossier da 2–4 componenti con 8–11 documenti: raccolta verificata,
+caricamenti completi, letture AI/euristiche miste, anni errati e documenti mancanti. Il caso
+verificato conserva l'avviso normativo generale del catalogo ISEE 2027: «pronto» qui indica
+il prossimo passo suggerito all'operatore, non approvazione né convalida delle istruzioni annuali.
+Il report distingue AI, percorsi locali attesi, fallback inattesi, latenza per compito,
+tentativi e finding ripetuti prima/dopo la stessa deduplicazione usata dall'API. Un ripiego
+inatteso fallisce il gate live. Include regressioni su evidenze e letture PDF con valuta.
+Il trasporto di produzione espone stime EUR; il costo fatturato USD rimane null se non misurato.
+File sintetici creati in memoria; nessun dato reale, chiave o contenuto di cittadini nei report.

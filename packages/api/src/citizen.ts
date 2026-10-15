@@ -2,7 +2,7 @@ import { turnAcknowledgement } from "./turn-acknowledgement";
 import { appendConversationTurns } from "./conversation-messages";
 import { readConversationText } from "./conversation-routes";
 import { validateProposals, mergeProposals, pendingProposals } from "./conversation-state";
-import { readableAnswer } from "@avanti/core";
+import { intakeEmergency, localIntakeIntent, readableAnswer } from "@avanti/core";
 import { scheduleCopilot, refreshConsistency } from "./copilot";
 import { and, eq, gt, like } from "drizzle-orm";
 import { observeAi } from "./operational-telemetry";
@@ -222,7 +222,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
         : [];
     let proposal: import("./ai").IntakeProposal | null = null;
     if (input.type === "text") {
-      const intelligence = aiSettings?.enabled === false ? localCitizenIntelligence : s.ai;
+      const localSafety =
+        intakeEmergency(input.text) || localIntakeIntent(input.text, true) === "manipulation";
+      const intelligence =
+        aiSettings?.enabled === false || localSafety ? localCitizenIntelligence : s.ai;
       const work = () =>
         intelligence.intake(
           input.text,
@@ -234,7 +237,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           s.clock(),
         );
       proposal =
-        aiSettings?.enabled === false
+        aiSettings?.enabled === false || localSafety
           ? await work()
           : await observeAi(s, initial.organizationId, work);
     }
@@ -242,6 +245,35 @@ export function mountCitizenRoutes(app: App, s: Services) {
       const current = await lockCase(tx, initial, s.clock());
       const now = s.clock();
       if (proposal) assertProposalCurrent(initial, current);
+      if (input.type === "text" && proposal?.intent && proposal.intent !== "need") {
+        const emergency = proposal.intent === "emergency";
+        const [updated] = await tx
+          .update(cases)
+          .set({
+            conversationProposals: [],
+            conversationEngine: proposal.engine,
+            updatedAt: nextCaseUpdate(current, now),
+          })
+          .where(eq(cases.id, current.id))
+          .returning();
+        if (!updated) throw notFound();
+        if (emergency) await audit(tx, updated, "citizen", "citizen.safety_notice", now);
+        // Keep the deterministic notice; the sensitive story is not needed in the dossier.
+        await appendConversationTurns(tx, current.id, now, [
+          {
+            role: "assistant",
+            text: assistantReply(
+              await citizenView(tx, updated, now),
+              proposal,
+              current.answers,
+              input.text,
+            ),
+            kind: "message",
+            questionId: null,
+          },
+        ]);
+        return { row: updated, unavailablePractice: null };
+      }
       const { practiceId, answers, unavailablePractice } = applyTurn(current, input, proposal, now);
       const candidate = { ...current, practiceId, answers };
       const initialProposals =

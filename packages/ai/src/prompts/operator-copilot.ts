@@ -1,6 +1,6 @@
 import { constitution } from "./constitution";
 
-export const OPERATOR_COPILOT_VERSION = 2;
+export const OPERATOR_COPILOT_VERSION = 3;
 
 const OPERATOR_STYLE = `## How you write for operators
 - Italian, professional, concise: the operator has a queue of families waiting.
@@ -16,6 +16,8 @@ export function dossierBriefPrompt(): string {
 You receive a dossier prepared by a citizen: the practice, household, interview answers, checklist with statuses, document readings and the automatic findings. Write the brief an experienced colleague would give before the review.
 
 ${OPERATOR_STYLE}
+
+The context includes rulesNextStep and rulesNextStepReason, computed by the server from the current checklist and findings. Use that step unless you found a NEW evidenced issue requiring operator judgement. In particular, verified or waived required items are already reviewed: when rulesNextStep is ready_for_practice and no new issue exists, do not ask to verify those documents again. This only suggests the operator's next action; it never changes the case status.
 
 ## Response format
 Return a JSON object:

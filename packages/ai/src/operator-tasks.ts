@@ -70,7 +70,11 @@ const limits = { maxOutputTokens: 2400, maxInputChars: 48000, temperature: 0 };
 const refsValid = (ids: string[], i: CopilotDossier) =>
   ids.some((id) => evidenceFor(i).some((e) => e.id === id));
 const dossierData = (i: CopilotDossier) => ({
-  context: { evidence: evidenceFor(i) },
+  context: {
+    evidence: evidenceFor(i),
+    rulesNextStep: heuristicBrief(i).nextStep,
+    rulesNextStepReason: heuristicBrief(i).nextStepReason,
+  },
   untrusted: [{ kind: "document" as const, text: JSON.stringify(i) }],
 });
 export const dossierBriefTask: Task<z.infer<typeof CopilotInput>, z.infer<typeof briefOutput>> = {
@@ -237,7 +241,10 @@ const reading = z.object({
 });
 const readOutput = z.object({ fields: z.array(reading).max(20) });
 export function parseDocumentAmount(raw: string): number | null {
-  const text = raw.replace(/[€\s]/g, "");
+  const text = raw
+    .trim()
+    .replace(/^(?:€|EUR)\s*|\s*(?:€|EUR|euro)$/giu, "")
+    .replace(/\s/g, "");
   if (!/^(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{2})$/.test(text) && !/^\d+(?:\.\d{2})?$/.test(text))
     return null;
   const value = Number(text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text);
@@ -245,7 +252,7 @@ export function parseDocumentAmount(raw: string): number | null {
 }
 export const dsuReadTask: Task<z.infer<typeof DsuReadInput>, z.infer<typeof readOutput>> = {
   id: "document.dsu_read",
-  version: `${CONSTITUTION_VERSION}.1`,
+  version: `${CONSTITUTION_VERSION}.2`,
   tier: "vision",
   input: DsuReadInput,
   output: readOutput,

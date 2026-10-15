@@ -372,7 +372,15 @@ export type OrganizationPublic = z.infer<typeof OrganizationPublic>;
 
 export const Progress = z.object({
   questionsAnswered: z.number().int().nonnegative(),
+  /** Exact total; 0 while conditional branches still make a single count misleading. */
   questionsTotal: z.number().int().nonnegative(),
+  /** Bounds include unresolved per-person, account, property and vehicle questions. */
+  questionsRemaining: z
+    .object({
+      min: z.number().int().nonnegative(),
+      max: z.number().int().nonnegative(),
+    })
+    .optional(),
   documentsDone: z.number().int().nonnegative(),
   documentsRequired: z.number().int().nonnegative(),
   /** 0–100, weighted interview 30% / documents 70%. */

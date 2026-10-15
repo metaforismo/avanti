@@ -215,6 +215,7 @@ it("blocks credential and payment requests in the supported languages", () => {
 it("rejects invented IDs and ambiguous freeform values; HEIC skips the provider", async () => {
   const transport = vi.fn<Transport>().mockResolvedValue({
     output: {
+      intent: "need",
       practiceId: "isee_ordinario",
       answers: { invented: true },
       confidence: 1,
@@ -390,6 +391,7 @@ it("allows a vision response beyond the fast timeout and counts repeated timeout
 it("keeps unavailable practices and lexical violations out of accepted outputs", async () => {
   expect(
     intakeTask.generationSchema!.safeParse({
+      intent: "need",
       practiceId: "isee_universitario",
       confidence: 1,
       answers: {},

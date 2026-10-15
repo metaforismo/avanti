@@ -1,0 +1,422 @@
+{
+  "summary": {
+    "mode": "offline-production",
+    "configuration": {
+      "provider": "none",
+      "models": {
+        "fast": "disabled",
+        "audio": "google/gemini-3.5-flash-lite",
+        "reasoning": "disabled",
+        "vision": "disabled"
+      },
+      "dataPolicy": "strict",
+      "fallbacks": [],
+      "reasoning": {
+        "fast": "off",
+        "reasoning": "minimal",
+        "vision": "minimal",
+        "audio": "minimal"
+      },
+      "attemptTimeoutMs": {
+        "fast": 6000,
+        "reasoning": 25000,
+        "vision": 20000,
+        "audio": 20000
+      },
+      "totalTimeoutMs": 45000,
+      "maxAttempts": 3,
+      "prices": {},
+      "keyPresent": false,
+      "monthlyBudgetEur": 50
+    },
+    "transport": "production:createTransport",
+    "transportOverride": false,
+    "isolatedRuntimePerCase": false,
+    "knowledgeVersion": "b94cbc660f3a984a",
+    "cases": 27,
+    "passed": 27,
+    "ai": 0,
+    "heuristic": 27,
+    "requests": 0,
+    "expectedLocal": 27,
+    "unexpectedFallbacks": 0,
+    "measuredCostReceipts": 0,
+    "actualCostUsd": null,
+    "costEstimateEur": 0
+  },
+  "rows": [
+    {
+      "id": "realistic:brief:ready",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 7,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 2,
+        "documents": 9,
+        "rulesDocuments": 0,
+        "expectedStep": "ready_for_practice",
+        "actualStep": "ready_for_practice",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:ready",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 2,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 2,
+        "rulesFindings": 1,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 1
+      }
+    },
+    {
+      "id": "realistic:brief:uploaded",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 2,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "documents": 11,
+        "rulesDocuments": 0,
+        "expectedStep": "verify_documents",
+        "actualStep": "verify_documents",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:uploaded",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "rulesFindings": 12,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 12
+      }
+    },
+    {
+      "id": "realistic:brief:mixed",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 2,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "documents": 11,
+        "rulesDocuments": 6,
+        "expectedStep": "verify_documents",
+        "actualStep": "verify_documents",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:mixed",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "rulesFindings": 12,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 12
+      }
+    },
+    {
+      "id": "realistic:brief:wrong_year",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "documents": 11,
+        "rulesDocuments": 0,
+        "expectedStep": "needs_operator_judgement",
+        "actualStep": "needs_operator_judgement",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:wrong_year",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "rulesFindings": 16,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 16
+      }
+    },
+    {
+      "id": "realistic:brief:large_missing",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 2,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 4,
+        "documents": 8,
+        "rulesDocuments": 0,
+        "expectedStep": "ask_citizen",
+        "actualStep": "ask_citizen",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:large_missing",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 2,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": [],
+      "details": {
+        "members": 4,
+        "rulesFindings": 13,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 13
+      }
+    },
+    {
+      "id": "consistency:clean",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "consistency:wrong_name",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "consistency:wrong_year",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "consistency:expired",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 2,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "consistency:undeclared",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "brief",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "request-draft",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "ask:years",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "ask:cu",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "ask:outside",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "ask:injection",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "reply-draft",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:bank-image",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:cu-pdf",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:rent-pdf",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:select",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:conflict",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    }
+  ],
+  "receipts": []
+}

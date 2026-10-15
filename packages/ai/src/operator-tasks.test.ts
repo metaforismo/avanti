@@ -45,6 +45,12 @@ it("validates literal amounts, pages, slots and uncertainty", () => {
   expect(parseDocumentAmount("12.345,67 €")).toBe(12345.67);
   expect(parseDocumentAmount("1.000")).toBeNull();
   expect(parseDocumentAmount("zero")).toBeNull();
+  expect(parseDocumentAmount("28.500,00 euro")).toBe(28500);
+  expect(parseDocumentAmount("EUR 7.200,00")).toBe(7200);
+  expect(parseDocumentAmount("7.200,00 EUR")).toBe(7200);
+  expect(parseDocumentAmount("7.200,00 dollari")).toBeNull();
+  expect(parseDocumentAmount("saldo 7.200,00 euro")).toBeNull();
+  expect(parseDocumentAmount("7.200,00 euro 100")).toBeNull();
   const input = {
     bytes: new Uint8Array(),
     mime: "application/pdf" as const,
@@ -65,6 +71,16 @@ it("validates literal amounts, pages, slots and uncertainty", () => {
     ],
   };
   expect(dsuReadTask.validate!(output, input)).toBe(true);
+  expect(
+    dsuReadTask.validate!(
+      {
+        fields: [
+          { ...output.fields[0]!, rawValue: "12.345,67 euro", quote: "Saldo: 12.345,67 euro" },
+        ],
+      },
+      input,
+    ),
+  ).toBe(true);
   expect(dsuReadTask.validate!({ fields: [{ ...output.fields[0]!, value: 900 }] }, input)).toBe(
     false,
   );

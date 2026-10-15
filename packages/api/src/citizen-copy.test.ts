@@ -54,6 +54,7 @@ const exceptions = [
     "messages.practice.auu_review",
     "documentDetails.permit_current",
     "texts.iseeDescription",
+    "texts.intakeScope",
     "texts.unavailablePractice",
     "texts.unavailable",
     "choosePractice.fr",

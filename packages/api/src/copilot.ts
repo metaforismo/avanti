@@ -19,6 +19,7 @@ import {
 } from "@avanti/contracts";
 import {
   deterministicConsistency,
+  repeatsRuleFinding,
   heuristicBrief,
   evidenceFor,
   dsuPrefillSlots,
@@ -176,14 +177,7 @@ export async function analyzeConsistency(s: Services, row: CaseRow, force = fals
     const issues = [
       ...deterministic,
       // The rules already cover each checklist item they flag; a model restating them is noise.
-      ...added.filter(
-        (a) =>
-          !deterministic.some(
-            (i) =>
-              i.text === a.text ||
-              (a.checklistItemId !== null && i.checklistItemId === a.checklistItemId),
-          ),
-      ),
+      ...added.filter((a) => !repeatsRuleFinding(a, deterministic)),
     ];
     return DossierConsistency.parse({
       issues,

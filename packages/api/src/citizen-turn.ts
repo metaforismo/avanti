@@ -6,6 +6,7 @@ import {
   getPractice,
   skipQuestion,
   t,
+  intakeViolence,
 } from "@avanti/core";
 import type { IntakeProposal } from "./ai";
 import type { CaseRow } from "./dossier";
@@ -64,6 +65,8 @@ export function applyTurn(
     return { practiceId: input.practiceId, answers, unavailablePractice };
   }
   if (input.type === "text") {
+    if (proposal?.intent && proposal.intent !== "need")
+      return { practiceId, answers, unavailablePractice };
     if (!proposal) return { practiceId, answers, unavailablePractice };
     if (proposal.practiceId === "isee_universitario")
       proposal = {
@@ -136,6 +139,15 @@ export function assistantReply(
   previousPractice?: PracticeId | null,
   unavailablePractice: PracticeId | null = null,
 ) {
+  if (proposal?.intent === "emergency")
+    return [
+      t(view.language, "intakeEmergency"),
+      intakeViolence(text) ? t(view.language, "intakeViolence") : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  if (proposal?.intent === "off_topic" || proposal?.intent === "manipulation")
+    return t(view.language, "intakeScope");
   if (unavailablePractice) return t(view.language, "unavailablePractice");
   if (proposal) {
     const reply = turnAcknowledgement(view, proposal, previous, text, previousPractice);

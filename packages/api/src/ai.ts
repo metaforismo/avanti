@@ -5,6 +5,7 @@ import type { AiRuntime, TaskResult, Task, TaskContext, Transport } from "@avant
 import { aiContext } from "./ai-context";
 export { heuristicAnalysis } from "@avanti/ai/heuristics";
 export type IntakeProposal = {
+  intent?: import("@avanti/core").IntakeIntent;
   practiceId: PracticeId | null;
   confidence: number;
   answers: Record<string, import("@avanti/contracts").AnswerValue>;
