@@ -146,6 +146,7 @@ export function AssistantSheet({
               placeholder={m.assistant.placeholder}
               maxLength={600}
               busy={assistant.pending === "ask"}
+              voiceEnabled={data.aiCitizenAssistant !== false}
               onSend={(text) => assistant.ask(text, focus)}
             />
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">

@@ -159,6 +159,7 @@ export function ConversationStep(props: StepProps) {
           placeholder={m.conversation.placeholder}
           maxLength={1000}
           busy={thinking}
+          voiceEnabled={data.aiCitizenAssistant !== false}
           onSend={async (text) => {
             const next = await conversation.send(text);
             if (next) void api.reload();

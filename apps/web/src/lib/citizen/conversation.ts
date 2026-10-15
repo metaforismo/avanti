@@ -1,37 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { AnswerValue, Question } from "@avanti/contracts";
+import type { AnswerValue, ConversationState } from "@avanti/contracts";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
-// Mirrors the conversation contract agreed with the backend (docs/decisions/ai-platform.md);
-// replaced by the @avanti/contracts types when they land.
-export type ConversationTurn = {
-  id: string;
-  role: "citizen" | "assistant";
-  text: string;
-  kind: "message" | "question" | "confirmation" | "summary";
-  questionId: string | null;
-  createdAt: string;
-};
-
-export type Proposal = {
-  id: string;
-  questionId: string;
-  questionText: string;
-  value: AnswerValue;
-  display: string;
-  evidence: string;
-  confidence: number;
-};
-
-export type ConversationState = {
-  turns: ConversationTurn[];
-  proposals: Proposal[];
-  ask: Question[];
-  complete: boolean;
-  engine: "ai" | "heuristic";
-};
+export type { ConversationTurn, Proposal, ConversationState } from "@avanti/contracts";
 
 export type ConversationAction = "load" | "send" | "confirm" | null;
 

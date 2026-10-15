@@ -203,6 +203,15 @@ export function useCitizenCase(token: string) {
     [apply, base, run],
   );
 
+  // The citizen says a flagged document is right anyway; the operator still checks it.
+  const keepDocument = useCallback(
+    (documentId: string) =>
+      run(`keep:${documentId}`, () =>
+        apiFetch<CitizenCase>(`${base}/documents/${documentId}/keep`, { method: "POST" }),
+      ).then(apply),
+    [apply, base, run],
+  );
+
   const submit = useCallback(
     (input: SubmitCaseRequest) =>
       run("submit", () =>
@@ -280,6 +289,7 @@ export function useCitizenCase(token: string) {
     setLanguage,
     reassign,
     removeDocument,
+    keepDocument,
     submit,
     upload,
     retryUpload,

@@ -30,7 +30,10 @@ export function Composer({
   maxLength,
   busy,
   onSend,
+  voiceEnabled = true,
 }: {
+  /** Off when the CAF has switched off AI for citizens: recordings would go to a provider. */
+  voiceEnabled?: boolean;
   token: string;
   language: Language;
   m: Widen<CitizenMessages>;
@@ -125,7 +128,7 @@ export function Composer({
           disabled={recording || transcribing}
           className="min-h-11 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-base leading-snug outline-none placeholder:text-ink-3 disabled:opacity-60"
         />
-        {canSpeak && (
+        {canSpeak && voiceEnabled && (
           <Button
             type="button"
             variant={recording ? "danger" : "ghost"}

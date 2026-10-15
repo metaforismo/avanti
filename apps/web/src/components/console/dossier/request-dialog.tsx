@@ -2,7 +2,7 @@
 
 import { Sparkles } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
-import type { CaseDossier, QuickReply } from "@avanti/contracts";
+import type { CaseDossier, ChatMessage, QuickReply, ReplyDraftResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { apiFetch, ApiRequestError } from "@/lib/api";
@@ -11,16 +11,21 @@ import { useResource } from "@/lib/console/use-resource";
 
 const NEEDS_ACTION = new Set(["missing", "rejected", "issue"]);
 
+/** Answering a citizen's question: the dialog opens on the draft, with nothing ticked. */
+export type ReplyContext = { question: ChatMessage; draft: ReplyDraftResponse };
+
 export function RequestDialog({
   open,
   onOpenChange,
   dossier,
   onSent,
   onConflict,
+  reply = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dossier: CaseDossier;
+  reply?: ReplyContext | null;
   onSent: (result: CaseDossier | null) => void;
   /** The case changed since it was read: reload it, keeping this draft. */
   onConflict: () => void;
@@ -36,7 +41,7 @@ export function RequestDialog({
         if (!next) edited.current = false;
         onOpenChange(next);
       }}
-      title="Chiedi un'integrazione"
+      title={reply ? "Rispondi al cittadino" : "Chiedi un'integrazione"}
       description={
         dossier.language === "it"
           ? "Il cittadino la vede nel suo link e la pratica passa in attesa."
@@ -46,6 +51,7 @@ export function RequestDialog({
       {open && (
         <RequestForm
           dossier={dossier}
+          reply={reply}
           onEdited={() => (edited.current = true)}
           onConflict={onConflict}
           onDone={(result) => {
@@ -75,11 +81,13 @@ function defaultMessage(dossier: CaseDossier, titles: string[]) {
 
 function RequestForm({
   dossier,
+  reply,
   onDone,
   onEdited,
   onConflict,
 }: {
   dossier: CaseDossier;
+  reply: ReplyContext | null;
   onEdited: () => void;
   onDone: (result: CaseDossier | null) => void;
   onConflict: () => void;
@@ -87,16 +95,24 @@ function RequestForm({
   const candidates = dossier.checklist.filter((item) => NEEDS_ACTION.has(item.status));
   const others = dossier.checklist.filter((item) => !NEEDS_ACTION.has(item.status));
   const [selected, setSelected] = useState<string[]>(
-    candidates.filter((i) => i.required).map((i) => i.id),
+    reply ? [] : candidates.filter((i) => i.required).map((i) => i.id),
   );
   const label = (id: string) => {
     const item = dossier.checklist.find((i) => i.id === id);
     return item ? (item.memberName ? `${item.title} di ${item.memberName}` : item.title) : "";
   };
-  const [message, setMessage] = useState(() => defaultMessage(dossier, selected.map(label)));
-  const [touched, setTouched] = useState(false);
+  const [message, setMessage] = useState(() =>
+    reply ? reply.draft.message.slice(0, 1000) : defaultMessage(dossier, selected.map(label)),
+  );
+  const [touched, setTouched] = useState(Boolean(reply));
   const replies = useResource<QuickReply[]>("/api/quick-replies");
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(() =>
+    !reply
+      ? null
+      : reply.draft.engine === "ai"
+        ? "Bozza scritta dall'AI: controllala prima di inviare."
+        : "AI non disponibile: scrivi tu la risposta.",
+  );
   const [drafting, setDrafting] = useState(false);
 
   // A draft replaces the text like a typed message would: the operator then edits it.
@@ -220,42 +236,72 @@ function RequestForm({
     </label>
   );
 
+  const items = (
+    <div className="max-h-56 overflow-y-auto rounded-md ring-1 ring-line">
+      {candidates.map(renderItem)}
+      {others.length > 0 && (
+        <details className="border-t border-line">
+          <summary className="cursor-pointer px-2 py-2 text-sm text-ink-3">
+            Altre voci ({others.length})
+          </summary>
+          {others.map(renderItem)}
+        </details>
+      )}
+    </div>
+  );
+
   return (
     <form onSubmit={submit} className="grid gap-4">
-      <fieldset>
-        <legend className="mb-1 text-sm font-semibold">Voci da completare</legend>
-        <div className="max-h-56 overflow-y-auto rounded-md ring-1 ring-line">
-          {candidates.map(renderItem)}
-          {others.length > 0 && (
-            <details className="border-t border-line">
-              <summary className="cursor-pointer px-2 py-2 text-sm text-ink-3">
-                Altre voci ({others.length})
-              </summary>
-              {others.map(renderItem)}
-            </details>
-          )}
-        </div>
-      </fieldset>
+      {reply ? (
+        <>
+          <figure className="rounded-md bg-stamp-wash px-4 py-3">
+            <figcaption className="text-xs font-semibold text-ink-3">
+              Il cittadino ha scritto
+            </figcaption>
+            <blockquote dir="auto" className="mt-1 whitespace-pre-line">
+              {reply.question.text}
+            </blockquote>
+            {reply.question.originalText && reply.question.originalText !== reply.question.text && (
+              <p dir="auto" className="mt-2 border-t border-stamp/15 pt-2 text-sm text-ink-3">
+                Originale: {reply.question.originalText}
+              </p>
+            )}
+          </figure>
+          <details className="rounded-md ring-1 ring-line">
+            <summary className="cursor-pointer px-3 py-2 text-sm font-semibold">
+              Chiedi anche dei documenti{selected.length > 0 ? ` (${selected.length})` : ""}
+            </summary>
+            <div className="border-t border-line p-2">{items}</div>
+          </details>
+        </>
+      ) : (
+        <fieldset>
+          <legend className="mb-1 text-sm font-semibold">Voci da completare</legend>
+          {items}
+        </fieldset>
+      )}
       <div className="grid gap-1.5">
         <label htmlFor="request-message" className="text-sm font-semibold">
           Messaggio
         </label>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            loading={drafting}
-            disabled={selected.length === 0}
-            onClick={() => void draftWithAi()}
-          >
-            <Sparkles className="size-4 text-stamp" aria-hidden />
-            Bozza con l&apos;AI
-          </Button>
-          <span className="text-xs text-ink-3">
-            Scrive il messaggio dalle voci selezionate: rileggilo prima di inviare.
-          </span>
-        </div>
+        {!reply && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              loading={drafting}
+              disabled={selected.length === 0}
+              onClick={() => void draftWithAi()}
+            >
+              <Sparkles className="size-4 text-stamp" aria-hidden />
+              Bozza con l&apos;AI
+            </Button>
+            <span className="text-xs text-ink-3">
+              Scrive il messaggio dalle voci selezionate: rileggilo prima di inviare.
+            </span>
+          </div>
+        )}
         {replies.data && replies.data.length > 0 && (
           <div role="group" aria-label="Risposte rapide" className="flex flex-wrap gap-1.5">
             {replies.data.map((reply) => (
@@ -293,6 +339,30 @@ function RequestForm({
         <p role="status" className={notice ? "text-sm text-warn" : "sr-only"}>
           {notice}
         </p>
+        {reply && reply.draft.citations.length > 0 && (
+          <div className="text-sm text-ink-2">
+            <p className="font-semibold">Fonti usate per la bozza</p>
+            <ul className="mt-1 grid gap-0.5">
+              {reply.draft.citations.map((citation) => (
+                <li key={citation.id}>
+                  {citation.url ? (
+                    <a
+                      href={citation.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-stamp underline underline-offset-2"
+                    >
+                      {citation.title}
+                    </a>
+                  ) : (
+                    citation.title
+                  )}
+                  <span className="text-ink-3"> · {citation.source}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
       {error && (
         <p
@@ -304,7 +374,7 @@ function RequestForm({
         </p>
       )}
       <Button type="submit" size="lg" loading={pending}>
-        Invia al cittadino
+        {reply ? "Invia la risposta" : "Invia al cittadino"}
       </Button>
     </form>
   );

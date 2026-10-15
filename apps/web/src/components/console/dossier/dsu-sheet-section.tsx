@@ -1,11 +1,18 @@
 "use client";
 
-import { Check, ChevronDown, Copy, ExternalLink, FileSearch } from "lucide-react";
+import { Check, ChevronDown, Copy, ExternalLink, FileSearch, Sparkles, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import type { CaseDossier, DsuRow, DsuSection } from "@avanti/contracts";
+import type {
+  CaseDossier,
+  DsuPrefill,
+  DsuPrefillField,
+  DsuRow,
+  DsuSection,
+} from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { spreadsheetRows } from "@/lib/console/spreadsheet-safe";
+import { useResource } from "@/lib/console/use-resource";
 import type { DossierActions } from "./dossier-view";
 
 /**
@@ -58,6 +65,14 @@ type View = keyof typeof VIEWS;
 function SheetBody({ dossier, actions }: { dossier: CaseDossier; actions: DossierActions }) {
   // While typing into the software the operator wants either the values or what to look up.
   const [view, setView] = useState<View>("all");
+  // Values the AI read from the documents; each one becomes a value only once confirmed.
+  const prefill = useResource<DsuPrefill>(
+    // Keyed by version: a decision or a new upload changes what is left to confirm.
+    dossier.dsuSheet
+      ? `/api/cases/${encodeURIComponent(dossier.id)}/ai/dsu-prefill?v=${encodeURIComponent(dossier.updatedAt)}`
+      : null,
+  );
+  const proposals = prefill.data?.fields ?? [];
   if (!dossier.dsuSheet) {
     return (
       <p className="border-t border-line px-5 py-4 text-ink-2">
@@ -112,6 +127,17 @@ function SheetBody({ dossier, actions }: { dossier: CaseDossier; actions: Dossie
           </button>
         ))}
       </div>
+      {proposals.length > 0 && (
+        <p className="flex items-start gap-2 rounded-md bg-stamp-wash px-4 py-3 text-sm text-ink">
+          <Sparkles className="mt-0.5 size-4 shrink-0 text-stamp" aria-hidden />
+          <span>
+            {proposals.length === 1
+              ? "L'AI ha letto un importo nei documenti."
+              : `L'AI ha letto ${proposals.length} importi nei documenti.`}{" "}
+            Controllali sul file e conferma: solo i valori confermati entrano nel prospetto.
+          </span>
+        </p>
+      )}
       {sections.length === 0 && <p className="text-ink-2">Niente in questa vista.</p>}
       {sections.map((section) => (
         <SheetSection
@@ -119,6 +145,7 @@ function SheetBody({ dossier, actions }: { dossier: CaseDossier; actions: Dossie
           section={section}
           dossier={dossier}
           actions={actions}
+          proposals={proposals}
         />
       ))}
     </div>
@@ -129,11 +156,14 @@ function SheetSection({
   section,
   dossier,
   actions,
+  proposals,
 }: {
   section: DsuSection;
   dossier: CaseDossier;
   actions: DossierActions;
+  proposals: DsuPrefillField[];
 }) {
+  const sectionId = `${section.quadro}:${section.memberId ?? "household"}:${section.instanceId ?? "main"}`;
   // Tab-separated pairs paste into a spreadsheet next to the software; values come from the
   // citizen, so they are neutralized against formula injection.
   const values = section.rows.flatMap((row) =>
@@ -159,7 +189,17 @@ function SheetSection({
       </header>
       <dl className="divide-y divide-line">
         {section.rows.map((row, index) => (
-          <SheetRow key={`${row.label}-${index}`} row={row} dossier={dossier} actions={actions} />
+          <SheetRow
+            key={`${row.label}-${index}`}
+            row={row}
+            dossier={dossier}
+            actions={actions}
+            proposal={
+              row.value === null
+                ? proposals.find((p) => p.sectionId === sectionId && p.label === row.label)
+                : undefined
+            }
+          />
         ))}
       </dl>
     </section>
@@ -170,10 +210,12 @@ function SheetRow({
   row,
   dossier,
   actions,
+  proposal,
 }: {
   row: DsuRow;
   dossier: CaseDossier;
   actions: DossierActions;
+  proposal?: DsuPrefillField;
 }) {
   const document =
     row.source.kind === "document"
@@ -189,13 +231,21 @@ function SheetRow({
         {row.note && <span className="mt-0.5 block text-xs text-ink-3">{row.note}</span>}
       </dt>
       <dd className="flex min-w-0 items-center gap-2">
-        {row.source.kind === "answer" && row.value !== null ? (
+        {row.value !== null ? (
           <>
             <span className="min-w-0 flex-1 font-semibold break-words text-ink tabular-nums">
               {row.value}
+              {row.source.kind === "document" && (
+                <span className="mt-0.5 block text-xs font-normal text-ink-3">
+                  Letto dal documento, confermato
+                  {row.source.page ? ` · pagina ${row.source.page}` : ""}
+                </span>
+              )}
             </span>
             <CopyValue value={row.value} label={row.label} />
           </>
+        ) : proposal ? (
+          <PrefillProposal proposal={proposal} dossier={dossier} actions={actions} />
         ) : row.source.kind === "document" ? (
           <Tag tone="document">
             {document ? (
@@ -217,6 +267,69 @@ function SheetRow({
           <Tag tone="caf">A cura del CAF</Tag>
         )}
       </dd>
+    </div>
+  );
+}
+
+const amount = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
+
+/** An AI reading waiting for the operator: the value, where it comes from, confirm or discard. */
+function PrefillProposal({
+  proposal,
+  dossier,
+  actions,
+}: {
+  proposal: DsuPrefillField;
+  dossier: CaseDossier;
+  actions: DossierActions;
+}) {
+  const document = dossier.documents.find((doc) => doc.id === proposal.documentId);
+  const busy = actions.pending === `prefill:${proposal.fieldId}`;
+  const value = typeof proposal.value === "number" ? amount.format(proposal.value) : proposal.value;
+  return (
+    <div className="min-w-0 flex-1 rounded-sm bg-stamp-wash px-3 py-2 ring-1 ring-stamp/15">
+      <p className="flex flex-wrap items-baseline gap-x-2">
+        <span className="font-semibold text-ink tabular-nums">{value}</span>
+        <span className="inline-flex items-center gap-1 text-xs text-stamp">
+          <Sparkles className="size-3" aria-hidden />
+          proposto dall&apos;AI
+        </span>
+      </p>
+      <p className="mt-0.5 text-xs text-ink-2">
+        {document ? (
+          <button
+            type="button"
+            onClick={() => actions.openDocument(document)}
+            className="font-semibold text-stamp underline underline-offset-2"
+          >
+            {document.analysis?.detectedLabel ?? document.fileName}
+            {proposal.page ? `, pagina ${proposal.page}` : ""}
+          </button>
+        ) : (
+          "Documento non più disponibile"
+        )}
+        {proposal.note && <span className="block">{proposal.note}</span>}
+      </p>
+      <div className="mt-2 flex gap-2">
+        <Button
+          size="sm"
+          loading={busy}
+          disabled={actions.pending !== null && !busy}
+          onClick={() => void actions.decidePrefill(proposal.fieldId, "accept")}
+        >
+          <Check className="size-4" aria-hidden />
+          Conferma
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={actions.pending !== null}
+          onClick={() => void actions.decidePrefill(proposal.fieldId, "reject")}
+        >
+          <X className="size-4" aria-hidden />
+          Scarta
+        </Button>
+      </div>
     </div>
   );
 }

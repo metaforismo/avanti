@@ -3,21 +3,9 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
-// Mirrors the assistant contract agreed with the backend (docs/decisions/ai-platform.md);
-// replaced by the @avanti/contracts types when they land.
-export type AssistantIntent =
-  "answer" | "needs_operator" | "off_topic" | "manipulation" | "emergency";
-export type AssistantAction = "none" | "explain_question" | "open_documents" | "ask_desk";
+import type { AssistantTurn } from "@avanti/contracts";
 
-export type AssistantTurn = {
-  id: string;
-  role: "citizen" | "assistant";
-  text: string;
-  intent?: AssistantIntent;
-  action?: AssistantAction;
-  sources?: { id: string; title: string }[];
-  createdAt: string;
-};
+export type { AssistantAction, AssistantIntent, AssistantTurn } from "@avanti/contracts";
 
 export type AssistantFocus = { questionId?: string; checklistItemId?: string };
 
