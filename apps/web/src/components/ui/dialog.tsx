@@ -14,6 +14,7 @@ export function Dialog({
   className,
   returnFocusTo,
   closeLabel = "Chiudi",
+  dismissible = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -25,12 +26,16 @@ export function Dialog({
   returnFocusTo?: RefObject<HTMLElement | null>;
   /** The citizen app passes its own language; the console is Italian. */
   closeLabel?: string;
+  /** False for content shown once (a temporary password): only its own button closes it. */
+  dismissible?: boolean;
 }) {
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
       <Primitive.Portal>
         <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim backdrop-blur-[2px]" />
         <Primitive.Content
+          onEscapeKeyDown={(event) => !dismissible && event.preventDefault()}
+          onInteractOutside={(event) => !dismissible && event.preventDefault()}
           onCloseAutoFocus={(event) => {
             if (!returnFocusTo?.current) return;
             event.preventDefault();
@@ -55,12 +60,14 @@ export function Dialog({
                 <Primitive.Description className="sr-only">{title}</Primitive.Description>
               )}
             </div>
-            <Primitive.Close
-              className="-m-1 rounded-sm p-2 text-ink-3 hover:bg-sunk hover:text-ink"
-              aria-label={closeLabel}
-            >
-              <X className="size-5" aria-hidden />
-            </Primitive.Close>
+            {dismissible && (
+              <Primitive.Close
+                className="-m-1 rounded-sm p-2 text-ink-3 hover:bg-sunk hover:text-ink"
+                aria-label={closeLabel}
+              >
+                <X className="size-5" aria-hidden />
+              </Primitive.Close>
+            )}
           </div>
           {children}
         </Primitive.Content>

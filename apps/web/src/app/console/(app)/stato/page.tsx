@@ -97,7 +97,11 @@ function StatusView() {
           <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Stato del sistema</h1>
           <p className="mt-1 text-ink-2">Si aggiorna ogni minuto. Non mostra dati dei cittadini.</p>
         </div>
-        <Button variant="secondary" loading={status.refreshing} onClick={() => reload()}>
+        <Button
+          variant="secondary"
+          loading={status.refreshing || status.reloading}
+          onClick={() => reload()}
+        >
           <RefreshCw className="size-4" aria-hidden />
           Aggiorna
         </Button>
@@ -111,7 +115,18 @@ function StatusView() {
       ) : !status.data ? (
         <div className="mt-6 h-64 animate-pulse rounded-lg bg-sunk" aria-hidden />
       ) : (
-        <StatusBody data={status.data} />
+        <>
+          {status.status === "error" && (
+            <p
+              role="alert"
+              className="mt-6 rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
+            >
+              Aggiornamento non riuscito: i dati qui sotto sono quelli del{" "}
+              {formatDateTime(status.data.generatedAt)}. {status.error.message}
+            </p>
+          )}
+          <StatusBody data={status.data} />
+        </>
       )}
     </div>
   );
@@ -124,8 +139,12 @@ function StatusBody({ data }: { data: SystemStatus }) {
 
   return (
     <div className="mt-6 grid gap-8">
+      {/* Announces only the verdict, so a refresh every minute stays quiet unless it changes. */}
+      <p role="status" className="sr-only">
+        {overall.headline}
+      </p>
       <section
-        role="status"
+        aria-label="Riepilogo"
         className={cn(
           "flex items-center gap-4 rounded-lg p-5 ring-1",
           data.status === "ok" && "bg-ok-wash ring-ok/20",
@@ -276,12 +295,12 @@ function Counter({
         <Icon className={cn("size-4.5 shrink-0", tone)} aria-hidden />
         {/* null means "not measured": never show it as zero. */}
         <span className="font-display text-2xl font-semibold tabular-nums">
-          {count === null ? "—" : count}
+          {count === null ? "—" : count.toLocaleString("it-IT")}
         </span>
         {count === null && <span className="text-sm text-ink-3">non disponibile</span>}
         {href && count !== null && count > 0 && (
           <Link href={href} className="ms-auto text-sm font-semibold text-stamp hover:underline">
-            Vedi
+            Vedi le pratiche
           </Link>
         )}
       </dd>

@@ -1,7 +1,7 @@
 "use client";
 
 import { ShieldAlert, ShieldCheck } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import type { MfaRecoveryCodesResponse, MfaStatus } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Field, PasswordInput } from "@/components/ui/field";
@@ -20,17 +20,30 @@ export function MfaAccountSection() {
   const reloadOperator = useReloadOperator();
   const [mode, setMode] = useState<Mode>("idle");
   const [notice, setNotice] = useState<string | null>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  // The button that opened a form is gone once it closes: keep the keyboard in this section.
+  const backToTitle = () => requestAnimationFrame(() => title.current?.focus());
 
   const finish = (text: string | null) => {
     setMode("idle");
     setNotice(text);
     void status.reload();
     void reloadOperator();
+    backToTitle();
+  };
+  const cancel = () => {
+    setMode("idle");
+    backToTitle();
   };
 
   return (
     <section className="mt-10" aria-labelledby="mfa-title">
-      <h2 id="mfa-title" className="font-display text-xl font-semibold">
+      <h2
+        id="mfa-title"
+        ref={title}
+        tabIndex={-1}
+        className="font-display text-xl font-semibold outline-none"
+      >
         Verifica in due passaggi
       </h2>
       <p className="mt-1 mb-5 max-w-2xl text-ink-2">
@@ -55,15 +68,11 @@ export function MfaAccountSection() {
           onDone={() => finish("Nuovi codici di recupero salvati. Quelli vecchi non valgono più.")}
         />
       ) : mode === "setup" ? (
-        <MfaSetupFlow
-          doneLabel="Fatto"
-          onDone={() => finish(null)}
-          onCancel={() => setMode("idle")}
-        />
+        <MfaSetupFlow doneLabel="Fatto" onDone={() => finish(null)} onCancel={cancel} />
       ) : mode === "regenerate" || mode === "disable" ? (
         <SensitiveForm
           mode={mode}
-          onCancel={() => setMode("idle")}
+          onCancel={cancel}
           onDone={(codes) =>
             codes ? setMode({ codes }) : finish("Verifica in due passaggi disattivata.")
           }
@@ -205,13 +214,19 @@ function SensitiveForm({
           : "I codici attuali smetteranno di funzionare. Conferma password e codice."}
       </p>
       <Field label="La tua password" error={errors.password}>
-        {(p) => <PasswordInput {...p} name="currentPassword" autoComplete="current-password" />}
+        {(p) => (
+          <PasswordInput {...p} name="currentPassword" autoComplete="current-password" autoFocus />
+        )}
       </Field>
       <CodeField kind={kind} error={errors.code} />
       <button
         type="button"
         className="w-fit text-sm text-stamp underline underline-offset-2"
-        onClick={() => setKind((k) => (k === "totp" ? "recovery" : "totp"))}
+        onClick={() => {
+          setKind((k) => (k === "totp" ? "recovery" : "totp"));
+          setErrors((current) => ({ ...current, code: undefined }));
+          setFormError(null);
+        }}
       >
         {kind === "totp" ? "Usa un codice di recupero" : "Usa il codice dell'app"}
       </button>
