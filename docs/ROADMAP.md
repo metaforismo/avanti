@@ -69,6 +69,13 @@ nelle PR.
 - Revisione di sicurezza indipendente (`docs/verification/review-2026-10.md`): nessun problema
   critico o alto; corretta la revoca durante richieste in corso e la scadenza del link salvato sul
   dispositivo del cittadino. Da decidere: conservazione delle candidature pilota.
+- Postgres reale: corretto un crash delle migrazioni che PGlite non mostrava; pool e timeout
+  espliciti; prova di carico con 30 operatori e 200 cittadini senza errori né deadlock
+  (`pnpm bench:load`, `docs/verification/load-postgres.md`).
+- Dopo l'invio il cittadino trova il link per prenotare l'appuntamento e le indicazioni dello
+  sportello; ricevuta email facoltativa, limitata per destinatario.
+- Revisione dell'interfaccia: conferme prima di cambiare gli accessi di un operatore, focus e
+  annunci per chi usa tastiera e lettori di schermo, rapporto del pilota con periodo nell'URL.
 
 ## Fatto di recente (14 ottobre)
 
