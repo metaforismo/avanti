@@ -156,7 +156,7 @@ function SettingsForm({
           name="notifyCitizenSubmission"
           defaultChecked={initial.notifyCitizenSubmission}
           label="Ricevuta al cittadino quando invia la pratica"
-          hint="Solo se ha lasciato l'email, nella sua lingua: codice della pratica, sportello e cosa succede adesso. Nessun link e nessun dato dei documenti."
+          hint="Va all'email che il cittadino scrive, nella sua lingua: codice della pratica, sportello e cosa succede adesso. Nessun link e nessun dato dei documenti; al massimo due al giorno per indirizzo."
         />
         <Toggle
           name="notifyCitizenReady"
