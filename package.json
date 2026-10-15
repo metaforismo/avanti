@@ -1,7 +1,7 @@
 {
   "name": "avanti",
   "private": true,
-  "description": "Avanti \u2014 il front office AI per CAF e patronati",
+  "description": "Avanti — il front office AI per CAF e patronati",
   "license": "UNLICENSED",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
