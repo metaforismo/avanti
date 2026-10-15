@@ -50,6 +50,44 @@ const STEPS = [
   },
 ] as const;
 
+/** What the AI does in Avanti today, and what stays with people. Each line is a shipped feature. */
+const AI_CITIZEN = [
+  [
+    "Parla o scrive come allo sportello",
+    "Nella sua lingua, anche a voce. L'assistente capisce più informazioni in un messaggio, ripete cosa ha capito da confermare e chiede solo ciò che manca.",
+  ],
+  [
+    "Ha un dubbio a metà strada",
+    "Chiede all'assistente cosa vuol dire una domanda o dove trovare un documento. Se serve una persona, la domanda arriva allo sportello.",
+  ],
+  [
+    "Carica una foto sbagliata",
+    "Avanti la legge e avvisa subito se è il documento sbagliato, di un'altra persona, scaduto o illeggibile, prima che il fascicolo parta.",
+  ],
+] as const;
+
+const AI_OPERATOR = [
+  [
+    "Un riepilogo da collega",
+    "La situazione in due righe, cosa controllare e perché: ogni punto rimanda alla risposta o al documento da cui viene.",
+  ],
+  [
+    "Dichiarazioni e documenti a confronto",
+    "Nomi che non tornano, anni sbagliati, conti dichiarati senza estratto. E il prospetto DSU precompilato dai documenti, da confermare voce per voce.",
+  ],
+  [
+    "Meno scrittura",
+    "Bozze delle richieste d'integrazione e delle risposte ai cittadini, risposte rapide, domande normative con le fonti.",
+  ],
+] as const;
+
+const AI_LIMITS = [
+  "Non decide se un cittadino ha diritto a qualcosa e non manda nulla al suo posto: decide l'operatore.",
+  "Non inventa documenti, anni o regole: quelle stanno nel motore di Avanti, con le fonti ufficiali.",
+  "Se il fornitore AI non risponde o il budget del mese finisce, Avanti continua con le regole.",
+  "Usa solo fornitori che non conservano i dati e non li usano per addestrare, e solo ciò che serve a ogni compito.",
+] as const;
+
 const PRACTICES = [
   { name: "ISEE ordinario", when: "Gennaio 2027", status: "Pilota con i CAF", live: true },
   { name: "Modello 730", when: "Aprile 2027", status: "In preparazione", live: false },
@@ -225,6 +263,58 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
+      </section>
+
+      {/* AI */}
+      <section aria-labelledby="ai-title" className="border-y border-line bg-surface">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
+          <div className="max-w-2xl">
+            <h2
+              id="ai-title"
+              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+            >
+              L&apos;intelligenza artificiale, dove fa risparmiare tempo.
+            </h2>
+            <p className="mt-5 text-lg text-ink-2">
+              Non un chatbot appoggiato sopra: l&apos;AI lavora dentro il percorso, accanto a regole
+              scritte con le fonti ufficiali che decidono cosa chiedere e cosa serve.
+            </p>
+          </div>
+          <div className="mt-14 grid gap-12 lg:grid-cols-2">
+            {(
+              [
+                ["Per il cittadino", AI_CITIZEN],
+                ["Per l'operatore", AI_OPERATOR],
+              ] as const
+            ).map(([title, items]) => (
+              <div key={title}>
+                <h3 className="font-display text-2xl font-semibold tracking-[-0.015em]">{title}</h3>
+                <dl className="mt-6 grid gap-6">
+                  {items.map(([term, text]) => (
+                    <div key={term}>
+                      <dt className="font-semibold">{term}</dt>
+                      <dd className="mt-1 leading-relaxed text-ink-2">{text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+          <div className="mt-14 rounded-lg bg-paper p-6 ring-1 ring-line">
+            <h3 className="flex items-center gap-2 font-semibold">
+              <ShieldCheck className="size-5 text-stamp" aria-hidden />
+              Cosa resta alle persone
+            </h3>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {AI_LIMITS.map((line) => (
+                <li key={line} className="flex gap-2.5 leading-relaxed text-ink-2">
+                  <Check className="mt-1 size-4 shrink-0 text-ok" aria-hidden />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </section>
 
       {/* Operators */}
