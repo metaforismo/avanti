@@ -1,3 +1,4 @@
+import { loadAiConfig, publicAiConfig } from "@avanti/ai/config";
 import { demoSeedAllowed } from "./seed-guard";
 import { PilotLeadRequest } from "@avanti/contracts";
 
@@ -162,11 +163,28 @@ export function preflight(
     if (env[key]?.trim() && !PilotLeadRequest.shape.email.safeParse(env[key]?.trim()).success)
       add("error", `${key}: usa un indirizzo email valido, senza nome display.`);
   }
-  if (!env.AI_GATEWAY_API_KEY?.trim())
+  try {
+    const ai = loadAiConfig(env);
+    const info = publicAiConfig(ai);
+    add("ok", `AI: ${JSON.stringify(info)}`);
+    if (!ai.key || ai.provider === "none")
+      add("warning", "AI: chiave opzionale assente o provider disattivato; fallback euristico.");
+    for (const name of ai.deprecations)
+      add(
+        "warning",
+        `${name}: configurazione Gateway legacy deprecata; migrare a AI_PROVIDER e AI_MODEL_FAST.`,
+      );
+    if (ai.dataPolicy === "permissive")
+      add(
+        "warning",
+        "AI_DATA_POLICY=permissive: verificare conservazione e addestramento prima di usare dati reali.",
+      );
+  } catch {
     add(
-      "warning",
-      "AI_GATEWAY_API_KEY: opzionale assente; analisi e intervista useranno il fallback euristico.",
+      "error",
+      "Configurazione AI non valida: controllare provider, policy, modelli e limiti numerici.",
     );
+  }
   if (production) {
     if (demoSeedAllowed(env))
       add(

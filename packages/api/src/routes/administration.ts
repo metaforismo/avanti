@@ -70,6 +70,7 @@ function operatorSummary(row: OperatorRow): OperatorSummary {
 function settingsView(row?: typeof settings.$inferSelect): OrganizationSettings {
   return {
     mfaRequired: row?.mfaRequired ?? false,
+    aiMonthlyBudgetEur: row?.aiMonthlyBudgetEur ?? null,
     baselineMinutesPerCase: row?.baselineMinutesPerCase ?? null,
     linkDays: row?.linkDays ?? 60,
     retentionDays: row?.retentionDays ?? 180,

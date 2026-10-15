@@ -48,7 +48,11 @@ if (process.argv.includes("--cold")) {
         eagerModules: {
           pdf: cached.some((p) => p.includes("/pdf-lib/")),
           fontkit: cached.some((p) => p.includes("/fontkit/")),
-          ai: cached.some((p) => /\/ai\/(dist|src)\//.test(p)),
+          ai: cached.some((p) =>
+            /\/node_modules\/(?:ai|@ai-sdk\/(?:openai|anthropic|gateway)|@openrouter\/ai-sdk-provider)\/(?:dist|src)\//.test(
+              p,
+            ),
+          ),
         },
       }),
     );

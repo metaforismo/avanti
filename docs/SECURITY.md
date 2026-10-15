@@ -333,7 +333,7 @@ avere accessi e cicli di vita separati. [Runbook](DEPLOY.md#notifiche-email-e-ou
 
 ## Fornitori AI, storage e incidenti
 
-Senza chiavi il sistema usa storage locale ed euristiche. Attivare AI Gateway/Blob
+Senza chiavi il sistema usa storage locale ed euristiche. Attivare un provider AI o Blob
 significa coinvolgere fornitori: verificare accordi, subresponsabili, regioni, retention,
 riuso/training e trasferimenti extra SEE prima di inviare documenti reali. Le variabili
 d'ambiente non documentano questi aspetti. Invio minimo: singolo turno o documento
@@ -522,3 +522,34 @@ budget condiviso tra alias (anche concorrenti) e destinatario originale nell'out
 Gli altri avvisi al cittadino
 restano collegati all'azione dell'operatore; i promemoria richiedono una sua
 precedente richiesta di integrazione.
+
+## Guard del runtime AI
+
+Il runtime provider-agnostico delimita testo cittadino, messaggi operatore e contesto con
+`<untrusted id="UUID" kind="…">`, ripulisce controlli e delimitatori contraffatti, tronca
+ogni blocco al limite del compito. I binari sono allegati con etichetta documentale non
+fidata; il prompt comune vieta di seguirne istruzioni. Il contatore misura indizi nel testo
+e il flag del modello; non legge autonomamente ogni istruzione nell'immagine.
+
+Zod e invarianti validano ID ammessi, valori del form, anni e date. Il guard controlla tutti
+i campi testuali restituiti (anche annidati nell'intake), rifiuta contatti non presenti nel
+contesto e riferimenti a credenziali/carte. È deliberatamente conservativo: anche una
+traduzione lecita che cita SPID/password può andare in fallback. Non è un classificatore
+universale di richieste di credenziali in ogni lingua. Per la lingua rileva script
+incompatibili, senza certificare testi brevi, lingue latine o ucraino contro russo.
+Dopo una sola correzione si usa il fallback locale. Nessuna risposta grezza arriva al DB.
+
+OpenRouter strict invia sempre `provider:{data_collection:"deny",zdr:true}`; timeout,
+correzione e fallback di modello mantengono lo stesso filtro. `permissive` è solo esplicito
+ed è destinato a test sintetici dei modelli gratuiti, che non offrono le stesse garanzie.
+[Controlli di routing](https://openrouter.ai/docs/guides/routing/provider-selection),
+[significato ZDR](https://openrouter.ai/blog/insights/zero-data-retention/).
+Per OpenAI, Anthropic e Gateway la policy applicativa non configura retention contrattuale:
+prima dell'uso reale verificare account, accordi, subfornitori e trasferimenti.
+
+`ai_usage` contiene soltanto metadati tecnici per CAF/giorno: nessun testo, prompt, documento,
+nome cittadino o identificativo di pratica. Gli endpoint uso e stato sono admin e sempre
+scoped alla sessione. I lock brevi sulle organizzazioni impediscono ammissioni concorrenti
+oltre il budget stimato; nessuna transazione resta aperta durante la chiamata al provider.
+In mancanza di contabilità si usa l'euristica. Il budget non è un controllo della fattura:
+confrontare periodicamente stime, prenotazioni residue e spesa del provider.

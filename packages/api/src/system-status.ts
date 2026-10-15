@@ -11,6 +11,7 @@ import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { parse, type App, type Services } from "./context";
 import { ApiFailure } from "./security";
 import { deadline } from "./deadline";
+import { aiBudget } from "./ai-usage";
 import { utcHour } from "./operational-telemetry";
 
 type Component = SystemStatus["components"]["database"];
@@ -241,10 +242,22 @@ export function mountSystemStatus(app: App, s: Services) {
       lastFinishedAt: null,
       outcome: null,
     };
+    const budget = await aiBudget(s, actor.organizationId).catch(() => undefined);
     const components: SystemStatus["components"] = {
       database: { status: data ? "ok" : "problem", code: data ? "available" : "unavailable" },
       storage,
-      ai: aiStatus(s.ai.configured, hourly),
+      ai: {
+        ...aiStatus(s.ai.configured, hourly),
+        configuration: s.ai.configuration,
+        budget,
+        ...(budget?.exhausted
+          ? {
+              status: "attention" as const,
+              mode: "fallback" as const,
+              code: "ai_fallback" as const,
+            }
+          : {}),
+      },
       maintenance: data
         ? jobStatus(
             data.jobs.find((j) => j.kind === "maintenance"),

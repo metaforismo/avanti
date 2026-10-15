@@ -12,6 +12,7 @@ import type {
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  doublePrecision,
   bigint,
   check,
   foreignKey,
@@ -329,6 +330,7 @@ export const settings = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     mfaRequired: boolean("mfa_required").notNull().default(false),
     baselineMinutesPerCase: integer("baseline_minutes_per_case"),
+    aiMonthlyBudgetEur: doublePrecision("ai_monthly_budget_eur"),
     retentionDays: integer("retention_days").notNull().default(180),
     linkDays: integer("link_days").notNull().default(60),
     notifyCitizenReady: boolean("notify_citizen_ready").notNull().default(false),
@@ -347,6 +349,10 @@ export const settings = pgTable(
       sql`jsonb_typeof(${t.citizenReminderDays}) = 'array'
       and jsonb_array_length(${t.citizenReminderDays}) between 1 and 2
       and not jsonb_path_exists(${t.citizenReminderDays}, '$[*] ? (@.type() != "number" || @ < 1 || @ > 30 || @ != @.floor())')`,
+    ),
+    check(
+      "settings_ai_budget_check",
+      sql`${t.aiMonthlyBudgetEur} is null or (${t.aiMonthlyBudgetEur} >= 0 and ${t.aiMonthlyBudgetEur} <= 100000)`,
     ),
     check("settings_days_check", sql`${t.retentionDays} > 0 and ${t.linkDays} > 0`),
     check(
@@ -523,5 +529,36 @@ export const quickReplies = pgTable(
       "quick_replies_text_check",
       sql`length(trim(${t.title})) between 1 and 80 and length(trim(${t.text})) between 1 and 1000`,
     ),
+  ],
+);
+
+export const aiUsage = pgTable(
+  "ai_usage",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    task: text("task").notNull(),
+    version: text("version").notNull(),
+    model: text("model"),
+    engine: text("engine").$type<"ai" | "heuristic">().notNull(),
+    outcome: text("outcome").notNull(),
+    latencyMs: integer("latency_ms").notNull().default(0),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    costEstimateEur: doublePrecision("cost_estimate_eur").notNull().default(0),
+    reservedEur: doublePrecision("reserved_eur").notNull().default(0),
+    manipulationAttempts: integer("manipulation_attempts").notNull().default(0),
+    attempts: integer("attempts").notNull().default(0),
+    day: text("day").notNull(),
+  },
+  (t) => [
+    index("ai_usage_org_day_idx").on(t.organizationId, t.day),
+    check(
+      "ai_usage_nonnegative",
+      sql`${t.costEstimateEur} >= 0 and ${t.reservedEur} >= 0 and ${t.inputTokens} >= 0 and ${t.outputTokens} >= 0`,
+    ),
+    check("ai_usage_engine", sql`${t.engine} in ('ai', 'heuristic')`),
   ],
 );

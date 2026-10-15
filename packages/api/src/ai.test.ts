@@ -109,8 +109,8 @@ it("13: provider fallback emits only safe telemetry and increments its counter",
   expect(ai.fallbackCount).toBe(1);
   expect(logger).toHaveBeenCalledWith({
     op: "intake",
-    errorName: "Error",
-    statusCode: 503,
+    errorName: "provider_error",
+    statusCode: null,
     model: "anthropic/claude-sonnet-5.5",
   });
   expect(JSON.stringify(logger.mock.calls)).not.toContain("private");
@@ -128,7 +128,7 @@ it("applies the citizen register and vocabulary to translation and intake instru
   expect(translation).toContain('"desk":"guichet"');
   expect(intake).toContain("Address the citizen using Ви");
   expect(intake).toContain("Capitalize all Ukrainian courtesy pronouns");
-  expect(translation).toContain("Do not add facts, deadlines, requirements or promises");
+  expect(translation).toContain("Add nothing (no extra documents, deadlines, promises");
 });
 
 it("pilot: a nonresponding provider hits the hard deadline and keeps the citizen text in a fallback turn", async () => {
@@ -137,6 +137,7 @@ it("pilot: a nonresponding provider hits the hard deadline and keeps the citizen
     vi.mocked(generateText).mockImplementation(() => new Promise(() => {}));
     const ai = new GatewayIntelligence({ key: "synthetic-key", logger: vi.fn() });
     const work = ai.intake("Devo fare ISEE", "it", null, [], new Date("2027-01-01Z"));
+    await vi.dynamicImportSettled();
     await vi.advanceTimersByTimeAsync(12001);
     expect(await work).toMatchObject({ engine: "heuristic", practiceId: "isee_ordinario" });
     expect(ai.fallbackCount).toBe(1);

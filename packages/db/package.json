@@ -24,7 +24,8 @@
     "@electric-sql/pglite": "^0.3.14",
     "drizzle-orm": "^0.45.0",
     "pdf-lib": "^1.17.1",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.7",
+    "@avanti/ai": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

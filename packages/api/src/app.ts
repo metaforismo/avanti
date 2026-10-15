@@ -24,6 +24,7 @@ import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
 import { mountPilotReportRoutes } from "./routes/pilot-report";
 import { mountAuditRoutes } from "./audit-log";
+import { mountAiUsage } from "./ai-usage";
 import { mountSystemStatus } from "./system-status";
 
 export function createApp(options: ApiOptions) {
@@ -73,6 +74,7 @@ export function createApp(options: ApiOptions) {
     "/metrics",
     "/reports/*",
     "/status",
+    "/ai/*",
     "/settings",
     "/quick-replies/*",
     "/operators/*",
@@ -102,5 +104,6 @@ export function createApp(options: ApiOptions) {
   mountAuditRoutes(app, services);
   mountPilotReportRoutes(app, services);
   mountSystemStatus(app, services);
+  mountAiUsage(app, services);
   return app;
 }

@@ -561,3 +561,60 @@ una risposta al singolo interessato e proteggere terzi. Supporta restituzione/us
 ex art. 28 e, quando applicabile, portabilità art. 20; non dichiara assolti tutti i
 diritti GDPR e non è un backup completo. Fonti/limiti in
 [ricerca portabilità](research/data-portability.md) e [SECURITY.md](SECURITY.md).
+
+## Runtime AI e scelta del modello
+
+Configurazione completa in [`.env.example`](../.env.example) e API per gli sviluppatori in
+[`packages/ai/README.md`](../packages/ai/README.md). Tutti i provider hanno fallback locali.
+Le chiavi vanno nel gestore segreti del deploy, mai nel client, Git o nei report.
+
+| Provider   | Impostazioni                                                               | Note                                                                                |
+| ---------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| OpenRouter | `AI_PROVIDER=openrouter`, `OPENROUTER_API_KEY`, modelli `provider/model`   | `AI_DATA_POLICY=strict` richiede `data_collection:deny,zdr:true` a ogni chiamata    |
+| OpenAI     | `AI_PROVIDER=openai`, `OPENAI_API_KEY`, ID OpenAI nei tre livelli          | Contratti e conservazione vanno configurati con OpenAI                              |
+| Anthropic  | `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, ID Anthropic nei tre livelli | Contratti e conservazione vanno configurati con Anthropic                           |
+| Gateway    | `AI_PROVIDER=gateway`, `AI_GATEWAY_API_KEY`, ID `provider/model`           | `AI_GATEWAY_PROVIDER` vincola `gateway.only`; impostazione legacy ancora supportata |
+| Locale     | `AI_PROVIDER=none`                                                         | Nessuna chiamata esterna                                                            |
+
+Specificare `AI_MODEL_FAST`, `AI_MODEL_REASONING`, `AI_MODEL_VISION` e facoltativamente
+`AI_MODEL_FALLBACKS` (virgole, massimo cinque). Non affidarsi ai default come scelta di
+produzione. `AI_MODEL_TEXT` e la selezione implicita Gateway continuano a funzionare;
+il preflight segnala la configurazione legacy senza stampare chiavi.
+
+`strict` non costituisce un accordo di trattamento né una garanzia UE. OpenAI, Anthropic e
+Gateway richiedono verifiche contrattuali separate; nessuna variabile rende automaticamente
+ZDR un account. Con OpenRouter il runtime non rimuove mai i filtri strict per recuperare
+una risposta. Il provider può non avere endpoint compatibili: in quel caso usa l'euristica.
+[Routing ufficiale OpenRouter](https://openrouter.ai/docs/guides/routing/provider-selection).
+
+Prima di scegliere un modello:
+
+1. Verificare disponibilità e supporto schema/immagini nel catalogo ufficiale del provider.
+2. Esportare la chiave nel terminale privato. Con dati sintetici gratuiti OpenRouter usare
+   `AI_PROVIDER=openrouter AI_DATA_POLICY=permissive`, testo
+   `nvidia/nemotron-3-super-120b-a12b:free`, immagini `google/gemma-4-31b-it:free`, fallback
+   `openrouter/free`. Questi nomi sono uno snapshot da rivalidare, non una raccomandazione per dati reali.
+3. Eseguire `AI_LIVE=1 pnpm ai:eval --limit 16` e
+   `AI_LIVE=1 pnpm ai:stress --limit 12 --concurrency 3`. Massimo 84 chiamate SDK con 3 tentativi;
+   non ripetere automaticamente fino al successo. Il router può fare tentativi a monte non visibili.
+4. Leggere i report JSON/Markdown in `docs/verification/`: quota fallback, risposte valide,
+   campi estratti, rifiuti di sicurezza, latenza e costo. Revisionare traduzioni e documenti
+   in modo umano nelle lingue del pilota; gli alfabeti non provano la lingua corretta.
+5. Ripetere sul modello di produzione e con policy strict prima di attivare dati reali.
+
+`AI_ATTEMPT_TIMEOUT_MS` (6.000), `AI_TOTAL_TIMEOUT_MS` (12.000) e `AI_MAX_ATTEMPTS` (3)
+sono limiti massimi: i compiti possono ridurli. Il breaker per istanza apre dopo 3 fallimenti
+sul modello e ammette un probe dopo 30 secondi. Non memorizza prompt, risposte o documenti.
+
+Applicare la migrazione `0014_ai_runtime` prima del rilascio. `AI_MONTHLY_BUDGET_EUR=50` è il
+default CAF; l'admin può impostare `aiMonthlyBudgetEur` in `/api/settings` (0 disattiva AI,
+null ripristina il default). `/api/ai/usage?month=YYYY-MM` offre aggregati mensili del CAF,
+`/api/status` mostra budget, provider, livelli, policy e presenza chiave. Le tariffe
+`AI_INPUT_EUR_PER_MILLION` e `AI_OUTPUT_EUR_PER_MILLION` devono essere conservative per tutti
+i modelli della catena: sono stime EUR, non conversioni automatiche o fatture. Le prenotazioni
+non riconciliate dopo un arresto restano addebitate: confrontarle col provider prima di una
+correzione amministrativa, senza liberarle a scadenza mentre potrebbe esserci lavoro remoto.
+
+In questo worktree Turborepo può risolvere la cache nella checkout principale: usare
+`pnpm check --cache-dir="$PWD/.turbo/cache" --concurrency=1` e, per la build finale,
+`TURBO_CACHE_DIR="$PWD/.turbo/cache" pnpm build`. Non condividere cache mutate con altri lavori.

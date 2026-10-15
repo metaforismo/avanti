@@ -553,6 +553,7 @@ describe("organization administration", () => {
     expect(current).toEqual({
       mfaRequired: false,
       baselineMinutesPerCase: null,
+      aiMonthlyBudgetEur: null,
       linkDays: 60,
       retentionDays: 180,
       notifyCitizenReady: false,
@@ -581,6 +582,7 @@ describe("organization administration", () => {
     expect(OrganizationSettings.parse(await edited.json())).toEqual({
       mfaRequired: false,
       baselineMinutesPerCase: 30,
+      aiMonthlyBudgetEur: null,
       linkDays: 7,
       retentionDays: 90,
       notifyCitizenReady: false,

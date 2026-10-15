@@ -1,6 +1,8 @@
 import { and, eq, sql } from "drizzle-orm";
 import { operationalCounters, systemJobs } from "@avanti/db";
 import type { Services } from "./context";
+import { aiContext } from "./ai-context";
+import { cafAiContext } from "./ai-usage";
 import { deadline } from "./deadline";
 
 export function utcHour(now: Date): string {
@@ -53,8 +55,19 @@ export async function observeAi<T extends { engine?: "ai" | "heuristic" }>(
   work: () => Promise<T>,
 ): Promise<T> {
   let result: T;
+  let budgetExhausted = false;
+  const context = cafAiContext(s, organizationId);
   try {
-    result = await work();
+    result = await aiContext.run(
+      {
+        ...context,
+        record: async (record, reservationId) => {
+          budgetExhausted = record.fallbackReason === "budget_exhausted";
+          await context.record?.(record, reservationId);
+        },
+      },
+      work,
+    );
   } catch (error) {
     await recordOperationalCounters(s, organizationId, ["ai_error"]);
     throw error;
@@ -65,7 +78,7 @@ export async function observeAi<T extends { engine?: "ai" | "heuristic" }>(
     result.engine === "ai"
       ? ["ai_success"]
       : result.engine === "heuristic"
-        ? s.ai.configured === true
+        ? s.ai.configured === true && !budgetExhausted
           ? ["ai_fallback", "ai_error"]
           : ["ai_fallback"]
         : [],
