@@ -13,7 +13,8 @@
     "build": "tsc --noEmit",
     "admin:bootstrap": "tsx src/admin-bootstrap-cli.ts",
     "admin:export": "tsx src/organization-export-cli.ts",
-    "bench": "tsx src/bench-api.ts"
+    "bench": "tsx src/bench-api.ts",
+    "bench:load": "tsx src/bench-load.ts"
   },
   "dependencies": {
     "@avanti/contracts": "workspace:*",
