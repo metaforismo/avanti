@@ -77,6 +77,8 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 | `pnpm admin:bootstrap`               | Crea il primo CAF/admin con conferma, solo da terminale amministrativo           |
 | `pnpm admin:export`                  | Esporta il CAF in JSON, solo admin autenticato da CLI                            |
 | `pnpm db:seed`                       | Carica i dati demo                                                               |
+| `pnpm db:seed:volume --cases 5000`   | Crea pratiche demo di volume con metadati, senza file; solo PGlite locale        |
+| `pnpm bench:api`                     | Misura p50/p95, byte e piani SQL su 5.000 pratiche in un DB isolato in memoria   |
 
 ## Documentazione
 

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./volume": "./src/volume.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit",
@@ -14,7 +15,8 @@
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed.ts",
     "check": "tsx src/check-cli.ts",
-    "preflight": "tsx src/preflight-cli.ts"
+    "preflight": "tsx src/preflight-cli.ts",
+    "seed:volume": "tsx src/seed-volume.ts"
   },
   "dependencies": {
     "@avanti/contracts": "workspace:*",

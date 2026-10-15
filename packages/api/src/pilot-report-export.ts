@@ -1,7 +1,5 @@
 import type { PilotReport, PilotReportGroup } from "@avanti/contracts";
-import { PDFDocument } from "pdf-lib";
 import { csvCell } from "./audit-log";
-import { loadFonts, UnicodePrinter } from "./export";
 
 const display = (value: string | number | null) =>
   value === null ? "Non misurato / oscurato" : String(value);
@@ -27,6 +25,10 @@ export function pilotReportCsv(report: PilotReport): string {
 }
 
 export async function pilotReportPdf(report: PilotReport): Promise<Uint8Array> {
+  const [{ PDFDocument }, { loadFonts, UnicodePrinter }] = await Promise.all([
+    import("pdf-lib"),
+    import("./export"),
+  ]);
   const pdf = await PDFDocument.create();
   pdf.setTitle("Avanti - Rapporto del pilota");
   pdf.setAuthor("Avanti");
