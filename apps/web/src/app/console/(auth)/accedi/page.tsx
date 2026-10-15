@@ -37,6 +37,11 @@ export default function LoginPage() {
           <Suspense>
             <LoginForm />
           </Suspense>
+          {/* Citizens sometimes land here from a search: they never need an account. */}
+          <p className="mt-10 border-t border-line pt-5 text-sm text-ink-2">
+            Devi preparare una pratica? Non serve accedere: apri il link o inquadra il QR che ti ha
+            dato lo sportello del tuo CAF.
+          </p>
         </div>
       </section>
     </main>

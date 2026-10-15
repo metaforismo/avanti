@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, Check, Clock3, FileCheck2, Languages, ShieldCheck } from "lucide-react";
+import { CitizenSnippet, OperatorSnippet } from "@/components/landing/ai-snippets";
 import { IntakeDemo } from "@/components/landing/intake-demo";
 import { LanguageShowcase } from "@/components/landing/language-showcase";
 import { PilotForm } from "@/components/landing/pilot-form";
@@ -38,7 +39,7 @@ const STEPS = [
   },
   {
     title: "Risponde",
-    body: "Avanti fa solo le domande che mancano, una alla volta. Chi ha già detto «vivo con mia madre» non se lo sente richiedere.",
+    body: "Una conversazione, scritta o a voce, con le sole domande che mancano. Chi ha già detto «vivo con mia madre» non se lo sente richiedere: conferma quello che Avanti ha capito.",
   },
   {
     title: "Carica",
@@ -147,7 +148,11 @@ const FAQ = [
   },
   {
     q: "Cosa succede se l'AI sbaglia a riconoscere un documento?",
-    a: "Il cittadino vede a quale voce è stato abbinato e può spostarlo. L'operatore vede il grado di certezza e ha sempre l'ultima parola su ogni voce.",
+    a: "Il cittadino vede a quale voce è stato abbinato e può spostarlo; se l'avviso è sbagliato può dire «è giusto così». L'operatore vede il grado di certezza e ha sempre l'ultima parola su ogni voce: nessun documento è mai accettato o rifiutato dall'AI.",
+  },
+  {
+    q: "Dove finiscono i dati che passano dall'AI?",
+    a: "Solo a fornitori che non li conservano e non li usano per addestrare modelli, e solo la parte che serve a ogni compito: mai note interne o altri fascicoli. Il CAF può spegnere l'AI per i cittadini o per gli operatori: Avanti continua con le regole.",
   },
   {
     q: "Funziona con il nostro gestionale?",
@@ -286,10 +291,11 @@ export default function HomePage() {
                 ["Per il cittadino", AI_CITIZEN],
                 ["Per l'operatore", AI_OPERATOR],
               ] as const
-            ).map(([title, items]) => (
+            ).map(([title, items], index) => (
               <div key={title}>
                 <h3 className="font-display text-2xl font-semibold tracking-[-0.015em]">{title}</h3>
-                <dl className="mt-6 grid gap-6">
+                <div className="mt-6">{index === 0 ? <CitizenSnippet /> : <OperatorSnippet />}</div>
+                <dl className="mt-8 grid gap-6">
                   {items.map(([term, text]) => (
                     <div key={term}>
                       <dt className="font-semibold">{term}</dt>
@@ -373,7 +379,7 @@ export default function HomePage() {
           <ol className="mt-8 grid gap-6 md:grid-cols-3">
             {[
               "L'operatore verifica documenti e mancanti, voce per voce.",
-              "Consulta il prospetto DSU, nell'ordine del modello, con la fonte di ogni campo; scarica il riepilogo PDF o i dati JSON.",
+              "Consulta il prospetto DSU nell'ordine del modello: le risposte del cittadino, e gli importi letti dai documenti che ha confermato. Scarica il riepilogo PDF o i dati JSON.",
               "Copia i dati e carica gli originali nel software del CAF, con la procedura provata insieme durante l'avvio.",
             ].map((text, i) => (
               <li key={text} className="flex gap-4">
@@ -385,9 +391,9 @@ export default function HomePage() {
             ))}
           </ol>
           <p className="mt-8 max-w-3xl text-sm text-ink-3">
-            Avanti non legge gli importi dai documenti e non invia nulla agli enti: saldi e redditi
-            li legge l&apos;operatore nel documento indicato. Le integrazioni dirette con i
-            gestionali si definiscono con i piloti.
+            Gli importi letti dall&apos;AI nei documenti restano proposte finché l&apos;operatore
+            non li conferma sul file. Avanti non invia nulla agli enti; le integrazioni dirette con
+            i gestionali si definiscono con i piloti.
           </p>
         </div>
       </section>

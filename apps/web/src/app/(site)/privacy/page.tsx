@@ -14,7 +14,9 @@ const SECTIONS = [
     title: "Quali dati e perché",
     body: [
       "Le risposte alle domande, i dati delle persone del nucleo che indichi e i documenti che carichi. Servono solo a preparare la pratica che hai chiesto e a consegnarla all'operatore.",
+      "Un assistente automatico ti aiuta a rispondere: legge i tuoi messaggi (e la voce, se scegli di parlare) per proporti le risposte, che diventano tali solo quando le confermi. La registrazione vocale non viene conservata.",
       "I documenti vengono analizzati automaticamente per riconoscerne tipo, anno, intestatario e leggibilità. L'esito è sempre verificato da un operatore: nessuna decisione viene presa solo in modo automatico.",
+      "Per questi controlli usiamo fornitori di intelligenza artificiale che non conservano i dati e non li usano per addestrare modelli, e solo la parte di dati necessaria a ciascun controllo.",
     ],
   },
   {

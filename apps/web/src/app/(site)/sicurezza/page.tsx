@@ -44,7 +44,7 @@ const CONTROLS = [
   },
   {
     title: "AI con il minimo indispensabile",
-    body: "Al modello arriva solo il testo del singolo turno o il singolo documento da controllare, mai note interne o altri fascicoli. Senza chiave AI Avanti funziona comunque, con controlli locali. Ogni risultato automatico resta verificabile e modificabile dall'operatore.",
+    body: "A ogni compito arriva solo ciò che serve: il messaggio del cittadino con le domande aperte, il singolo documento da leggere, il fascicolo senza contatti, note interne né nomi dei file per il riepilogo dell'operatore. Solo fornitori a conservazione zero, che non addestrano modelli; le registrazioni vocali non vengono salvate. Il testo dei cittadini è trattato come dato, mai come istruzione. Il CAF può spegnere l'AI per i cittadini o per gli operatori e fissare un budget mensile: senza AI Avanti funziona con le regole. Nulla di ciò che propone l'AI diventa una risposta o un valore senza la conferma di una persona.",
   },
 ] as const;
 
