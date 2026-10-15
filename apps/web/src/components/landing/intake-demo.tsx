@@ -71,6 +71,8 @@ export function IntakeDemo() {
         aria-label="Lingua dell'esempio"
         className="mb-3 flex flex-wrap items-center gap-1"
       >
+        {/* font-sans on the labels: one word in Arabic or Bengali reads fine in the system font,
+            and would otherwise fetch 270 KB of Noto above the fold. The sample text keeps Noto. */}
         {SAMPLES.map((s, i) => (
           <button
             key={s.lang}
@@ -82,7 +84,7 @@ export function IntakeDemo() {
               replay();
             }}
             className={cn(
-              "h-8 rounded-full px-3 text-sm transition-colors duration-150",
+              "h-8 rounded-full px-3 font-sans text-sm transition-colors duration-150",
               i === sampleIndex ? "bg-ink text-white" : "text-ink-2 hover:bg-sunk hover:text-ink",
             )}
           >
