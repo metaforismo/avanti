@@ -141,7 +141,9 @@ export function conversationState(
   const open = openQuestions(row, language);
   return {
     turns: chat.flatMap((m) =>
-      m.role === "citizen" || m.role === "assistant"
+      (m.role === "citizen" || m.role === "assistant") &&
+      m.kind !== "citizen_assistant" &&
+      m.kind !== "citizen_question"
         ? [
             {
               id: m.id,

@@ -126,7 +126,7 @@ describe("runtime boundaries", () => {
         {
           ...config(),
           totalTimeoutMs: 50,
-          attemptTimeoutMs: { fast: 50, reasoning: 50, vision: 50 },
+          attemptTimeoutMs: { fast: 50, reasoning: 50, vision: 50, audio: 50 },
         },
         { transport, clock: () => Date.now() },
       );
@@ -358,7 +358,7 @@ it("allows a vision response beyond the fast timeout and counts repeated timeout
     const c = {
       ...config(),
       fallbacks: [],
-      attemptTimeoutMs: { fast: 10, reasoning: 30, vision: 50 },
+      attemptTimeoutMs: { fast: 10, reasoning: 30, vision: 50, audio: 10 },
       totalTimeoutMs: 200,
     };
     const transport = vi.fn<Transport>(

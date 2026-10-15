@@ -88,11 +88,19 @@ export function loadAiConfig(env: Record<string, string | undefined> = {}): AiCo
         10,
         120000,
       ),
+      audio: number(
+        env.AI_ATTEMPT_TIMEOUT_MS_AUDIO ?? env.AI_ATTEMPT_TIMEOUT_MS,
+        20000,
+        10,
+        120000,
+      ),
     },
     reasoning: {
       fast: Reasoning.parse(env.AI_REASONING_FAST ?? "off"),
       reasoning: Reasoning.parse(env.AI_REASONING_REASONING ?? "minimal"),
       vision: Reasoning.parse(env.AI_REASONING_VISION ?? "minimal"),
+      // The audio transport calls OpenRouter directly and never sends a reasoning setting.
+      audio: Reasoning.parse(env.AI_REASONING_AUDIO ?? "minimal"),
     },
     prices: z
       .record(
