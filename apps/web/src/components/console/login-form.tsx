@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, PasswordInput } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { safeNext } from "@/lib/console/safe-next";
+import { clearResourceCache } from "@/lib/console/use-resource";
 import { MfaVerifyForm } from "./mfa/verify-form";
 
 export function LoginForm() {
@@ -21,6 +22,7 @@ export function LoginForm() {
   const [challenged, setChallenged] = useState(false);
 
   const enter = () => {
+    clearResourceCache();
     router.replace(safeNext(params.get("next")));
     router.refresh();
   };

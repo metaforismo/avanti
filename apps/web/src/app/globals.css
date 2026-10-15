@@ -111,7 +111,10 @@
 
   /* Latin only: Bengali and Arabic fonts are switched on by :lang() in the base layer. */
   --font-sans: var(--font-body), system-ui, sans-serif;
-  --font-display: var(--font-display-face), var(--font-body), system-ui, sans-serif;
+  /* --font-display-face is set per area (components/brand/editorial-type.tsx); outside them
+     (404 and error pages, which belong to every route and so must not import a face), the body
+     face. */
+  --font-display: var(--font-display-face, var(--font-body)), system-ui, sans-serif;
   --font-mono: var(--font-code), ui-monospace, monospace;
 
   --radius-xs: 4px;
@@ -270,11 +273,11 @@
 @layer utilities {
   .font-display:lang(bn) {
     font-family:
-      "Noto Sans Bengali", var(--font-display-face), var(--font-body), system-ui, sans-serif;
+      "Noto Sans Bengali", var(--font-display-face, var(--font-body)), system-ui, sans-serif;
   }
   .font-display:lang(ar) {
     font-family:
-      "Noto Sans Arabic", var(--font-display-face), var(--font-body), system-ui, sans-serif;
+      "Noto Sans Arabic", var(--font-display-face, var(--font-body)), system-ui, sans-serif;
   }
 }
 
