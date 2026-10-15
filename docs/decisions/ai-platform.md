@@ -210,3 +210,24 @@ La sessione cittadino aggiunge assistente con storia server, domande allo sporte
 trascrizione e conferma dei documenti. Nessuna modifica a `/conversation` o `interview.converse`.
 Contratti e migrazione in [ai-citizen.md](ai-citizen.md); risultati reali, copertura AI distinta
 adeguatamente dal fallback e limiti osservati in [ai-eval-citizen.md](../verification/ai-eval-citizen.md).
+
+## Integrazione e prova nel flusso reale — 15 ottobre 2026
+
+Conversazione guidata, assistente del cittadino, voce, controlli immediati sui documenti e
+copilota operatore sono stati uniti in un solo ramo e provati nel browser con OpenRouter in
+modalità `strict` (DeepSeek V4.1 Flash, riserva GPT-6 Luna, audio Gemini 3.5 Flash-Lite).
+La prova ha trovato problemi che le eval sintetiche non vedevano; tutti corretti:
+
+| Problema osservato                                                                                    | Correzione                                                                                  |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Il riepilogo AI veniva scartato se una sola evidenza aveva un ID scritto diversamente                 | Basta un'evidenza reale per punto; le altre si scartano. `missing` lo ricalcola il server   |
+| I controlli incrociati ripetevano gli avvisi delle regole (17 voci per un fascicolo) e sforavano 15 s | Il prompt vieta di ripetere i finding; dedup per voce; livello `reasoning` a 25 s           |
+| Dopo il racconto la risposta chiedeva la domanda successiva con proposte ancora da confermare         | Si invita a controllare le proposte; il prompt della conversazione (v3) rimanda alla scheda |
+| «Controlla a vista» arrivava al cittadino su ogni documento letto senza AI, con «È giusto così»       | Resta una cautela per l'operatore; il cittadino vede «Ricevuto» o «Letto: sembra a posto»   |
+| I messaggi `citizenCheck` citano il nome del file e finivano nel prompt del copilota                  | Al modello arriva solo lo stato                                                             |
+| Assistente e voce chiamavano il fornitore anche con l'AI per i cittadini spenta dal CAF               | Interruttore rispettato lato server; il microfono sparisce                                  |
+| Le quote di conversazione erano contate due volte                                                     | Il secondo limitatore vale solo per assistente e voce                                       |
+| La priorità «da guardare» contava i «controlla a vista»                                               | Esclusi dal conteggio                                                                       |
+
+Le bozze di risposta dell'operatore parlano con la voce dello sportello («verifichiamo»),
+non nominano «l'operatore» in terza persona e rimandano al caricamento dallo stesso link.
