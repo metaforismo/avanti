@@ -1,11 +1,12 @@
 "use client";
 
-import { Check, ChevronDown, Globe, WifiOff } from "lucide-react";
+import { Check, ChevronDown, Globe, MessageCircleQuestion, WifiOff } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import { useSyncExternalStore } from "react";
 import type { CitizenCase } from "@avanti/contracts";
 import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { Spinner } from "@/components/ui/spinner";
+import { useOpenAssistant } from "@/lib/citizen/assistant";
 import { format, LANGUAGE_NAMES, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
@@ -61,6 +62,7 @@ export function CitizenHeader({
           </p>
           {data.office && <p className="truncate text-sm text-ink-3">{data.office.name}</p>}
         </div>
+        <AssistantButton label={m.assistant.open} />
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
             className="inline-flex h-10 items-center gap-1.5 rounded-sm px-2.5 text-sm font-semibold text-ink-2 ring-1 ring-line-strong ring-inset hover:bg-sunk data-[state=open]:bg-sunk"
@@ -150,5 +152,20 @@ export function CitizenHeader({
         </p>
       )}
     </header>
+  );
+}
+
+function AssistantButton({ label }: { label: string }) {
+  const open = useOpenAssistant();
+  if (!open) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => open()}
+      className="inline-flex h-10 items-center gap-1.5 rounded-sm px-2.5 text-sm font-semibold text-stamp ring-1 ring-stamp/30 ring-inset hover:bg-stamp-wash"
+    >
+      <MessageCircleQuestion className="size-4" aria-hidden />
+      {label}
+    </button>
   );
 }

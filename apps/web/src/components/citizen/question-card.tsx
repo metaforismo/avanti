@@ -1,11 +1,12 @@
 "use client";
 
-import { ChevronDown, Minus, Plus } from "lucide-react";
+import { ChevronDown, MessageCircleQuestion, Minus, Plus } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { AnswerValue, MemberInput, Question } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
+import { useOpenAssistant } from "@/lib/citizen/assistant";
 import type { CitizenMessages, Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
@@ -69,6 +70,7 @@ export function QuestionCard({
         {question.prompt}
       </h2>
       {question.help && <WhyWeAsk label={m.interview.why}>{question.help}</WhyWeAsk>}
+      <AskAbout questionId={question.id} label={m.assistant.askAboutQuestion} />
 
       <div className="mt-5">
         {(question.kind === "single_choice" || question.kind === "yes_no") && (
@@ -409,5 +411,20 @@ function ValueInput({
         {m.common.continue}
       </Button>
     </form>
+  );
+}
+
+function AskAbout({ questionId, label }: { questionId: string; label: string }) {
+  const open = useOpenAssistant();
+  if (!open) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => open({ questionId })}
+      className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-stamp underline underline-offset-4"
+    >
+      <MessageCircleQuestion className="size-4" aria-hidden />
+      {label}
+    </button>
   );
 }

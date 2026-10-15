@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CitizenCase, CitizenContact } from "@avanti/contracts";
 import {
   directionOf,
   useBrowserLanguage,
   useDocumentLanguage,
 } from "@/lib/citizen/document-language";
+import { AssistantContext, type AssistantFocus } from "@/lib/citizen/assistant";
 import { forgetCaseToken } from "@/lib/citizen/local-cases";
 import { messagesFor, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import { useCitizenCase, type CitizenCaseApi } from "@/lib/citizen/use-citizen-case";
 import { resolveView, STEP_TITLE_ID, type View } from "@/lib/citizen/view";
+import { AssistantSheet } from "./assistant-sheet";
 import { CitizenHeader } from "./citizen-header";
 import { DocumentsStep } from "./documents-step";
 import { DoneStep } from "./done-step";
 import { ErrorScreen } from "./error-screen";
-import { InterviewStep } from "./interview-step";
+import { ConversationStep } from "./conversation-step";
 import { NeedStep } from "./need-step";
 import { ReviewStep } from "./review-step";
 
@@ -42,6 +44,13 @@ export function CitizenApp({ token }: { token: string }) {
   // Local navigation on top of the server step: going back to edit, or forward to review.
   const [view, setView] = useState<View | null>(null);
   const [draft, setDraft] = useState<ContactDraft>({});
+  const [assistant, setAssistant] = useState<{ open: boolean; focus?: AssistantFocus }>({
+    open: false,
+  });
+  const assistantApi = useMemo(
+    () => ({ open: (focus?: AssistantFocus) => setAssistant({ open: true, focus }) }),
+    [],
+  );
   const firstStep = useRef(true);
 
   const { state } = api;
@@ -100,22 +109,38 @@ export function CitizenApp({ token }: { token: string }) {
   const props: StepProps = { api, data, m, goTo, token, draft, setDraft };
 
   return (
-    <div lang={data.language} dir={directionOf(data.language)} className="flex min-h-dvh flex-col">
-      <a
-        href="#contenuto"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+    <AssistantContext.Provider value={assistantApi}>
+      <div
+        lang={data.language}
+        dir={directionOf(data.language)}
+        className="flex min-h-dvh flex-col"
       >
-        {m.common.skipToContent}
-      </a>
-      <CitizenHeader data={data} m={m} view={current} api={api} onNavigate={goTo} />
-      <main id="contenuto" className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-32">
-        {current === "need" && <NeedStep {...props} />}
-        {current === "interview" && <InterviewStep {...props} />}
-        {current === "documents" && <DocumentsStep {...props} />}
-        {current === "review" && <ReviewStep {...props} />}
-        {current === "submitted" && <DoneStep {...props} />}
-      </main>
-    </div>
+        <a
+          href="#contenuto"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+        >
+          {m.common.skipToContent}
+        </a>
+        <CitizenHeader data={data} m={m} view={current} api={api} onNavigate={goTo} />
+        <main id="contenuto" className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-32">
+          {current === "need" && <NeedStep {...props} />}
+          {current === "interview" && <ConversationStep {...props} />}
+          {current === "documents" && <DocumentsStep {...props} />}
+          {current === "review" && <ReviewStep {...props} />}
+          {current === "submitted" && <DoneStep {...props} />}
+        </main>
+        <AssistantSheet
+          open={assistant.open}
+          onOpenChange={(open) => setAssistant((a) => ({ ...a, open }))}
+          focus={assistant.focus}
+          view={current}
+          data={data}
+          m={m}
+          token={token}
+          onNavigate={goTo}
+        />
+      </div>
+    </AssistantContext.Provider>
   );
 }
 

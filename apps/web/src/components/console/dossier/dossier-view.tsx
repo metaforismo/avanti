@@ -23,6 +23,7 @@ import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { ChecklistSection } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
+import { CopilotPanel } from "./copilot-panel";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
 import { DsuSheetSection } from "./dsu-sheet-section";
@@ -321,6 +322,7 @@ export function DossierView({ caseId }: { caseId: string }) {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 content-start gap-8">
+          {data.status !== "intake" && <CopilotPanel dossier={data} actions={actions} />}
           <FindingsSummary dossier={data} />
           {data.facts.length > 0 && (
             <section aria-labelledby="facts-title">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { KnowledgeAsk } from "@/components/console/knowledge-ask";
 
 export const metadata: Metadata = { title: "Aiuto" };
 
@@ -42,6 +43,10 @@ export default function HelpPage() {
         Avanti prepara la pratica prima che il cittadino arrivi. Tu verifichi e decidi; la pratica
         ufficiale si fa come sempre nel vostro gestionale.
       </p>
+
+      <div className="mt-8">
+        <KnowledgeAsk />
+      </div>
 
       <section className="mt-10" aria-labelledby="flow">
         <h2 id="flow" className="font-display text-xl font-semibold">

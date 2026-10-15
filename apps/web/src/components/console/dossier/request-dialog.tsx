@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import type { CaseDossier, QuickReply } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,32 @@ function RequestForm({
   const [touched, setTouched] = useState(false);
   const replies = useResource<QuickReply[]>("/api/quick-replies");
   const [notice, setNotice] = useState<string | null>(null);
+  const [drafting, setDrafting] = useState(false);
+
+  // A draft replaces the text like a typed message would: the operator then edits it.
+  async function draftWithAi() {
+    setDrafting(true);
+    setError(null);
+    try {
+      const draft = await apiFetch<{ message: string; engine: "ai" | "heuristic" }>(
+        `/api/cases/${dossier.id}/ai/request-draft`,
+        { method: "POST", body: { checklistItemIds: selected } },
+      );
+      setMessage(draft.message.slice(0, 1000));
+      setTouched(true);
+      onEdited();
+      setNotice(
+        draft.engine === "ai"
+          ? "Bozza scritta dall'AI: controllala prima di inviare."
+          : "AI non disponibile: bozza standard dalle voci selezionate.",
+      );
+      requestAnimationFrame(() => textarea.current?.focus());
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : "Bozza non disponibile. Riprova.");
+    } finally {
+      setDrafting(false);
+    }
+  }
   const textarea = useRef<HTMLTextAreaElement>(null);
   const caretSet = useRef(false);
 
@@ -213,6 +240,22 @@ function RequestForm({
         <label htmlFor="request-message" className="text-sm font-semibold">
           Messaggio
         </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            loading={drafting}
+            disabled={selected.length === 0}
+            onClick={() => void draftWithAi()}
+          >
+            <Sparkles className="size-4 text-stamp" aria-hidden />
+            Bozza con l&apos;AI
+          </Button>
+          <span className="text-xs text-ink-3">
+            Scrive il messaggio dalle voci selezionate: rileggilo prima di inviare.
+          </span>
+        </div>
         {replies.data && replies.data.length > 0 && (
           <div role="group" aria-label="Risposte rapide" className="flex flex-wrap gap-1.5">
             {replies.data.map((reply) => (
