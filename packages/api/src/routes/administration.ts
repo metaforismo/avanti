@@ -13,13 +13,14 @@ import {
   type OperatorSummary,
   type OrganizationSettings,
 } from "@avanti/contracts";
-import { parse, body, type App, type Services } from "../context";
+import { parse, body, type App, type Services, type ApiContext } from "../context";
 import { ApiFailure, hashPassword, notFound } from "../security";
 import { iso, caseById } from "../dossier";
 import { eraseCase } from "../case-erasure";
 import { retryStorageDeletions } from "../storage-cleanup";
 import { officeView } from "../views";
 import { recordActivity } from "../audit-log";
+import { lockOperatorAccess } from "../operator-access";
 
 type OperatorRow = typeof operators.$inferSelect;
 const forbidden = () =>
@@ -29,11 +30,8 @@ function requireAdmin(operator: OperatorRow) {
 }
 
 // All admin mutations serialize per tenant and recheck the actor after acquiring the lock.
-async function administer<T>(
-  s: Services,
-  actor: OperatorRow,
-  action: (tx: Database) => Promise<T>,
-) {
+async function administer<T>(s: Services, c: ApiContext, action: (tx: Database) => Promise<T>) {
+  const actor = c.get("operator");
   requireAdmin(actor);
   return s.db.transaction(async (tx) => {
     await tx
@@ -48,6 +46,7 @@ async function administer<T>(
       .for("update");
     if (!current?.active || current.mustChangePassword || current.role !== "admin")
       throw forbidden();
+    await lockOperatorAccess(tx, c, s);
     return action(tx);
   });
 }
@@ -137,7 +136,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
     const actor = c.get("operator");
     requireAdmin(actor);
     const input = await body(c, UpdateSettingsRequest);
-    const row = await administer(s, actor, async (tx) => {
+    const row = await administer(s, c, async (tx) => {
       await tx
         .insert(settings)
         .values({ organizationId: actor.organizationId })
@@ -175,7 +174,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
     const input = await body(c, CreateOperatorRequest);
     const password = temporaryPassword();
     const passwordHash = await hashPassword(password);
-    const row = await administer(s, actor, async (tx) => {
+    const row = await administer(s, c, async (tx) => {
       const [created] = await tx
         .insert(operators)
         .values({
@@ -210,7 +209,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
     const actor = c.get("operator");
     requireAdmin(actor);
     const input = await body(c, UpdateOperatorRequest);
-    const row = await administer(s, actor, async (tx) => {
+    const row = await administer(s, c, async (tx) => {
       const current = await tenantOperator(tx, c.req.param("id"), actor.organizationId);
       if (current.id === actor.id && (input.active === false || input.role === "operator"))
         throw new ApiFailure("conflict", 409, "Non puoi disattivare o declassare il tuo account.");
@@ -266,7 +265,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
   app.post("/operators/:id/reset-password", async (c) => {
     const actor = c.get("operator");
     requireAdmin(actor);
-    const row = await administer(s, actor, async (tx) => {
+    const row = await administer(s, c, async (tx) => {
       const current = await tenantOperator(tx, c.req.param("id"), actor.organizationId);
       if (current.id === actor.id)
         throw new ApiFailure("conflict", 409, "Per il tuo account usa il cambio password.");
@@ -295,7 +294,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
     requireAdmin(actor);
     await body(c, MfaResetRequest);
     const id = parse(Id, c.req.param("id"));
-    const row = await administer(s, actor, async (tx) => {
+    const row = await administer(s, c, async (tx) => {
       const [actorSession] = await tx
         .select()
         .from(sessions)
@@ -345,7 +344,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
     const actor = c.get("operator");
     requireAdmin(actor);
     const input = await body(c, OfficeInput);
-    const row = await administer(s, actor, async (tx) => {
+    const row = await administer(s, c, async (tx) => {
       await ensureOfficeNameAvailable(tx, actor.organizationId, input.name);
       const base = officeSlugBase(input.city, input.name);
       // The unique insert also handles simultaneous allocations by different organizations.
@@ -377,7 +376,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
     const actor = c.get("operator");
     requireAdmin(actor);
     const input = await body(c, UpdateOfficeRequest);
-    const row = await administer(s, actor, async (tx) => {
+    const row = await administer(s, c, async (tx) => {
       const scope = and(
         eq(offices.id, c.req.param("id")),
         eq(offices.organizationId, actor.organizationId),
@@ -400,7 +399,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
     requireAdmin(actor);
     const input = await body(c, DeleteCaseRequest);
     const id = c.req.param("id");
-    await administer(s, actor, async (tx) => {
+    await administer(s, c, async (tx) => {
       const row = await caseById(tx, id, actor.organizationId, true);
       if (input.confirmReference.toLowerCase() !== row.reference.toLowerCase())
         throw new ApiFailure("bad_request", 400, "Il riferimento non corrisponde al fascicolo.");
