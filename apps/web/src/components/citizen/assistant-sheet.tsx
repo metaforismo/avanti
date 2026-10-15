@@ -131,7 +131,7 @@ export function AssistantSheet({
                 </ul>
               </div>
             ) : (
-              <ol aria-live="polite" aria-relevant="additions" className="grid gap-6">
+              <ol aria-live="polite" aria-relevant="additions" className="grid grid-cols-[minmax(0,1fr)] gap-6">
                 {turns.map((turn) => (
                   <Bubble
                     key={turn.id}

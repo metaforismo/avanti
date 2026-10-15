@@ -153,7 +153,7 @@ export function DossierChat({
                 <Starters items={STARTERS} onPick={(q) => void ask(q)} />
               </div>
             ) : (
-              <ol aria-live="polite" aria-relevant="additions" className="grid gap-6">
+              <ol aria-live="polite" aria-relevant="additions" className="grid grid-cols-[minmax(0,1fr)] gap-6">
                 {list.map((turn) => (
                   <Turn
                     key={turn.id}
