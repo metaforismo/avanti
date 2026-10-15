@@ -35,9 +35,8 @@ lo schema e produrre testo locale sicuro. Un input non valido solleva ZodError: 
 prima coi contratti e restituisce ApiError, senza dettagli interni.
 
 `citizen.assistant` (fast) e `speech.transcribe` (audio) sono definiti in `citizen-tasks.ts`.
-Le prossime sessioni possono definire `dossier.*`, `dsu.prefill`,
-`request.draft`, `operator.ask` come nuovi oggetti `Task`. I relativi prompt già scritti sono
-esportati; non ci sono implementazioni fittizie. Usare la costituzione comune e versionare
+I compiti operatore sono definiti in `operator-tasks`; `citizen.assistant` resta nel
+perimetro della sessione cittadino. I prompt condivisi sono esportati. Usare la costituzione comune e versionare
 ogni variazione del prompt. Le invarianti di dominio (ID, anni, citazioni) appartengono a
 `validate`, non al provider. Lo schema deve poter essere convertito in JSON Schema da zod.
 
@@ -114,3 +113,22 @@ La riserva audio è `qwen/qwen3.8-omni-flash`. L’API conserva la registrazione
 riconosce il contenitore e verifica la durata prima di `runTask`. Un mismatch chiaro di lingua
 porta alla riserva senza allentare la policy dati. Budget e telemetria restano quelli del runtime.
 Prove e limiti in [ai-eval-citizen.md](../../docs/verification/ai-eval-citizen.md).
+
+Il copilota è disponibile dal subpath `@avanti/ai/operator-tasks`: `dossierBriefTask`,
+`dossierConsistencyTask`, `dsuReadTask` (vision), `dsuPrefillTask` (selezione reasoning),
+`requestDraftTask`, `operatorAskTask`, `replyDraftTask`. API, cache, decisioni e recupero
+sono descritti in `docs/decisions/operator-copilot.md`. I prompt operatore originali
+restano v1; i prompt nuovi hanno versione 1, salvo la selezione DSU v2: i conflitti si raggruppano
+per sezione e campo anche quando gli ID opachi delle proposte sono diversi.
+
+Rigenerare l'indice senza rete: `node packages/core/scripts/build-knowledge.mjs` dalla
+root. Le sezioni con link esterni commerciali vengono escluse anziché attribuirle a una
+fonte istituzionale. L'indice non certifica che una norma sia tuttora vigente.
+
+Eval del copilota: `pnpm --filter @avanti/ai exec tsx eval/operator.ts`, offline per default.
+Live richiede `AI_LIVE=1 AI_PROVIDER=openrouter`. `AI_EVAL_TAG` distingue i report;
+`AI_EVAL_ISOLATED=1` isola il breaker fra casi. Il transport override dell'eval usa
+`strict:false` nello schema, disabilita reasoning DeepSeek e usa `minimal` su Luna;
+non modifica l'adattatore di produzione della sessione runtime parallela. Report senza
+contenuti di cittadini o chiavi; file sintetici creati in memoria. Costi riportati dal
+provider in USD separati dalla stima prudenziale EUR del runtime.

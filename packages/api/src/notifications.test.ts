@@ -936,7 +936,7 @@ for (const language of Language.options) {
       /Persona|Riservata|personale|Banca|ISEE|isee|https?:|www\.|case-link|\/pratica\/|Nota privata/,
     );
     expect(mail.subject).not.toContain(row.reference);
-    expect(jobs).toHaveLength(1);
+    expect(jobs).toHaveLength(2);
     expect(send).not.toHaveBeenCalled();
     await Promise.all([jobs[0]!(), jobs[0]!()]);
     expect(send).toHaveBeenCalledTimes(1);
@@ -972,7 +972,7 @@ it("no email on first submission means no receipt, even if added on resubmission
   await enableReceipts();
   expect((await request(`/c/${citizenToken}/submit`, "POST", submission(""))).status).toBe(200);
   expect(await db.select().from(notifications)).toHaveLength(0);
-  expect(jobs).toHaveLength(0);
+  expect(jobs).toHaveLength(1);
   await db.update(cases).set({ status: "needs_citizen" });
   expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(200);
   expect(await db.select().from(notifications)).toHaveLength(0);
@@ -988,7 +988,7 @@ it("concurrent submissions queue one receipt; reinvios and outbox cleanup cannot
   ]);
   expect(responses.map((r) => r.status).sort()).toEqual([200, 409]);
   expect(await db.select().from(notifications)).toHaveLength(1);
-  expect(jobs).toHaveLength(1);
+  expect(jobs).toHaveLength(2);
   await jobs[0]!();
   await db.update(cases).set({ status: "needs_citizen" });
   expect((await request(`/c/${citizenToken}/submit`, "POST", submission())).status).toBe(200);
@@ -1041,7 +1041,7 @@ it("suppresses the third receipt globally across tenants without blocking submis
   expect(
     (await db.select().from(cases).where(eq(cases.id, "case")))[0]!.submittedAt,
   ).not.toBeNull();
-  expect(jobs).toHaveLength(0);
+  expect(jobs).toHaveLength(1);
   expect((await db.select().from(rateLimits))[0]).toMatchObject({ count: 3 });
   expect(JSON.stringify(logs)).not.toContain("citizen@example.test");
 });

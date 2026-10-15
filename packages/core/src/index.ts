@@ -38,3 +38,5 @@ export {
   citizenAssistantCopy,
   type AssistantContextItem,
 } from "./citizen-assistant";
+export * from "./copilot";
+export * from "./knowledge";

@@ -13,6 +13,7 @@ const exampleCase: CaseRow = {
   familyId: null,
   conversationProposals: [],
   conversationEngine: "heuristic",
+  aiAttention: null,
   citizenRequestId: null,
   citizenRequestedAt: null,
   citizenRemindersQueued: 0,

@@ -104,5 +104,7 @@ const timelineLabels: Record<string, string> = {
   "dsu_sheet.viewed": "Prospetto DSU consultato",
 };
 export function timelineLabel(type: string): string {
+  if (type.startsWith("dsu_prefill.accepted:")) return "Valore DSU confermato dall’operatore";
+  if (type.startsWith("dsu_prefill.rejected:")) return "Proposta DSU rifiutata dall’operatore";
   return timelineLabels[type] ?? "Attività registrata sul fascicolo";
 }

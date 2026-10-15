@@ -8,7 +8,8 @@
     "./config": "./src/config.ts",
     "./runtime": "./src/runtime.ts",
     "./tasks": "./src/tasks.ts",
-    "./heuristics": "./src/heuristics.ts"
+    "./heuristics": "./src/heuristics.ts",
+    "./operator-tasks": "./src/operator-tasks.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit",
@@ -32,6 +33,7 @@
     "typescript": "^5.9.0",
     "vitest": "^5.0.3",
     "tsx": "^4",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "pdf-lib": "1.17.1"
   }
 }

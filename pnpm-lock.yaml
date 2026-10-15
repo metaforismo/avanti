@@ -121,6 +121,9 @@ importers:
       '@types/node':
         specifier: ^24
         version: 24.19.1
+      pdf-lib:
+        specifier: 1.17.1
+        version: 1.17.1
       sharp:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@24.19.1)

@@ -1,7 +1,7 @@
 import type { ConverseInput, ConverseOutput } from "@avanti/ai";
 import type { DocumentAnalysis, Language, PracticeId, Question } from "@avanti/contracts";
 import { loadAiConfig, publicAiConfig, type AiConfig } from "@avanti/ai/config";
-import type { AiRuntime, TaskResult, Transport } from "@avanti/ai";
+import type { AiRuntime, TaskResult, Task, TaskContext, Transport } from "@avanti/ai";
 import { aiContext } from "./ai-context";
 export { heuristicAnalysis } from "@avanti/ai/heuristics";
 export type IntakeProposal = {
@@ -12,6 +12,7 @@ export type IntakeProposal = {
   engine: "ai" | "heuristic";
 };
 export interface Intelligence {
+  runTask?<I, O>(task: Task<I, O>, input: I, context?: TaskContext): Promise<TaskResult<O>>;
   readonly configured?: boolean;
   readonly fallbackCount?: number;
   readonly configuration?: ReturnType<typeof publicAiConfig>;
@@ -137,6 +138,12 @@ export class AiIntelligence implements Intelligence {
     return { text: result.output.text, language: input.language, engine: result.engine };
   }
 
+  async runTask<I, O>(task: Task<I, O>, input: I, context?: TaskContext): Promise<TaskResult<O>> {
+    return this.observe(
+      task.id,
+      await (await this.getRuntime()).runTask(task, input, context ?? aiContext.getStore()),
+    );
+  }
   async intake(
     text: string,
     language: Language,

@@ -3,6 +3,7 @@ import { appendConversationTurns } from "./conversation-messages";
 import { readConversationText } from "./conversation-routes";
 import { validateProposals, mergeProposals, pendingProposals } from "./conversation-state";
 import { readableAnswer } from "@avanti/core";
+import { scheduleCopilot, refreshConsistency } from "./copilot";
 import { and, eq, gt, like } from "drizzle-orm";
 import { observeAi } from "./operational-telemetry";
 import {
@@ -32,7 +33,7 @@ import {
 import { calendarYear, getQuestions } from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
 import { detachRemovedMembers } from "./household-cleanup";
-import { heuristicAnalysis } from "./ai";
+import { AiIntelligence, heuristicAnalysis } from "./ai";
 import { analyzePendingDocument, scheduleDocumentRecovery } from "./document-analysis";
 import { assertImageSafe } from "./image-safety";
 import { pdfPages } from "./pdf-pages";
@@ -57,6 +58,8 @@ import { nextCaseUpdate } from "./case-version";
 import { enqueueSubmissionReceipt, scheduleNotificationDelivery } from "./notifications";
 
 export { assertStartable } from "./citizen-turn";
+const localCitizenIntelligence = new AiIntelligence();
+
 export async function createCase(
   db: Database,
   office: typeof offices.$inferSelect,
@@ -210,20 +213,31 @@ export function mountCitizenRoutes(app: App, s: Services) {
     if (raw && typeof raw === "object" && "type" in raw && raw.type === "text")
       await readConversationText(c, initial);
     const input = await body(c, IntakeTurn);
-    const proposal =
+    const [aiSettings] =
       input.type === "text"
-        ? await observeAi(s, initial.organizationId, () =>
-            s.ai.intake(
-              input.text,
-              initial.language,
-              initial.practiceId,
-              initial.practiceId
-                ? getQuestions(initial.practiceId, initial.answers, initial.language)
-                : [],
-              s.clock(),
-            ),
-          )
-        : null;
+        ? await s.db
+            .select({ enabled: settings.aiCitizenAssistant })
+            .from(settings)
+            .where(eq(settings.organizationId, initial.organizationId))
+        : [];
+    let proposal: import("./ai").IntakeProposal | null = null;
+    if (input.type === "text") {
+      const intelligence = aiSettings?.enabled === false ? localCitizenIntelligence : s.ai;
+      const work = () =>
+        intelligence.intake(
+          input.text,
+          initial.language,
+          initial.practiceId,
+          initial.practiceId
+            ? getQuestions(initial.practiceId, initial.answers, initial.language)
+            : [],
+          s.clock(),
+        );
+      proposal =
+        aiSettings?.enabled === false
+          ? await work()
+          : await observeAi(s, initial.organizationId, work);
+    }
     const result = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, initial, s.clock());
       const now = s.clock();
@@ -493,6 +507,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           /* Scheduling is optional; the durable job already exists. */
         }
       }
+      if (!s.background) await refreshConsistency(s, row);
       return c.json(response, 201);
     } catch (error) {
       if (committed) throw error;
@@ -659,6 +674,8 @@ export function mountCitizenRoutes(app: App, s: Services) {
       return { row: updated, notificationId };
     });
     scheduleNotificationDelivery(s, result.notificationId);
+    scheduleCopilot(s, result.row);
+    if (!s.background) await refreshConsistency(s, result.row);
     return c.json(await citizenView(s.db, result.row, s.clock()));
   });
 }

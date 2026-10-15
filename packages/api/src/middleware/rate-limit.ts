@@ -34,6 +34,7 @@ export const RATE_POLICIES = {
     ip: [minute(1500), hour(15000)],
   },
   transcribe: { category: "transcribe", primary: [hour(20)], ip: [minute(1500), hour(15000)] },
+  copilot: { category: "copilot", primary: [hour(60)], ip: [hour(6000)] },
   mfa: { category: "mfa", primary: [minute(10)], ip: [minute(100)] },
   login: { category: "login", primary: [minute(10)], ip: [minute(100)] },
   intake: { category: "intake", primary: [], ip: [minute(40), hour(60)] },
@@ -48,6 +49,12 @@ export const RATE_POLICIES = {
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
+  if (path === "/api/ai/ask" && method === "POST") return RATE_POLICIES.copilot;
+  if (
+    /^\/api\/cases\/[^/]+\/ai\/(brief|request-draft|reply-draft)$/.test(path) &&
+    method === "POST"
+  )
+    return RATE_POLICIES.translate;
   if (method === "GET" && path === "/api/reports/pilot") return RATE_POLICIES.export;
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
@@ -100,7 +107,8 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       return next();
     if (
       rule &&
-      (!["export", "link", "translate"].includes(rule.category) || context.get("operator"))
+      (!["export", "link", "translate", "copilot"].includes(rule.category) ||
+        context.get("operator"))
     ) {
       const identities: string[] = [];
       let loginEmail: string | undefined;

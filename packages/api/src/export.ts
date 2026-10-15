@@ -348,7 +348,7 @@ export async function exportPdf(dossier: CaseDossier): Promise<Uint8Array> {
           source.kind === "answer"
             ? `Risposta del cittadino: ${source.questionId}`
             : source.kind === "document"
-              ? `Documento: ${document?.fileName ?? source.documentId} [${source.documentId}]; voce: ${source.checklistItemId}`
+              ? `Documento${source.operatorConfirmed ? ", confermato da operatore" : ""}: ${document?.fileName ?? source.documentId} [${source.documentId}]; voce: ${source.checklistItemId}`
               : source.kind === "caf"
                 ? "A cura del CAF"
                 : `Dato mancante${source.checklistItemId ? `; voce: ${source.checklistItemId}` : ""}`;

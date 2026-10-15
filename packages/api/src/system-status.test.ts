@@ -447,8 +447,9 @@ it("observes document fallback and counts exceptions without depending on the in
   vi.mocked(generateText).mockRejectedValue(new Error("private provider diagnostic"));
   await analyzePendingDocument(services, "document");
   expect((await status(admin, createApp(services))).components.ai.hourly?.at(-1)).toMatchObject({
-    fallbacks: 1,
-    errors: 1,
+    // Document analysis also triggers the versioned copilot consistency task.
+    fallbacks: 2,
+    errors: 2,
   });
   await expect(
     observeAi(services, "a", async () => {

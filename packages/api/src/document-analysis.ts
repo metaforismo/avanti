@@ -1,3 +1,4 @@
+import { analyzeConsistency, recoverCopilot } from "./copilot";
 import { and, eq, gt, isNull, lt, lte, or } from "drizzle-orm";
 import { cases, documents } from "@avanti/db";
 import { DocumentAnalysis } from "@avanti/contracts";
@@ -114,6 +115,10 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
         .set({ updatedAt: nextCaseUpdate(current, finished) })
         .where(eq(cases.id, current.id));
   });
+  const [updated] = await s.db.select().from(cases).where(eq(cases.id, row.id));
+  if (updated) {
+    await analyzeConsistency(s, updated);
+  }
 }
 
 export async function recoverDocumentAnalysis(s: Services, caseId?: string) {
@@ -139,6 +144,7 @@ export function scheduleDocumentRecovery(s: Services, caseId: string) {
     s.background?.(async () => {
       try {
         await recoverDocumentAnalysis(s, caseId);
+        await recoverCopilot(s, caseId);
       } catch {
         /* Retry via a later read or cron without logging database details. */
       }

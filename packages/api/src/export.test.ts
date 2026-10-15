@@ -13,6 +13,8 @@ function sample(language: Language, name: string): CaseDossier {
     assistantTurns: [],
     hasCitizenQuestion: false,
     reference: "AV-2027-000123",
+    aiAttention: null,
+    aiPriority: null,
     citizenName: name,
     practice: {
       id: "isee_ordinario",

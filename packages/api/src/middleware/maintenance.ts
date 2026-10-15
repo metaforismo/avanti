@@ -1,3 +1,4 @@
+import { recoverCopilot } from "../copilot";
 import { recoverDocumentAnalysis } from "../document-analysis";
 import { timingSafeEqual } from "node:crypto";
 import { gt, lte, lt, or, sql } from "drizzle-orm";
@@ -77,6 +78,7 @@ export function mountMaintenance(app: App, s: Services) {
         throw error;
       }
       await recoverDocumentAnalysis(s);
+      await recoverCopilot(s);
       await s.db
         .delete(operationalCounters)
         .where(lt(operationalCounters.hour, new Date(now.getTime() - 7 * 86400000).toISOString()));

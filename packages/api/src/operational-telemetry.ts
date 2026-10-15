@@ -55,14 +55,16 @@ export async function observeAi<T extends { engine?: "ai" | "heuristic" }>(
   work: () => Promise<T>,
 ): Promise<T> {
   let result: T;
-  let budgetExhausted = false;
+  let expectedFallback = false;
   const context = cafAiContext(s, organizationId);
   try {
     result = await aiContext.run(
       {
         ...context,
         record: async (record, reservationId) => {
-          budgetExhausted = record.fallbackReason === "budget_exhausted";
+          expectedFallback = ["budget_exhausted", "not_configured", "unsupported_media"].includes(
+            record.fallbackReason ?? "",
+          );
           await context.record?.(record, reservationId);
         },
       },
@@ -78,7 +80,7 @@ export async function observeAi<T extends { engine?: "ai" | "heuristic" }>(
     result.engine === "ai"
       ? ["ai_success"]
       : result.engine === "heuristic"
-        ? s.ai.configured === true && !budgetExhausted
+        ? s.ai.configured === true && !expectedFallback
           ? ["ai_fallback", "ai_error"]
           : ["ai_fallback"]
         : [],

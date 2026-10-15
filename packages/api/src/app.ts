@@ -26,6 +26,7 @@ import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
 import { mountPilotReportRoutes } from "./routes/pilot-report";
 import { mountAuditRoutes } from "./audit-log";
+import { mountCopilot } from "./copilot";
 import { mountAiUsage } from "./ai-usage";
 import { mountFamilyReuseRoutes } from "./family-reuse";
 import { mountSystemStatus } from "./system-status";
@@ -112,5 +113,6 @@ export function createApp(options: ApiOptions) {
   mountPilotReportRoutes(app, services);
   mountSystemStatus(app, services);
   mountAiUsage(app, services);
+  mountCopilot(app, services);
   return app;
 }

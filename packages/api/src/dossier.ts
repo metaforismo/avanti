@@ -1,5 +1,7 @@
 import { conversationState } from "./conversation-state";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { copilotDossier } from "./copilot-context";
+import { queuePrioritySql } from "./copilot-queue";
+import { and, asc, eq, inArray, getTableColumns, sql } from "drizzle-orm";
 import {
   cases,
   organizations,
@@ -9,6 +11,8 @@ import {
   messages,
   events,
   checklistReviews,
+  prefillDecisions,
+  settings,
   type Database,
 } from "@avanti/db";
 import {
@@ -25,6 +29,7 @@ import {
   buildHousehold,
   buildChecklist,
   buildDsuSheet,
+  applyConfirmedPrefill,
   evaluateDossier,
   nextQuestion,
   getPractice,
@@ -80,7 +85,7 @@ export async function audit(
   });
 }
 type ViewData = {
-  organization: typeof organizations.$inferSelect;
+  organization: typeof organizations.$inferSelect & { aiCitizenAssistant?: boolean | null };
   office: typeof offices.$inferSelect | undefined;
   storedDocs: (typeof documents.$inferSelect)[];
   reviews: (typeof checklistReviews.$inferSelect)[];
@@ -196,7 +201,14 @@ function evaluateCase(
 
 async function loadViewData(db: Database, row: CaseRow): Promise<ViewData> {
   const [[organization], [office], storedDocs, reviews, chat] = await Promise.all([
-    db.select().from(organizations).where(eq(organizations.id, row.organizationId)),
+    db
+      .select({
+        ...getTableColumns(organizations),
+        aiCitizenAssistant: settings.aiCitizenAssistant,
+      })
+      .from(organizations)
+      .leftJoin(settings, eq(settings.organizationId, organizations.id))
+      .where(eq(organizations.id, row.organizationId)),
     db
       .select()
       .from(offices)
@@ -244,6 +256,7 @@ export async function citizenView(
   else if (question) step = "interview";
   return {
     id: row.id,
+    aiCitizenAssistant: organization.aiCitizenAssistant ?? true,
     reference: row.reference,
     status: row.status,
     step,
@@ -325,9 +338,11 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
       .where(eq(operators.organizationId, row.organizationId)),
   ]);
   const summary = dossierSummary(row.practiceId, row.answers, view.household);
-  return {
+  const dossier: CaseDossier = {
     id: row.id,
     reference: row.reference,
+    aiAttention: row.aiAttention,
+    aiPriority: null,
     citizenName: row.contact?.firstName
       ? [row.contact.firstName, row.contact.lastName].filter(Boolean).join(" ")
       : null,
@@ -385,11 +400,32 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
     },
     citizenLink: null,
   };
+  const decisions = await db
+    .select({ field: prefillDecisions.field })
+    .from(prefillDecisions)
+    .innerJoin(
+      documents,
+      and(
+        eq(documents.id, sql`${prefillDecisions.field}->>'documentId'`),
+        eq(documents.caseId, row.id),
+        eq(documents.sha256, prefillDecisions.documentHash),
+      ),
+    )
+    .where(and(eq(prefillDecisions.caseId, row.id), eq(prefillDecisions.decision, "accepted")));
+  if (decisions.length)
+    dossier.dsuSheet = applyConfirmedPrefill(
+      dossier.dsuSheet,
+      copilotDossier(dossier),
+      decisions.map((decision) => decision.field),
+    );
+  return dossier;
 }
 
 // No capability hash, notes or interview UI state is needed to render the queue.
 export const caseListColumns = {
   id: cases.id,
+  aiAttention: cases.aiAttention,
+  aiPriority: queuePrioritySql().as("ai_priority"),
   organizationId: cases.organizationId,
   officeId: cases.officeId,
   reference: cases.reference,
@@ -403,7 +439,9 @@ export const caseListColumns = {
   updatedAt: cases.updatedAt,
   submittedAt: cases.submittedAt,
 };
-type CaseListRow = Pick<CaseRow, keyof typeof caseListColumns>;
+type CaseListRow = Pick<CaseRow, Exclude<keyof typeof caseListColumns, "aiPriority">> & {
+  aiPriority: "quick_review" | "attention" | "citizen_question" | null;
+};
 function byCase<T extends { caseId: string }>(rows: T[]) {
   const grouped = new Map<string, T[]>();
   for (const row of rows) {
@@ -462,6 +500,8 @@ export async function caseListViews(db: Database, rows: CaseListRow[], now: Date
       progress: evaluation.progress,
       blockers: evaluation.findings.filter((f) => f.severity === "blocker").length,
       warnings: evaluation.findings.filter((f) => f.severity === "warning").length,
+      aiAttention: row.aiAttention,
+      aiPriority: row.aiPriority,
       createdAt: iso(row.createdAt),
       updatedAt: iso(row.updatedAt),
       submittedAt: row.submittedAt ? iso(row.submittedAt) : null,

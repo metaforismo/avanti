@@ -843,3 +843,84 @@ Il fascicolo operatore aggiunge `assistantTurns` (sezione “Domande all’assis
 Le domande allo sportello sono messaggi cittadino distinti, con evento `citizen.question`;
 `hasCitizenQuestion` nella coda segnala che il fascicolo contiene almeno una domanda.
 L’indicatore è storico: non esiste ancora un comando di presa in carico della domanda.
+
+## Copilota operatore
+
+Tutti gli endpoint seguenti richiedono la sessione di un operatore attivo dello stesso
+CAF della pratica. 401 senza accesso; 404 anche per ID di un altro CAF; input non valido
+400; versione cambiata o analisi ancora in corso 409. POST protetti da Origin come le
+altre mutazioni. `POST /ai/ask`: 60 tentativi/ora per operatore, 429 con `Retry-After`.
+Rigenerazione e bozze condividono il limite traduzioni di 30/minuto; accettazioni e rifiuti
+locali non consumano la quota delle domande normative. Le GET della stessa versione riusano la cache, anche dopo riavvio.
+
+| Metodo / percorso relativo a `/api`              | Input                                                                                | Contratto condiviso                        |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------ |
+| GET, POST `/cases/:id/ai/brief`                  | —; POST rigenera                                                                     | `DossierBrief`                             |
+| GET `/cases/:id/ai/consistency`                  | —                                                                                    | `DossierConsistency` / `ConsistencyReport` |
+| GET `/cases/:id/ai/dsu-prefill`                  | —                                                                                    | `DsuPrefill`                               |
+| POST `/cases/:id/ai/dsu-prefill/:fieldId/accept` | —; fieldId URL encoded                                                               | `PrefillDecisionResponse`                  |
+| POST `/cases/:id/ai/dsu-prefill/:fieldId/reject` | —                                                                                    | `PrefillDecisionResponse`                  |
+| POST `/cases/:id/ai/request-draft`               | `{"checklistItemIds":["identity:m_demo"]}`                                           | `RequestDraftResponse`                     |
+| POST `/ai/ask`                                   | `{"question":"Per ISEE 2027 quale anno dei redditi?","practiceId":"isee_ordinario"}` | `OperatorAskResponse` / `KnowledgeAnswer`  |
+| POST `/cases/:id/ai/reply-draft`                 | `{"messageId":"messaggio-del-cittadino"}`                                            | `ReplyDraftResponse`                       |
+
+Esempio di riepilogo (IDs illustrativi):
+
+```json
+{
+  "situation": "ISEE ordinario. Nucleo dichiarato: 1 componenti.",
+  "attention": [
+    {
+      "text": "Verificare l'anno del documento.",
+      "evidence": [{ "kind": "document", "id": "doc_demo", "label": "Documento caricato" }]
+    }
+  ],
+  "missing": ["identity:m_demo"],
+  "nextStep": "ask_citizen",
+  "nextStepReason": "Occorre acquisire i documenti mancanti o rifiutati.",
+  "engine": "heuristic",
+  "model": null,
+  "generatedAt": "2027-01-15T12:00:00.000Z",
+  "caseVersion": "2027-01-15T11:00:00.000Z"
+}
+```
+
+Coerenza: `{"issues":[{"id":"document.wrong_year:doc_demo","severity":"blocker",
+"text":"Verificare l'anno dei dati.","evidence":[{"kind":"document","id":"doc_demo",
+"label":"Documento caricato"}],"checklistItemId":"account_balance:account_0_m_demo"}],
+"engine":"heuristic","generatedAt":"2027-01-15T12:00:00.000Z",
+"caseVersion":"2027-01-15T11:00:00.000Z"}`. I controlli deterministici restano presenti
+anche quando il modello non segnala nulla.
+
+Prefill: `fields` contiene per esempio `{"sectionId":"FC2:m_demo:account_0",
+"fieldId":"FC2:m_demo:account_0:saldo_al_31_dicembre~impronta",
+"label":"Saldo al 31 dicembre","value":1234.56,"documentId":"doc_demo","page":1,
+"confidence":0.99,"note":"Saldo al 31 dicembre: 1.234,56 euro"}`, con i consueti
+`engine/generatedAt/caseVersion`. Il fieldId è opaco: usare quello ricevuto, senza
+ricostruirlo. L'accettazione risponde `{"fieldId":"…","decision":"accepted"}`; il
+rifiuto usa `rejected`. Solo dopo accept il prospetto contiene `value:"1234,56"` e
+fonte `{"kind":"document","documentId":"doc_demo","checklistItemId":"…",
+"operatorConfirmed":true,"page":1}`. La nota dice «Documento, confermato da operatore».
+Il confronto del documento e il controllo umano non sono sostituiti da questa conferma.
+
+Bozza richiesta: `{"message":"Buongiorno, per completare la pratica…","engine":"heuristic"}`.
+Bozza risposta: stessa forma più `citations: []` o citazioni dei chunk usati. Nessuna
+bozza è salvata nella chat o inviata. L'operatore la edita e usa l'invio già esistente.
+
+Domande normative: `{"answer":"[kb:…] estratto della ricerca…","coverage":"partial",
+"citations":[{"id":"kb:…","title":"ISEE ordinario 2027 — Versione e anni",
+"source":"Ministero del Lavoro, documentazione ISEE","url":"https://lavoro.gov.it/strumenti-e-servizi/isee/pagine/default"}],
+"engine":"heuristic"}`. Senza AI si restituiscono estratti, senza sintesi. Fuori base:
+`coverage:"none"`, nessuna citazione. Gli ID citati dall'AI devono appartenere ai chunk
+recuperati; il server risolve titolo, fonte e URL, non li accetta dal modello.
+
+`CaseListItem` aggiunge `aiAttention: number|null` e
+`aiPriority: "quick_review"|"attention"|"citizen_question"|null`.
+Filtro: `GET /cases?ai=attention` (anche gli altri due valori). La lettura del dossier
+marca i messaggi cittadino come letti. Il conteggio dell'ultima analisi può essere di
+una versione precedente; `quick_review` richiede invece analisi della versione corrente.
+
+`GET/PATCH /settings`: `aiCopilot` e `aiCitizenAssistant`, default true;
+`aiMonthlyBudgetEur`, default null (budget da configurazione). Un PATCH omesso non
+resetta questi valori. La vista cittadino espone `aiCitizenAssistant`, senza budget.
+Impostazione off o budget esaurito: `engine:"heuristic"`, nessuna nuova chiamata.

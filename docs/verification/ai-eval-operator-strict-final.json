@@ -1,0 +1,449 @@
+{
+  "summary": {
+    "mode": "strict-final",
+    "configuration": {
+      "provider": "openrouter",
+      "models": {
+        "fast": "openai/gpt-6-luna",
+        "reasoning": "openai/gpt-6-luna",
+        "vision": "openai/gpt-6-luna"
+      },
+      "dataPolicy": "strict",
+      "keyPresent": true,
+      "monthlyBudgetEur": 50
+    },
+    "transportOverride": true,
+    "isolatedRuntimePerCase": true,
+    "knowledgeVersion": "b94cbc660f3a984a",
+    "cases": 17,
+    "passed": 17,
+    "ai": 15,
+    "heuristic": 2,
+    "requests": 31,
+    "measuredCostReceipts": 16,
+    "actualCostUsd": 0.004313999999999998,
+    "costEstimateEur": 1.2617850000000002
+  },
+  "rows": [
+    {
+      "id": "consistency:clean",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 5815,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.08854799999999999
+    },
+    {
+      "id": "consistency:wrong_name",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 2988,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.093258
+    },
+    {
+      "id": "consistency:wrong_year",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 6023,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.092109
+    },
+    {
+      "id": "consistency:expired",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 18659,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.092682
+    },
+    {
+      "id": "consistency:undeclared",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 4025,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.086256
+    },
+    {
+      "id": "brief",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 36282,
+      "attempts": 3,
+      "fallbackReason": null,
+      "costEstimateEur": 0.17274
+    },
+    {
+      "id": "request-draft",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 5773,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.031052999999999997
+    },
+    {
+      "id": "ask:years",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 23596,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.058551000000000006
+    },
+    {
+      "id": "ask:cu",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 3132,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.061941
+    },
+    {
+      "id": "ask:outside",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 1,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "ask:injection",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0
+    },
+    {
+      "id": "reply-draft",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 9008,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.08019599999999999
+    },
+    {
+      "id": "prefill:bank-image",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 5950,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.142866
+    },
+    {
+      "id": "prefill:cu-pdf",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 14761,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.045141
+    },
+    {
+      "id": "prefill:rent-pdf",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 7207,
+      "attempts": 3,
+      "fallbackReason": null,
+      "costEstimateEur": 0.049616999999999994
+    },
+    {
+      "id": "prefill:select",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 36656,
+      "attempts": 3,
+      "fallbackReason": null,
+      "costEstimateEur": 0.10946700000000001
+    },
+    {
+      "id": "prefill:conflict",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 19916,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.05736
+    }
+  ],
+  "receipts": [
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000298795,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.00038967,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000524675,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.00039667,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000309295,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.00016706,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.0002028,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.00027497,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000410925,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000615425,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.00020979,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.00009504,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000070165,
+      "reason": null
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000069975,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.000231675,
+      "reason": null
+    },
+    {
+      "status": 400,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": null,
+      "costUsd": null,
+      "reason": "schema_rejected"
+    },
+    {
+      "status": 200,
+      "model": "openai/gpt-6-luna",
+      "policy": "strict",
+      "provider": "Azure",
+      "costUsd": 0.00004707,
+      "reason": null
+    }
+  ]
+}

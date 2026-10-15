@@ -151,6 +151,7 @@ export const cases = pgTable(
     reviewCompletedAt: instant("review_completed_at"),
     closedAt: instant("closed_at"),
     expiresAt: instant("expires_at").notNull(),
+    aiAttention: integer("ai_attention"),
     firstSubmissionComplete: boolean("first_submission_complete"),
   },
   (t) => [
@@ -284,6 +285,7 @@ export const messages = pgTable(
         Pick<import("@avanti/contracts").AssistantTurn, "intent" | "action" | "sources">
       >(),
     originalText: text("original_text"),
+    operatorReadAt: instant("operator_read_at"),
     createdAt: instant("created_at").notNull(),
   },
   (t) => [
@@ -358,6 +360,8 @@ export const settings = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     mfaRequired: boolean("mfa_required").notNull().default(false),
     baselineMinutesPerCase: integer("baseline_minutes_per_case"),
+    aiCopilot: boolean("ai_copilot").notNull().default(true),
+    aiCitizenAssistant: boolean("ai_citizen_assistant").notNull().default(true),
     aiMonthlyBudgetEur: doublePrecision("ai_monthly_budget_eur"),
     retentionDays: integer("retention_days").notNull().default(180),
     linkDays: integer("link_days").notNull().default(60),
@@ -588,5 +592,39 @@ export const aiUsage = pgTable(
       sql`${t.costEstimateEur} >= 0 and ${t.reservedEur} >= 0 and ${t.inputTokens} >= 0 and ${t.outputTokens} >= 0`,
     ),
     check("ai_usage_engine", sql`${t.engine} in ('ai', 'heuristic')`),
+  ],
+);
+
+export const copilotCache = pgTable(
+  "copilot_cache",
+  {
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    caseVersion: instant("case_version").notNull(),
+    task: text("task").notNull(),
+    payload: jsonb("payload").$type<unknown>(),
+    leaseToken: text("lease_token").notNull(),
+    leaseUntil: instant("lease_until").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.caseId, t.caseVersion, t.task] })],
+);
+
+export const prefillDecisions = pgTable(
+  "prefill_decisions",
+  {
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    fieldId: text("field_id").notNull(),
+    field: jsonb("field").$type<import("@avanti/contracts").DsuPrefillField>().notNull(),
+    documentHash: text("document_hash").notNull(),
+    decision: text("decision").$type<"accepted" | "rejected">().notNull(),
+    operatorId: text("operator_id").notNull(),
+    decidedAt: instant("decided_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.caseId, t.fieldId] }),
+    check("prefill_decision_check", sql`${t.decision} in ('accepted','rejected')`),
   ],
 );
