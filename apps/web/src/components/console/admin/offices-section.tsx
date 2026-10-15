@@ -6,6 +6,8 @@ import type { Office, OfficeInput } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
+import { SectionHeader } from "@/components/ui/page-header";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useOperator } from "@/lib/console/operator-context";
 import { focusFirstError, text } from "@/lib/validation";
@@ -17,20 +19,17 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
 
   return (
     <section aria-labelledby="offices-title">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="offices-title" className="font-display text-xl font-semibold">
-            Sportelli
-          </h2>
-          <p className="mt-1 text-ink-2">
-            Ogni sportello ha il suo link pubblico e il suo cartello con QR.
-          </p>
-        </div>
-        <Button variant="secondary" onClick={() => setEditing("new")}>
-          <Plus className="size-4" aria-hidden />
-          Aggiungi sportello
-        </Button>
-      </div>
+      <SectionHeader
+        id="offices-title"
+        title="Sportelli"
+        lead="Ogni sportello ha il suo link pubblico e il suo cartello con QR."
+        actions={
+          <Button variant="secondary" onClick={() => setEditing("new")}>
+            <Plus className="size-4" aria-hidden />
+            Aggiungi sportello
+          </Button>
+        }
+      />
       <ul className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
         {operator.offices.map((office) => (
           <li key={office.id} className="flex items-center gap-4 px-4 py-3">
@@ -202,11 +201,7 @@ function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () =>
           />
         )}
       </Field>
-      {formError && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {formError}
-        </p>
-      )}
+      {formError && <Notice tone="danger">{formError}</Notice>}
       <Button type="submit" loading={pending}>
         {office ? "Salva modifiche" : "Crea sportello"}
       </Button>

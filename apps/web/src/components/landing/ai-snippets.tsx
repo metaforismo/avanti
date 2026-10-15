@@ -10,7 +10,7 @@ export function CitizenSnippet() {
       className="rounded-xl bg-paper p-4 ring-1 ring-line sm:p-5"
       aria-label="Esempio: il cittadino conferma quello che Avanti ha capito"
     >
-      <p className="ms-auto w-fit max-w-[85%] rounded-lg rounded-ee-xs bg-stamp px-3.5 py-2.5 text-[0.9375rem] text-on-stamp">
+      <p className="ms-auto w-fit max-w-[85%] rounded-lg rounded-ee-xs bg-stamp px-3.5 py-2.5 text-body-sm text-on-stamp">
         Siamo in quattro, viviamo in affitto e ho un conto alla Fineco.
       </p>
       <div className="mt-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-stamp/30">

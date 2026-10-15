@@ -3,6 +3,7 @@
 import { AlertTriangle, Pencil } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { format } from "@/lib/citizen/messages";
 import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
@@ -131,7 +132,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
                 <button
                   type="button"
                   onClick={() => setShowAllMissing(true)}
-                  className="min-h-11 rounded-sm font-semibold text-warn underline underline-offset-4"
+                  className="min-h-11 rounded-sm font-semibold text-warn underline underline-offset-2"
                 >
                   {format(m.review.showAll, { n: missing.length })}
                 </button>
@@ -186,19 +187,14 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
         </fieldset>
 
         <div className="grid gap-1.5">
-          <label className="flex cursor-pointer items-start gap-3 rounded-md bg-surface p-4 ring-1 ring-line-strong ring-inset has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp">
-            <input
-              type="checkbox"
-              name="confirmed"
-              aria-invalid={errors.confirmed ? true : undefined}
-              aria-describedby={errors.confirmed ? "confirm-error" : undefined}
-              onChange={() =>
-                errors.confirmed && setErrors((e) => ({ ...e, confirmed: undefined }))
-              }
-              className="mt-0.5 size-5 shrink-0 accent-stamp"
-            />
-            <span>{format(m.review.confirm, { org: data.organization.name })}</span>
-          </label>
+          <Checkbox
+            look="card"
+            name="confirmed"
+            label={format(m.review.confirm, { org: data.organization.name })}
+            aria-invalid={errors.confirmed ? true : undefined}
+            aria-describedby={errors.confirmed ? "confirm-error" : undefined}
+            onChange={() => errors.confirmed && setErrors((e) => ({ ...e, confirmed: undefined }))}
+          />
           {errors.confirmed && (
             <p id="confirm-error" role="alert" className="text-sm font-medium text-danger">
               {errors.confirmed}

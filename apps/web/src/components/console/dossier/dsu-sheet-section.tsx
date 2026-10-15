@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Copy, ExternalLink, FileSearch, Sparkles, X } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, FileSearch, Sparkles, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type {
   CaseDossier,
@@ -10,6 +10,10 @@ import type {
   DsuSection,
 } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
+import { Notice } from "@/components/ui/notice";
+import { Pill } from "@/components/ui/pill";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/cn";
 import { spreadsheetRows } from "@/lib/console/spreadsheet-safe";
 import { useResource } from "@/lib/console/use-resource";
@@ -61,6 +65,10 @@ const VIEWS = {
   },
 } as const;
 type View = keyof typeof VIEWS;
+const VIEW_OPTIONS = (Object.keys(VIEWS) as View[]).map((key) => ({
+  value: key,
+  label: VIEWS[key].label,
+}));
 
 function SheetBody({ dossier, actions }: { dossier: CaseDossier; actions: DossierActions }) {
   // While typing into the software the operator wants either the values or what to look up.
@@ -111,32 +119,14 @@ function SheetBody({ dossier, actions }: { dossier: CaseDossier; actions: Dossie
           <Legend tone="caf">a cura del CAF</Legend>
         </p>
       </div>
-      <div role="group" aria-label="Mostra" className="flex w-fit rounded-sm bg-sunk p-0.5">
-        {(Object.keys(VIEWS) as View[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={view === key}
-            onClick={() => setView(key)}
-            className={cn(
-              "rounded-xs px-3 py-1.5 text-sm",
-              view === key ? "bg-surface font-semibold text-ink shadow-xs" : "text-ink-2",
-            )}
-          >
-            {VIEWS[key].label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl label="Mostra" value={view} onChange={setView} options={VIEW_OPTIONS} />
       {proposals.length > 0 && (
-        <p className="flex items-start gap-2 rounded-md bg-stamp-wash px-4 py-3 text-sm text-ink">
-          <Sparkles className="mt-0.5 size-4 shrink-0 text-stamp" aria-hidden />
-          <span>
-            {proposals.length === 1
-              ? "L'AI ha letto un importo nei documenti."
-              : `L'AI ha letto ${proposals.length} importi nei documenti.`}{" "}
-            Controllali sul file e conferma: solo i valori confermati entrano nel prospetto.
-          </span>
-        </p>
+        <Notice tone="info" icon={Sparkles}>
+          {proposals.length === 1
+            ? "L'AI ha letto un importo nei documenti."
+            : `L'AI ha letto ${proposals.length} importi nei documenti.`}{" "}
+          Controllali sul file e conferma: solo i valori confermati entrano nel prospetto.
+        </Notice>
       )}
       {sections.length === 0 && <p className="text-ink-2">Niente in questa vista.</p>}
       {sections.map((section) => (
@@ -175,16 +165,31 @@ function SheetSection({
   return (
     <section aria-label={`Quadro ${section.quadro}`} className="rounded-md ring-1 ring-line">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-paper px-4 py-2.5">
-        <span className="rounded-full bg-sunk px-2 py-0.5 text-xs font-semibold text-ink-2">
+        <Pill tone="neutral">
           {section.module} · quadro {section.quadro}
-        </span>
+        </Pill>
         <h3 className="min-w-0 flex-1 font-semibold">
           {section.title}
           {section.memberName && (
             <span className="font-normal text-ink-2"> · {section.memberName}</span>
           )}
         </h3>
-        {copyable && <CopyValue value={copyable} label={`il quadro ${section.quadro}`} wide />}
+        {copyable && (
+          // Several lines of tab-separated pairs: a one-line fallback field would flatten them,
+          // and the values are on screen anyway.
+          <CopyButton
+            value={copyable}
+            variant="ghost"
+            size="sm"
+            aria-label={`Copia il quadro ${section.quadro}`}
+            showValueOnFailure={false}
+            labels={{
+              copy: "Copia il quadro",
+              copied: "Copiato",
+              failed: "Copia non riuscita: copia i valori a mano.",
+            }}
+          />
+        )}
         {section.note && <p className="basis-full text-sm text-ink-2">{section.note}</p>}
       </header>
       <dl className="divide-y divide-line">
@@ -242,7 +247,17 @@ function SheetRow({
                 </span>
               )}
             </span>
-            <CopyValue value={row.value} label={row.label} />
+            <CopyButton
+              value={row.value}
+              iconOnly
+              // The value is on screen and selectable: no need to repeat it in a fallback field.
+              showValueOnFailure={false}
+              labels={{
+                copy: `Copia ${row.label}`,
+                copied: `Copiato: ${row.label}`,
+                failed: "Copia non riuscita: seleziona il valore e copialo a mano.",
+              }}
+            />
           </>
         ) : proposal ? (
           <PrefillProposal proposal={proposal} dossier={dossier} actions={actions} />
@@ -362,48 +377,5 @@ function Tag({
       <span className={cn("size-2 shrink-0 rounded-full", TONES[tone])} aria-hidden />
       {children}
     </span>
-  );
-}
-
-/** Small copy control for a single value; announces the result to screen readers. */
-function CopyValue({
-  value,
-  label,
-  wide = false,
-}: {
-  value: string;
-  label: string;
-  wide?: boolean;
-}) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Without clipboard access the value is on screen and selectable.
-    }
-  }
-  return (
-    <>
-      <Button
-        type="button"
-        variant="ghost"
-        size={wide ? "sm" : "icon-sm"}
-        onClick={() => void copy()}
-        aria-label={`Copia ${label}`}
-      >
-        {copied ? (
-          <Check className="size-4 text-ok" aria-hidden />
-        ) : (
-          <Copy className="size-4" aria-hidden />
-        )}
-        {wide && (copied ? "Copiato" : "Copia il quadro")}
-      </Button>
-      <span role="status" className="sr-only">
-        {copied ? `Copiato: ${label}` : ""}
-      </span>
-    </>
   );
 }

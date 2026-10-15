@@ -1,15 +1,16 @@
 "use client";
 
-import { ArrowRight, MessageCircleQuestion, Phone, Send, Sparkles } from "lucide-react";
+import { ArrowRight, MessageCircleQuestion, Phone, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CitizenCase } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
 import { useAssistant, type AssistantFocus, type AssistantTurn } from "@/lib/citizen/assistant";
 import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { View } from "@/lib/citizen/view";
-import { cn } from "@/lib/cn";
+import { ChatBubble } from "./chat-bubble";
 import { Composer } from "./composer";
 
 /**
@@ -118,13 +119,13 @@ export function AssistantSheet({
         )}
 
         {assistant.error && (
-          <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+          <Notice tone="danger" size="md">
             {limited
               ? m.assistant.limit
               : assistant.error.status === 0
                 ? errorMessage(m, "network")
                 : m.assistant.error}
-          </p>
+          </Notice>
         )}
 
         {desk !== null ? (
@@ -158,7 +159,7 @@ export function AssistantSheet({
               <button
                 type="button"
                 onClick={() => setDesk(lastQuestion)}
-                className="ms-auto inline-flex items-center gap-1.5 font-semibold text-stamp underline underline-offset-4"
+                className="ms-auto inline-flex items-center gap-1.5 font-semibold text-stamp underline underline-offset-2"
               >
                 <MessageCircleQuestion className="size-4" aria-hidden />
                 {m.assistant.askDesk}
@@ -186,59 +187,53 @@ function Bubble({
 }) {
   const mine = turn.role === "citizen";
   return (
-    <li className={cn("flex", mine ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[88%] rounded-2xl px-4 py-2.5",
-          mine ? "rounded-ee-md bg-stamp text-on-stamp" : "rounded-es-md bg-sunk",
-        )}
-      >
-        {!mine && (
-          <p className="mb-0.5 flex items-center gap-1 text-xs text-ink-3">
-            <Sparkles className="size-3" aria-hidden />
-            {m.assistant.assistant}
-          </p>
-        )}
-        {turn.intent === "emergency" && (
+    <ChatBubble
+      from={mine ? "citizen" : "assistant"}
+      label={mine ? undefined : m.assistant.assistant}
+      text={turn.text}
+      before={
+        turn.intent === "emergency" && (
+          // No on-danger token: white on the danger fill is the contrast pair for this alert.
           <p role="alert" className="mb-2 rounded-md bg-danger px-3 py-2 font-semibold text-white">
-            <a href="tel:112" className="inline-flex items-center gap-2 underline">
+            <a
+              href="tel:112"
+              className="inline-flex items-center gap-2 underline underline-offset-2"
+            >
               <Phone className="size-4" aria-hidden />
               {m.assistant.emergency}
             </a>
           </p>
-        )}
-        <p dir="auto" className="break-words whitespace-pre-line">
-          {turn.text}
+        )
+      }
+    >
+      {!mine && turn.sources && turn.sources.length > 0 && (
+        <p className="mt-1.5 text-xs text-ink-3">
+          {m.assistant.sources}: {turn.sources.map((s) => s.title).join(" · ")}
         </p>
-        {!mine && turn.sources && turn.sources.length > 0 && (
-          <p className="mt-1.5 text-xs text-ink-3">
-            {m.assistant.sources}: {turn.sources.map((s) => s.title).join(" · ")}
-          </p>
-        )}
-        {!mine && (turn.intent === "needs_operator" || turn.action === "ask_desk") && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={onAskDesk}>
-              <MessageCircleQuestion className="size-4" aria-hidden />
-              {m.assistant.askDesk}
-            </Button>
-            {phone && (
-              <Button size="sm" variant="ghost" asChild>
-                <a href={`tel:${phone.replace(/\s+/g, "")}`} dir="ltr">
-                  <Phone className="size-4" aria-hidden />
-                  {phone}
-                </a>
-              </Button>
-            )}
-          </div>
-        )}
-        {!mine && turn.action === "open_documents" && (
-          <Button size="sm" variant="secondary" className="mt-2" onClick={onDocuments}>
-            {m.assistant.goToDocuments}
-            <ArrowRight className="rtl-flip size-4" aria-hidden />
+      )}
+      {!mine && (turn.intent === "needs_operator" || turn.action === "ask_desk") && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" onClick={onAskDesk}>
+            <MessageCircleQuestion className="size-4" aria-hidden />
+            {m.assistant.askDesk}
           </Button>
-        )}
-      </div>
-    </li>
+          {phone && (
+            <Button size="sm" variant="ghost" asChild>
+              <a href={`tel:${phone.replace(/\s+/g, "")}`} dir="ltr">
+                <Phone className="size-4" aria-hidden />
+                {phone}
+              </a>
+            </Button>
+          )}
+        </div>
+      )}
+      {!mine && turn.action === "open_documents" && (
+        <Button size="sm" variant="secondary" className="mt-2" onClick={onDocuments}>
+          {m.assistant.goToDocuments}
+          <ArrowRight className="rtl-flip size-4" aria-hidden />
+        </Button>
+      )}
+    </ChatBubble>
   );
 }
 
@@ -260,9 +255,9 @@ function DeskForm({
   const [text, setText] = useState(initial);
   if (sent)
     return (
-      <p role="status" className="rounded-md bg-ok-wash px-4 py-3 text-ok">
+      <Notice tone="ok" size="md">
         {m.assistant.askDeskSent}
-      </p>
+      </Notice>
     );
   return (
     <form

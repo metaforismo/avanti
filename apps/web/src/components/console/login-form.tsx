@@ -6,6 +6,7 @@ import type { LoginResponse } from "@avanti/contracts";
 import { isEmail, text } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Field, Input, PasswordInput } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { safeNext } from "@/lib/console/safe-next";
 import { clearResourceCache } from "@/lib/console/use-resource";
@@ -102,12 +103,9 @@ export function LoginForm() {
         {(p) => <PasswordInput {...p} name="password" autoComplete="current-password" required />}
       </Field>
       {error && (
-        <p
-          role="alert"
-          className="animate-fade-in rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
-        >
+        <Notice tone="danger" className="animate-fade-in">
           {error}
-        </p>
+        </Notice>
       )}
       <Button type="submit" size="lg" loading={pending}>
         Accedi

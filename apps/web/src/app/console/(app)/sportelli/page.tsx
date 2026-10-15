@@ -6,7 +6,9 @@ import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { FullscreenQr } from "@/components/ui/fullscreen-qr";
 import { CopyButton } from "@/components/ui/copy-button";
+import { PageContainer, PageHeader } from "@/components/ui/page-header";
 import { QrCode } from "@/components/ui/qr-code";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useOperator } from "@/lib/console/operator-context";
 
 const subscribe = () => () => {};
@@ -20,12 +22,16 @@ export default function OfficesPage() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
-      <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Sportelli e QR</h1>
-      <p className="mt-2 max-w-2xl text-lg text-ink-2">
-        Ogni sportello ha un link pubblico. Stampa il cartello con il QR e mettilo in sala
-        d&apos;attesa: chi aspetta può iniziare a preparare la pratica dal telefono.
-      </p>
+    <PageContainer width="5xl">
+      <PageHeader
+        title="Sportelli e QR"
+        lead={
+          <>
+            Ogni sportello ha un link pubblico. Stampa il cartello con il QR e mettilo in sala
+            d&apos;attesa: chi aspetta può iniziare a preparare la pratica dal telefono.
+          </>
+        }
+      />
 
       <ul className="mt-8 grid gap-4 md:grid-cols-2">
         {operator.offices.map((office) => {
@@ -40,7 +46,7 @@ export default function OfficesPage() {
                     className="rounded-sm bg-white [&_svg]:size-full"
                   />
                 ) : (
-                  <div className="aspect-square animate-pulse rounded-sm bg-sunk" />
+                  <Skeleton className="aspect-square rounded-sm" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -70,6 +76,6 @@ export default function OfficesPage() {
           );
         })}
       </ul>
-    </div>
+    </PageContainer>
   );
 }

@@ -11,6 +11,7 @@ import {
   Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import type { StepProps } from "./citizen-app";
 import { SaveLinkActions } from "./save-link";
@@ -39,11 +40,7 @@ export function DoneStep({ data, m }: StepProps) {
           {m.done.title}
         </h1>
         <p className="mt-3 text-lg text-ink-2">{m.done.lead}</p>
-        {statusLine && (
-          <p className="mt-3 rounded-md bg-stamp-wash px-4 py-3 font-semibold text-stamp">
-            {statusLine}
-          </p>
-        )}
+        {statusLine && <Notice tone="info" size="md" title={statusLine} className="mt-3" />}
       </div>
 
       {data.office?.bookingUrl && (

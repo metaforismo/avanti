@@ -3,6 +3,8 @@
 import { BookOpen, ExternalLink, Sparkles } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
+import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { engineLabel, type KnowledgeAnswer } from "@/lib/console/copilot";
@@ -45,14 +47,16 @@ export function KnowledgeAsk() {
 
   return (
     <section aria-labelledby="ask-title" className="rounded-lg bg-surface p-5 ring-1 ring-line">
-      <h2 id="ask-title" className="flex items-center gap-2 font-display text-xl font-semibold">
-        <BookOpen className="size-5 text-stamp" aria-hidden />
-        Domande normative
-      </h2>
-      <p className="mt-1 text-ink-2">
-        Per esempio: «Come si considera il conto cointestato nella giacenza media?». Risponde solo
-        dalla base normativa di Avanti, con le fonti.
-      </p>
+      <SectionHeader
+        id="ask-title"
+        title={
+          <span className="flex items-center gap-2">
+            <BookOpen className="size-5 text-stamp" aria-hidden />
+            Domande normative
+          </span>
+        }
+        lead="Per esempio: «Come si considera il conto cointestato nella giacenza media?». Risponde solo dalla base normativa di Avanti, con le fonti."
+      />
       <form onSubmit={ask} className="mt-4 grid gap-2">
         <label htmlFor="ask-question" className="sr-only">
           La tua domanda
@@ -64,7 +68,7 @@ export function KnowledgeAsk() {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Scrivi la domanda"
-          className="w-full resize-y rounded-sm bg-surface p-3 text-[0.9375rem] ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
+          className="w-full resize-y rounded-sm bg-surface p-3 text-body-sm ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
         />
         <Button
           type="submit"
@@ -77,9 +81,9 @@ export function KnowledgeAsk() {
         </Button>
       </form>
       {error && (
-        <p role="alert" className="mt-3 rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+        <Notice tone="danger" className="mt-3">
           {error}
-        </p>
+        </Notice>
       )}
       <div aria-live="polite">
         {answer && (
@@ -88,7 +92,7 @@ export function KnowledgeAsk() {
               <Pill tone={COVERAGE[answer.coverage].tone}>{COVERAGE[answer.coverage].label}</Pill>
               <span className="text-xs text-ink-3">{engineLabel(answer.engine)}</span>
             </div>
-            <p className="text-[0.9375rem] leading-relaxed whitespace-pre-line">{answer.answer}</p>
+            <p className="text-body-sm leading-relaxed whitespace-pre-line">{answer.answer}</p>
             {answer.citations.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-ink-2">Fonti</h3>

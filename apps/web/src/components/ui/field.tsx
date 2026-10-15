@@ -85,7 +85,7 @@ export function Select({
         className={cn(
           control,
           "cursor-pointer appearance-none pe-9",
-          compact ? "h-10 text-[0.9375rem]" : "h-11 text-base",
+          compact ? "h-10 text-body-sm" : "h-11 text-base",
           className,
         )}
         {...props}

@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import type { FamilySearchResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { PRACTICE_SHORT } from "@/lib/console/labels";
 
@@ -95,11 +96,7 @@ export function FamilySearch({ onOpen }: { onOpen: () => void }) {
           Cerca
         </Button>
       </form>
-      {error && (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
+      {error && <Notice tone="danger">{error}</Notice>}
       {result && (
         <div aria-live="polite">
           {result.items.length === 0 ? (

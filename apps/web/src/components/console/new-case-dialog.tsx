@@ -7,6 +7,7 @@ import { LANGUAGES } from "@avanti/contracts/constants";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { LANGUAGE_IT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
@@ -166,11 +167,7 @@ function CreateForm({
       >
         {(p) => <Input {...p} name="phone" type="tel" inputMode="tel" autoComplete="off" />}
       </Field>
-      {error && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-          {error}
-        </p>
-      )}
+      {error && <Notice tone="danger">{error}</Notice>}
       <Button type="submit" size="lg" loading={pending} className="mt-1">
         Crea e ottieni il link
       </Button>

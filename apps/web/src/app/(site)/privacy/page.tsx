@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Notice } from "@/components/ui/notice";
 
 export const metadata: Metadata = { title: "Privacy" };
 
@@ -57,9 +58,9 @@ export default function PrivacyPage() {
           </section>
         ))}
       </div>
-      <p className="mt-14 rounded-md bg-warn-wash px-4 py-3 text-sm text-warn">
+      <Notice tone="warn" className="mt-14">
         Versione preliminare per il programma pilota, in revisione legale prima del lancio.
-      </p>
+      </Notice>
     </article>
   );
 }

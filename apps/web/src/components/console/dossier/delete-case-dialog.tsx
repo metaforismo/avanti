@@ -7,6 +7,7 @@ import type { CaseDossier } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
 /** GDPR erasure: irreversible, so the reference must be typed again. Admins only. */
@@ -72,11 +73,7 @@ export function DeleteCaseDialog({
             />
           )}
         </Field>
-        {error && (
-          <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-            {error}
-          </p>
-        )}
+        {error && <Notice tone="danger">{error}</Notice>}
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             Annulla

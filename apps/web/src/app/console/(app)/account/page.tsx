@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { PasswordForm } from "@/components/console/admin/password-form";
 import { MfaAccountSection } from "@/components/console/mfa/account-section";
+import { Notice } from "@/components/ui/notice";
+import { PageContainer, PageHeader, SectionHeader } from "@/components/ui/page-header";
 import { useOperator } from "@/lib/console/operator-context";
 
 export default function AccountPage() {
@@ -10,8 +12,8 @@ export default function AccountPage() {
   const [changed, setChanged] = useState(false);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:py-8">
-      <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Account</h1>
+    <PageContainer width="3xl">
+      <PageHeader title="Account" />
       <dl className="mt-6 grid gap-3 rounded-lg bg-surface p-5 ring-1 ring-line sm:grid-cols-3">
         <div>
           <dt className="text-sm text-ink-3">Nome</dt>
@@ -30,19 +32,21 @@ export default function AccountPage() {
       </dl>
 
       <section className="mt-10" aria-labelledby="password-title">
-        <h2 id="password-title" className="font-display text-xl font-semibold">
-          Cambia password
-        </h2>
-        <p className="mt-1 mb-5 text-ink-2">Dopo il cambio resti connesso su questo dispositivo.</p>
+        <SectionHeader
+          id="password-title"
+          title="Cambia password"
+          lead="Dopo il cambio resti connesso su questo dispositivo."
+          className="mb-5"
+        />
         {changed && (
-          <p role="status" className="mb-5 rounded-md bg-ok-wash px-4 py-3 text-ok">
+          <Notice tone="ok" className="mb-5">
             Password aggiornata.
-          </p>
+          </Notice>
         )}
         <PasswordForm submitLabel="Aggiorna password" onChanged={() => setChanged(true)} />
       </section>
 
       <MfaAccountSection />
-    </div>
+    </PageContainer>
   );
 }

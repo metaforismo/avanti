@@ -4,7 +4,9 @@ import { AlertOctagon, AlertTriangle, CheckCircle2, Info, RefreshCw, Sparkles } 
 import { useState } from "react";
 import type { CaseDossier } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import {
   engineLabel,
@@ -115,31 +117,23 @@ export function CopilotPanel({
       </div>
 
       {!brief.data ? (
-        <div className="grid gap-2 p-5" aria-hidden>
-          <div className="h-4 w-11/12 animate-pulse rounded-xs bg-sunk" />
-          <div className="h-4 w-3/4 animate-pulse rounded-xs bg-sunk" />
-          <div className="h-4 w-2/3 animate-pulse rounded-xs bg-sunk" />
-        </div>
+        <SkeletonText lines={3} className="p-5" />
       ) : (
         <div className="grid gap-4 p-5">
           {stale && (
-            <p className="rounded-md bg-warn-wash px-3 py-2 text-sm text-warn">
+            <Notice tone="warn">
               La pratica è cambiata dopo questo riepilogo: aggiornalo prima di decidere.
-            </p>
+            </Notice>
           )}
-          {error && (
-            <p role="alert" className="rounded-md bg-danger-wash px-3 py-2 text-sm text-danger">
-              {error}
-            </p>
-          )}
-          <p className="text-[0.9375rem] leading-relaxed">{brief.data.situation}</p>
+          {error && <Notice tone="danger">{error}</Notice>}
+          <p className="text-body-sm leading-relaxed">{brief.data.situation}</p>
 
           {brief.data.attention.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-ink-2">Da controllare</h3>
               <ol className="mt-2 grid gap-2">
                 {brief.data.attention.map((item, i) => (
-                  <li key={i} className="flex gap-2.5 text-[0.9375rem]">
+                  <li key={i} className="flex gap-2.5 text-body-sm">
                     <span className="tabular mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-sunk text-xs font-semibold text-ink-2">
                       {i + 1}
                     </span>
@@ -172,7 +166,7 @@ export function CopilotPanel({
                   <li
                     key={issue.id}
                     className={cn(
-                      "flex gap-2.5 rounded-md px-3 py-2 text-[0.9375rem]",
+                      "flex gap-2.5 rounded-md px-3 py-2 text-body-sm",
                       issue.severity === "blocker" && "bg-danger-wash/60",
                       issue.severity === "warning" && "bg-warn-wash/60",
                       issue.severity === "info" && "bg-sunk",

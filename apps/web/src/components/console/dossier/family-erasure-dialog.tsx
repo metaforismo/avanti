@@ -6,6 +6,7 @@ import type { CaseDossier } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
 /**
@@ -63,10 +64,11 @@ export function FamilyErasureDialog({
       returnFocusTo={returnFocusTo}
     >
       <div className="grid gap-4">
-        <p className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+        {/* Part of the dialog's explanation: read with it, not announced on top of it. */}
+        <Notice tone="danger" role="none">
           Non si può annullare. Restano solo le tracce minime nel registro attività, come previsto
           dalla conservazione del registro.
-        </p>
+        </Notice>
         <Field label={`Scrivi il codice della pratica (${dossier.reference}) per confermare`}>
           {(p) => (
             <Input
@@ -79,11 +81,7 @@ export function FamilyErasureDialog({
             />
           )}
         </Field>
-        {error && (
-          <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-            {error}
-          </p>
-        )}
+        {error && <Notice tone="danger">{error}</Notice>}
         <div className="flex flex-wrap gap-3">
           <Button
             variant="danger"

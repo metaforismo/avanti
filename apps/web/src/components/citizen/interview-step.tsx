@@ -127,7 +127,7 @@ function FreeText({ api, m }: Pick<StepProps, "api" | "m">) {
         className="inline-flex w-fit items-center gap-2 rounded-sm text-ink-2 hover:text-ink"
       >
         <MessageSquareText className="size-4" aria-hidden />
-        <span className="underline underline-offset-4">{m.interview.writeInstead}</span>
+        <span className="underline underline-offset-2">{m.interview.writeInstead}</span>
       </button>
     );
   }

@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Inbox,
-  MessageCircleQuestion,
-  Search,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { AlertTriangle, Inbox, MessageCircleQuestion, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -17,15 +9,20 @@ import type { CaseListItem, CaseListResponse, CaseStatus } from "@avanti/contrac
 import { PRACTICE_IDS } from "@avanti/contracts/constants";
 import { FirstSteps } from "@/components/console/first-steps";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Select } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
+import { PageContainer, PageHeader } from "@/components/ui/page-header";
+import { Pill } from "@/components/ui/pill";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api";
 import {
   CASE_STATUS,
   LANGUAGE_IT,
   PRACTICE_SHORT,
   STATUS_ORDER,
-  TONE_CLASSES,
   timeAgo,
+  type Tone,
 } from "@/lib/console/labels";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
@@ -142,42 +139,33 @@ function Queue() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
-      <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Pratiche</h1>
+    <PageContainer width="6xl">
+      <PageHeader title="Pratiche" />
 
+      {/* The live region stays mounted so the confirmation is announced when it appears. */}
       <div role="status">
         {familyErased && (
-          <p className="mt-4 flex items-center gap-3 rounded-md bg-ok-wash py-2 ps-4 pe-2 text-ok">
-            <CheckCircle2 className="size-5 shrink-0" aria-hidden />
-            <span className="flex-1">
-              Famiglia cancellata: {familyErased}{" "}
-              {familyErased === "1" ? "pratica eliminata" : "pratiche eliminate"} definitivamente.
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Chiudi avviso"
-              onClick={() => setParam("famiglia", "")}
-            >
-              <X className="size-4" aria-hidden />
-            </Button>
-          </p>
+          <Notice
+            tone="ok"
+            role="none"
+            className="mt-4"
+            onDismiss={() => setParam("famiglia", "")}
+            dismissLabel="Chiudi avviso"
+          >
+            Famiglia cancellata: {familyErased}{" "}
+            {familyErased === "1" ? "pratica eliminata" : "pratiche eliminate"} definitivamente.
+          </Notice>
         )}
         {deleted && (
-          <p className="mt-4 flex items-center gap-3 rounded-md bg-ok-wash py-2 ps-4 pe-2 text-ok">
-            <CheckCircle2 className="size-5 shrink-0" aria-hidden />
-            <span className="flex-1">
-              Fascicolo <span className="font-mono">{deleted}</span> eliminato definitivamente.
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Chiudi avviso"
-              onClick={() => setParam("eliminata", "")}
-            >
-              <X className="size-4" aria-hidden />
-            </Button>
-          </p>
+          <Notice
+            tone="ok"
+            role="none"
+            className="mt-4"
+            onDismiss={() => setParam("eliminata", "")}
+            dismissLabel="Chiudi avviso"
+          >
+            Fascicolo <span className="font-mono">{deleted}</span> eliminato definitivamente.
+          </Notice>
         )}
       </div>
 
@@ -222,7 +210,7 @@ function Queue() {
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <div className="relative min-w-60 flex-1">
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3"
+            className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
             aria-hidden
           />
           <input
@@ -243,12 +231,12 @@ function Queue() {
             onBlur={() => setParam("q", search.trim())}
             placeholder="Cerca per nome o codice pratica…"
             aria-label="Cerca pratiche"
-            className="peer h-10 w-full rounded-sm bg-surface ps-9 pe-9 text-[0.9375rem] ring-1 ring-line-strong ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
+            className="peer h-10 w-full rounded-sm bg-surface ps-9 pe-9 text-body-sm ring-1 ring-line-strong ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
           />
           {!search && (
             <kbd
               aria-hidden
-              className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded-xs px-1.5 font-mono text-xs text-ink-3 ring-1 ring-line-strong peer-focus:hidden md:block"
+              className="pointer-events-none absolute end-2.5 top-1/2 hidden -translate-y-1/2 rounded-xs px-1.5 font-mono text-xs text-ink-3 ring-1 ring-line-strong peer-focus:hidden md:block"
             >
               /
             </kbd>
@@ -260,7 +248,7 @@ function Queue() {
                 setSearch("");
                 setParam("q", "");
               }}
-              className="absolute top-1/2 right-1 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-ink-3 hover:text-ink"
+              className="absolute end-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-ink-3 hover:text-ink"
               aria-label="Cancella ricerca"
             >
               <X className="size-4" />
@@ -312,13 +300,18 @@ function Queue() {
       </p>
       <section aria-busy={list.status === "loading" || list.refreshing} className="mt-5">
         {list.status === "error" && !list.data ? (
-          <div className="rounded-lg bg-danger-wash p-6 text-danger">
-            <p className="font-semibold">Impossibile caricare le pratiche.</p>
-            <p className="mt-1 text-sm">{list.error.message}</p>
-            <Button variant="secondary" className="mt-4" onClick={() => void list.reload()}>
-              Riprova
-            </Button>
-          </div>
+          <Notice
+            tone="danger"
+            size="page"
+            title="Impossibile caricare le pratiche."
+            action={
+              <Button variant="secondary" onClick={() => void list.reload()}>
+                Riprova
+              </Button>
+            }
+          >
+            {list.error.message}
+          </Notice>
         ) : list.status === "loading" && !list.data ? (
           <QueueSkeleton />
         ) : items.length === 0 ? (
@@ -347,9 +340,9 @@ function Queue() {
                   <LoadMoreSentinel key={nextCursor} onVisible={() => void loadMore()} />
                 )}
                 {loadMoreFailed && (
-                  <p role="alert" className="text-sm text-danger">
+                  <Notice tone="danger">
                     Non è stato possibile caricare altre pratiche. Riprova.
-                  </p>
+                  </Notice>
                 )}
                 <Button variant="secondary" loading={loadingMore} onClick={() => void loadMore()}>
                   Mostra altre
@@ -359,7 +352,7 @@ function Queue() {
           </>
         )}
       </section>
-    </div>
+    </PageContainer>
   );
 }
 
@@ -397,7 +390,7 @@ function QueueRow({ item }: { item: CaseListItem }) {
           </span>
           {item.aiPriority && <PriorityBadge item={item} />}
         </span>
-        <span className="min-w-0 text-[0.9375rem]">
+        <span className="min-w-0 text-body-sm">
           <span className="sr-only">Pratica: </span>
           <span className="block truncate">
             {item.practice ? PRACTICE_SHORT[item.practice.id] : "Da capire"}
@@ -424,26 +417,20 @@ function QueueRow({ item }: { item: CaseListItem }) {
               title={
                 item.blockers === 1 ? "1 problema bloccante" : `${item.blockers} problemi bloccanti`
               }
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
-                TONE_CLASSES.danger,
-              )}
             >
-              <AlertTriangle className="size-3" aria-hidden />
-              {item.blockers}
-              <span className="sr-only">bloccanti</span>
+              <Pill tone="danger" size="sm" className="py-0.5">
+                <AlertTriangle aria-hidden />
+                {item.blockers}
+                <span className="sr-only">bloccanti</span>
+              </Pill>
             </span>
           )}
           {item.warnings > 0 && (
-            <span
-              title={item.warnings === 1 ? "1 avviso" : `${item.warnings} avvisi`}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
-                TONE_CLASSES.warn,
-              )}
-            >
-              {item.warnings}
-              <span className="sr-only">avvisi</span>
+            <span title={item.warnings === 1 ? "1 avviso" : `${item.warnings} avvisi`}>
+              <Pill tone="warn" size="sm" className="py-0.5">
+                {item.warnings}
+                <span className="sr-only">avvisi</span>
+              </Pill>
             </span>
           )}
           {item.blockers === 0 && item.warnings === 0 && <span className="text-ok">Nessuno</span>}
@@ -459,21 +446,21 @@ function QueueRow({ item }: { item: CaseListItem }) {
 type Priority = NonNullable<CaseListItem["aiPriority"]>;
 
 // Suggestions to order the work, never a decision on the case: the operator still reviews all.
-const PRIORITY: Record<Priority, { filter: string; badge: string; className: string }> = {
+const PRIORITY: Record<Priority, { filter: string; badge: string; tone: Tone }> = {
   citizen_question: {
     filter: "Il cittadino ha scritto",
     badge: "Ha scritto allo sportello",
-    className: "bg-stamp-wash text-stamp",
+    tone: "stamp",
   },
   attention: {
     filter: "Da guardare con attenzione",
     badge: "Punti da guardare",
-    className: TONE_CLASSES.warn,
+    tone: "warn",
   },
   quick_review: {
     filter: "Revisione rapida",
     badge: "Revisione rapida",
-    className: TONE_CLASSES.ok,
+    tone: "ok",
   },
 };
 
@@ -481,41 +468,38 @@ function PriorityBadge({ item }: { item: CaseListItem }) {
   const key = item.aiPriority!;
   const Icon = key === "citizen_question" ? MessageCircleQuestion : Sparkles;
   return (
-    <span
-      className={cn(
-        "mt-1 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-        PRIORITY[key].className,
-      )}
-    >
-      <Icon className="size-3" aria-hidden />
+    <Pill tone={PRIORITY[key].tone} className="mt-1 w-fit whitespace-normal">
+      <Icon aria-hidden />
       {PRIORITY[key].badge}
       {key === "attention" && item.aiAttention ? `: ${item.aiAttention}` : ""}
-    </span>
+    </Pill>
   );
 }
 
 function EmptyQueue({ status, filtered }: { status: CaseStatus; filtered: boolean }) {
   return (
-    <div className="grid place-items-center rounded-lg border-2 border-dashed border-line px-6 py-16 text-center">
-      <Inbox className="size-8 text-ink-3" aria-hidden />
-      <p className="mt-4 text-lg font-semibold">
-        {filtered
+    <EmptyState
+      icon={Inbox}
+      title={
+        filtered
           ? "Nessuna pratica con questi filtri"
-          : `Nessuna pratica: ${CASE_STATUS[status].label.toLowerCase()}`}
-      </p>
-      <p className="mt-1 max-w-sm text-ink-2">
-        {filtered
-          ? "Prova a togliere un filtro o a cercare un altro nome."
-          : status === "submitted"
-            ? "Quando un cittadino invia il suo fascicolo, compare qui."
-            : CASE_STATUS[status].hint + "."}
-      </p>
-      {!filtered && status === "submitted" && (
-        <Button asChild variant="secondary" className="mt-5">
-          <Link href="/console/sportelli">Stampa il QR dello sportello</Link>
-        </Button>
-      )}
-    </div>
+          : `Nessuna pratica: ${CASE_STATUS[status].label.toLowerCase()}`
+      }
+      action={
+        !filtered &&
+        status === "submitted" && (
+          <Button asChild variant="secondary">
+            <Link href="/console/sportelli">Stampa il QR dello sportello</Link>
+          </Button>
+        )
+      }
+    >
+      {filtered
+        ? "Prova a togliere un filtro o a cercare un altro nome."
+        : status === "submitted"
+          ? "Quando un cittadino invia il suo fascicolo, compare qui."
+          : CASE_STATUS[status].hint + "."}
+    </EmptyState>
   );
 }
 
@@ -529,10 +513,10 @@ function QueueSkeleton() {
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="flex items-center gap-4 px-4 py-4">
             <div className="flex-1 space-y-2">
-              <div className="h-4 w-1/3 animate-pulse rounded-xs bg-sunk" />
-              <div className="h-3 w-1/4 animate-pulse rounded-xs bg-sunk" />
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-3 w-1/4" />
             </div>
-            <div className="h-3 w-24 animate-pulse rounded-xs bg-sunk" />
+            <Skeleton className="h-3 w-24" />
           </div>
         ))}
       </div>

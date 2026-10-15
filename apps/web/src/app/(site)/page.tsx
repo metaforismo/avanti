@@ -5,6 +5,7 @@ import { IntakeDemo } from "@/components/landing/intake-demo";
 import { LanguageShowcase } from "@/components/landing/language-showcase";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { Button } from "@/components/ui/button";
+import { Pill } from "@/components/ui/pill";
 
 // Public demo office (seeded, fictitious data). Unset in environments without demo data.
 const DEMO_OFFICE = process.env.NEXT_PUBLIC_DEMO_OFFICE_SLUG;
@@ -195,7 +196,7 @@ export default function HomePage() {
               Vuoi vederlo dal lato del cittadino?{" "}
               <Link
                 href={`/s/${DEMO_OFFICE}`}
-                className="font-semibold text-stamp underline underline-offset-4"
+                className="font-semibold text-stamp underline underline-offset-2"
               >
                 Prova la demo dal telefono
               </Link>
@@ -254,7 +255,7 @@ export default function HomePage() {
           {STEPS.map((step, i) => (
             <li key={step.title} className="relative">
               <div className="flex items-center gap-3">
-                <span className="tabular grid size-9 place-items-center rounded-full bg-stamp font-display text-base font-bold text-white">
+                <span className="tabular grid size-9 place-items-center rounded-full bg-stamp font-display text-base font-bold text-on-stamp">
                   {i + 1}
                 </span>
                 {i < STEPS.length - 1 && (
@@ -324,7 +325,11 @@ export default function HomePage() {
       </section>
 
       {/* Operators */}
-      <section id="operatori" aria-labelledby="operatori-title" className="bg-ink text-white">
+      <section
+        id="operatori"
+        aria-labelledby="operatori-title"
+        className="bg-contrast text-on-contrast"
+      >
         <div className="mx-auto grid max-w-6xl gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
           <div>
             <h2
@@ -333,7 +338,7 @@ export default function HomePage() {
             >
               L&apos;operatore apre il fascicolo e sa già dove guardare.
             </h2>
-            <p className="mt-5 text-lg leading-relaxed text-white/75">
+            <p className="mt-5 text-lg leading-relaxed text-on-contrast/75">
               Prima i problemi bloccanti, poi gli avvisi, poi tutto il resto. Ogni voce si verifica
               con un clic; le integrazioni si chiedono nel link del cittadino, nella sua lingua.
             </p>
@@ -356,7 +361,7 @@ export default function HomePage() {
                   text: "Tempi, mancanti e integrazioni misurati pratica per pratica: nel pilota li confrontiamo con il vostro flusso abituale",
                 },
               ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex gap-3.5 text-white/90">
+                <li key={text} className="flex gap-3.5 text-on-contrast/90">
                   <Icon className="mt-0.5 size-5 shrink-0 text-marker" aria-hidden />
                   {text}
                 </li>
@@ -471,8 +476,8 @@ export default function HomePage() {
                   aria-hidden
                   className={
                     p.live
-                      ? "absolute top-1.5 -left-[2.4rem] size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
-                      : "absolute top-1.5 -left-[2.3rem] size-3 rounded-full bg-surface ring-2 ring-line-strong"
+                      ? "absolute -start-[2.4rem] top-1.5 size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
+                      : "absolute -start-[2.3rem] top-1.5 size-3 rounded-full bg-surface ring-2 ring-line-strong"
                   }
                 />
                 <p className="tabular text-sm text-ink-3">{p.when}</p>
@@ -523,7 +528,7 @@ export default function HomePage() {
             </p>
             <Link
               href="/sicurezza"
-              className="mt-4 inline-block font-semibold text-stamp underline underline-offset-4"
+              className="mt-4 inline-block font-semibold text-stamp underline underline-offset-2"
             >
               Come proteggiamo i dati
             </Link>
@@ -622,7 +627,7 @@ function DossierPreview() {
     { label: "Targa del veicolo", state: "ok", note: "Dichiarata dal cittadino" },
   ] as const;
   return (
-    <figure className="self-center rounded-xl bg-paper text-ink shadow-float ring-1 ring-white/10">
+    <figure className="self-center rounded-xl bg-paper text-ink shadow-float ring-1 ring-on-contrast/10">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
         <div>
           <p className="font-display text-lg font-semibold tracking-[-0.01em]">
@@ -630,9 +635,9 @@ function DossierPreview() {
           </p>
           <p className="text-sm text-ink-3">Mario Rossi, nucleo di 3 persone</p>
         </div>
-        <span className="rounded-full bg-warn-wash px-2.5 py-1 text-sm font-semibold text-warn">
+        <Pill tone="warn" size="sm">
           12 di 13 documenti
-        </span>
+        </Pill>
       </div>
       <ul className="divide-y divide-line">
         {rows.map((row) => (

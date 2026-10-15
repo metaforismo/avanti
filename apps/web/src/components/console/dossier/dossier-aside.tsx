@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CaseDossier } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
+import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
 import { formatDateTime, formatMinutes, LANGUAGE_IT, timeAgo } from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
@@ -21,7 +22,7 @@ export function DossierAside({
   return (
     <aside className="grid content-start gap-5">
       <Card title="Cittadino">
-        <div className="grid gap-3 text-[0.9375rem]">
+        <div className="grid gap-3 text-body-sm">
           <div>
             <p className="font-semibold break-words">
               {[citizen.firstName, citizen.lastName].filter(Boolean).join(" ") || "Non indicato"}
@@ -60,7 +61,7 @@ export function DossierAside({
           />
         )}
         {dossier.citizenNote && (
-          <div className="mt-4 rounded-sm bg-marker-soft px-3 py-2.5 text-[0.9375rem]">
+          <div className="mt-4 rounded-sm bg-marker-soft px-3 py-2.5 text-body-sm">
             <p className="text-xs font-semibold text-ink-2">Nota del cittadino</p>
             <p dir="auto" className="mt-1 break-words whitespace-pre-line">
               {dossier.citizenNote}
@@ -106,7 +107,7 @@ export function DossierAside({
                       : "bg-line-strong",
                 )}
               />
-              <p className="text-[0.9375rem]">
+              <p className="text-body-sm">
                 {event.label}
                 {count > 1 && <span className="text-ink-3"> ({count} volte)</span>}
               </p>
@@ -210,28 +211,34 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
         rows={4}
         maxLength={5000}
         placeholder="Visibili solo agli operatori del CAF…"
-        className="w-full resize-y rounded-sm bg-paper p-2.5 text-[0.9375rem] ring-1 ring-line ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
+        className="w-full resize-y rounded-sm bg-paper p-2.5 text-body-sm ring-1 ring-line ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
       />
       {colleagueEdited ? (
-        <div role="alert" className="mt-2 grid gap-2 rounded-md bg-warn-wash p-3 text-sm">
-          <p className="font-semibold text-warn">Un collega ha cambiato le note mentre scrivevi.</p>
+        <Notice
+          tone="warn"
+          role="alert"
+          className="mt-2"
+          title="Un collega ha cambiato le note mentre scrivevi."
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" onClick={() => void save()}>
+                Tieni la mia versione
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setValue(saved);
+                  setState("idle");
+                }}
+              >
+                Usa la sua
+              </Button>
+            </div>
+          }
+        >
           <p className="whitespace-pre-line text-ink-2">{saved || "(note vuote)"}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={() => void save()}>
-              Tieni la mia versione
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setValue(saved);
-                setState("idle");
-              }}
-            >
-              Usa la sua
-            </Button>
-          </div>
-        </div>
+        </Notice>
       ) : (
         state === "error" && (
           <div
