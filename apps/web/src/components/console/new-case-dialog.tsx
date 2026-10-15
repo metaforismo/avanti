@@ -10,6 +10,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { LANGUAGE_IT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
+import { FamilySearch } from "./family-search";
 import { ShareCitizenLink } from "./share-citizen-link";
 
 export function NewCaseDialog({
@@ -42,9 +43,13 @@ export function NewCaseDialog({
       {created ? (
         <Created {...created} onDone={() => onOpenChange(false)} />
       ) : (
-        <CreateForm
-          onCreated={(response, phone, language) => setCreated({ response, phone, language })}
-        />
+        <div className="grid gap-5">
+          {/* Its own form: a returning family starts from its earlier practice instead. */}
+          <FamilySearch onOpen={() => onOpenChange(false)} />
+          <CreateForm
+            onCreated={(response, phone, language) => setCreated({ response, phone, language })}
+          />
+        </div>
       )}
     </Dialog>
   );
