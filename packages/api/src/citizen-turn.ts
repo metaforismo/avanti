@@ -88,7 +88,11 @@ export function applyTurn(
   const unavailablePractice: PracticeId | null = null;
   if (input.type === "choose_practice") {
     assertStartable(input.practiceId);
-    if (practiceId !== input.practiceId) answers = {};
+    if (practiceId !== input.practiceId)
+      answers =
+        current.answers.practice_year === undefined
+          ? {}
+          : { practice_year: current.answers.practice_year };
     return { practiceId: input.practiceId, answers, unavailablePractice };
   }
   if (input.type === "text") {

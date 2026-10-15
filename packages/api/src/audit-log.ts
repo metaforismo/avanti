@@ -19,6 +19,10 @@ export const AUDIT_RETENTION_BATCH = 1000;
 export const AUDIT_EXPORT_MAX_ROWS = 5000;
 
 const labels: Partial<Record<AuditAction, string>> = {
+  "family.searched": "Ricerca famiglia nel CAF",
+  "case.reused": "Nucleo e documenti riusati per una nuova pratica",
+  "document.reuse_checked": "Validità del documento riusato controllata",
+  "family.erased": "Fascicoli collegati cancellati su richiesta dell’interessato",
   "case.deleted": "Fascicolo cancellato dall’amministratore",
   "case.retention_deleted": "Fascicolo cancellato per fine conservazione",
   "auth.login_succeeded": "Accesso operatore riuscito",

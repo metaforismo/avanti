@@ -18,6 +18,8 @@ import {
   type Language,
 } from "@avanti/contracts";
 import {
+  assessDocumentReuse,
+  practiceYear,
   buildHousehold,
   buildChecklist,
   buildDsuSheet,
@@ -29,6 +31,8 @@ import {
   timelineLabel,
   answeredQuestions,
 } from "@avanti/core";
+import { visibleToCitizen } from "./document-visibility";
+import { reuseNotice } from "./reuse-copy";
 import { notFound } from "./security";
 import { automaticAssistanceNotice } from "./disclosure";
 import { officeView, organizationView } from "./views";
@@ -84,6 +88,7 @@ const citizenCodes = new Set([
   "checklist.missing",
   "checklist.rejected",
   "document.expired",
+  "document.reuse_update",
   "document.wrong_year",
   "document.illegible",
   "document.missing_pages",
@@ -116,6 +121,24 @@ function evaluateCase(
     memberId: household.some((m) => m.id === d.memberId) ? d.memberId : null,
     status: d.status,
     analysis: d.analysis,
+    reuse:
+      d.reusedFromYear !== null && row.practiceId
+        ? assessDocumentReuse({
+            analysis: d.analysis,
+            status: d.status,
+            applicable: checklist.some((item) => item.id === d.checklistItemId),
+            requirementId:
+              checklist.find((item) => item.id === d.checklistItemId)?.requirementId ??
+              d.analysis?.detectedRequirementId ??
+              null,
+            sourceYear: d.reusedFromYear,
+            practiceId: row.practiceId,
+            answers: row.answers,
+            member: household.find((member) => member.id === d.memberId) ?? null,
+            previousMember: d.reusedMember,
+            now,
+          })
+        : null,
   }));
   for (const item of checklist) {
     item.documentIds = docViews.filter((d) => d.checklistItemId === item.id).map((d) => d.id);
@@ -184,7 +207,7 @@ export async function citizenView(
   if (!organization) throw notFound();
   const { household, checklist, docViews, evaluation } = evaluateCase(
     row,
-    storedDocs,
+    operatorView ? storedDocs : storedDocs.filter((doc) => visibleToCitizen(doc, row)),
     reviews,
     now,
     language,
@@ -203,7 +226,7 @@ export async function citizenView(
     status: row.status,
     step,
     language,
-    practice: row.practiceId ? getPractice(row.practiceId, language) : null,
+    practice: row.practiceId ? getPractice(row.practiceId, language, row.answers) : null,
     organization: organizationView(organization),
     office: office ? officeView(office) : null,
     progress: evaluation.progress,
@@ -221,6 +244,10 @@ export async function citizenView(
     household,
     checklist,
     documents: docViews,
+    practiceYear: practiceYear(row.answers),
+    reuseNotice: storedDocs.some((doc) => doc.reusedFromYear !== null && visibleToCitizen(doc, row))
+      ? reuseNotice[language]
+      : null,
     messages: chat.map((m) => ({
       id: m.id,
       role: m.role,
@@ -294,6 +321,7 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
     answers: view.answered.map(({ editable: _editable, ...answer }) => answer),
     checklist: view.checklist,
     documents: view.documents,
+    practiceYear: practiceYear(row.answers),
     dsuSheet: buildDsuSheet(
       row.practiceId,
       row.answers,
@@ -386,7 +414,7 @@ export async function caseListViews(db: Database, rows: CaseListRow[], now: Date
       citizenName: row.contact?.firstName
         ? [row.contact.firstName, row.contact.lastName].filter(Boolean).join(" ")
         : null,
-      practice: row.practiceId ? getPractice(row.practiceId, "it") : null,
+      practice: row.practiceId ? getPractice(row.practiceId, "it", row.answers) : null,
       status: row.status,
       language: row.language,
       office: officesById.get(row.officeId) ?? null,

@@ -114,6 +114,11 @@ export const MemberInput = z.object({
   firstName: SafeName.trim().min(1).max(80),
   lastName: SafeName.trim().max(80).optional(),
   birthYear: z.number().int().min(1900).max(2100).optional(),
+  birthDate: z.iso.date().optional(),
+  taxCode: SafeName.trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{16}$/)
+    .optional(),
 });
 export type MemberInput = z.infer<typeof MemberInput>;
 
@@ -211,6 +216,14 @@ export type DocumentAnalysis = z.infer<typeof DocumentAnalysis>;
 export const DocumentStatus = z.enum(["processing", "analyzed", "failed"]);
 export type DocumentStatus = z.infer<typeof DocumentStatus>;
 
+export const DocumentReuseAssessment = z.object({
+  status: z.enum(["valido", "da_aggiornare", "da_verificare"]),
+  reason: SafeText,
+  code: z.enum(["expired", "wrong_year", "annual", "uncertain", "member_changed", "valid"]),
+  checkedAt: IsoDateTime,
+});
+export type DocumentReuseAssessment = z.infer<typeof DocumentReuseAssessment>;
+
 export const DocumentSummary = z.object({
   id: Id,
   fileName: z.string(),
@@ -222,6 +235,7 @@ export const DocumentSummary = z.object({
   memberId: Id.nullable(),
   status: DocumentStatus,
   analysis: DocumentAnalysis.nullable(),
+  reuse: DocumentReuseAssessment.nullable().optional(),
 });
 export type DocumentSummary = z.infer<typeof DocumentSummary>;
 
@@ -345,6 +359,8 @@ export const CitizenCase = z.object({
   household: z.array(Member),
   checklist: z.array(ChecklistItem),
   documents: z.array(DocumentSummary),
+  practiceYear: z.number().int().optional(),
+  reuseNotice: z.string().nullable().optional(),
   messages: z.array(ChatMessage),
   /** Contact details the citizen already gave, to prefill a resubmission. */
   contact: CitizenContact.nullable().default(null),
@@ -619,6 +635,7 @@ export const CaseDossier = CaseListItem.extend({
   ),
   checklist: z.array(ChecklistItem),
   documents: z.array(DocumentSummary),
+  practiceYear: z.number().int().optional(),
   /** Preparatory DSU sheet; null for an unclassified or non-ordinary-ISEE case. */
   dsuSheet: DsuSheetResponse.default(null),
   findings: z.array(Finding),
@@ -635,11 +652,14 @@ export const CaseDossier = CaseListItem.extend({
 });
 export type CaseDossier = z.infer<typeof CaseDossier>;
 
+export const PracticeYear = z.number().int().min(2020).max(2100);
+
 export const CreateCaseRequest = z.object({
   officeId: Id,
   practiceId: PracticeId.optional(),
   language: Language.default("it"),
   citizen: CitizenContactRequest.partial().optional(),
+  practiceYear: PracticeYear.optional(),
 });
 export type CreateCaseRequest = z.infer<typeof CreateCaseRequest>;
 
@@ -649,6 +669,60 @@ export const CreateCaseResponse = z.object({
   citizenLink: z.string(),
 });
 export type CreateCaseResponse = z.infer<typeof CreateCaseResponse>;
+
+/** POST /cases/:id/reuse. Only the operator links dossiers; no identity auto-matching. */
+export const ReuseCaseRequest = z.object({
+  officeId: Id,
+  practiceId: PracticeId,
+  practiceYear: PracticeYear,
+  language: Language.default("it"),
+  confirmed: z.literal(true),
+  members: z
+    .array(MemberInput)
+    .min(1)
+    .max(20)
+    .refine((members) => members.filter((m) => m.role === "richiedente").length === 1),
+  /** Omitted: all eligible source documents. Empty: household only. */
+  documentIds: z.array(Id).max(60).optional(),
+  /** Other members' documents remain operator-only unless explicitly granted here. */
+  citizenVisibleDocumentIds: z.array(Id).max(60).default([]),
+});
+export type ReuseCaseRequest = z.infer<typeof ReuseCaseRequest>;
+export const ReuseCaseResponse = CreateCaseResponse;
+export type ReuseCaseResponse = z.infer<typeof ReuseCaseResponse>;
+
+/** POST, so personal search terms never appear in request URLs or access logs. */
+export const FamilySearchRequest = z.union([
+  z.object({ taxCode: MemberInput.shape.taxCode.unwrap() }).strict(),
+  z
+    .object({
+      firstName: SafeName.trim().min(1).max(80),
+      lastName: SafeName.trim().min(1).max(80),
+      birthDate: z.iso.date(),
+    })
+    .strict(),
+]);
+export type FamilySearchRequest = z.infer<typeof FamilySearchRequest>;
+export const FamilySearchResponse = z.object({
+  items: z.array(
+    z.object({
+      caseId: Id,
+      reference: z.string(),
+      practiceId: PracticeId.nullable(),
+      practiceYear: PracticeYear,
+      applicant: Member,
+    }),
+  ),
+  truncated: z.boolean(),
+});
+export type FamilySearchResponse = z.infer<typeof FamilySearchResponse>;
+
+export const CheckDocumentReuseRequest = z.object({ useAi: z.boolean().default(false) });
+export const EraseFamilyRequest = z.object({
+  confirmReference: SafeName.trim().min(1),
+  confirmed: z.literal(true),
+});
+export const EraseFamilyResponse = z.object({ deletedCases: z.number().int().positive() });
 
 export const RegenerateLinkResponse = z.object({
   /** Secret capability URL, returned only by the regeneration request. */
@@ -894,6 +968,10 @@ export const AuditAction = z.enum([
   "dsu_sheet.viewed",
   "case.deleted",
   "case.retention_deleted",
+  "family.searched",
+  "case.reused",
+  "document.reuse_checked",
+  "family.erased",
   "auth.login_succeeded",
   "auth.login_failed",
   "auth.password_changed",

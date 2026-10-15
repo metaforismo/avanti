@@ -10,6 +10,7 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:reuse:live": "tsx src/reuse-ai-live.ts",
     "build": "tsc --noEmit",
     "admin:bootstrap": "tsx src/admin-bootstrap-cli.ts",
     "admin:export": "tsx src/organization-export-cli.ts",

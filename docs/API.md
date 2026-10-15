@@ -688,3 +688,12 @@ riesce senza accodare nulla. Un errore nell'accodamento annulla anche submit e
 audit. Prima della consegna si ricontrollano preferenza del CAF, lingua,
 contatto e scadenza: se cambiano, la ricevuta pendente è annullata. Retry,
 simulazione locale e idempotenza del provider seguono l'outbox esistente.
+
+## Riuso di nucleo e documenti tra pratiche
+
+I contratti `ReuseCaseRequest`, `FamilySearchRequest`, `CheckDocumentReuseRequest`
+e `EraseFamilyRequest` definiscono i nuovi endpoint operatore sotto `/api/cases`.
+Esempi completi, semantica di visibilità, cancellazione dell'intero gruppo e
+migrazione unica sono in [Riuso di nucleo e documenti](decisions/document-reuse.md).
+La ricerca usa POST per evitare dati personali negli URL; il riuso richiede la
+conferma dell'operatore e non avviene tra link indipendenti.

@@ -1,5 +1,5 @@
 import type { ChecklistItem, Language, Member, PracticeId } from "@avanti/contracts";
-import { boundedCount, catalog, type Answers } from "./catalog";
+import { boundedCount, catalog, referenceYearFor, type Answers } from "./catalog";
 import { requirements, requirementText, type RequirementId } from "./requirements";
 
 export function buildChecklist(
@@ -10,7 +10,7 @@ export function buildChecklist(
 ): ChecklistItem[] {
   if (catalog[practiceId].availability === "coming_soon") return [];
   const items: ChecklistItem[] = [];
-  const year = catalog[practiceId].referenceYear;
+  const year = referenceYearFor(practiceId, answers);
   function add(
     requirementId: RequirementId,
     key = "case",
