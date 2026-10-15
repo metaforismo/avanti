@@ -22,7 +22,8 @@ import { PageContainer } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, ApiRequestError } from "@/lib/api";
-import { CASE_STATUS, LANGUAGE_IT } from "@/lib/console/labels";
+import { CASE_STATUS, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
+import { rememberCase } from "@/lib/console/recent-cases";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { ChecklistSection } from "./checklist-section";
@@ -106,6 +107,18 @@ export function DossierView({ caseId }: { caseId: string }) {
       setPending(null);
     }
   }
+
+  // Remembered for the sidebar and the ⌘K search: the cases this operator is working on.
+  const loaded = dossier.data;
+  useEffect(() => {
+    if (!loaded) return;
+    rememberCase({
+      id: loaded.id,
+      reference: loaded.reference,
+      name: [loaded.citizen.firstName, loaded.citizen.lastName].filter(Boolean).join(" ") || null,
+      practice: loaded.practice ? PRACTICE_SHORT[loaded.practice.id] : null,
+    });
+  }, [loaded]);
 
   // Uploads are analysed in the background: refresh until every document has its result.
   const analysing = dossier.data?.documents.some((doc) => doc.status === "processing") ?? false;
