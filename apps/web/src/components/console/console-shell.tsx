@@ -12,6 +12,7 @@ import {
   QrCode,
   ScrollText,
   Settings,
+  Sparkles,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -77,6 +78,13 @@ const NAV: NavItem[] = [
     label: "Registro attività",
     icon: ScrollText,
     match: (p) => p.startsWith("/console/registro"),
+    adminOnly: true,
+  },
+  {
+    href: "/console/ai",
+    label: "Intelligenza artificiale",
+    icon: Sparkles,
+    match: (p) => p.startsWith("/console/ai"),
     adminOnly: true,
   },
   {

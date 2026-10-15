@@ -4,7 +4,8 @@ import { resolve } from "node:path";
 import { parseMfaKey } from "./mfa";
 import { createApp } from "./app";
 import { DiskStorage, BlobStorage } from "./storage";
-import { GatewayIntelligence } from "./ai";
+import { AiIntelligence } from "./ai";
+import { loadAiConfig } from "@avanti/ai/config";
 import { loadNotifications } from "./notification-config";
 
 export { createApp } from "./app";
@@ -69,11 +70,8 @@ async function initialize() {
     storage: process.env.BLOB_READ_WRITE_TOKEN
       ? new BlobStorage(process.env.BLOB_READ_WRITE_TOKEN)
       : new DiskStorage(resolve(repoRoot, ".data/uploads")),
-    ai: new GatewayIntelligence({
-      key: process.env.AI_GATEWAY_API_KEY,
-      provider: process.env.AI_GATEWAY_PROVIDER,
-      textModel: process.env.AI_MODEL_TEXT,
-      visionModel: process.env.AI_MODEL_VISION,
+    ai: new AiIntelligence({
+      config: loadAiConfig(process.env),
       logger: (record) => console.warn(JSON.stringify(record)),
     }),
     publicUrl: process.env.PUBLIC_APP_URL ?? "http://localhost:3400",

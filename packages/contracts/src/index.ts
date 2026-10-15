@@ -881,6 +881,26 @@ export const SystemStatus = z
         storage: StatusComponent,
         ai: StatusComponent.extend({
           configured: z.boolean(),
+          configuration: z
+            .object({
+              provider: z.enum(["openrouter", "openai", "anthropic", "gateway", "none"]),
+              models: z.object({ fast: z.string(), reasoning: z.string(), vision: z.string() }),
+              /** Backup chain tried when the tier model is slow or down. */
+              fallbacks: z.array(z.string()).default([]),
+              dataPolicy: z.enum(["strict", "permissive"]),
+              keyPresent: z.boolean(),
+              monthlyBudgetEur: z.number(),
+            })
+            .optional(),
+          budget: z
+            .object({
+              month: z.string(),
+              budgetEur: z.number(),
+              usedEur: z.number(),
+              reservedEur: z.number(),
+              exhausted: z.boolean(),
+            })
+            .optional(),
           mode: z.enum(["ai", "fallback", "unknown"]),
           /** Current UTC hour plus the preceding 23 hours, scoped to the authenticated CAF. */
           hourly: z
@@ -1077,6 +1097,7 @@ export type CitizenReminderDays = z.infer<typeof CitizenReminderDays>;
 
 export const OrganizationSettings = z.object({
   mfaRequired: z.boolean().default(false),
+  aiMonthlyBudgetEur: z.number().finite().min(0).max(100000).nullable().optional(),
   /** Minutes per case measured by the CAF before Avanti; null until measured. */
   baselineMinutesPerCase: z.number().int().min(1).max(600).nullable(),
   /** Validity of citizen links, in days. */
@@ -1238,3 +1259,46 @@ export const ApiError = z.object({
 export type ApiError = z.infer<typeof ApiError>;
 
 export * from "./pilot-report";
+
+export const AiUsageQuery = z
+  .object({
+    month: z
+      .string()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+      .optional(),
+  })
+  .strict();
+export const AiUsageResponse = z.object({
+  month: z.string(),
+  budgetEur: z.number().nonnegative(),
+  usedEur: z.number().nonnegative(),
+  reservedEur: z.number().nonnegative(),
+  exhausted: z.boolean(),
+  totals: z.object({
+    calls: z.number(),
+    inputTokens: z.number(),
+    outputTokens: z.number(),
+    costEstimateEur: z.number(),
+    manipulationAttempts: z.number(),
+  }),
+  groups: z.array(
+    z.object({
+      task: z.string(),
+      version: z.string(),
+      model: z.string().nullable(),
+      engine: z.enum(["ai", "heuristic"]),
+      outcome: z.string(),
+      day: z.string(),
+      calls: z.number(),
+      attempts: z.number(),
+      latencyMs: z.number(),
+      inputTokens: z.number(),
+      outputTokens: z.number(),
+      costEstimateEur: z.number(),
+      manipulationAttempts: z.number(),
+    }),
+  ),
+});
+
+export type AiUsageQuery = z.infer<typeof AiUsageQuery>;
+export type AiUsageResponse = z.infer<typeof AiUsageResponse>;

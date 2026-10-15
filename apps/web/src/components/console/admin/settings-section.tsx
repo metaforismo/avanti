@@ -11,6 +11,7 @@ import { focusFirstError } from "@/lib/validation";
 
 const LIMITS = {
   baselineMinutesPerCase: { min: 1, max: 600 },
+  aiMonthlyBudgetEur: { min: 0, max: 100000 },
   linkDays: { min: 1, max: 365 },
   retentionDays: { min: 30, max: 3650 },
 } as const;
@@ -61,8 +62,9 @@ function SettingsForm({
     const values: Partial<OrganizationSettings> = {};
     for (const key of Object.keys(LIMITS) as Key[]) {
       const raw = read(key);
-      if (key === "baselineMinutesPerCase" && raw === "") {
-        values.baselineMinutesPerCase = null;
+      // Empty means "not set": no baseline yet, or the server's default AI budget.
+      if ((key === "baselineMinutesPerCase" || key === "aiMonthlyBudgetEur") && raw === "") {
+        values[key] = null;
         continue;
       }
       const n = Number(raw);
@@ -208,6 +210,22 @@ function SettingsForm({
           </label>
         </div>
       </fieldset>
+      <Field
+        label="Budget mensile per l'intelligenza artificiale (€)"
+        optional="facoltativo"
+        hint="Oltre questa cifra nel mese Avanti continua con le regole, senza AI, e lo segnala. Vuoto: il valore predefinito del server. I consumi sono nella pagina Intelligenza artificiale."
+        error={errors.aiMonthlyBudgetEur}
+      >
+        {(p) => (
+          <Input
+            {...p}
+            name="aiMonthlyBudgetEur"
+            inputMode="numeric"
+            defaultValue={initial.aiMonthlyBudgetEur ?? ""}
+            className="tabular max-w-32"
+          />
+        )}
+      </Field>
       <fieldset className="grid gap-3">
         <legend className="mb-2 text-sm font-semibold">Sicurezza degli accessi</legend>
         <Toggle

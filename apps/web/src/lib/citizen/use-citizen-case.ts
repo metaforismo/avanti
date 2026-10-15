@@ -66,6 +66,8 @@ function uploadWithProgress(
 }
 
 const ANALYSIS_POLL_MS = 2500;
+// Switching apps back and forth must not refetch the case every time.
+const VISIBLE_REFRESH_MS = 15_000;
 const PARALLEL_UPLOADS = 2;
 
 export function useCitizenCase(token: string) {
@@ -83,9 +85,12 @@ export function useCitizenCase(token: string) {
   // The original files, so a failed upload can be retried without picking the photo again.
   const uploadFiles = useRef(new Map<string, { file: File; checklistItemId: string | null }>());
 
+  const loadedAt = useRef(0);
+
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<CitizenCase>(base);
+      loadedAt.current = Date.now();
       setState({ kind: "ready", data });
     } catch (error) {
       setState((current) =>
@@ -105,7 +110,12 @@ export function useCitizenCase(token: string) {
   // Operators may change the case (requests, verification): refresh when the citizen returns.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible" && inFlight.current === 0) void load();
+      if (
+        document.visibilityState === "visible" &&
+        inFlight.current === 0 &&
+        Date.now() - loadedAt.current > VISIBLE_REFRESH_MS
+      )
+        void load();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);

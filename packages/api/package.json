@@ -28,7 +28,8 @@
     "pdf-lib": "^1.17",
     "@pdf-lib/fontkit": "^1.1.1",
     "regenerator-runtime": "^0.14.1",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "@avanti/ai": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24",
