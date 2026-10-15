@@ -10,6 +10,8 @@ export function officeView(row: typeof offices.$inferSelect): Office {
     city: row.city,
     phone: row.phone,
     openingHours: row.openingHours,
+    bookingUrl: row.bookingUrl,
+    citizenNote: row.citizenNote,
   };
 }
 

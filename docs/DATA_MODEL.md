@@ -195,3 +195,29 @@ completamento outbox, istante sul caso ed evento cronologia sono atomici.
 `citizen.reminder_sent` e `citizen.reminder_simulated` hanno attore system e nessun
 payload personale. Non cambiano `updated_at`. Cifratura, scadenza payload e retry
 restano quelli dell'outbox esistente.
+
+## Indicazioni pubbliche e ricevuta invio (15 ottobre 2026)
+
+La migrazione unica `0013_office_next_steps_submission_receipt`, generata con
+`drizzle-kit generate --name=office_next_steps_submission_receipt`, aggiunge:
+
+- `offices.booking_url` e `offices.citizen_note`: text nullable. Indirizzo, città,
+  telefono e orari usano le colonne esistenti. L'API rappresenta l'indirizzo non
+  compilato con stringa vuota e non cambia i dati preesistenti.
+- `settings.notify_citizen_submission`: boolean NOT NULL default false.
+- `citizen_submission` tra i tipi ammessi dal CHECK di `notifications.kind`.
+
+Nessun nuovo archivio di prenotazioni. Le indicazioni sono lette dallo sportello
+corrente, anche per pratiche già inviate; il nome nella ricevuta è quello al
+momento del primo invio. L'envelope cifrato contiene solo destinatario, mittente,
+oggetto e testo minimo. La FK composta pratica/organizzazione resta applicata.
+
+La transazione che prende il lock della pratica registra `submitted_at`, audit
+e outbox. `submitted_at IS NULL` è la guardia durevole del primo invio;
+`dedupe_key = citizen_submission:<case-id>` impedisce ulteriori inserimenti
+nell'outbox. Il primo timestamp non viene azzerato nei reinvii: la guardia
+sopravvive alla cancellazione delle ricevute dopo 30 giorni. Con opzione spenta
+o senza email non si registra una notifica e non la si recupera retroattivamente.
+Il provider continua a ricevere l'ID tecnico stabile della notifica come chiave
+di idempotenza entro la sua finestra; questa non è una garanzia di consegna alla
+casella del destinatario.

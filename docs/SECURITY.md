@@ -456,3 +456,39 @@ TOTP non resiste al phishing in tempo reale; resta necessaria la protezione dell
 sessione. È una misura nel quadro di sicurezza richiesto dall'
 [art. 32 GDPR](https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita), che richiede misure
 adeguate al rischio: questa implementazione da sola non certifica la conformità.
+
+## Link di prenotazione esterno e ricevuta invio (15 ottobre 2026)
+
+L'admin del CAF può pubblicare per ogni sportello un `bookingUrl` HTTPS assoluto
+(max 2048 caratteri), senza credenziali, spazi interni, controlli o backslash.
+Schemi `javascript:`, `data:`, HTTP, URL relativi e protocol-relative sono rifiutati
+con `ApiError`. I campi descrittivi seguono le regole `SafeText`/`SafeName` e i
+limiti documentati nell'API; restano testo, mai HTML. Lo slug pubblico espone
+queste indicazioni intenzionalmente: non inserire dati dei cittadini nelle note,
+negli orari, nei recapiti o nel link di prenotazione.
+
+Il link porta al sistema del CAF e Avanti non lo scarica, non lo verifica via
+rete, non lo incorpora e non crea appuntamenti. HTTPS protegge il trasporto,
+non attesta il gestore del sito. La UI deve mostrare che la destinazione è
+esterna, permetterne la lettura prima di aprirla e usare `rel="noopener
+noreferrer"` se apre una nuova scheda; usare una policy `no-referrer` per non
+trasmettere il token presente nell'URL della pratica. Non aggiungere token,
+riferimenti o dati del cittadino al link. Il server non segue redirect, quindi
+questa configurazione non apre un fetch SSRF. Le mutazioni restano soggette ad
+auth admin, CSRF, lock del tenant e predicato organizzazione; lo slug non è
+un'autorizzazione di scrittura.
+
+La ricevuta `citizen_submission` è **spenta per default**. Il rapporto con un
+CAF può essere visibile a chi accede alla casella: il responsabile abilita il
+canale dopo averne valutato l'uso nel servizio e nell'informativa esistente.
+Questa è una scelta di minimizzazione del prodotto; non introduce un consenso
+generale. Senza email lasciata dal cittadino non viene ricavato alcun recapito.
+
+La ricevuta non include link, neppure il link di prenotazione, né testi liberi
+dello sportello o del cittadino. Include riferimento, nome pubblico dello
+sportello e istruzioni generiche localizzate. Nel nome dello sportello la
+punteggiatura che può generare autolink viene sostituita da spazi. Cifratura,
+retention, tentativi e pulizia dell'outbox restano quelli già descritti. La
+preferenza viene ricontrollata prima di inviare; rimozione/modifica del contatto,
+cambio lingua e scadenza annullano gli invii pendenti. I log non contengono
+riferimenti, indirizzi email, contenuti o URL di prenotazione.

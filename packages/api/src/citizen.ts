@@ -48,6 +48,7 @@ import { currentCitizenLink } from "./citizen-link";
 import { body, parse, mutableCitizen, type App, type Services, type ApiContext } from "./context";
 
 import { nextCaseUpdate } from "./case-version";
+import { enqueueSubmissionReceipt, scheduleNotificationDelivery } from "./notifications";
 
 export { assertStartable } from "./citizen-turn";
 export async function createCase(
@@ -531,7 +532,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
   );
   app.post("/c/:token/submit", async (c) => {
     const input = await body(c, SubmitCaseRequest);
-    const row = await s.db.transaction(async (tx) => {
+    const result = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, c.get("citizen"), s.clock());
       const [upload] = await tx
         .select({ id: storageDeletions.id })
@@ -577,9 +578,12 @@ export function mountCitizenRoutes(app: App, s: Services) {
         blockers: view.findings.filter((f) => f.severity === "blocker").length,
         first: current.submittedAt === null,
       });
-      return updated;
+      const notificationId =
+        current.submittedAt === null ? await enqueueSubmissionReceipt(tx, s, updated) : undefined;
+      return { row: updated, notificationId };
     });
-    return c.json(await citizenView(s.db, row, s.clock()));
+    scheduleNotificationDelivery(s, result.notificationId);
+    return c.json(await citizenView(s.db, result.row, s.clock()));
   });
 }
 
