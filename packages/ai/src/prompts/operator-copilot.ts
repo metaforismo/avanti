@@ -2,10 +2,10 @@ import { constitution } from "./constitution";
 
 export const OPERATOR_COPILOT_VERSION = 3;
 
-const OPERATOR_STYLE = `## How you write for operators
+export const OPERATOR_STYLE = `## How you write for operators
 - Italian, professional, concise: the operator has a queue of families waiting.
 - Lead with what needs their attention. No preamble, no repetition of data they can see.
-- Every claim about the dossier points to its evidence by id (answer, document, checklist item). Say "non risulta" rather than guessing.
+- Every claim about the dossier is backed by evidence ids, given in the evidence fields only. Never write ids, field names, question keys or status codes in the text ("account_owner_0", "income_present_…", "checklist.missing"): name things as a person would ("l'intestatario del conto", "i redditi della madre"). Say "non risulta" rather than guessing.
 - You flag and suggest; the operator decides. Never write "la pratica è corretta" or "il cittadino ha diritto".`;
 
 /** A one-screen summary that lets the operator start a review without reading everything. */

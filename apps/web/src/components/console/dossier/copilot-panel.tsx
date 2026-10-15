@@ -1,6 +1,14 @@
 "use client";
 
-import { AlertOctagon, AlertTriangle, CheckCircle2, Info, RefreshCw, Sparkles } from "lucide-react";
+import {
+  AlertOctagon,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  MessageSquare,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 import { useState } from "react";
 import type { CaseDossier } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -28,9 +36,12 @@ import type { DossierActions } from "./dossier-view";
 export function CopilotPanel({
   dossier,
   actions,
+  onAsk,
 }: {
   dossier: CaseDossier;
   actions: DossierActions;
+  /** Opens the chat about this dossier. */
+  onAsk?: () => void;
 }) {
   const base = `/api/cases/${encodeURIComponent(dossier.id)}/ai`;
   const brief = useResource<DossierBrief>(`${base}/brief`);
@@ -56,18 +67,7 @@ export function CopilotPanel({
     }
   }
 
-  const onEvidence = (evidence: Evidence) => {
-    if (evidence.kind === "document") {
-      const doc = dossier.documents.find((d) => d.id === evidence.id);
-      if (doc) actions.openDocument(doc);
-      return;
-    }
-    const target =
-      evidence.kind === "checklist"
-        ? document.getElementById(`item-${evidence.id}`)
-        : document.getElementById(evidence.kind === "answer" ? "answers-title" : "findings-title");
-    target?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
+  const onEvidence = (evidence: Evidence) => openEvidence(evidence, dossier, actions);
 
   if (brief.status === "error" && !brief.data) {
     // The copilot is an aid: if it is unreachable the dossier works as before, quietly.
@@ -102,6 +102,12 @@ export function CopilotPanel({
             <span title={`Generato il ${formatDateTime(brief.data.generatedAt)}`}>
               {engineLabel(brief.data.engine, brief.data.model)}
             </span>
+          )}
+          {onAsk && (
+            <Button variant="secondary" size="sm" onClick={onAsk}>
+              <MessageSquare className="size-3.5" aria-hidden />
+              Chiedi
+            </Button>
           )}
           <Button
             variant="ghost"
@@ -199,7 +205,7 @@ export function CopilotPanel({
   );
 }
 
-function EvidenceChips({
+export function EvidenceChips({
   evidence,
   onOpen,
 }: {
@@ -242,4 +248,18 @@ function SeverityIcon({ severity }: { severity: "blocker" | "warning" | "info" }
       aria-label={severity === "blocker" ? "Bloccante" : severity === "warning" ? "Avviso" : "Nota"}
     />
   );
+}
+
+/** Shows where a point comes from: opens the document, or scrolls to the item or section. */
+export function openEvidence(evidence: Evidence, dossier: CaseDossier, actions: DossierActions) {
+  if (evidence.kind === "document") {
+    const doc = dossier.documents.find((d) => d.id === evidence.id);
+    if (doc) actions.openDocument(doc);
+    return;
+  }
+  const target =
+    evidence.kind === "checklist"
+      ? document.getElementById(`item-${evidence.id}`)
+      : document.getElementById(evidence.kind === "answer" ? "answers-title" : "findings-title");
+  target?.scrollIntoView({ behavior: "smooth", block: "center" });
 }

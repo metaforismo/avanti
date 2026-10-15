@@ -114,7 +114,7 @@ un anno diverso dal 2027 o un catalogo scaduto lo escludono comunque. Ciò non c
 l’aggiornamento normativo: prima dell’uso reale il CAF deve verificare le fonti già
 indicate in `docs/research/isee-2027.md`.
 
-La migrazione unica `0019_near_ready`, generata con drizzle-kit, aggiunge impostazioni,
+La migrazione unica `0020_near_ready`, generata con drizzle-kit, aggiunge impostazioni,
 valutazioni, giudizi ciechi e audit. Nello stesso file sono aggiunti trigger PostgreSQL:
 qualsiasi modifica di `cases.updated_at`, anche da worker, ritira atomicamente i segnali
 attivi; cambiare modalità, soglie, budget o interruttore AI invalida le pratiche aperte.

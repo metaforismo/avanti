@@ -10,7 +10,7 @@ it("migra le organizzazioni esistenti in ombra e conserva budget e preferenze", 
     const journal: { entries: { tag: string }[] } = JSON.parse(
       await readFile(join(repoRoot, "packages/db/migrations/meta/_journal.json"), "utf8"),
     );
-    for (const e of journal.entries.filter((e) => e.tag !== "0019_near_ready"))
+    for (const e of journal.entries.filter((e) => e.tag !== "0020_near_ready"))
       await client.exec(
         await readFile(join(repoRoot, `packages/db/migrations/${e.tag}.sql`), "utf8"),
       );
@@ -18,7 +18,7 @@ it("migra le organizzazioni esistenti in ombra e conserva budget e preferenze", 
       "insert into organizations values ('synthetic','CAF sintetico','caf'); insert into settings (organization_id,link_days,ai_monthly_budget_eur,ai_copilot) values ('synthetic',45,12,false)",
     );
     await client.exec(
-      await readFile(join(repoRoot, "packages/db/migrations/0019_near_ready.sql"), "utf8"),
+      await readFile(join(repoRoot, "packages/db/migrations/0020_near_ready.sql"), "utf8"),
     );
     expect(
       (

@@ -62,7 +62,7 @@ export function ConversationStep(props: StepProps) {
 
       <AnsweredList api={api} data={data} m={m} />
 
-      <ol aria-live="polite" aria-relevant="additions" className="grid gap-6">
+      <ol aria-live="polite" aria-relevant="additions" className="grid grid-cols-[minmax(0,1fr)] gap-6">
         {turns.map((turn) => (
           <Turn key={turn.id} turn={turn} you={m.conversation.you} avanti={m.conversation.avanti} />
         ))}

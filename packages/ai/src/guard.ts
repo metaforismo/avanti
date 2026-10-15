@@ -31,7 +31,35 @@ export function languageViolation(text: string, language?: Language) {
     uk: /\p{Script=Cyrillic}/u,
   };
   if (language in script) return !script[language as keyof typeof script].test(text);
-  return /(?!\p{Script=Latin})\p{L}/u.test(text);
+  if (/(?!\p{Script=Latin})\p{L}/u.test(text)) return true;
+  return latinMismatch(text, language);
+}
+
+// Latin-script languages share an alphabet: compare their most frequent short words instead.
+// Only a clear majority for another language counts, so Italian document names quoted in a
+// French or Spanish reply never trip it.
+const FUNCTION_WORDS: Partial<Record<Language, Set<string>>> = {
+  it: new Set(
+    "il lo gli che per non sono della delle nel con una del è anche questa questo hai tuo tua".split(
+      " ",
+    ),
+  ),
+  en: new Set("the and is you your of to are this that with for it be have can".split(" ")),
+  fr: new Set("le les des est vous votre pour une dans avec pas que du ce sont".split(" ")),
+  es: new Set("el los las es tu tus para una con que por del esta se puedes".split(" ")),
+  ro: new Set("și este pentru care sau din cu la să nu ai un o ta tău".split(" ")),
+};
+
+function latinMismatch(text: string, language: Language) {
+  const expected = FUNCTION_WORDS[language];
+  if (!expected) return false;
+  const words = text.toLowerCase().match(/\p{L}+/gu) ?? [];
+  if (words.length < 8) return false;
+  const score = (set: Set<string>) => words.filter((w) => set.has(w)).length;
+  const own = score(expected);
+  return Object.entries(FUNCTION_WORDS).some(
+    ([other, set]) => other !== language && score(set!) >= 4 && score(set!) > own * 2,
+  );
 }
 export function outputViolations(text: string, context: string, language?: Language) {
   const violations: string[] = [];

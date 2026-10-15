@@ -1,3 +1,4 @@
+import { mountDossierAsk } from "./dossier-ask";
 import { mountConversationRoutes } from "./conversation-routes";
 import { mfaCipher } from "./mfa";
 import { mountMfaRoutes } from "./routes/mfa";
@@ -118,5 +119,6 @@ export function createApp(options: ApiOptions) {
   mountAiUsage(app, services);
   mountCopilot(app, services);
   mountNearReady(app, services);
+  mountDossierAsk(app, services);
   return app;
 }

@@ -9,7 +9,8 @@
     "./runtime": "./src/runtime.ts",
     "./tasks": "./src/tasks.ts",
     "./heuristics": "./src/heuristics.ts",
-    "./operator-tasks": "./src/operator-tasks.ts"
+    "./operator-tasks": "./src/operator-tasks.ts",
+    "./dossier-ask-task": "./src/dossier-ask-task.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit",

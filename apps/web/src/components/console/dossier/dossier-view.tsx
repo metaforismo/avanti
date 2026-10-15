@@ -1,6 +1,15 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronDown, Download, FileJson, Send, UserCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Download,
+  FileJson,
+  Send,
+  Sparkles,
+  UserCheck,
+} from "lucide-react";
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -30,6 +39,7 @@ import { ChecklistSection } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
 import { CopilotPanel } from "./copilot-panel";
 import { NearReadyPanel } from "./near-ready-panel";
+import { DossierChat } from "./dossier-chat";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
 import { DsuSheetSection } from "./dsu-sheet-section";
@@ -89,6 +99,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   };
   const [requesting, setRequesting] = useState(false);
   const [reply, setReply] = useState<ReplyContext | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   async function mutate(key: string, run: () => Promise<CaseDossier | unknown>) {
     setPending(key);
@@ -390,7 +401,9 @@ export function DossierView({ caseId }: { caseId: string }) {
             onReply={(question) => void openReply(question)}
           />
           {data.nearReady && <NearReadyPanel dossier={data} actions={actions} />}
-          {data.status !== "intake" && <CopilotPanel dossier={data} actions={actions} />}
+          {data.status !== "intake" && (
+            <CopilotPanel dossier={data} actions={actions} onAsk={() => setChatOpen(true)} />
+          )}
           <FindingsSummary dossier={data} />
           {data.facts.length > 0 && (
             <section aria-labelledby="facts-title">
@@ -504,6 +517,24 @@ export function DossierView({ caseId }: { caseId: string }) {
         dossier={data}
         returnFocusTo={moreButton}
       />
+      {data.status !== "intake" && (
+        <>
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            className="fixed end-5 bottom-5 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-contrast px-5 font-semibold text-on-contrast shadow-float transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            <Sparkles className="size-4.5" aria-hidden />
+            Chiedi al fascicolo
+          </button>
+          <DossierChat
+            open={chatOpen}
+            onOpenChange={setChatOpen}
+            dossier={data}
+            actions={actions}
+          />
+        </>
+      )}
       <RequestDialog
         open={requesting}
         onOpenChange={(next) => {

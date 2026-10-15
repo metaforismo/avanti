@@ -376,7 +376,7 @@ export const Progress = z.object({
   questionsAnswered: z.number().int().nonnegative(),
   /** Exact total; 0 while conditional branches still make a single count misleading. */
   questionsTotal: z.number().int().nonnegative(),
-  /** Bounds include unresolved per-person, account, property and vehicle questions. */
+  /** Planning range: declared counts prevail; unknown branch sizes use moderate assumptions. */
   questionsRemaining: z
     .object({
       min: z.number().int().nonnegative(),
@@ -1092,6 +1092,7 @@ export const SystemStatusQuery = z.object({}).strict();
 /* ------------------------------------------------------------------ */
 
 export const AuditAction = z.enum([
+  "copilot.asked",
   "privacy.accepted",
   "case.created",
   "case.viewed",
@@ -1563,3 +1564,41 @@ export type RequestDraftRequest = z.infer<typeof RequestDraftRequest>;
 export type OperatorAskRequest = z.infer<typeof OperatorAskRequest>;
 export type ReplyDraftRequest = z.infer<typeof ReplyDraftRequest>;
 export type PrefillDecisionResponse = z.infer<typeof PrefillDecisionResponse>;
+
+/** Operator-private dossier chat. History is context, never a source of dossier facts. */
+export const DossierAskHistoryTurn = z
+  .object({
+    role: z.enum(["user", "assistant"]),
+    content: SafeText.trim().min(1).max(5000),
+  })
+  .strict();
+export const DossierAskRequest = z
+  .object({
+    question: SafeText.trim().min(3).max(1000),
+    history: z.array(DossierAskHistoryTurn).max(8).optional(),
+  })
+  .strict();
+export const DossierAskResponse = z.object({
+  answer: SafeText.min(1).max(6000),
+  evidence: z.array(Evidence).max(60),
+  citations: z.array(KnowledgeCitation).max(5),
+  engine: AiEngine,
+  suggestions: z.array(SafeText.trim().min(1).max(150)).min(2).max(3).optional(),
+});
+export const DossierChatTurn = z.object({
+  id: Id,
+  question: DossierAskRequest.shape.question,
+  response: DossierAskResponse,
+  createdAt: IsoDateTime,
+  caseVersion: IsoDateTime,
+});
+export const DossierChatQuery = z.object({ beforeId: Id.optional() }).strict();
+export const DossierChatResponse = z.object({
+  /** Chronological order within this page. Old references describe the version at generation. */
+  turns: z.array(DossierChatTurn).max(50),
+  nextBeforeId: Id.nullable(),
+});
+export type DossierAskRequest = z.infer<typeof DossierAskRequest>;
+export type DossierAskResponse = z.infer<typeof DossierAskResponse>;
+export type DossierChatTurn = z.infer<typeof DossierChatTurn>;
+export type DossierChatResponse = z.infer<typeof DossierChatResponse>;

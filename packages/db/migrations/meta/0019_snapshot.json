@@ -1,5 +1,5 @@
 {
-  "id": "5700bcec-7385-4d28-96e4-10581914cd34",
+  "id": "87d39af6-dec1-465b-89a4-edf17b25a0ea",
   "prevId": "d3ed51eb-0664-4088-9f31-96ae201d6dfb",
   "version": "7",
   "dialect": "postgresql",
@@ -1223,6 +1223,122 @@
       },
       "isRLSEnabled": false
     },
+    "public.dossier_chat_turns": {
+      "name": "dossier_chat_turns",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "case_id": {
+          "name": "case_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "operator_id": {
+          "name": "operator_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question": {
+          "name": "question",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "response": {
+          "name": "response",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "case_version": {
+          "name": "case_version",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "dossier_chat_scope_time_idx": {
+          "name": "dossier_chat_scope_time_idx",
+          "columns": [
+            {
+              "expression": "case_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "operator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dossier_chat_turns_case_id_cases_id_fk": {
+          "name": "dossier_chat_turns_case_id_cases_id_fk",
+          "tableFrom": "dossier_chat_turns",
+          "tableTo": "cases",
+          "columnsFrom": [
+            "case_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "dossier_chat_turns_operator_id_operators_id_fk": {
+          "name": "dossier_chat_turns_operator_id_operators_id_fk",
+          "tableFrom": "dossier_chat_turns",
+          "tableTo": "operators",
+          "columnsFrom": [
+            "operator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.events": {
       "name": "events",
       "schema": "",
@@ -1765,348 +1881,6 @@
         "messages_role_check": {
           "name": "messages_role_check",
           "value": "\"messages\".\"role\" in ('citizen', 'assistant', 'operator', 'system')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.near_ready_blind_reviews": {
-      "name": "near_ready_blind_reviews",
-      "schema": "",
-      "columns": {
-        "case_id": {
-          "name": "case_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "case_version": {
-          "name": "case_version",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "operator_id": {
-          "name": "operator_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ready": {
-          "name": "ready",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "at": {
-          "name": "at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "near_ready_blind_reviews_case_id_cases_id_fk": {
-          "name": "near_ready_blind_reviews_case_id_cases_id_fk",
-          "tableFrom": "near_ready_blind_reviews",
-          "tableTo": "cases",
-          "columnsFrom": [
-            "case_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "near_ready_blind_reviews_operator_id_operators_id_fk": {
-          "name": "near_ready_blind_reviews_operator_id_operators_id_fk",
-          "tableFrom": "near_ready_blind_reviews",
-          "tableTo": "operators",
-          "columnsFrom": [
-            "operator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "near_ready_blind_reviews_case_id_case_version_operator_id_pk": {
-          "name": "near_ready_blind_reviews_case_id_case_version_operator_id_pk",
-          "columns": [
-            "case_id",
-            "case_version",
-            "operator_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.near_ready_evaluations": {
-      "name": "near_ready_evaluations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "case_id": {
-          "name": "case_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "case_version": {
-          "name": "case_version",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "current_version": {
-          "name": "current_version",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "checked_at": {
-          "name": "checked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "eligible": {
-          "name": "eligible",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mode": {
-          "name": "mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "language": {
-          "name": "language",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reading": {
-          "name": "reading",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "snapshot": {
-          "name": "snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "dismissal_note": {
-          "name": "dismissal_note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "near_ready_case_time_idx": {
-          "name": "near_ready_case_time_idx",
-          "columns": [
-            {
-              "expression": "case_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "checked_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "near_ready_evaluations_case_id_cases_id_fk": {
-          "name": "near_ready_evaluations_case_id_cases_id_fk",
-          "tableFrom": "near_ready_evaluations",
-          "tableTo": "cases",
-          "columnsFrom": [
-            "case_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "near_ready_case_version_unique": {
-          "name": "near_ready_case_version_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "case_id",
-            "case_version"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "near_ready_state_check": {
-          "name": "near_ready_state_check",
-          "value": "\"near_ready_evaluations\".\"state\" in ('suggested','not_eligible','withdrawn','accepted','dismissed','shadow')"
-        },
-        "near_ready_mode_check": {
-          "name": "near_ready_mode_check",
-          "value": "\"near_ready_evaluations\".\"mode\" in ('off','shadow','visible')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.near_ready_events": {
-      "name": "near_ready_events",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "evaluation_id": {
-          "name": "evaluation_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "action": {
-          "name": "action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor": {
-          "name": "actor",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_id": {
-          "name": "actor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "at": {
-          "name": "at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "case_version": {
-          "name": "case_version",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ready": {
-          "name": "ready",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "duration_minutes": {
-          "name": "duration_minutes",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "near_ready_events_eval_idx": {
-          "name": "near_ready_events_eval_idx",
-          "columns": [
-            {
-              "expression": "evaluation_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "near_ready_events_evaluation_id_near_ready_evaluations_id_fk": {
-          "name": "near_ready_events_evaluation_id_near_ready_evaluations_id_fk",
-          "tableFrom": "near_ready_events",
-          "tableTo": "near_ready_evaluations",
-          "columnsFrom": [
-            "evaluation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "near_ready_action_check": {
-          "name": "near_ready_action_check",
-          "value": "\"near_ready_events\".\"action\" in ('evaluated','proposed','withdrawn','viewed','accepted','dismissed','blind_review','final_decision','critical_error')"
-        },
-        "near_ready_reason_check": {
-          "name": "near_ready_reason_check",
-          "value": "\"near_ready_events\".\"reason\" is null or \"near_ready_events\".\"reason\" in ('identity','household','document_match','year','amount','other','missing_document')"
         }
       },
       "isRLSEnabled": false
@@ -3180,33 +2954,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "near_ready_mode": {
-          "name": "near_ready_mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'shadow'"
-        },
-        "near_ready_critical_threshold": {
-          "name": "near_ready_critical_threshold",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0.98
-        },
-        "near_ready_other_threshold": {
-          "name": "near_ready_other_threshold",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0.95
-        },
-        "near_ready_suspended_at": {
-          "name": "near_ready_suspended_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "mfa_required": {
           "name": "mfa_required",
           "type": "boolean",
@@ -3323,14 +3070,6 @@
         "settings_ai_budget_check": {
           "name": "settings_ai_budget_check",
           "value": "\"settings\".\"ai_monthly_budget_eur\" is null or (\"settings\".\"ai_monthly_budget_eur\" >= 0 and \"settings\".\"ai_monthly_budget_eur\" <= 100000)"
-        },
-        "settings_near_ready_mode_check": {
-          "name": "settings_near_ready_mode_check",
-          "value": "\"settings\".\"near_ready_mode\" in ('off','shadow','visible')"
-        },
-        "settings_near_ready_threshold_check": {
-          "name": "settings_near_ready_threshold_check",
-          "value": "\"settings\".\"near_ready_critical_threshold\" between 0 and 1 and \"settings\".\"near_ready_other_threshold\" between 0 and 1"
         },
         "settings_days_check": {
           "name": "settings_days_check",
