@@ -109,7 +109,14 @@ export function MfaSetupFlow({
           hint="La chiediamo di nuovo perché questa impostazione protegge l'accesso."
           error={error}
         >
-          {(p) => <PasswordInput {...p} name="currentPassword" autoComplete="current-password" />}
+          {(p) => (
+            <PasswordInput
+              {...p}
+              name="currentPassword"
+              autoComplete="current-password"
+              autoFocus
+            />
+          )}
         </Field>
         {alert}
         <div className="flex flex-wrap gap-3">

@@ -265,3 +265,28 @@ test("the pilot report is for administrators and downloads as a PDF", async ({ p
   await page.getByRole("link", { name: "Scarica PDF" }).click();
   expect((await download).suggestedFilename()).toMatch(/^rapporto-pilota-.*\.pdf$/);
 });
+
+test("changing someone's access asks first, naming the person", async ({ page }) => {
+  await logIn(page, ADMIN);
+  await page.getByRole("link", { name: "Impostazioni" }).click();
+  const row = page.getByRole("listitem").filter({ hasText: DEMO.email });
+  await row.getByRole("button", { name: "Disattiva" }).click();
+  const confirm = page.getByRole("dialog", { name: "Disattivare l'operatore?" });
+  await expect(confirm).toContainText("viene disconnesso subito");
+  await confirm.getByRole("button", { name: "Annulla" }).click();
+  await expect(row.getByRole("button", { name: "Disattiva" })).toBeVisible();
+});
+
+test("an impossible report period is explained and nothing is downloaded", async ({ page }) => {
+  await logIn(page, ADMIN);
+  await page.getByRole("link", { name: "Rapporto del pilota" }).click();
+  await expect(page.getByRole("heading", { name: "Le tre soglie del pilota" })).toBeVisible();
+  let requests = 0;
+  page.on("request", (r) => r.url().includes("/api/reports/pilot") && requests++);
+  await page.getByLabel("Dal", { exact: true }).fill("2027-03-01");
+  await page.getByLabel("Al", { exact: true }).fill("2027-01-01");
+  await page.getByLabel("Al", { exact: true }).press("Enter");
+  await expect(page.getByText("La data di inizio viene dopo quella di fine.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Scarica PDF" })).toBeDisabled();
+  expect(requests).toBe(0);
+});

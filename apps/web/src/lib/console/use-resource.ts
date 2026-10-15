@@ -4,12 +4,23 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
+type Flags = {
+  /** A different path is loading: the data shown belongs to the previous one. */
+  refreshing: boolean;
+  /** The same path is being fetched again (reload): the data shown may be out of date. */
+  reloading: boolean;
+};
 export type Resource<T> =
-  | { status: "loading"; data: null; error: null; refreshing: boolean }
-  | { status: "ready"; data: T; error: null; refreshing: boolean }
-  | { status: "error"; data: T | null; error: ApiRequestError; refreshing: boolean };
+  | ({ status: "loading"; data: null; error: null } & Flags)
+  | ({ status: "ready"; data: T; error: null } & Flags)
+  | ({ status: "error"; data: T | null; error: ApiRequestError } & Flags);
 
-type Loaded<T> = { path: string | null; data: T | null; error: ApiRequestError | null };
+type Loaded<T> = {
+  path: string | null;
+  version: number;
+  data: T | null;
+  error: ApiRequestError | null;
+};
 
 /**
  * The last answer per path, in memory only (never browser storage): a screen opened again shows
@@ -35,7 +46,12 @@ export function clearResourceCache() {
  */
 export function useResource<T>(path: string | null) {
   const router = useRouter();
-  const [loaded, setLoaded] = useState<Loaded<T>>({ path: null, data: null, error: null });
+  const [loaded, setLoaded] = useState<Loaded<T>>({
+    path: null,
+    version: 0,
+    data: null,
+    error: null,
+  });
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -45,7 +61,7 @@ export function useResource<T>(path: string | null) {
       .then((data) => {
         if (cancelled) return;
         remember(path, data);
-        setLoaded({ path, data, error: null });
+        setLoaded({ path, version, data, error: null });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -59,7 +75,7 @@ export function useResource<T>(path: string | null) {
           router.replace(`/console/accedi?motivo=sessione&next=${next}` as never);
           return;
         }
-        setLoaded((current) => ({ path, data: current.data, error: err }));
+        setLoaded((current) => ({ path, version, data: current.data, error: err }));
       });
     return () => {
       cancelled = true;
@@ -78,13 +94,14 @@ export function useResource<T>(path: string | null) {
   const cached = path !== null && loaded.path !== path && cache.has(path);
   const data = cached ? (cache.get(path) as T) : loaded.data;
   const refreshing = loaded.path !== path && !cached;
+  const reloading = loaded.path === path && loaded.version !== version;
 
   const state: Resource<T> =
     loaded.error && !refreshing && !cached
-      ? { status: "error", data, error: loaded.error, refreshing }
+      ? { status: "error", data, error: loaded.error, refreshing, reloading }
       : data !== null
-        ? { status: "ready", data, error: null, refreshing }
-        : { status: "loading", data: null, error: null, refreshing };
+        ? { status: "ready", data, error: null, refreshing, reloading }
+        : { status: "loading", data: null, error: null, refreshing, reloading };
 
   return { ...state, reload, setData };
 }

@@ -95,20 +95,30 @@ function RequestForm({
   const [message, setMessage] = useState(() => defaultMessage(dossier, selected.map(label)));
   const [touched, setTouched] = useState(false);
   const replies = useResource<QuickReply[]>("/api/quick-replies");
+  const [notice, setNotice] = useState<string | null>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const caretSet = useRef(false);
 
   // A quick reply goes where the cursor is (or at the end), as if typed: the draft is then
   // the operator's own and no longer follows the ticked items.
   const insertReply = (reply: QuickReply) => {
     const field = textarea.current;
-    const start = field?.selectionStart ?? message.length;
-    const end = field?.selectionEnd ?? message.length;
+    // Before the field is ever focused its caret sits at 0: append instead of prefixing.
+    // (Clicking the reply button blurs the field, but the caret position survives the blur.)
+    const known = field !== null && caretSet.current;
+    const start = known ? field.selectionStart : message.length;
+    const end = known ? field.selectionEnd : message.length;
     const before = message.slice(0, start).replace(/\s*$/, "");
     const after = message.slice(end).replace(/^\s*/, "");
     const glue = (left: string, right: string) =>
       left && right ? `${left}\n${right}` : left || right;
-    const next = glue(glue(before, reply.text), after).slice(0, 1000);
+    const full = glue(glue(before, reply.text), after);
+    const next = full.slice(0, 1000);
     setMessage(next);
+    if (full.length > 1000)
+      setNotice(
+        "Il messaggio ha superato i 1000 caratteri ed è stato tagliato: controlla la fine.",
+      );
     setTouched(true);
     setError(null);
     onEdited();
@@ -220,9 +230,11 @@ function RequestForm({
         )}
         <textarea
           ref={textarea}
+          onFocus={() => (caretSet.current = true)}
           id="request-message"
           value={message}
           onChange={(e) => {
+            setNotice(null);
             setMessage(e.target.value);
             setTouched(true);
             setError(null);
@@ -235,6 +247,9 @@ function RequestForm({
           className="w-full resize-y rounded-sm bg-surface p-3 text-[0.9375rem] ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
         />
         <p className="tabular text-right text-xs text-ink-3">{message.length}/1000</p>
+        <p role="status" className={notice ? "text-sm text-warn" : "sr-only"}>
+          {notice}
+        </p>
       </div>
       {error && (
         <p

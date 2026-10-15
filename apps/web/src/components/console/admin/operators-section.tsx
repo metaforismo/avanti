@@ -14,49 +14,120 @@ import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { focusFirstError, isEmail, text } from "@/lib/validation";
 
+type Risky = "password" | "mfa" | "deactivate" | "promote" | "demote";
+
+/** Every change to someone's access is confirmed, naming the person and what happens to them. */
+const RISKY: Record<
+  Risky,
+  { title: string; description: string; effect: string; action: string; danger: boolean }
+> = {
+  password: {
+    title: "Dare una nuova password?",
+    description: "Quella attuale smette di funzionare subito.",
+    effect:
+      "viene disconnesso da tutti i dispositivi e al prossimo accesso sceglie una password sua.",
+    action: "Crea password temporanea",
+    danger: false,
+  },
+  mfa: {
+    title: "Azzerare la verifica in due passaggi?",
+    description:
+      "Fallo solo se hai riconosciuto la persona: per esempio ha perso il telefono e i codici di recupero.",
+    effect:
+      "entrerà con la sola password e, se il CAF la richiede, dovrà riattivarla subito. L'azione finisce nel registro attività.",
+    action: "Azzera verifica",
+    danger: true,
+  },
+  deactivate: {
+    title: "Disattivare l'operatore?",
+    description: "Le sue pratiche restano, assegnate come prima.",
+    effect: "viene disconnesso subito e non può più accedere finché non lo riattivi.",
+    action: "Disattiva",
+    danger: true,
+  },
+  promote: {
+    title: "Rendere amministratore?",
+    description:
+      "Gli amministratori gestiscono operatori, sportelli, parametri e registro attività.",
+    effect: "potrà creare e disattivare operatori e cambiare le impostazioni del CAF.",
+    action: "Rendi amministratore",
+    danger: false,
+  },
+  demote: {
+    title: "Togliere il ruolo di amministratore?",
+    description: "Continuerà a lavorare sulle pratiche.",
+    effect: "non potrà più gestire operatori, sportelli e impostazioni.",
+    action: "Rendi operatore",
+    danger: false,
+  },
+};
+
 export function OperatorsSection() {
   const me = useOperator();
   const list = useResource<OperatorSummary[]>("/api/operators");
   const [adding, setAdding] = useState(false);
   const [issued, setIssued] = useState<TemporaryPasswordResponse | null>(null);
   const [pending, setPending] = useState<string | null>(null);
-  const [unlocking, setUnlocking] = useState<OperatorSummary | null>(null);
+  const [confirming, setConfirming] = useState<{ kind: Risky; operator: OperatorSummary } | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
-  async function act(key: string, run: () => Promise<unknown>) {
+  async function act(key: string, run: () => Promise<unknown>, inDialog = false) {
     setPending(key);
     setError(null);
+    setConfirmError(null);
     try {
       await run();
       list.reload();
+      return true;
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Operazione non riuscita. Riprova.");
+      // An open dialog hides the rest of the page from assistive tech: say it where they are.
+      (inDialog ? setConfirmError : setError)(
+        err instanceof ApiRequestError ? err.message : "Operazione non riuscita. Riprova.",
+      );
+      return false;
     } finally {
       setPending(null);
     }
   }
 
-  const resetPassword = (operator: OperatorSummary) =>
-    act(`reset:${operator.id}`, async () => {
-      setIssued(
-        await apiFetch<TemporaryPasswordResponse>(`/api/operators/${operator.id}/reset-password`, {
-          method: "POST",
-        }),
-      );
-    });
+  const ask = (kind: Risky, operator: OperatorSummary) => {
+    setError(null);
+    setConfirmError(null);
+    setConfirming({ kind, operator });
+  };
 
-  const resetMfa = (operator: OperatorSummary) =>
-    act(`mfa:${operator.id}`, async () => {
-      await apiFetch(`/api/operators/${operator.id}/reset-mfa`, { method: "POST", body: {} });
-      setUnlocking(null);
-    });
+  async function confirm() {
+    if (!confirming) return;
+    const { kind, operator } = confirming;
+    const base = `/api/operators/${operator.id}`;
+    const done = await act(
+      `${kind}:${operator.id}`,
+      async () => {
+        if (kind === "password")
+          setIssued(
+            await apiFetch<TemporaryPasswordResponse>(`${base}/reset-password`, { method: "POST" }),
+          );
+        else if (kind === "mfa") await apiFetch(`${base}/reset-mfa`, { method: "POST", body: {} });
+        else
+          await apiFetch(base, {
+            method: "PATCH",
+            body:
+              kind === "deactivate"
+                ? { active: false }
+                : { role: kind === "promote" ? "admin" : "operator" },
+          });
+      },
+      true,
+    );
+    if (done) setConfirming(null);
+  }
 
-  const update = (
-    operator: OperatorSummary,
-    body: Partial<Pick<OperatorSummary, "role" | "active">>,
-  ) =>
-    act(`update:${operator.id}`, () =>
-      apiFetch(`/api/operators/${operator.id}`, { method: "PATCH", body }),
+  const reactivate = (operator: OperatorSummary) =>
+    act(`activate:${operator.id}`, () =>
+      apiFetch(`/api/operators/${operator.id}`, { method: "PATCH", body: { active: true } }),
     );
 
   return (
@@ -113,22 +184,14 @@ export function OperatorsSection() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      loading={pending === `reset:${operator.id}`}
-                      onClick={() => void resetPassword(operator)}
+                      onClick={() => ask("password", operator)}
                       disabled={!operator.active}
                     >
                       <KeyRound className="size-4" aria-hidden />
                       Nuova password
                     </Button>
                     {operator.mfaEnabled && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setError(null);
-                          setUnlocking(operator);
-                        }}
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => ask("mfa", operator)}>
                         <ShieldOff className="size-4" aria-hidden />
                         Azzera verifica
                       </Button>
@@ -136,22 +199,30 @@ export function OperatorsSection() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      loading={pending === `update:${operator.id}`}
                       onClick={() =>
-                        void update(operator, {
-                          role: operator.role === "admin" ? "operator" : "admin",
-                        })
+                        ask(operator.role === "admin" ? "demote" : "promote", operator)
                       }
                     >
                       {operator.role === "admin" ? "Rendi operatore" : "Rendi amministratore"}
                     </Button>
-                    <Button
-                      variant={operator.active ? "danger" : "secondary"}
-                      size="sm"
-                      onClick={() => void update(operator, { active: !operator.active })}
-                    >
-                      {operator.active ? "Disattiva" : "Riattiva"}
-                    </Button>
+                    {operator.active ? (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => ask("deactivate", operator)}
+                      >
+                        Disattiva
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        loading={pending === `activate:${operator.id}`}
+                        onClick={() => void reactivate(operator)}
+                      >
+                        Riattiva
+                      </Button>
+                    )}
                   </div>
                 )}
               </li>
@@ -176,27 +247,31 @@ export function OperatorsSection() {
       </Dialog>
 
       <Dialog
-        open={unlocking !== null}
-        onOpenChange={(open) => !open && setUnlocking(null)}
-        title="Azzerare la verifica in due passaggi?"
-        description="Fallo solo se hai riconosciuto la persona: per esempio ha perso il telefono e i codici di recupero."
+        open={confirming !== null}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={confirming ? RISKY[confirming.kind].title : ""}
+        description={confirming ? RISKY[confirming.kind].description : undefined}
       >
-        {unlocking && (
+        {confirming && (
           <div className="grid gap-4">
             <p className="text-ink-2">
-              <span className="font-semibold text-ink">{unlocking.name}</span> entrerà con la sola
-              password e, se il CAF la richiede, dovrà riattivarla subito. L&apos;azione finisce nel
-              registro attività.
+              <span className="font-semibold text-ink">{confirming.operator.name}</span>{" "}
+              {RISKY[confirming.kind].effect}
             </p>
+            {confirmError && (
+              <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+                {confirmError}
+              </p>
+            )}
             <div className="flex flex-wrap gap-3">
               <Button
-                variant="danger"
-                loading={pending === `mfa:${unlocking.id}`}
-                onClick={() => void resetMfa(unlocking)}
+                variant={RISKY[confirming.kind].danger ? "danger" : "primary"}
+                loading={pending === `${confirming.kind}:${confirming.operator.id}`}
+                onClick={() => void confirm()}
               >
-                Azzera verifica
+                {RISKY[confirming.kind].action}
               </Button>
-              <Button variant="ghost" onClick={() => setUnlocking(null)}>
+              <Button variant="ghost" onClick={() => setConfirming(null)}>
                 Annulla
               </Button>
             </div>
@@ -207,6 +282,7 @@ export function OperatorsSection() {
       <Dialog
         open={issued !== null}
         onOpenChange={(open) => !open && setIssued(null)}
+        dismissible={false}
         title="Password temporanea"
         description="Comunicala di persona o per telefono, non per email. Non la vedrai più: al primo accesso l'operatore dovrà sceglierne una nuova."
       >
