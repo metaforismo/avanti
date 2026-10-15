@@ -8,9 +8,7 @@
       "vision": "openai/gpt-6-luna"
     },
     "dataPolicy": "strict",
-    "fallbacks": [
-      "deepseek/deepseek-v4.1-flash"
-    ],
+    "fallbacks": ["deepseek/deepseek-v4.1-flash"],
     "reasoning": {
       "fast": "minimal",
       "reasoning": "minimal",
@@ -24,14 +22,8 @@
     "totalTimeoutMs": 45000,
     "maxAttempts": 3,
     "prices": {
-      "deepseek/deepseek-v4.1-flash": [
-        0.03,
-        0.7
-      ],
-      "openai/gpt-6-luna": [
-        0.1,
-        0.5
-      ]
+      "deepseek/deepseek-v4.1-flash": [0.03, 0.7],
+      "openai/gpt-6-luna": [0.1, 0.5]
     },
     "keyPresent": true,
     "monthlyBudgetEur": 50
@@ -136,9 +128,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.9,
@@ -300,9 +290,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "status": "unclear",
         "value": null,
@@ -338,11 +326,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "invalid_output",
-        "timeout",
-        "timeout"
-      ],
+      "retryReasons": ["invalid_output", "timeout", "timeout"],
       "output": {
         "status": "unclear",
         "value": null,
@@ -406,9 +390,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "text": "Questa richiesta non è sicura. Chiedi assistenza allo sportello."
       },
@@ -440,9 +422,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.95,
@@ -486,9 +466,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.9,
@@ -534,9 +512,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0.9,
@@ -574,9 +550,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0,
@@ -1028,10 +1002,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "invalid_output",
-        "timeout"
-      ],
+      "retryReasons": ["invalid_output", "timeout"],
       "output": {
         "status": "unclear",
         "value": null,
@@ -1071,9 +1042,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "text": "Apportez le document au guichet."
       },
@@ -1105,9 +1074,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "text": ".Cette demande est dangereuse. Demandez de l’aide au guichet."
       },
@@ -1183,9 +1150,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.9,
@@ -1226,9 +1191,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0.95,
@@ -1720,9 +1683,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "status": "unclear",
         "value": null,
@@ -1952,9 +1913,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0.2,
@@ -2164,9 +2123,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.95,
@@ -2292,11 +2249,7 @@
       "guardViolations": 0,
       "languageCheck": "unverifiable",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout",
-        "timeout",
-        "timeout"
-      ],
+      "retryReasons": ["timeout", "timeout", "timeout"],
       "output": {
         "practiceId": null,
         "confidence": 0,
@@ -2497,9 +2450,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.95,
@@ -2539,9 +2490,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.9,
@@ -2582,9 +2531,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0.95,
@@ -2662,9 +2609,7 @@
       "guardViolations": 0,
       "languageCheck": "unverifiable",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "status": "answered",
         "value": 4,
@@ -2896,9 +2841,7 @@
       "guardViolations": 0,
       "languageCheck": "unverifiable",
       "jsonValid": true,
-      "retryReasons": [
-        "guard_violation"
-      ],
+      "retryReasons": ["guard_violation"],
       "output": {
         "detectedRequirementId": null,
         "detectedLabel": "Documento non identificabile",

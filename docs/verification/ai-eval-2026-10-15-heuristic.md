@@ -1,31 +1,31 @@
 # AI eval 2026-10-15
 
 {
-  "status": "PASS",
-  "reason": null,
-  "mode": "heuristic",
-  "cases": 74,
-  "requests": 0,
-  "ai": 0,
-  "servedModels": {},
-  "heuristic": 74,
-  "accuracy": 0.9827586206896551,
-  "scoredCases": 58,
-  "practiceAccuracy": 1,
-  "translationSemanticAccuracy": "manual_review_required",
-  "translationAiCoverage": 0,
-  "extractionPrecision": 1,
-  "extractionRecall": 1,
-  "guardViolations": 0,
-  "languageFailures": 0,
-  "languageScriptPass": 12,
-  "languageUnverified": 62,
-  "jsonValidity": 1,
-  "textMedianLatencyMs": 1,
-  "textP95LatencyMs": 94,
-  "fallbackRate": 1,
-  "meanLatencyMs": 13.797297297297296,
-  "costEstimateEur": 0
+"status": "PASS",
+"reason": null,
+"mode": "heuristic",
+"cases": 74,
+"requests": 0,
+"ai": 0,
+"servedModels": {},
+"heuristic": 74,
+"accuracy": 0.9827586206896551,
+"scoredCases": 58,
+"practiceAccuracy": 1,
+"translationSemanticAccuracy": "manual_review_required",
+"translationAiCoverage": 0,
+"extractionPrecision": 1,
+"extractionRecall": 1,
+"guardViolations": 0,
+"languageFailures": 0,
+"languageScriptPass": 12,
+"languageUnverified": 62,
+"jsonValidity": 1,
+"textMedianLatencyMs": 1,
+"textP95LatencyMs": 94,
+"fallbackRate": 1,
+"meanLatencyMs": 13.797297297297296,
+"costEstimateEur": 0
 }
 
 Configuration: {"provider":"none","models":{"fast":"disabled","reasoning":"disabled","vision":"disabled"},"dataPolicy":"strict","fallbacks":[],"reasoning":{"fast":"off","reasoning":"minimal","vision":"minimal"},"attemptTimeoutMs":{"fast":6000,"reasoning":15000,"vision":20000},"totalTimeoutMs":45000,"maxAttempts":3,"prices":{},"keyPresent":false,"monthlyBudgetEur":50}
@@ -38,4 +38,3 @@ Configuration: {"provider":"none","models":{"fast":"disabled","reasoning":"disab
 - No provider call unless AI_LIVE=1; live hard cap 200 cases with bounded runtime attempts
 
 Detailed rows in adjacent JSON. Runtime safety success does not establish model quality.
-

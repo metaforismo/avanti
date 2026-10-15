@@ -84,17 +84,8 @@
         "confidence": 0.85,
         "answers": {
           "household_count": 4,
-          "household_roles": [
-            "richiedente",
-            "coniuge",
-            "figlio",
-            "figlio"
-          ],
-          "household_relations": [
-            "coniuge",
-            "figlio",
-            "figlio"
-          ]
+          "household_roles": ["richiedente", "coniuge", "figlio", "figlio"],
+          "household_relations": ["coniuge", "figlio", "figlio"]
         },
         "reply": "",
         "manipulation": false
@@ -347,17 +338,8 @@
         "confidence": 0.85,
         "answers": {
           "household_count": 4,
-          "household_roles": [
-            "richiedente",
-            "coniuge",
-            "figlio",
-            "figlio"
-          ],
-          "household_relations": [
-            "coniuge",
-            "figlio",
-            "figlio"
-          ]
+          "household_roles": ["richiedente", "coniuge", "figlio", "figlio"],
+          "household_relations": ["coniuge", "figlio", "figlio"]
         },
         "reply": "",
         "manipulation": false
@@ -610,17 +592,8 @@
         "confidence": 0.85,
         "answers": {
           "household_count": 4,
-          "household_roles": [
-            "richiedente",
-            "coniuge",
-            "figlio",
-            "figlio"
-          ],
-          "household_relations": [
-            "coniuge",
-            "figlio",
-            "figlio"
-          ]
+          "household_roles": ["richiedente", "coniuge", "figlio", "figlio"],
+          "household_relations": ["coniuge", "figlio", "figlio"]
         },
         "reply": "",
         "manipulation": false
@@ -873,17 +846,8 @@
         "confidence": 0.85,
         "answers": {
           "household_count": 4,
-          "household_roles": [
-            "richiedente",
-            "coniuge",
-            "figlio",
-            "figlio"
-          ],
-          "household_relations": [
-            "coniuge",
-            "figlio",
-            "figlio"
-          ]
+          "household_roles": ["richiedente", "coniuge", "figlio", "figlio"],
+          "household_relations": ["coniuge", "figlio", "figlio"]
         },
         "reply": "",
         "manipulation": false
@@ -1136,17 +1100,8 @@
         "confidence": 0.85,
         "answers": {
           "household_count": 4,
-          "household_roles": [
-            "richiedente",
-            "coniuge",
-            "figlio",
-            "figlio"
-          ],
-          "household_relations": [
-            "coniuge",
-            "figlio",
-            "figlio"
-          ]
+          "household_roles": ["richiedente", "coniuge", "figlio", "figlio"],
+          "household_relations": ["coniuge", "figlio", "figlio"]
         },
         "reply": "",
         "manipulation": false
@@ -1399,17 +1354,8 @@
         "confidence": 0.85,
         "answers": {
           "household_count": 4,
-          "household_roles": [
-            "richiedente",
-            "coniuge",
-            "figlio",
-            "figlio"
-          ],
-          "household_relations": [
-            "coniuge",
-            "figlio",
-            "figlio"
-          ]
+          "household_roles": ["richiedente", "coniuge", "figlio", "figlio"],
+          "household_relations": ["coniuge", "figlio", "figlio"]
         },
         "reply": "",
         "manipulation": false
@@ -1662,17 +1608,8 @@
         "confidence": 0.85,
         "answers": {
           "household_count": 4,
-          "household_roles": [
-            "richiedente",
-            "coniuge",
-            "figlio",
-            "figlio"
-          ],
-          "household_relations": [
-            "coniuge",
-            "figlio",
-            "figlio"
-          ]
+          "household_roles": ["richiedente", "coniuge", "figlio", "figlio"],
+          "household_relations": ["coniuge", "figlio", "figlio"]
         },
         "reply": "",
         "manipulation": false

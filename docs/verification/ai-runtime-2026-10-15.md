@@ -5,19 +5,19 @@ Nessun commit, push, deploy o modifica credenziali. Le modifiche frontend concor
 state preservate; questo lavoro non ha modificato `apps/web/src`. I prompt di Claude non
 sono stati modificati: costituzione e prompt restano alla versione 1, task alla versione `1.1`.
 
-| Verifica | Stato | Evidenza |
-| --- | --- | --- |
-| `pnpm check --cache-dir="$PWD/.turbo/cache" --concurrency=1` | PASS | 18/18 task; verifica finale con 15 cache hit dopo una suite completa verde |
-| Test | PASS | AI 14, API 507, core 572, DB 36, web 43: 1.172 passati; 18 saltati esplicitamente |
-| `TURBO_CACHE_DIR="$PWD/.turbo/cache" pnpm build` | PASS | Unica invocazione build: 3/3 task, 47,684 s; compilazione Next riuscita |
-| Migrazione `0015_ai_runtime` | PASS locale | Upgrade PGlite con dati preesistenti, vincoli, cascade; nessun DB di produzione modificato |
-| Isolamento/budget | PASS locale | Endpoint admin, CAF/mesi distinti, override/null, budget zero, ammissioni concorrenti, riconciliazione e contabilità non disponibile |
-| Strict OpenRouter | PASS simulato | SDK ufficiale con fetch sostituito: payload `data_collection:deny,zdr:true`, fallback `models`, reasoning limitato/escluso, json_schema |
-| Retry/guard | PASS simulato | 429, 5xx, timeout hard, risposta vuota, correzione unica, JSON testuale, ID invalidi, credenziali nelle 8 lingue, telemetria senza contenuti |
-| Cleanup richiesto | PASS | Rimossi `apps/web/.next` e `.turbo` da root, web e pacchetti; verificata assenza dopo build |
-| `git diff --check` | PASS | Nessun errore whitespace |
-| Eval/stress con modelli gratuiti reali | BLOCKED | Chiave assente nelle shell login e non-login; 0 richieste SDK di inferenza, nessuna chiave letta o scritta |
-| Postgres esterno, CI, deploy | NOT RUN | Le prove DB sono PGlite; gli skip esterni della suite restano skip |
+| Verifica                                                     | Stato         | Evidenza                                                                                                                                     |
+| ------------------------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check --cache-dir="$PWD/.turbo/cache" --concurrency=1` | PASS          | 18/18 task; verifica finale con 15 cache hit dopo una suite completa verde                                                                   |
+| Test                                                         | PASS          | AI 14, API 507, core 572, DB 36, web 43: 1.172 passati; 18 saltati esplicitamente                                                            |
+| `TURBO_CACHE_DIR="$PWD/.turbo/cache" pnpm build`             | PASS          | Unica invocazione build: 3/3 task, 47,684 s; compilazione Next riuscita                                                                      |
+| Migrazione `0015_ai_runtime`                                 | PASS locale   | Upgrade PGlite con dati preesistenti, vincoli, cascade; nessun DB di produzione modificato                                                   |
+| Isolamento/budget                                            | PASS locale   | Endpoint admin, CAF/mesi distinti, override/null, budget zero, ammissioni concorrenti, riconciliazione e contabilità non disponibile         |
+| Strict OpenRouter                                            | PASS simulato | SDK ufficiale con fetch sostituito: payload `data_collection:deny,zdr:true`, fallback `models`, reasoning limitato/escluso, json_schema      |
+| Retry/guard                                                  | PASS simulato | 429, 5xx, timeout hard, risposta vuota, correzione unica, JSON testuale, ID invalidi, credenziali nelle 8 lingue, telemetria senza contenuti |
+| Cleanup richiesto                                            | PASS          | Rimossi `apps/web/.next` e `.turbo` da root, web e pacchetti; verificata assenza dopo build                                                  |
+| `git diff --check`                                           | PASS          | Nessun errore whitespace                                                                                                                     |
+| Eval/stress con modelli gratuiti reali                       | BLOCKED       | Chiave assente nelle shell login e non-login; 0 richieste SDK di inferenza, nessuna chiave letta o scritta                                   |
+| Postgres esterno, CI, deploy                                 | NOT RUN       | Le prove DB sono PGlite; gli skip esterni della suite restano skip                                                                           |
 
 I warning Turbo su output mancanti di AI/API sono attesi dai loro build `tsc --noEmit`;
 la build termina con exit 0. La cache assoluta nel worktree evita il tentativo di scrivere

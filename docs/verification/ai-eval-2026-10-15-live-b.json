@@ -8,9 +8,7 @@
       "vision": "openai/gpt-6-luna"
     },
     "dataPolicy": "strict",
-    "fallbacks": [
-      "deepseek/deepseek-v4.1-flash"
-    ],
+    "fallbacks": ["deepseek/deepseek-v4.1-flash"],
     "reasoning": {
       "fast": "off",
       "reasoning": "minimal",
@@ -24,14 +22,8 @@
     "totalTimeoutMs": 45000,
     "maxAttempts": 3,
     "prices": {
-      "deepseek/deepseek-v4.1-flash": [
-        0.03,
-        0.7
-      ],
-      "openai/gpt-6-luna": [
-        0.1,
-        0.5
-      ]
+      "deepseek/deepseek-v4.1-flash": [0.03, 0.7],
+      "openai/gpt-6-luna": [0.1, 0.5]
     },
     "keyPresent": true,
     "monthlyBudgetEur": 50
@@ -183,9 +175,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "practiceId": null,
         "confidence": 0.9,
@@ -225,9 +215,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "practiceId": null,
         "confidence": 0,
@@ -303,9 +291,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "status": "unclear",
         "value": null,
@@ -341,9 +327,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "status": "unclear",
         "value": null,
@@ -379,9 +363,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "text": "Porta il documento allo sportello."
       },
@@ -403,7 +385,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 832,
-      "costEstimateEur": 5.6659999999999996e-05,
+      "costEstimateEur": 5.6659999999999996e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -489,9 +471,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.9,
@@ -602,7 +582,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 695,
-      "costEstimateEur": 6.975e-05,
+      "costEstimateEur": 6.975e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -638,7 +618,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1255,
-      "costEstimateEur": 8.533e-05,
+      "costEstimateEur": 8.533e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -674,7 +654,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 509,
-      "costEstimateEur": 8.027e-05,
+      "costEstimateEur": 8.027e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -710,7 +690,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 770,
-      "costEstimateEur": 4.5520000000000005e-05,
+      "costEstimateEur": 4.5520000000000005e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -742,7 +722,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 444,
-      "costEstimateEur": 4.868e-05,
+      "costEstimateEur": 4.868e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -944,7 +924,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 560,
-      "costEstimateEur": 5.736e-05,
+      "costEstimateEur": 5.736e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -1016,7 +996,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1016,
-      "costEstimateEur": 9.709000000000001e-05,
+      "costEstimateEur": 9.709000000000001e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -1052,7 +1032,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 613,
-      "costEstimateEur": 4.753e-05,
+      "costEstimateEur": 4.753e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -1084,7 +1064,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 859,
-      "costEstimateEur": 5.6909999999999996e-05,
+      "costEstimateEur": 5.6909999999999996e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -1170,9 +1150,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.9,
@@ -1283,7 +1261,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 872,
-      "costEstimateEur": 6.158e-05,
+      "costEstimateEur": 6.158e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -1319,7 +1297,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1156,
-      "costEstimateEur": 8.952e-05,
+      "costEstimateEur": 8.952e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -1355,7 +1333,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1042,
-      "costEstimateEur": 9.925e-05,
+      "costEstimateEur": 9.925e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -1391,7 +1369,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 587,
-      "costEstimateEur": 4.783e-05,
+      "costEstimateEur": 4.783e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -1433,9 +1411,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "text": "Esta solicitud no es segura. Pide ayuda en la ventanilla."
       },
@@ -1597,9 +1573,7 @@
       "guardViolations": 0,
       "languageCheck": "latin_unverified",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0,
@@ -1627,7 +1601,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 695,
-      "costEstimateEur": 5.796e-05,
+      "costEstimateEur": 5.796e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -1663,7 +1637,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1293,
-      "costEstimateEur": 9.019e-05,
+      "costEstimateEur": 9.019e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -1735,7 +1709,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 724,
-      "costEstimateEur": 4.8219999999999996e-05,
+      "costEstimateEur": 4.8219999999999996e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -1767,7 +1741,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1104,
-      "costEstimateEur": 5.952e-05,
+      "costEstimateEur": 5.952e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -1899,9 +1873,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0,
@@ -1939,9 +1911,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0,
@@ -1969,7 +1939,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 2064,
-      "costEstimateEur": 5.874e-05,
+      "costEstimateEur": 5.874e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -2041,7 +2011,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1207,
-      "costEstimateEur": 8.622e-05,
+      "costEstimateEur": 8.622e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -2077,7 +2047,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1300,
-      "costEstimateEur": 5.599e-05,
+      "costEstimateEur": 5.599e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -2109,7 +2079,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 845,
-      "costEstimateEur": 6.144999999999999e-05,
+      "costEstimateEur": 6.144999999999999e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -2151,9 +2121,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "empty_structured_output"
-      ],
+      "retryReasons": ["empty_structured_output"],
       "output": {
         "practiceId": "isee_ordinario",
         "confidence": 0.95,
@@ -2239,9 +2207,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "practiceId": null,
         "confidence": 0.9,
@@ -2281,10 +2247,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout",
-        "empty_structured_output"
-      ],
+      "retryReasons": ["timeout", "empty_structured_output"],
       "output": {
         "practiceId": null,
         "confidence": 0,
@@ -2394,9 +2357,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "status": "unclear",
         "value": null,
@@ -2432,9 +2393,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "text": "أحضر الوثيقة إلى شباك الخدمة."
       },
@@ -2466,9 +2425,7 @@
       "guardViolations": 0,
       "languageCheck": "script_pass",
       "jsonValid": true,
-      "retryReasons": [
-        "timeout"
-      ],
+      "retryReasons": ["timeout"],
       "output": {
         "text": "هذا الطلب غير آمن. اطلب المساعدة من شباك الخدمة."
       },
@@ -2660,7 +2617,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 1523,
-      "costEstimateEur": 5.811e-05,
+      "costEstimateEur": 5.811e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -2696,7 +2653,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 631,
-      "costEstimateEur": 8.65e-05,
+      "costEstimateEur": 8.65e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -2732,7 +2689,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 520,
-      "costEstimateEur": 8.309e-05,
+      "costEstimateEur": 8.309e-5,
       "fallbackReason": null,
       "accurate": true,
       "practiceAccurate": null,
@@ -2768,7 +2725,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 462,
-      "costEstimateEur": 5.275e-05,
+      "costEstimateEur": 5.275e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -2800,7 +2757,7 @@
       "model": "deepseek/deepseek-v4.1-flash",
       "attempts": 1,
       "latencyMs": 2181,
-      "costEstimateEur": 6.247e-05,
+      "costEstimateEur": 6.247e-5,
       "fallbackReason": null,
       "accurate": null,
       "practiceAccurate": null,
@@ -2902,9 +2859,7 @@
       "guardViolations": 0,
       "languageCheck": "unverifiable",
       "jsonValid": true,
-      "retryReasons": [
-        "guard_violation"
-      ],
+      "retryReasons": ["guard_violation"],
       "output": {
         "detectedRequirementId": null,
         "detectedLabel": null,

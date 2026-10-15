@@ -8,9 +8,7 @@
       "vision": "openai/gpt-6-luna"
     },
     "dataPolicy": "strict",
-    "fallbacks": [
-      "openai/gpt-6-luna"
-    ],
+    "fallbacks": ["openai/gpt-6-luna"],
     "reasoning": {
       "fast": "off",
       "reasoning": "minimal",
@@ -24,14 +22,8 @@
     "totalTimeoutMs": 45000,
     "maxAttempts": 3,
     "prices": {
-      "deepseek/deepseek-v4.1-flash": [
-        0.03,
-        0.7
-      ],
-      "openai/gpt-6-luna": [
-        0.1,
-        0.5
-      ]
+      "deepseek/deepseek-v4.1-flash": [0.03, 0.7],
+      "openai/gpt-6-luna": [0.1, 0.5]
     },
     "keyPresent": true,
     "monthlyBudgetEur": 50
@@ -519,9 +511,7 @@
       },
       "costEstimate": 0.0015785,
       "fallbackReason": null,
-      "retryReasons": [
-        "timeout"
-      ]
+      "retryReasons": ["timeout"]
     },
     {
       "engine": "ai",
