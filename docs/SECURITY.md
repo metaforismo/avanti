@@ -496,18 +496,29 @@ riferimenti, indirizzi email, contenuti o URL di prenotazione.
 L'indirizzo digitato dal cittadino non è verificato: uno script potrebbe inviare
 pratiche per far recapitare ricevute a terzi e danneggiare la reputazione del
 mittente. Prima dell'accodamento si applica un limite globale di **2 ricevute per
-email ogni 24 ore**, condiviso da tutti i CAF. La finestra fissa parte dal primo
+casella canonica ogni 24 ore**, condiviso da tutti i CAF. La finestra fissa parte dal primo
 accodamento ammesso e scade dopo 24 ore; il controllo atomico e l'outbox partecipano
 alla transazione di submit. La terza ricevuta e le successive vengono soppresse
 senza errore al cittadino: la pratica viene comunque inviata.
 
 Il bucket in `rate_limits` usa HMAC-SHA-256 con `RATE_LIMIT_SECRET`, dominio distinto
-e indirizzo con spazi esterni rimossi e lettere minuscole; non contiene email in
-chiaro, ID pratica o organizzazione. Il contatore include i tentativi soppressi
+e indirizzo canonico: spazi esterni rimossi, lettere minuscole, dominio senza punto
+finale e parte locale senza `+suffisso` per tutti i domini. Solo per `gmail.com` e
+`googlemail.com` si rimuovono anche i punti dalla parte locale e si mappa
+`googlemail.com` a `gmail.com`. Questa normalizzazione riguarda esclusivamente la
+chiave del limite: il destinatario nell'outbox e nell'invio resta quello digitato.
+Il bucket non contiene email in chiaro, ID pratica o organizzazione. Il contatore include i tentativi soppressi
 (`count > 2`); i bucket scaduti vengono rimossi dalla manutenzione esistente.
 Il fallback senza configurazione usa lo stesso segreto casuale di processo degli
 altri rate limit locali; in produzione il segreto stabile è obbligatorio.
 Il limite riduce l'abuso verso la stessa casella, senza verificare il possesso
-né impedire invii distribuiti su molti indirizzi. Gli altri avvisi al cittadino
+né impedire invii distribuiti su molti indirizzi o alias diversi da quelli descritti.
+La rimozione di `+suffisso` è una scelta conservativa antiabuso anche sui domini
+che potrebbero trattare tali indirizzi come caselle distinte. Non si aggiunge un
+budget per dominio: anche quelli non comuni possono ospitare molti utenti legittimi;
+una quota condivisa consentirebbe di esaurire il budget per tutti loro. I test
+`canonical-mailbox.test.ts` e `notifications.test.ts` coprono normalizzazione,
+budget condiviso tra alias (anche concorrenti) e destinatario originale nell'outbox.
+Gli altri avvisi al cittadino
 restano collegati all'azione dell'operatore; i promemoria richiedono una sua
 precedente richiesta di integrazione.

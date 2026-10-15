@@ -1067,11 +1067,30 @@ it("normalizes receipt recipients, keeps independent HMAC counters, and expires 
   expect(await db.select().from(notifications)).toHaveLength(5);
 });
 
+it.each([
+  ["Vittima+1@EXAMPLE.test", "vittima+2@example.test", "vittima@example.test"],
+  ["V.Ittima+1@GoogleMail.com", "vit.tima+2@gmail.com", "vittima@gmail.com"],
+])("receipt aliases share a budget and preserve delivery addresses: %s", async (...aliases) => {
+  await fixture();
+  await enableReceipts();
+  expect(await receiptCase(aliases[0])).toBeTypeOf("string");
+  expect(await receiptCase(aliases[1])).toBeTypeOf("string");
+  expect(await receiptCase(aliases[2])).toBeUndefined();
+  const queued = await db.select().from(notifications);
+  expect(queued).toHaveLength(2);
+  expect(
+    queued.map((row) => unseal(options, `${row.id}:${row.kind}:${row.language}`, row.envelope!).to),
+  ).toEqual(expect.arrayContaining(aliases.slice(0, 2)));
+  expect(await db.select().from(rateLimits)).toMatchObject([{ count: 3 }]);
+  const domain = aliases[2].split("@")[1]!;
+  expect(await receiptCase(`other@${domain}`)).toBeTypeOf("string");
+});
+
 it("concurrent receipts for different cases share the atomic recipient budget", async () => {
   await fixture();
   await enableReceipts();
   const ids = await Promise.all(
-    Array.from({ length: 5 }, () => receiptCase("citizen@example.test")),
+    Array.from({ length: 5 }, (_, index) => receiptCase(`citizen+${index}@example.test`)),
   );
   expect(ids.filter(Boolean)).toHaveLength(2);
   expect(await db.select().from(notifications)).toHaveLength(2);

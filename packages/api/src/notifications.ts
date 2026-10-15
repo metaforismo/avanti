@@ -21,6 +21,7 @@ import { reminderNotification } from "./reminder-copy";
 import { DeliveryFailure } from "./email";
 import { submissionReceipt } from "./submission-receipt";
 import { rateKey, rateLimitSecret } from "./rate-limit-key";
+import { canonicalMailbox } from "./canonical-mailbox";
 
 export const NOTIFICATION_ATTEMPTS = 5;
 export const NOTIFICATION_BATCH = 5;
@@ -149,7 +150,7 @@ export async function enqueueSubmissionReceipt(db: Database, s: Services, row: C
     rateKey(
       rateLimitSecret(s.rateLimitSecret),
       "citizen_submission:email:86400",
-      row.contact.email.trim().toLowerCase(),
+      canonicalMailbox(row.contact.email),
     ),
     now,
     2,
