@@ -23,7 +23,9 @@
     "db:check": "pnpm --filter @avanti/db check",
     "preflight": "pnpm --filter @avanti/db preflight",
     "admin:bootstrap": "pnpm --filter @avanti/api admin:bootstrap",
-    "admin:export": "pnpm --filter @avanti/api admin:export"
+    "admin:export": "pnpm --filter @avanti/api admin:export",
+    "db:seed:volume": "pnpm --filter @avanti/db seed:volume",
+    "bench:api": "pnpm --filter @avanti/api bench"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

@@ -1,4 +1,3 @@
-import { generateText, Output, createGateway } from "ai";
 import { z } from "zod";
 import {
   AnswerValue,
@@ -145,6 +144,7 @@ export class GatewayIntelligence implements Intelligence {
     });
     if (!this.config.key) return fallback();
     try {
+      const { generateText, Output, createGateway } = await import("ai");
       const { output } = await deadline(
         generateText({
           model: createGateway({ apiKey: this.config.key })(
@@ -193,6 +193,7 @@ export class GatewayIntelligence implements Intelligence {
       return fallback();
     }
     try {
+      const { generateText, Output, createGateway } = await import("ai");
       const schema = DocumentAnalysis.omit({ engine: true, findings: true });
       const { output } = await deadline(
         generateText({
@@ -233,6 +234,7 @@ export class GatewayIntelligence implements Intelligence {
     if (language === "it") return { text };
     if (this.config.key)
       try {
+        const { generateText, Output, createGateway } = await import("ai");
         const { output } = await deadline(
           generateText({
             model: createGateway({ apiKey: this.config.key })(

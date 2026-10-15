@@ -29,6 +29,7 @@ import {
   dossierView,
   citizenView,
   caseListViews,
+  caseListColumns,
   audit,
   iso,
   minutes,
@@ -36,7 +37,6 @@ import {
 } from "./dossier";
 import { createCase, download } from "./citizen";
 import { ApiFailure, hashToken, newToken, notFound } from "./security";
-import { exportPdf } from "./export";
 import { scheduleDocumentRecovery } from "./document-analysis";
 import { calculateMetrics, metricsRange } from "./operator-metrics";
 
@@ -93,7 +93,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       );
     }
     const rows = await s.db
-      .select()
+      .select(caseListColumns)
       .from(cases)
       .where(and(...filters))
       .orderBy(desc(cases.updatedAt), desc(cases.id))
@@ -482,6 +482,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       await audit(s.db, row, "operator", "case.exported", s.clock(), operator.id);
       return c.json(dossier);
     }
+    const { exportPdf } = await import("./export");
     const bytes = await exportPdf(dossier);
     await audit(s.db, row, "operator", "case.exported", s.clock(), operator.id);
     c.header("Content-Type", "application/pdf");

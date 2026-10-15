@@ -93,35 +93,14 @@ const citizenCodes = new Set([
   "document.other_practice",
   "document.failed",
 ]);
-export async function citizenView(
-  db: Database,
-  row: CaseRow,
+type EvaluationRow = Pick<CaseRow, "practiceId" | "answers">;
+function evaluateCase(
+  row: EvaluationRow,
+  storedDocs: ViewData["storedDocs"],
+  reviews: ViewData["reviews"],
   now: Date,
-  language: Language = row.language,
-  operatorView = false,
-  data?: ViewData,
-): Promise<CitizenCase> {
-  const [[organization], [office], storedDocs, reviews, chat] = data
-    ? [[data.organization], [data.office], data.storedDocs, data.reviews, data.chat]
-    : await Promise.all([
-        db.select().from(organizations).where(eq(organizations.id, row.organizationId)),
-        db
-          .select()
-          .from(offices)
-          .where(and(eq(offices.id, row.officeId), eq(offices.organizationId, row.organizationId))),
-        db
-          .select()
-          .from(documents)
-          .where(eq(documents.caseId, row.id))
-          .orderBy(asc(documents.uploadedAt), asc(documents.id)),
-        db.select().from(checklistReviews).where(eq(checklistReviews.caseId, row.id)),
-        db
-          .select()
-          .from(messages)
-          .where(eq(messages.caseId, row.id))
-          .orderBy(asc(messages.createdAt), asc(messages.id)),
-      ]);
-  if (!organization) throw notFound();
+  language: Language,
+) {
   const household = buildHousehold(row.answers);
   const checklist = row.practiceId
     ? buildChecklist(row.practiceId, row.answers, household, language)
@@ -171,6 +150,45 @@ export async function citizenView(
       evaluation.findings.some((f) => f.checklistItemId === item.id && f.severity === "blocker")
     )
       item.status = "issue";
+  return { household, checklist, docViews, evaluation };
+}
+
+export async function citizenView(
+  db: Database,
+  row: CaseRow,
+  now: Date,
+  language: Language = row.language,
+  operatorView = false,
+  data?: ViewData,
+): Promise<CitizenCase> {
+  const [[organization], [office], storedDocs, reviews, chat] = data
+    ? [[data.organization], [data.office], data.storedDocs, data.reviews, data.chat]
+    : await Promise.all([
+        db.select().from(organizations).where(eq(organizations.id, row.organizationId)),
+        db
+          .select()
+          .from(offices)
+          .where(and(eq(offices.id, row.officeId), eq(offices.organizationId, row.organizationId))),
+        db
+          .select()
+          .from(documents)
+          .where(eq(documents.caseId, row.id))
+          .orderBy(asc(documents.uploadedAt), asc(documents.id)),
+        db.select().from(checklistReviews).where(eq(checklistReviews.caseId, row.id)),
+        db
+          .select()
+          .from(messages)
+          .where(eq(messages.caseId, row.id))
+          .orderBy(asc(messages.createdAt), asc(messages.id)),
+      ]);
+  if (!organization) throw notFound();
+  const { household, checklist, docViews, evaluation } = evaluateCase(
+    row,
+    storedDocs,
+    reviews,
+    now,
+    language,
+  );
   const questions = row.practiceId ? getQuestions(row.practiceId, row.answers, language) : [];
   const question =
     questions.find((q) => q.id === row.editingQuestion) ??
@@ -306,12 +324,38 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
   };
 }
 
-export async function caseListViews(db: Database, rows: CaseRow[], now: Date) {
+// No capability hash, notes or interview UI state is needed to render the queue.
+export const caseListColumns = {
+  id: cases.id,
+  organizationId: cases.organizationId,
+  officeId: cases.officeId,
+  reference: cases.reference,
+  language: cases.language,
+  practiceId: cases.practiceId,
+  status: cases.status,
+  answers: cases.answers,
+  contact: cases.contact,
+  assigneeId: cases.assigneeId,
+  createdAt: cases.createdAt,
+  updatedAt: cases.updatedAt,
+  submittedAt: cases.submittedAt,
+};
+type CaseListRow = Pick<CaseRow, keyof typeof caseListColumns>;
+function byCase<T extends { caseId: string }>(rows: T[]) {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const bucket = grouped.get(row.caseId) ?? [];
+    bucket.push(row);
+    grouped.set(row.caseId, bucket);
+  }
+  return grouped;
+}
+
+export async function caseListViews(db: Database, rows: CaseListRow[], now: Date) {
   if (!rows.length) return [];
   const ids = rows.map((row) => row.id);
   const organizationId = rows[0]!.organizationId;
-  const [[organization], officeRows, operatorRows, storedDocs, reviews] = await Promise.all([
-    db.select().from(organizations).where(eq(organizations.id, organizationId)),
+  const [officeRows, operatorRows, storedDocs, reviews] = await Promise.all([
     db.select().from(offices).where(eq(offices.organizationId, organizationId)),
     db
       .select({ id: operators.id, name: operators.name })
@@ -324,35 +368,35 @@ export async function caseListViews(db: Database, rows: CaseRow[], now: Date) {
       .orderBy(asc(documents.uploadedAt), asc(documents.id)),
     db.select().from(checklistReviews).where(inArray(checklistReviews.caseId, ids)),
   ]);
-  if (!organization) throw notFound();
-  return Promise.all(
-    rows.map(async (row) => {
-      const office = officeRows.find((o) => o.id === row.officeId);
-      const view = await citizenView(db, row, now, "it", true, {
-        organization,
-        office,
-        storedDocs: storedDocs.filter((d) => d.caseId === row.id),
-        reviews: reviews.filter((r) => r.caseId === row.id),
-        chat: [],
-      });
-      return {
-        id: row.id,
-        reference: row.reference,
-        citizenName: row.contact?.firstName
-          ? [row.contact.firstName, row.contact.lastName].filter(Boolean).join(" ")
-          : null,
-        practice: view.practice,
-        status: row.status,
-        language: row.language,
-        office: view.office,
-        assignee: operatorRows.find((o) => o.id === row.assigneeId) ?? null,
-        progress: view.progress,
-        blockers: view.findings.filter((f) => f.severity === "blocker").length,
-        warnings: view.findings.filter((f) => f.severity === "warning").length,
-        createdAt: iso(row.createdAt),
-        updatedAt: iso(row.updatedAt),
-        submittedAt: view.submittedAt,
-      };
-    }),
-  );
+  const docsByCase = byCase(storedDocs);
+  const reviewsByCase = byCase(reviews);
+  const officesById = new Map(officeRows.map((o) => [o.id, officeView(o)]));
+  const operatorsById = new Map(operatorRows.map((o) => [o.id, o]));
+  return rows.map((row) => {
+    const { evaluation } = evaluateCase(
+      row,
+      docsByCase.get(row.id) ?? [],
+      reviewsByCase.get(row.id) ?? [],
+      now,
+      "it",
+    );
+    return {
+      id: row.id,
+      reference: row.reference,
+      citizenName: row.contact?.firstName
+        ? [row.contact.firstName, row.contact.lastName].filter(Boolean).join(" ")
+        : null,
+      practice: row.practiceId ? getPractice(row.practiceId, "it") : null,
+      status: row.status,
+      language: row.language,
+      office: officesById.get(row.officeId) ?? null,
+      assignee: row.assigneeId ? (operatorsById.get(row.assigneeId) ?? null) : null,
+      progress: evaluation.progress,
+      blockers: evaluation.findings.filter((f) => f.severity === "blocker").length,
+      warnings: evaluation.findings.filter((f) => f.severity === "warning").length,
+      createdAt: iso(row.createdAt),
+      updatedAt: iso(row.updatedAt),
+      submittedAt: row.submittedAt ? iso(row.submittedAt) : null,
+    };
+  });
 }

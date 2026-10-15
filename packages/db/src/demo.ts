@@ -76,14 +76,10 @@ export interface DemoSeedOptions {
   buildChecklist?: (answers: Record<string, AnswerValue>, household: Member[]) => ChecklistItem[];
 }
 
-export async function seedDemo(
-  db: Database,
-  options: DemoSeedOptions,
-): Promise<{ created: number }> {
+/** Shared local-only bootstrap; volume fixtures never need PDF bytes. */
+export async function seedDemoOrganization(db: Database, now: Date): Promise<void> {
   assertDemoSeedAllowed();
-  if (!Number.isFinite(options.now.getTime())) {
-    throw new RangeError("Invalid demo clock");
-  }
+  if (!Number.isFinite(now.getTime())) throw new RangeError("Invalid demo clock");
   const organizationId = "demo-caf-milano";
   const existing = await db
     .select({ id: organizations.id })
@@ -169,7 +165,7 @@ export async function seedDemo(
         email: "admin@demo.avanti.local",
         passwordHash,
         role: "admin",
-        createdAt: options.now.toISOString(),
+        createdAt: now.toISOString(),
       },
       {
         id: "demo-operator",
@@ -178,7 +174,7 @@ export async function seedDemo(
         email: "operatore@demo.avanti.local",
         passwordHash,
         role: "operator",
-        createdAt: options.now.toISOString(),
+        createdAt: now.toISOString(),
       },
       {
         id: "demo-inactive-operator",
@@ -188,10 +184,22 @@ export async function seedDemo(
         passwordHash,
         role: "operator",
         active: false,
-        createdAt: options.now.toISOString(),
+        createdAt: now.toISOString(),
       },
     ])
     .onConflictDoNothing();
+}
+
+export async function seedDemo(
+  db: Database,
+  options: DemoSeedOptions,
+): Promise<{ created: number }> {
+  assertDemoSeedAllowed();
+  if (!Number.isFinite(options.now.getTime())) {
+    throw new RangeError("Invalid demo clock");
+  }
+  await seedDemoOrganization(db, options.now);
+  const organizationId = "demo-caf-milano";
 
   const statuses: readonly CaseStatus[] = [
     "intake",
