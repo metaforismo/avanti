@@ -18,11 +18,13 @@ export function RemainingQuestions({
   if (!remaining) return null;
   return (
     <p aria-hidden className="text-sm text-ink-3">
-      {remaining.min !== remaining.max
-        ? format(m.interview.remainingRange, { min: remaining.min, max: remaining.max })
-        : remaining.max === 1
-          ? m.interview.remainingOne
-          : format(m.interview.remainingMany, { n: remaining.max })}
+      {remaining.atLeast
+        ? format(m.interview.remainingAtLeast, { n: remaining.min })
+        : remaining.min !== remaining.max
+          ? format(m.interview.remainingRange, { min: remaining.min, max: remaining.max })
+          : remaining.max === 1
+            ? m.interview.remainingOne
+            : format(m.interview.remainingMany, { n: remaining.max })}
     </p>
   );
 }
@@ -51,9 +53,11 @@ export function InterviewProgressBar({
       label={
         progress.questionsTotal > 0
           ? format(m.interview.progressLabel, { n: answered, total: progress.questionsTotal })
-          : remaining
-            ? format(m.interview.remainingRange, { min: remaining.min, max: remaining.max })
-            : ""
+          : remaining?.atLeast
+            ? format(m.interview.remainingAtLeast, { n: remaining.min })
+            : remaining
+              ? format(m.interview.remainingRange, { min: remaining.min, max: remaining.max })
+              : ""
       }
       className="mt-2"
     />

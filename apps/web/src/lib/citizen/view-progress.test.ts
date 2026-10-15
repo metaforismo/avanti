@@ -20,6 +20,16 @@ describe("interviewEstimate", () => {
     expect(estimate.remaining).toEqual({ min: 2, max: 6 });
     expect(estimate.percent).toBe(50);
   });
+  it("gives only the floor when the range is too wide to mean anything", () => {
+    const estimate = interviewEstimate({
+      ...base,
+      questionsAnswered: 4,
+      questionsTotal: 0,
+      questionsRemaining: { min: 16, max: 441 },
+    });
+    expect(estimate.remaining).toEqual({ min: 16, max: 16, atLeast: true });
+    expect(estimate.percent).toBe(20);
+  });
   it("says nothing rather than something wrong", () => {
     expect(interviewEstimate({ ...base, questionsAnswered: 0, questionsTotal: 0 })).toEqual({
       remaining: null,
