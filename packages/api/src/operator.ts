@@ -267,6 +267,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .update(cases)
         .set({
           ...input,
+          ...(input.status && input.status !== current.status ? { citizenRequestId: null } : {}),
           ...(input.status === "closed" ? { expiresAt: now.toISOString() } : {}),
           ...(input.status && input.status !== current.status
             ? { closedAt: input.status === "closed" ? now.toISOString() : null }
@@ -449,7 +450,14 @@ export function mountOperatorRoutes(app: App, s: Services) {
       });
       const [updated] = await tx
         .update(cases)
-        .set({ status: "needs_citizen", updatedAt: nextCaseUpdate(current, s.clock()) })
+        .set({
+          status: "needs_citizen",
+          updatedAt: nextCaseUpdate(current, s.clock()),
+          citizenRequestId: crypto.randomUUID(),
+          citizenRequestedAt: s.clock().toISOString(),
+          citizenRemindersQueued: 0,
+          citizenReminderSentAt: null,
+        })
         .where(and(eq(cases.id, current.id), eq(cases.organizationId, operator.organizationId)))
         .returning();
       if (!updated) throw notFound();

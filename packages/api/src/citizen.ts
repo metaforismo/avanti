@@ -102,7 +102,7 @@ async function lockCase(db: Database, row: CaseRow, now: Date) {
 async function touchCase(db: Database, row: CaseRow, now: Date) {
   const [updated] = await db
     .update(cases)
-    .set({ updatedAt: nextCaseUpdate(row, now) })
+    .set({ updatedAt: nextCaseUpdate(row, now), citizenRequestId: null })
     .where(eq(cases.id, row.id))
     .returning();
   if (!updated) throw notFound();
@@ -220,6 +220,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
         .update(cases)
         .set({
           practiceId,
+          citizenRequestId: null,
           answers,
           confirmedAnswers: confirmedAnswers(current, input, answers),
           editingQuestion: editingQuestion(input, answers),
@@ -278,7 +279,11 @@ export function mountCitizenRoutes(app: App, s: Services) {
       const current = await lockCase(tx, c.get("citizen"), s.clock());
       const [updated] = await tx
         .update(cases)
-        .set({ language: input.language, updatedAt: nextCaseUpdate(current, s.clock()) })
+        .set({
+          citizenRequestId: null,
+          language: input.language,
+          updatedAt: nextCaseUpdate(current, s.clock()),
+        })
         .where(eq(cases.id, current.id))
         .returning();
       if (!updated) throw notFound();
@@ -557,6 +562,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
         .update(cases)
         .set({
           status: "submitted",
+          citizenRequestId: null,
           contact: input.contact,
           citizenNote: input.note ?? null,
           submittedAt: current.submittedAt ?? s.clock().toISOString(),

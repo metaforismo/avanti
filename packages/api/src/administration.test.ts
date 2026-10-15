@@ -557,6 +557,8 @@ describe("organization administration", () => {
       retentionDays: 180,
       notifyCitizenReady: false,
       notifyOperatorDigest: false,
+      notifyCitizenReminders: false,
+      citizenReminderDays: [3, 4],
     });
     const createCase = () =>
       request(
@@ -582,6 +584,8 @@ describe("organization administration", () => {
       retentionDays: 90,
       notifyCitizenReady: false,
       notifyOperatorDigest: false,
+      notifyCitizenReminders: false,
+      citizenReminderDays: [3, 4],
     });
     const after = await createCase();
     expect(after.status).toBe(201);

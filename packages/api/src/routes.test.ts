@@ -10,6 +10,10 @@ import type { CaseRow } from "./dossier";
 
 const now = new Date("2027-01-05T10:00:00.000Z");
 const exampleCase: CaseRow = {
+  citizenRequestId: null,
+  citizenRequestedAt: null,
+  citizenRemindersQueued: 0,
+  citizenReminderSentAt: null,
   id: "case-example",
   organizationId: "organization-example",
   officeId: "office-example",

@@ -17,6 +17,11 @@ const PAGES = [
 ] as const;
 
 async function seriousViolations(page: Page) {
+  // Measure the settled page, not a fade-in (see accessibility.spec.ts).
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // And settled data: axe reads the DOM over several ticks, and a button that stops loading
+  // halfway through is reported as unnamed although it never is.
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();

@@ -30,7 +30,11 @@ function requireAdmin(operator: OperatorRow) {
 }
 
 // All admin mutations serialize per tenant and recheck the actor after acquiring the lock.
-async function administer<T>(s: Services, c: ApiContext, action: (tx: Database) => Promise<T>) {
+export async function administer<T>(
+  s: Services,
+  c: ApiContext,
+  action: (tx: Database) => Promise<T>,
+) {
   const actor = c.get("operator");
   requireAdmin(actor);
   return s.db.transaction(async (tx) => {
@@ -71,6 +75,8 @@ function settingsView(row?: typeof settings.$inferSelect): OrganizationSettings 
     retentionDays: row?.retentionDays ?? 180,
     notifyCitizenReady: row?.notifyCitizenReady ?? false,
     notifyOperatorDigest: row?.notifyOperatorDigest ?? false,
+    notifyCitizenReminders: row?.notifyCitizenReminders ?? false,
+    citizenReminderDays: row?.citizenReminderDays ?? [3, 4],
   };
 }
 function temporaryPassword(): string {

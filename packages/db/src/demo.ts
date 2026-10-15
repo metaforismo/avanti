@@ -26,6 +26,7 @@ import {
   operators,
   organizations,
   settings,
+  quickReplies,
 } from "./schema";
 
 export const DEMO_PASSWORD = "DemoAvanti2027!";
@@ -95,6 +96,38 @@ export async function seedDemoOrganization(db: Database, now: Date): Promise<voi
   await db
     .insert(settings)
     .values({ organizationId, baselineMinutesPerCase: 45, retentionDays: 180, linkDays: 60 })
+    .onConflictDoNothing();
+  await db
+    .insert(quickReplies)
+    .values(
+      [
+        {
+          title: "Foto illeggibile",
+          text: "La foto non è leggibile. Carica una nuova foto ben illuminata, con il testo a fuoco e senza riflessi.",
+        },
+        {
+          title: "Manca la pagina con la firma",
+          text: "Nel file manca la pagina con la firma richiesta dallo sportello. Carica anche quella pagina, dopo aver controllato dove firmare.",
+        },
+        {
+          title: "Serve la giacenza media",
+          text: "Manca la giacenza media del conto per l'anno indicato nella checklist. Puoi chiedere l'attestazione alla banca o cercarla nella tua area riservata.",
+        },
+        {
+          title: "Documento scaduto",
+          text: "Il documento caricato risulta scaduto. Contatta lo sportello per verificare quale documento aggiornato puoi fornire.",
+        },
+        {
+          title: "Pagina tagliata",
+          text: "Una parte della pagina è tagliata. Carica una nuova foto in cui siano visibili tutti i bordi e il testo della pagina.",
+        },
+      ].map((reply, position) => ({
+        ...reply,
+        id: `demo-quick-reply-${position + 1}`,
+        organizationId,
+        position,
+      })),
+    )
     .onConflictDoNothing();
   await db
     .insert(offices)

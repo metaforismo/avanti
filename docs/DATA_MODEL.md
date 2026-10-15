@@ -161,3 +161,37 @@ export o nei metadati degli eventi. I nuovi eventi MFA usano solo tipo, timestam
 organizzazione, attore/soggetto e l'eventuale boolean `rateLimited`/`cli`.
 La manutenzione delle sessioni scadute elimina anche configurazioni provvisorie;
 non serve una nuova tabella o un job separato.
+
+## Risposte rapide e cicli di promemoria
+
+La sola migrazione `0012_quick_replies_citizen_reminders` è generata con drizzle-kit;
+il numero verrà adattato al merge. `quick_replies` contiene `id`, `organization_id`,
+`title`, `text`, `position`: FK cascade sul CAF, lunghezze 80/1.000 e posizione intera
+0–49. La coppia univoca CAF/posizione impone anche il massimo di 50 righe per CAF.
+Le scritture acquisiscono il lock dell'organizzazione e ricontrollano l'admin;
+riordino e compattazione sostituiscono atomicamente le righe conservando gli ID.
+Nessun fascicolo dipende dal template: il messaggio usato è una copia modificabile.
+Il seed demo aggiunge cinque risposte, senza sovrascrivere i testi modificati.
+Gli esempi non fissano anni o nuovi obblighi documentali: la giacenza rimanda all'anno
+della checklist, basata sulla [ricerca ISEE](research/isee-2027.md).
+
+`settings.notify_citizen_reminders` è false e `citizen_reminder_days` JSONB è `[3,4]`
+per default. Un CHECK limita la sequenza a uno o due interi di 1–30 giorni.
+`cases.citizen_request_id` identifica il ciclo aperto dalla richiesta di integrazione,
+`citizen_requested_at` l'inizio. `citizen_reminders_queued` (CHECK 0–2) conta le
+accodature, `citizen_reminder_sent_at` il completamento dell'ultima accodatura.
+La seconda accodatura richiede quel completamento e il secondo intervallo trascorso.
+Nuova richiesta: nuovo UUID e reset; risposta del cittadino o cambio stato: UUID nullo.
+I vecchi casi rimangono senza ciclo; nessun backfill presume che siano ancora in attesa.
+Un indice parziale seleziona solo i cicli di `needs_citizen` ancora aperti.
+
+L'outbox ammette `kind=citizen_reminder`, con `citizen_request_id` e `reminder_number`
+(1–2) obbligatori insieme a caso/CAF, vincolati dalla FK composta esistente.
+`dedupe_key=reminder:<caseId>:<requestId>:<numero>` è unica; il contatore sul caso
+sopravvive alla cancellazione delle ricevute dopo 30 giorni. Accodamento e contatore
+sono nella stessa transazione, con lock caso e `SKIP LOCKED`; un errore li annulla entrambi.
+Il dispatcher ricontrolla l'attualità sotto lock caso prima di contattare il provider;
+completamento outbox, istante sul caso ed evento cronologia sono atomici.
+`citizen.reminder_sent` e `citizen.reminder_simulated` hanno attore system e nessun
+payload personale. Non cambiano `updated_at`. Cifratura, scadenza payload e retry
+restano quelli dell'outbox esistente.

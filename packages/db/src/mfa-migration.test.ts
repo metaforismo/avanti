@@ -13,7 +13,11 @@ it("adds MFA without changing existing passwords, sessions, settings or demo acc
     await readFile(join(repoRoot, "packages/db/migrations/meta/_journal.json"), "utf8"),
   );
   try {
-    for (const entry of journal.entries.slice(0, -1)) await client.exec(await migration(entry.tag));
+    for (const entry of journal.entries.slice(
+      0,
+      journal.entries.findIndex((entry) => entry.tag === "0011_mfa"),
+    ))
+      await client.exec(await migration(entry.tag));
     await client.exec(`
       INSERT INTO organizations VALUES ('org','ESEMPIO','caf');
       INSERT INTO operators (id,organization_id,name,email,password_hash,role) VALUES ('admin','org','ESEMPIO','admin@example.test','preserved-hash','admin');

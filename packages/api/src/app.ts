@@ -1,5 +1,6 @@
 import { mfaCipher } from "./mfa";
 import { mountMfaRoutes } from "./routes/mfa";
+import { mountQuickReplyRoutes } from "./routes/quick-replies";
 import { Hono } from "hono";
 import { defaultNotifications } from "./notification-config";
 import { boundedBody, uploadCapacity } from "./middleware/body";
@@ -73,6 +74,7 @@ export function createApp(options: ApiOptions) {
     "/reports/*",
     "/status",
     "/settings",
+    "/quick-replies/*",
     "/operators/*",
     "/audit/*",
   ]) {
@@ -96,6 +98,7 @@ export function createApp(options: ApiOptions) {
   mountCitizenRoutes(app, services);
   mountOperatorRoutes(app, services);
   mountAdministrationRoutes(app, services);
+  mountQuickReplyRoutes(app, services);
   mountAuditRoutes(app, services);
   mountPilotReportRoutes(app, services);
   mountSystemStatus(app, services);

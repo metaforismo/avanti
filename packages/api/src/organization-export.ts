@@ -6,6 +6,7 @@ import {
   offices,
   operators,
   settings,
+  quickReplies,
   cases,
   documents,
   messages,
@@ -174,6 +175,11 @@ export async function exportOrganization(
       settings:
         (await tx.select().from(settings).where(eq(settings.organizationId, organization.id)))[0] ??
         null,
+      quickReplies: await tx
+        .select()
+        .from(quickReplies)
+        .where(eq(quickReplies.organizationId, organization.id))
+        .orderBy(quickReplies.position),
       offices: await tx
         .select()
         .from(offices)

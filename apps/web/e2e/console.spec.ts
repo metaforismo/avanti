@@ -142,10 +142,7 @@ test("two operators on the same case: the second one sees the change instead of 
 }) => {
   const login = async (email: string) => {
     const page = await (await browser.newContext({ locale: "it-IT" })).newPage();
-    await page.goto("/console/accedi");
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-    await page.getByRole("button", { name: "Accedi" }).click();
+    await logIn(page, { email, password: DEMO.password });
     await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
     return page;
   };

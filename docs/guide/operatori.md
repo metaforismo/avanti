@@ -203,3 +203,40 @@ dopo aver verificato la tua identità può azzerare la verifica dalla gestione o
 L'operazione termina tutte le tue sessioni e viene registrata. Con obbligo attivo,
 al login successivo imposta un nuovo telefono. Un amministratore non può azzerare
 la propria verifica: serve un altro amministratore abilitato.
+
+## Risposte rapide e promemoria
+
+Le risposte rapide sono testi condivisi dal tuo CAF. Puoi usarne una come messaggio
+per **Chiedi integrazione**, correggerla per il caso concreto e controllarla prima
+dell'invio. La selezione da sola non invia nulla; la traduzione segue lo stesso
+percorso delle richieste scritte a mano. La demo propone cinque esempi, tra cui
+«Foto illeggibile», «Manca la pagina con la firma» e «Serve la giacenza media».
+L'anno e i documenti da chiedere vanno sempre verificati sulla checklist del fascicolo.
+
+Solo l'amministratore può creare, modificare, eliminare e riordinare le risposte:
+massimo 50 per CAF, titolo di 80 caratteri e testo di 1.000. Gli operatori possono
+leggerle e usarle. Le modifiche compaiono nel registro attività, senza copiare i testi.
+La modifica di un modello non cambia i messaggi già inviati ai cittadini.
+
+I promemoria sono spenti all'inizio. L'amministratore può attivarli per il CAF e
+scegliere uno o due intervalli da 1 a 30 giorni: per esempio 3 giorni dalla richiesta
+e altri 4 dall'invio del primo promemoria. Un solo intervallo produce un solo
+promemoria. La verifica è giornaliera: l'invio può avvenire al passaggio successivo
+del sistema. Il secondo attende che il primo sia stato inviato.
+
+Il cittadino riceve un'email solo se ha lasciato l'indirizzo e il suo accesso è ancora
+valido. È nella sua lingua e ricorda di leggere la richiesta dal link già salvato,
+senza includere link o dati della pratica. Una risposta, un nuovo documento o un'altra
+modifica del cittadino fermano i promemoria, anche prima del nuovo invio del fascicolo.
+Li ferma anche un cambio di stato. Una nuova richiesta di integrazione apre un nuovo
+ciclo, con al massimo due promemoria. Aprire o scaricare un documento non ferma il ciclo.
+
+Nella cronologia trovi **Promemoria inviato** con la data quando il servizio email
+ha accettato il messaggio; questo non certifica che il cittadino l'abbia letto.
+In locale, **Invio promemoria simulato** indica una prova senza email reale.
+Disattivare i promemoria ferma anche quelli ancora in coda. Le richieste già tracciate
+possono ricevere il promemoria quando attivi l'opzione; i fascicoli precedenti
+all'introduzione della funzione richiedono una nuova richiesta di integrazione.
+
+Questa modifica fornisce contratti e API per i controlli della console; la disponibilità
+dei pulsanti dipende dall'integrazione dell'interfaccia.

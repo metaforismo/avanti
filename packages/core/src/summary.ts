@@ -64,6 +64,8 @@ export function dossierSummary(
 }
 
 const timelineLabels: Record<string, string> = {
+  "citizen.reminder_sent": "Promemoria inviato",
+  "citizen.reminder_simulated": "Invio promemoria simulato",
   "privacy.accepted": "Presa visione dell’informativa registrata",
   "case.link_created": "Link cittadino creato dall'operatore",
   "case.link_regenerated": "Link cittadino rigenerato dall'operatore",

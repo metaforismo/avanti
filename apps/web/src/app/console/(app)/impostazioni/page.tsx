@@ -2,6 +2,7 @@
 
 import { OfficesSection } from "@/components/console/admin/offices-section";
 import { OperatorsSection } from "@/components/console/admin/operators-section";
+import { QuickRepliesSection } from "@/components/console/admin/quick-replies-section";
 import { SettingsSection } from "@/components/console/admin/settings-section";
 import { useOperator, useReloadOperator } from "@/lib/console/operator-context";
 
@@ -28,6 +29,7 @@ export default function SettingsPage() {
       </div>
       <OperatorsSection />
       <OfficesSection onChanged={reloadOperator} />
+      <QuickRepliesSection />
       <SettingsSection />
     </div>
   );
