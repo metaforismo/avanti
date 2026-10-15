@@ -301,8 +301,8 @@ pronto, senza stampare URL, credenziali o dettagli grezzi del driver.
 
 ### Avvio di un CAF pilota
 
-**Mai eseguire `pnpm db:seed`**: il guard rifiuta produzione, Vercel e qualsiasi
-`DATABASE_URL`. Il seed è esclusivamente PGlite locale. Non usare credenziali Demo.
+**Mai eseguire `pnpm db:seed` nel pilota**: il guard rifiuta produzione, Vercel e
+i database remoti. Il seed è ammesso su PGlite locale oppure, con opt-in esplicito, su Postgres loopback `*_test`; resta vietato su database remoti e in produzione. Vedi [carico Postgres](verification/load-postgres.md). Non usare credenziali Demo.
 Il primo CAF si crea dalla radice con DB già migrato, senza endpoint bootstrap pubblico:
 
 ```sh
@@ -429,7 +429,7 @@ lavoro persistito recuperano la coda. Sorvegliare 5xx, backlog `processing` e
    continuano. Dieci operatori possono entrare e correggere una password errata senza
    esaurire il tetto condiviso. Usare solo dati fittizi e controllare latenze/pool.
 6. Su **DB sacrificabile** `_test` in ambiente staging, esportare separatamente
-   `AVANTI_TEST_DATABASE_URL` ed eseguire senza Turbo (che filtra l'env di test):
+   `AVANTI_TEST_DATABASE_URL` ed eseguire la suite (Turbo ora inoltra questa variabile ai task test):
 
    ```sh
    pnpm --filter @avanti/db exec vitest run src/check.test.ts
