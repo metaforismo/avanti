@@ -12,13 +12,13 @@ it("adds content-free AI accounting without resetting an existing CAF, and const
     );
     const migration = (tag: string) =>
       readFile(join(repoRoot, `packages/db/migrations/${tag}.sql`), "utf8");
-    const index = journal.entries.findIndex((e) => e.tag === "0014_ai_runtime");
+    const index = journal.entries.findIndex((e) => e.tag === "0015_ai_runtime");
     for (const entry of journal.entries.slice(0, index))
       await client.exec(await migration(entry.tag));
     await client.exec(
       "insert into organizations values ('org','SYNTHETIC','caf'); insert into settings (organization_id,link_days,mfa_required) values ('org',45,true)",
     );
-    await client.exec(await migration("0014_ai_runtime"));
+    await client.exec(await migration("0015_ai_runtime"));
     expect(
       (await client.query("select link_days,mfa_required,ai_monthly_budget_eur from settings"))
         .rows,

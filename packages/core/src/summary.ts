@@ -1,5 +1,5 @@
 import type { DossierFact, Member, PracticeId } from "@avanti/contracts";
-import { catalog, getPractice, type Answers } from "./catalog";
+import { catalog, getPractice, practiceYear, type Answers } from "./catalog";
 
 export function dossierSummary(
   practiceId: PracticeId | null,
@@ -8,17 +8,17 @@ export function dossierSummary(
 ): { headline: string; facts: DossierFact[] } {
   const facts: DossierFact[] = [];
   if (!practiceId) return { headline: "Pratica da identificare", facts };
-  const practice = getPractice(practiceId, "it");
+  const practice = getPractice(practiceId, "it", answers);
   if (household.length)
     facts.push({
       label: "Nucleo familiare",
       value: `${household.length} ${household.length === 1 ? "persona" : "persone"}`,
       source: "citizen",
     });
-  if (catalog[practiceId].referenceYear)
+  if (practice.referenceYear)
     facts.push({
       label: "Anno dei dati",
-      value: String(catalog[practiceId].referenceYear),
+      value: String(practice.referenceYear),
       source: "citizen",
     });
   if (typeof answers.housing === "string")
@@ -58,12 +58,14 @@ export function dossierSummary(
       facts.push({ label, value: "Segnalato: verifica operatore necessaria", source: "citizen" });
   }
   return {
-    headline: `${practice.name}${catalog[practiceId].declarationYear ? ` ${catalog[practiceId].declarationYear}` : ""}`,
+    headline: `${practice.name}${catalog[practiceId].declarationYear ? ` ${practiceYear(answers)}` : ""}`,
     facts,
   };
 }
 
 const timelineLabels: Record<string, string> = {
+  "case.reused": "Nucleo e documenti riusati per una nuova pratica",
+  "document.reuse_checked": "Validità del documento riusato controllata",
   "citizen.reminder_sent": "Promemoria inviato",
   "citizen.reminder_simulated": "Invio promemoria simulato",
   "privacy.accepted": "Presa visione dell’informativa registrata",

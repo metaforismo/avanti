@@ -47,6 +47,7 @@ import { automaticAssistanceNotice } from "./disclosure";
 import { currentCitizenLink } from "./citizen-link";
 import { body, parse, mutableCitizen, type App, type Services, type ApiContext } from "./context";
 
+import { visibleToCitizen } from "./document-visibility";
 import { nextCaseUpdate } from "./case-version";
 import { enqueueSubmissionReceipt, scheduleNotificationDelivery } from "./notifications";
 
@@ -54,7 +55,12 @@ export { assertStartable } from "./citizen-turn";
 export async function createCase(
   db: Database,
   office: typeof offices.$inferSelect,
-  input: { language: CaseRow["language"]; practiceId?: PracticeId; contact?: CaseRow["contact"] },
+  input: {
+    language: CaseRow["language"];
+    practiceId?: PracticeId;
+    practiceYear?: number;
+    contact?: CaseRow["contact"];
+  },
   now: Date,
   actor: "citizen" | "operator" = "citizen",
   actorId: string | null = null,
@@ -76,7 +82,7 @@ export async function createCase(
       language: input.language,
       practiceId: input.practiceId ?? null,
       status: "intake",
-      answers: {},
+      answers: input.practiceYear === undefined ? {} : { practice_year: input.practiceYear },
       contact: input.contact ?? null,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
@@ -115,9 +121,12 @@ async function download(c: ApiContext, s: Services, row: CaseRow, id: string) {
     .from(documents)
     .where(and(eq(documents.id, id), eq(documents.caseId, row.id)))
     .limit(1);
-  if (!document) throw notFound();
+  if (!document || (!c.get("operator") && !visibleToCitizen(document, row))) throw notFound();
   const bytes = await s.storage.get(document.storageKey);
-  if (!c.get("operator")) await currentCitizenLink(s.db, row, s.clock());
+  if (!c.get("operator")) {
+    const fresh = await currentCitizenLink(s.db, row, s.clock());
+    if (!visibleToCitizen(document, fresh)) throw notFound();
+  }
   const disposition = "attachment";
   const name = sanitizeName(document.fileName, document.mimeType);
   const encodedName = encodeURIComponent(name).replace(
@@ -344,7 +353,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
         );
       assertImageSafe(bytes, mime);
       const pages = await pdfPages(bytes, mime);
-      const view = await citizenView(s.db, initial, s.clock());
+      const view = await citizenView(s.db, initial, s.clock(), "it", true);
       assertDocumentLimit(view.documents.length);
       assertCaseBytes(view.documents, file.size);
       if (fields.checklistItemId && !view.checklist.some((i) => i.id === fields.checklistItemId))
@@ -370,7 +379,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           );
         if (!lease)
           throw new ApiFailure("conflict", 409, "Il caricamento è scaduto. Riprova il file.");
-        const fresh = await citizenView(tx, current, s.clock());
+        const fresh = await citizenView(tx, current, s.clock(), "it", true);
         assertDocumentLimit(fresh.documents.length);
         assertCaseBytes(fresh.documents, file.size);
         const item = uploadChecklistItem(
@@ -476,7 +485,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
         .select()
         .from(documents)
         .where(and(eq(documents.id, c.req.param("id")), eq(documents.caseId, current.id)));
-      if (!previous) throw notFound();
+      if (!previous || !visibleToCitizen(previous, current)) throw notFound();
       for (const itemId of new Set([previous.checklistItemId, input.checklistItemId]))
         if (itemId)
           await tx
@@ -499,6 +508,11 @@ export function mountCitizenRoutes(app: App, s: Services) {
   app.delete("/c/:token/documents/:id", async (c) => {
     const row = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, c.get("citizen"), s.clock());
+      const [candidate] = await tx
+        .select()
+        .from(documents)
+        .where(and(eq(documents.id, c.req.param("id")), eq(documents.caseId, current.id)));
+      if (!candidate || !visibleToCitizen(candidate, current)) throw notFound();
       const [deleted] = await tx
         .delete(documents)
         .where(and(eq(documents.id, c.req.param("id")), eq(documents.caseId, current.id)))

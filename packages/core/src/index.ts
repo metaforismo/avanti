@@ -1,5 +1,7 @@
 export {
   CATALOG_VERSION,
+  practiceYear,
+  referenceYearFor,
   catalog,
   getPractice,
   listPractices,
@@ -13,7 +15,7 @@ export {
   skipQuestion,
   DomainValidationError,
 } from "./interview";
-export { buildHousehold } from "./household";
+export { buildHousehold, normalizedName } from "./household";
 export { extractFacts, CLASSIFICATION_THRESHOLD, type ExtractedFacts } from "./extraction";
 export { buildChecklist } from "./checklist";
 export { buildDsuSheet, formatDsuDate, formatDsuAmount } from "./dsu-sheet";
@@ -27,3 +29,5 @@ export { readableAnswer, answeredQuestions } from "./answers";
 
 export { t } from "./i18n";
 export { HOUSEHOLD_RELATIONS } from "./extraction-lexicons";
+
+export { assessDocumentReuse, sameMemberIdentity } from "./document-reuse";

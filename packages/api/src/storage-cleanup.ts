@@ -1,5 +1,5 @@
 import { and, asc, eq, lte } from "drizzle-orm";
-import { storageDeletions } from "@avanti/db";
+import { storageDeletions, documents } from "@avanti/db";
 import type { Services } from "./context";
 import { safeError } from "./logging";
 
@@ -25,6 +25,16 @@ export async function retryStorageDeletions(
   for (const row of pending) {
     if (performance.now() - started >= 20000) break;
     try {
+      const [reference] = await s.db
+        .select({ id: documents.id })
+        .from(documents)
+        .where(eq(documents.storageKey, row.storageKey))
+        .limit(1);
+      if (reference) {
+        // Every unlink queues a new deletion; the last unlink will retry this file.
+        await s.db.delete(storageDeletions).where(eq(storageDeletions.id, row.id));
+        continue;
+      }
       await s.storage.delete(row.storageKey);
       await s.db.delete(storageDeletions).where(eq(storageDeletions.id, row.id));
     } catch (error) {

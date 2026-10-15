@@ -1,164 +1,9 @@
 {
-  "id": "e165d2c2-33f1-44e2-8ff9-114345ecca8d",
+  "id": "1b4791a2-5419-4c4e-ba0d-439abf7dfa1e",
   "prevId": "d6d3e0a0-d14a-480a-b1f4-08ef81a26ddd",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.ai_usage": {
-      "name": "ai_usage",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "task": {
-          "name": "task",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "version": {
-          "name": "version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "engine": {
-          "name": "engine",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "outcome": {
-          "name": "outcome",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "latency_ms": {
-          "name": "latency_ms",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "input_tokens": {
-          "name": "input_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "output_tokens": {
-          "name": "output_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "cost_estimate_eur": {
-          "name": "cost_estimate_eur",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "reserved_eur": {
-          "name": "reserved_eur",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "manipulation_attempts": {
-          "name": "manipulation_attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "day": {
-          "name": "day",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "ai_usage_org_day_idx": {
-          "name": "ai_usage_org_day_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "day",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "ai_usage_organization_id_organizations_id_fk": {
-          "name": "ai_usage_organization_id_organizations_id_fk",
-          "tableFrom": "ai_usage",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "ai_usage_nonnegative": {
-          "name": "ai_usage_nonnegative",
-          "value": "\"ai_usage\".\"cost_estimate_eur\" >= 0 and \"ai_usage\".\"reserved_eur\" >= 0 and \"ai_usage\".\"input_tokens\" >= 0 and \"ai_usage\".\"output_tokens\" >= 0"
-        },
-        "ai_usage_engine": {
-          "name": "ai_usage_engine",
-          "value": "\"ai_usage\".\"engine\" in ('ai', 'heuristic')"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.cases": {
       "name": "cases",
       "schema": "",
@@ -192,6 +37,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "family_id": {
+          "name": "family_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "language": {
           "name": "language",
@@ -348,6 +199,27 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cases_org_family_idx": {
+          "name": "cases_org_family_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "family_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -951,6 +823,25 @@
           "primaryKey": false,
           "notNull": false
         },
+        "reused_from_year": {
+          "name": "reused_from_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reused_member": {
+          "name": "reused_member",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "citizen_visible": {
+          "name": "citizen_visible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
         "analysis_lease_token": {
           "name": "analysis_lease_token",
           "type": "text",
@@ -965,6 +856,21 @@
         }
       },
       "indexes": {
+        "documents_storage_key_idx": {
+          "name": "documents_storage_key_idx",
+          "columns": [
+            {
+              "expression": "storage_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "documents_case_idx": {
           "name": "documents_case_idx",
           "columns": [
@@ -2585,12 +2491,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "ai_monthly_budget_eur": {
-          "name": "ai_monthly_budget_eur",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": false
-        },
         "retention_days": {
           "name": "retention_days",
           "type": "integer",
@@ -2678,10 +2578,6 @@
         "settings_baseline_check": {
           "name": "settings_baseline_check",
           "value": "\"settings\".\"baseline_minutes_per_case\" is null or \"settings\".\"baseline_minutes_per_case\" > 0"
-        },
-        "settings_ai_budget_check": {
-          "name": "settings_ai_budget_check",
-          "value": "\"settings\".\"ai_monthly_budget_eur\" is null or (\"settings\".\"ai_monthly_budget_eur\" >= 0 and \"settings\".\"ai_monthly_budget_eur\" <= 100000)"
         }
       },
       "isRLSEnabled": false

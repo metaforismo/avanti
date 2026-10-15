@@ -652,7 +652,7 @@ Lo schema remoto è non strict, senza regex lessicali Unicode; la validazione Zo
 e i vincoli del compito restano locali. Una risposta strutturata vuota riprova una volta
 come JSON testuale sullo stesso modello, con motivo `empty_structured_output` in telemetria. La telemetria non memorizza prompt o documenti.
 
-Applicare la migrazione `0014_ai_runtime` prima del rilascio. `AI_MONTHLY_BUDGET_EUR=50` è il
+Applicare la migrazione `0015_ai_runtime` prima del rilascio. `AI_MONTHLY_BUDGET_EUR=50` è il
 default CAF; l'admin può impostare `aiMonthlyBudgetEur` in `/api/settings` (0 disattiva AI,
 null ripristina il default). `/api/ai/usage?month=YYYY-MM` offre aggregati mensili del CAF,
 `/api/status` mostra budget, provider, livelli, policy e presenza chiave. Le tariffe

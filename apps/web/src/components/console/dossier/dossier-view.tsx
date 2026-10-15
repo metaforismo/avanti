@@ -26,7 +26,9 @@ import { DeleteCaseDialog } from "./delete-case-dialog";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
 import { DsuSheetSection } from "./dsu-sheet-section";
+import { FamilyErasureDialog } from "./family-erasure-dialog";
 import { NewLinkDialog } from "./new-link-dialog";
+import { ReuseDialog } from "./reuse-dialog";
 import { FindingsSummary } from "./findings-summary";
 import { RequestDialog } from "./request-dialog";
 import { AnswersSection, ConversationSection } from "./secondary-sections";
@@ -51,6 +53,8 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmReady, setConfirmReady] = useState(false);
   const [newLink, setNewLink] = useState(false);
+  const [reuse, setReuse] = useState(false);
+  const [eraseFamily, setEraseFamily] = useState(false);
   const readyButton = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
   // The open document lives in the URL: shareable with a colleague, closed by the Back button.
@@ -284,6 +288,9 @@ export function DossierView({ caseId }: { caseId: string }) {
                     <MenuItem onSelect={() => setConfirmClose(true)}>Chiudi e archivia…</MenuItem>
                   </>
                 )}
+                <MenuItem onSelect={() => setReuse(true)}>
+                  Nuova pratica per questa famiglia…
+                </MenuItem>
                 {assignedToMe && (
                   <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
                     Lascia la pratica
@@ -294,6 +301,9 @@ export function DossierView({ caseId }: { caseId: string }) {
                     <DropdownMenu.Separator className="my-1 h-px bg-line" />
                     <MenuItem onSelect={() => setConfirmDelete(true)}>
                       <span className="text-danger">Elimina definitivamente…</span>
+                    </MenuItem>
+                    <MenuItem onSelect={() => setEraseFamily(true)}>
+                      <span className="text-danger">Cancella tutta la famiglia…</span>
                     </MenuItem>
                   </>
                 )}
@@ -404,6 +414,13 @@ export function DossierView({ caseId }: { caseId: string }) {
           </Button>
         </div>
       </Dialog>
+      <ReuseDialog open={reuse} onOpenChange={setReuse} dossier={data} />
+      <FamilyErasureDialog
+        open={eraseFamily}
+        onOpenChange={setEraseFamily}
+        dossier={data}
+        returnFocusTo={moreButton}
+      />
       <NewLinkDialog
         open={newLink}
         onOpenChange={setNewLink}

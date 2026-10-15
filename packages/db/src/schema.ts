@@ -121,6 +121,7 @@ export const cases = pgTable(
     officeId: text("office_id").notNull(),
     tokenHash: text("token_hash").notNull().unique(),
     reference: text("reference").notNull(),
+    familyId: text("family_id"),
     language: text("language").$type<Language>().notNull(),
     practiceId: text("practice_id").$type<PracticeId>(),
     status: text("status").$type<CaseStatus>().notNull().default("intake"),
@@ -165,6 +166,7 @@ export const cases = pgTable(
       sql`${t.practiceId} is null or ${t.practiceId} in ('isee_ordinario', 'isee_universitario', 'modello_730', 'red', 'assegno_unico', 'successione_semplice', 'permesso_soggiorno', 'cittadinanza', 'naspi')`,
     ),
     uniqueIndex("cases_org_reference_unique").on(t.organizationId, t.reference),
+    index("cases_org_family_idx").on(t.organizationId, t.familyId),
     index("cases_org_status_updated_idx").on(t.organizationId, t.status, t.updatedAt, t.id),
     index("cases_org_office_created_idx").on(t.organizationId, t.officeId, t.createdAt),
     index("cases_org_assignee_idx").on(t.organizationId, t.assigneeId),
@@ -231,10 +233,14 @@ export const documents = pgTable(
     memberId: text("member_id"),
     status: text("status").$type<DocumentStatus>().notNull(),
     analysis: jsonb("analysis").$type<DocumentAnalysis>(),
+    reusedFromYear: integer("reused_from_year"),
+    reusedMember: jsonb("reused_member").$type<import("@avanti/contracts").Member>(),
+    citizenVisible: boolean("citizen_visible").notNull().default(true),
     analysisLeaseToken: text("analysis_lease_token"),
     analysisLeaseUntil: instant("analysis_lease_until"),
   },
   (t) => [
+    index("documents_storage_key_idx").on(t.storageKey),
     index("documents_case_idx").on(t.caseId, t.uploadedAt),
     index("documents_processing_idx")
       .on(t.uploadedAt, t.id)

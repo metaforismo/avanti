@@ -72,14 +72,14 @@ const sources = {
     "বাড়ির মালিক বা আপনার কপি থেকে: নিবন্ধিত ভাড়ার চুক্তি, নিবন্ধনের তথ্য ও বর্তমান বার্ষিক ভাড়া।",
   ],
   mortgage: [
-    "Chiedi alla banca il capitale residuo al 31 dicembre 2025 del mutuo per acquisto o costruzione. Il CAF verifica quota e deducibilità.",
-    "Ask the bank for the remaining purchase or building loan on 31 December 2025. The CAF checks the share and deduction.",
-    "Demandez à la banque le capital restant au 31 décembre 2025 du prêt d’achat ou construction. Le CAF vérifie la part déductible.",
-    "Pide al banco el capital pendiente el 31 de diciembre de 2025 de la hipoteca de compra o construcción. El CAF revisa la parte deducible.",
-    "Cere băncii capitalul rămas la 31 decembrie 2025 din creditul de cumpărare sau construcție. CAF verifică partea și deducerea.",
-    "Попросіть у банку залишок основної суми кредиту на купівлю чи будівництво на 31 грудня 2025 року. CAF перевірить частку та відрахування.",
-    "اطلب من البنك أصل القرض المتبقي لشراء أو بناء العقار في 31 ديسمبر 2025. يتحقق CAF من الحصة والخصم.",
-    "ব্যাংক থেকে ৩১ ডিসেম্বর ২০২৫-এ কেনা বা তৈরির ঋণের বাকি মূলধন নিন। CAF অংশ ও ছাড় যাচাই করবে।",
+    "Chiedi alla banca il capitale residuo al 31 dicembre {year} del mutuo per acquisto o costruzione. Il CAF verifica quota e deducibilità.",
+    "Ask the bank for the remaining purchase or building loan on 31 December {year}. The CAF checks the share and deduction.",
+    "Demandez à la banque le capital restant au 31 décembre {year} du prêt d’achat ou construction. Le CAF vérifie la part déductible.",
+    "Pide al banco el capital pendiente el 31 de diciembre de {year} de la hipoteca de compra o construcción. El CAF revisa la parte deducible.",
+    "Cere băncii capitalul rămas la 31 decembrie {year} din creditul de cumpărare sau construcție. CAF verifică partea și deducerea.",
+    "Попросіть у банку залишок основної суми кредиту на купівлю чи будівництво на 31 грудня {year} року. CAF перевірить частку та відрахування.",
+    "اطلب من البنك أصل القرض المتبقي لشراء أو بناء العقار في 31 ديسمبر {year}. يتحقق CAF من الحصة والخصم.",
+    "ব্যাংক থেকে ৩১ ডিসেম্বর {year}-এ কেনা বা তৈরির ঋণের বাকি মূলধন নিন। CAF অংশ ও ছাড় যাচাই করবে।",
   ],
   vehicle: [
     "Carta di circolazione o documento di registrazione: targa o estremi, intestatario e cilindrata, riferiti ai mezzi posseduti alla data DSU.",
@@ -598,7 +598,7 @@ export function requirementText(id: RequirementId, language: Language, year: num
   return {
     title,
     description: documentDescription(id, language, year),
-    howToGet: localize(language, sources[requirement.how]),
+    howToGet: localize(language, sources[requirement.how], { year: year ?? "" }),
   };
 }
 

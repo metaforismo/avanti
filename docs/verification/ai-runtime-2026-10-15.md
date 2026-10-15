@@ -10,7 +10,7 @@ sono stati modificati: costituzione e prompt restano alla versione 1, task alla 
 | `pnpm check --cache-dir="$PWD/.turbo/cache" --concurrency=1` | PASS | 18/18 task; verifica finale con 15 cache hit dopo una suite completa verde |
 | Test | PASS | AI 14, API 507, core 572, DB 36, web 43: 1.172 passati; 18 saltati esplicitamente |
 | `TURBO_CACHE_DIR="$PWD/.turbo/cache" pnpm build` | PASS | Unica invocazione build: 3/3 task, 47,684 s; compilazione Next riuscita |
-| Migrazione `0014_ai_runtime` | PASS locale | Upgrade PGlite con dati preesistenti, vincoli, cascade; nessun DB di produzione modificato |
+| Migrazione `0015_ai_runtime` | PASS locale | Upgrade PGlite con dati preesistenti, vincoli, cascade; nessun DB di produzione modificato |
 | Isolamento/budget | PASS locale | Endpoint admin, CAF/mesi distinti, override/null, budget zero, ammissioni concorrenti, riconciliazione e contabilità non disponibile |
 | Strict OpenRouter | PASS simulato | SDK ufficiale con fetch sostituito: payload `data_collection:deny,zdr:true`, fallback `models`, reasoning limitato/escluso, json_schema |
 | Retry/guard | PASS simulato | 429, 5xx, timeout hard, risposta vuota, correzione unica, JSON testuale, ID invalidi, credenziali nelle 8 lingue, telemetria senza contenuti |

@@ -148,7 +148,7 @@ al provider il precedente output potenzialmente ostile.
 
 ## Uso per CAF
 
-Migrazione unica `0014_ai_runtime`: tabella `ai_usage` e `settings.ai_monthly_budget_eur`.
+Migrazione unica `0015_ai_runtime`: tabella `ai_usage` e `settings.ai_monthly_budget_eur`.
 `PATCH /api/settings` accetta `aiMonthlyBudgetEur` (null ripristina il default configurato).
 `GET /api/ai/usage?month=YYYY-MM` è autenticato e riservato agli admin; usa sempre il CAF
 della sessione, aggrega per compito/versione/modello/motore/esito/giorno UTC. Espone token,

@@ -38,6 +38,7 @@ function Queue() {
   const assignee = params.get("assegnatario") ?? "";
   // Set by the dossier after a permanent deletion, which leaves nothing else to show.
   const deleted = params.get("eliminata");
+  const familyErased = params.get("famiglia");
   const [search, setSearch] = useState(params.get("q") ?? "");
   const searchRef = useRef<HTMLInputElement>(null);
   // "/" jumps to the search, as in most work tools, unless the operator is typing elsewhere.
@@ -63,6 +64,7 @@ function Queue() {
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     next.delete("eliminata");
+    next.delete("famiglia");
     if (value) next.set(key, value);
     else next.delete(key);
     router.replace(`/console?${next.toString()}` as Route, { scroll: false });
@@ -134,6 +136,23 @@ function Queue() {
       <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Pratiche</h1>
 
       <div role="status">
+        {familyErased && (
+          <p className="mt-4 flex items-center gap-3 rounded-md bg-ok-wash py-2 ps-4 pe-2 text-ok">
+            <CheckCircle2 className="size-5 shrink-0" aria-hidden />
+            <span className="flex-1">
+              Famiglia cancellata: {familyErased}{" "}
+              {familyErased === "1" ? "pratica eliminata" : "pratiche eliminate"} definitivamente.
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Chiudi avviso"
+              onClick={() => setParam("famiglia", "")}
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+          </p>
+        )}
         {deleted && (
           <p className="mt-4 flex items-center gap-3 rounded-md bg-ok-wash py-2 ps-4 pe-2 text-ok">
             <CheckCircle2 className="size-5 shrink-0" aria-hidden />

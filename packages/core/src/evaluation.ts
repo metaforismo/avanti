@@ -7,7 +7,7 @@ import type {
   PracticeId,
   Progress,
 } from "@avanti/contracts";
-import { catalog, getQuestions, type Answers } from "./catalog";
+import { getQuestions, practiceYear, referenceYearFor, type Answers } from "./catalog";
 import { normalizedName } from "./household";
 import { localize, type Text } from "./i18n";
 import { requirements, type RequirementId } from "./requirements";
@@ -44,6 +44,16 @@ const messages = {
     "CAF просить новий документ: {title}.",
     "يطلب CAF وثيقة جديدة: {title}.",
     "CAF নতুন নথি চায়: {title}।",
+  ],
+  "document.reuse_update": [
+    "Il documento riusato deve essere aggiornato per questa pratica.",
+    "The reused document needs updating for this application.",
+    "Le document réutilisé doit être actualisé pour votre dossier.",
+    "Hay que actualizar el documento reutilizado para este trámite.",
+    "Documentul reutilizat trebuie actualizat pentru această cerere.",
+    "Повторно використаний документ потрібно оновити для цієї заяви.",
+    "يجب تحديث الوثيقة المعاد استخدامها لهذا الطلب.",
+    "এই আবেদনের জন্য পুনর্ব্যবহৃত নথি হালনাগাদ করতে হবে।",
   ],
   "document.expired": [
     "Il documento {file} è scaduto.",
@@ -273,6 +283,8 @@ const operatorMessages = {
   "checklist.missing": "Richiedi {title}: manca il documento obbligatorio.",
   "checklist.rejected":
     "Richiedi una nuova copia di {title}: la voce è stata rifiutata in revisione.",
+  "document.reuse_update":
+    "Acquisisci un documento aggiornato per la nuova pratica prima di verificare la voce.",
   "document.expired": "{file}: verifica la scadenza letta e richiedi un documento valido.",
   "document.expiring": "{file}: verifica la scadenza letta; il documento scade entro 90 giorni.",
   "document.wrong_year": "{file}: verifica l’anno dei dati; per questa voce serve il {year}.",
@@ -374,6 +386,8 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
     const member = household.find((entry) => entry.id === item?.memberId);
     const blocking: Finding["severity"] =
       item?.required && !["waived", "verified"].includes(item.status) ? "blocker" : "warning";
+    if (document.reuse?.status === "da_aggiornare")
+      finding("document.reuse_update", blocking, document, item);
     const hash = hashes[document.id];
     if (hash) {
       const scopedHash = `${document.checklistItemId ?? "unmatched"}:${hash}`;
@@ -399,7 +413,7 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
       else if (days <= 90) finding("document.expiring", "warning", document, item);
     }
     const requirement = item ? requirements[item.requirementId as RequirementId] : undefined;
-    const year = practiceId ? catalog[practiceId].referenceYear : null;
+    const year = practiceId ? referenceYearFor(practiceId, answers) : null;
     if (
       year !== null &&
       requirement &&
@@ -467,7 +481,8 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
   }
   if (practiceId === "isee_ordinario" || practiceId === "modello_730") {
     finding("practice.provisional_year", "warning");
-    if (calendarYear(now) > 2027) finding("practice.outdated_catalog", "blocker");
+    if (calendarYear(now) > 2027 || practiceYear(answers) !== 2027)
+      finding("practice.outdated_catalog", "blocker");
   }
   if (practiceId === "isee_ordinario") {
     if (answers.household_exceptions === true) finding("practice.household_review", "warning");

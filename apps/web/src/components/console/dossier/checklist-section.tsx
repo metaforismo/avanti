@@ -2,7 +2,7 @@
 
 import { Check, FileText, Image as ImageIcon, RotateCcw, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import type { CaseDossier, ChecklistItem } from "@avanti/contracts";
+import type { CaseDossier, ChecklistItem, DocumentReuseAssessment } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { CHECKLIST_STATUS } from "@/lib/console/labels";
@@ -72,6 +72,7 @@ export function ChecklistSection({
                   <DocChip
                     name={doc.analysis?.detectedLabel ?? doc.fileName}
                     mime={doc.mimeType}
+                    reuse={doc.reuse}
                     onClick={() => actions.openDocument(doc)}
                   />
                 </li>
@@ -143,6 +144,7 @@ function ChecklistRow({
                   name={doc.analysis?.detectedLabel ?? doc.fileName}
                   mime={doc.mimeType}
                   confidence={doc.analysis?.confidence}
+                  reuse={doc.reuse}
                   onClick={() => actions.openDocument(doc)}
                 />
               ))}
@@ -239,15 +241,24 @@ function ChecklistRow({
   );
 }
 
+const REUSE = {
+  valido: { label: "riusato", tone: "text-ok" },
+  da_aggiornare: { label: "da aggiornare", tone: "text-danger" },
+  da_verificare: { label: "da verificare", tone: "text-warn" },
+} as const;
+
 function DocChip({
   name,
   mime,
   confidence,
+  reuse,
   onClick,
 }: {
   name: string;
   mime: string;
   confidence?: number;
+  /** Carried over from an earlier practice of the same family, with its check. */
+  reuse?: DocumentReuseAssessment | null;
   onClick: () => void;
 }) {
   const Icon = mime.startsWith("image/") ? ImageIcon : FileText;
@@ -263,6 +274,15 @@ function DocChip({
         <span className="shrink-0 text-xs text-warn" title="Riconoscimento incerto">
           <span aria-hidden>?</span>
           <span className="sr-only">(riconoscimento incerto)</span>
+        </span>
+      )}
+      {reuse && (
+        <span
+          className={`shrink-0 text-xs font-semibold ${REUSE[reuse.status].tone}`}
+          title={reuse.reason}
+        >
+          · {REUSE[reuse.status].label}
+          <span className="sr-only">: {reuse.reason}</span>
         </span>
       )}
     </button>
