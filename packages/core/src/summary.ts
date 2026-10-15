@@ -64,6 +64,7 @@ export function dossierSummary(
 }
 
 const timelineLabels: Record<string, string> = {
+  "citizen.safety_notice": "Mostrato avviso di sicurezza: emergenza, contattare il 112",
   "case.reused": "Nucleo e documenti riusati per una nuova pratica",
   "document.reuse_checked": "Validità del documento riusato controllata",
   "citizen.question": "Domanda del cittadino allo sportello",

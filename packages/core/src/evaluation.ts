@@ -8,6 +8,7 @@ import type {
   Progress,
 } from "@avanti/contracts";
 import { getQuestions, practiceYear, referenceYearFor, type Answers } from "./catalog";
+import { questionEstimate } from "./question-estimate";
 import { normalizedName } from "./household";
 import { localize, type Text } from "./i18n";
 import { requirements, type RequirementId } from "./requirements";
@@ -517,6 +518,9 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
   const questionsAnswered = questions.filter((question) =>
     Object.hasOwn(answers, question.id),
   ).length;
+  const remaining = practiceId
+    ? questionEstimate(practiceId, answers, language)
+    : { min: 0, max: 0 };
   let interviewPercent = 0;
   if (questions.length) interviewPercent = questionsAnswered / questions.length;
   else if (practiceId) interviewPercent = 1;
@@ -525,7 +529,10 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
     findings,
     progress: {
       questionsAnswered,
-      questionsTotal: questions.length,
+      // 0 means not yet countable: existing clients hide the numeric promise. Once all
+      // selectors are known the exact count cannot grow without a citizen correction.
+      questionsTotal: remaining.min === remaining.max ? questionsAnswered + remaining.max : 0,
+      questionsRemaining: remaining,
       documentsDone,
       documentsRequired: requiredItems.length,
       percent: Math.round(interviewPercent * 30 + documentsPercent * 70),

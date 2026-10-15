@@ -3,6 +3,36 @@ import type { Language } from "@avanti/contracts";
 type Text = readonly [string, string, string, string, string, string, string, string];
 const languages: readonly Language[] = ["it", "en", "fr", "es", "ro", "uk", "ar", "bn"];
 export const texts = {
+  intakeEmergency: [
+    "Se sei in pericolo, chiama subito il 112.",
+    "If you are in danger, call 112 now.",
+    "Si vous êtes en danger, appelez immédiatement le 112.",
+    "Si estás en peligro, llama ahora al 112.",
+    "Dacă ești în pericol, sună imediat la 112.",
+    "Якщо Ви в небезпеці, негайно телефонуйте 112.",
+    "إذا كنت في خطر، اتصل فورًا بالرقم 112.",
+    "আপনি বিপদে থাকলে এখনই 112 নম্বরে কল করুন।",
+  ],
+  intakeViolence: [
+    "Per violenza o maltrattamenti in famiglia o stalking puoi chiamare anche il 1522, numero antiviolenza e stalking, gratuito e attivo 24 ore su 24.",
+    "For domestic violence, abuse or stalking you can also call 1522, the free violence and stalking helpline, available 24 hours a day.",
+    "Pour les violences ou maltraitances familiales ou le harcèlement, vous pouvez aussi appeler le 1522, numéro contre les violences et le harcèlement, gratuit et disponible 24 heures sur 24.",
+    "Para violencia o maltrato familiar o acoso puedes llamar también al 1522, la línea contra la violencia y el acoso, gratuita y activa las 24 horas.",
+    "Pentru violență sau abuz în familie ori hărțuire poți suna și la 1522, linia împotriva violenței și hărțuirii, gratuită, disponibilă 24 de ore din 24.",
+    "У разі домашнього насильства, жорстокого поводження чи переслідування Ви також можете зателефонувати 1522 — безкоштовна лінія протидії насильству та переслідуванню, що працює цілодобово.",
+    "للعنف أو الإساءة داخل الأسرة أو الملاحقة، يمكنك أيضًا الاتصال بالرقم 1522 لمكافحة العنف والملاحقة، وهو مجاني ومتاح على مدار الساعة.",
+    "পারিবারিক সহিংসতা, নির্যাতন বা অনুসরণের ক্ষেত্রে 1522 নম্বরেও কল করতে পারেন; এটি সহিংসতা ও অনুসরণ প্রতিরোধের বিনামূল্যের হেল্পলাইন, ২৪ ঘণ্টা চালু।",
+  ],
+  intakeScope: [
+    "Avanti ti aiuta a preparare domande e documenti per CAF e patronati: scrivi di cosa hai bisogno o scegli una pratica dall’elenco.",
+    "Avanti helps you prepare applications and documents for CAF and patronati: write what you need or choose an application from the list.",
+    "Avanti vous aide à préparer les demandes et documents pour les CAF et patronati : écrivez ce dont vous avez besoin ou choisissez une demande dans la liste.",
+    "Avanti te ayuda a preparar solicitudes y documentos para CAF y patronati: escribe qué necesitas o elige un trámite de la lista.",
+    "Avanti te ajută să pregătești cereri și documente pentru CAF și patronati: scrie de ce ai nevoie sau alege o cerere din listă.",
+    "Avanti допомагає Вам готувати заяви й документи для CAF та patronati: напишіть, що Вам потрібно, або оберіть заяву зі списку.",
+    "يساعدك Avanti في تجهيز الطلبات والوثائق لمراكز CAF وpatronati: اكتب ما تحتاجه أو اختر طلبًا من القائمة.",
+    "Avanti আপনাকে CAF ও patronati-এর আবেদন ও নথি প্রস্তুত করতে সাহায্য করে: কী দরকার লিখুন অথবা তালিকা থেকে একটি আবেদন বেছে নিন।",
+  ],
   isee: [
     "ISEE ordinario",
     "Household income certificate (ISEE ordinario)",

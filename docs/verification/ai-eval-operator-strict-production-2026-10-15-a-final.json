@@ -1,0 +1,425 @@
+{
+  "summary": {
+    "mode": "strict-production-2026-10-15-a-final",
+    "configuration": {
+      "provider": "openrouter",
+      "models": {
+        "fast": "deepseek/deepseek-v4.1-flash",
+        "audio": "google/gemini-3.5-flash-lite",
+        "reasoning": "deepseek/deepseek-v4.1-flash",
+        "vision": "openai/gpt-6-luna"
+      },
+      "dataPolicy": "strict",
+      "fallbacks": ["openai/gpt-6-luna"],
+      "reasoning": {
+        "fast": "off",
+        "reasoning": "minimal",
+        "vision": "minimal",
+        "audio": "minimal"
+      },
+      "attemptTimeoutMs": {
+        "fast": 6000,
+        "reasoning": 25000,
+        "vision": 20000,
+        "audio": 20000
+      },
+      "totalTimeoutMs": 45000,
+      "maxAttempts": 3,
+      "prices": {
+        "deepseek/deepseek-v4.1-flash": [0.03, 0.7],
+        "openai/gpt-6-luna": [0.1, 0.5]
+      },
+      "keyPresent": true,
+      "monthlyBudgetEur": 50
+    },
+    "transport": "production:createTransport",
+    "transportOverride": false,
+    "isolatedRuntimePerCase": false,
+    "knowledgeVersion": "b94cbc660f3a984a",
+    "cases": 27,
+    "passed": 27,
+    "ai": 25,
+    "heuristic": 2,
+    "requests": 26,
+    "expectedLocal": 2,
+    "unexpectedFallbacks": 0,
+    "measuredCostReceipts": 0,
+    "actualCostUsd": null,
+    "costEstimateEur": 0.01601085
+  },
+  "rows": [
+    {
+      "id": "realistic:brief:ready",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 5916,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.0008148599999999999,
+      "retryReasons": [],
+      "details": {
+        "members": 2,
+        "documents": 9,
+        "rulesDocuments": 0,
+        "expectedStep": "ready_for_practice",
+        "actualStep": "ready_for_practice",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:ready",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 2299,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00032146,
+      "retryReasons": [],
+      "details": {
+        "members": 2,
+        "rulesFindings": 1,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 1
+      }
+    },
+    {
+      "id": "realistic:brief:uploaded",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 9544,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00118626,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "documents": 11,
+        "rulesDocuments": 0,
+        "expectedStep": "verify_documents",
+        "actualStep": "verify_documents",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:uploaded",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 2975,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00041987999999999997,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "rulesFindings": 12,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 12
+      }
+    },
+    {
+      "id": "realistic:brief:mixed",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 3511,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00074068,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "documents": 11,
+        "rulesDocuments": 6,
+        "expectedStep": "verify_documents",
+        "actualStep": "verify_documents",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:mixed",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 1650,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00035994,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "rulesFindings": 12,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 12
+      }
+    },
+    {
+      "id": "realistic:brief:wrong_year",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 7785,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00116746,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "documents": 11,
+        "rulesDocuments": 0,
+        "expectedStep": "needs_operator_judgement",
+        "actualStep": "needs_operator_judgement",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:wrong_year",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 4287,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00062141,
+      "retryReasons": [],
+      "details": {
+        "members": 3,
+        "rulesFindings": 16,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 16
+      }
+    },
+    {
+      "id": "realistic:brief:large_missing",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 7895,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00125319,
+      "retryReasons": [],
+      "details": {
+        "members": 4,
+        "documents": 8,
+        "rulesDocuments": 0,
+        "expectedStep": "ask_citizen",
+        "actualStep": "ask_citizen",
+        "invalidEvidence": 0
+      }
+    },
+    {
+      "id": "realistic:consistency:large_missing",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 10461,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.0005007,
+      "retryReasons": [],
+      "details": {
+        "members": 4,
+        "rulesFindings": 13,
+        "aiFindings": 0,
+        "repeatedRulesFindings": 0,
+        "afterDedup": 13
+      }
+    },
+    {
+      "id": "consistency:clean",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 4864,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00028049,
+      "retryReasons": []
+    },
+    {
+      "id": "consistency:wrong_name",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 9834,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00038616,
+      "retryReasons": []
+    },
+    {
+      "id": "consistency:wrong_year",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 5306,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00022710999999999999,
+      "retryReasons": []
+    },
+    {
+      "id": "consistency:expired",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 6111,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00051691,
+      "retryReasons": []
+    },
+    {
+      "id": "consistency:undeclared",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 3750,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00034616,
+      "retryReasons": []
+    },
+    {
+      "id": "brief",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 9343,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00058532,
+      "retryReasons": []
+    },
+    {
+      "id": "request-draft",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 5239,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00012117999999999997,
+      "retryReasons": []
+    },
+    {
+      "id": "ask:years",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 2322,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00029838,
+      "retryReasons": []
+    },
+    {
+      "id": "ask:cu",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 1512,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00022941,
+      "retryReasons": []
+    },
+    {
+      "id": "ask:outside",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "ask:injection",
+      "engine": "heuristic",
+      "model": null,
+      "pass": true,
+      "latencyMs": 0,
+      "attempts": 0,
+      "fallbackReason": "not_configured",
+      "costEstimateEur": 0,
+      "retryReasons": []
+    },
+    {
+      "id": "reply-draft",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 2974,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00029459999999999995,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:bank-image",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 24720,
+      "attempts": 2,
+      "fallbackReason": null,
+      "costEstimateEur": 0.0047285,
+      "retryReasons": ["timeout"]
+    },
+    {
+      "id": "prefill:cu-pdf",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 11662,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.000188,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:rent-pdf",
+      "engine": "ai",
+      "model": "openai/gpt-6-luna",
+      "pass": true,
+      "latencyMs": 2831,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00019,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:select",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 2664,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.00015349,
+      "retryReasons": []
+    },
+    {
+      "id": "prefill:conflict",
+      "engine": "ai",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "pass": true,
+      "latencyMs": 3695,
+      "attempts": 1,
+      "fallbackReason": null,
+      "costEstimateEur": 0.0000793,
+      "retryReasons": []
+    }
+  ],
+  "receipts": []
+}

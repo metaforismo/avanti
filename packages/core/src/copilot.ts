@@ -126,6 +126,18 @@ export function deterministicConsistency(d: CopilotDossier): ConsistencyIssue[] 
   }
   return issues;
 }
+/** Same suppression in the operator API and in the production-transport eval. */
+export function repeatsRuleFinding(
+  issue: Pick<ConsistencyIssue, "text" | "checklistItemId">,
+  rules: ConsistencyIssue[],
+): boolean {
+  return rules.some(
+    (rule) =>
+      rule.text === issue.text ||
+      (issue.checklistItemId !== null && rule.checklistItemId === issue.checklistItemId),
+  );
+}
+
 export function heuristicBrief(
   d: CopilotDossier,
 ): Pick<DossierBrief, "situation" | "attention" | "missing" | "nextStep" | "nextStepReason"> {

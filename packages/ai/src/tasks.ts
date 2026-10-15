@@ -8,7 +8,13 @@ import {
   SafeText,
   type Question as QuestionType,
 } from "@avanti/contracts";
-import { extractFacts, getQuestions, listPractices } from "@avanti/core";
+import {
+  extractFacts,
+  getQuestions,
+  listPractices,
+  localIntakeIntent,
+  intakeEmergency,
+} from "@avanti/core";
 import { constitution, CONSTITUTION_VERSION } from "./prompts/constitution";
 import { intakePrompt, freeformPrompt, INTAKE_VERSION, FREEFORM_VERSION } from "./prompts/intake";
 import {
@@ -88,6 +94,7 @@ export const IntakeInput = z.object({
   now: z.date(),
 });
 export const IntakeOutput = z.object({
+  intent: z.enum(["need", "off_topic", "manipulation", "emergency"]),
   practiceId: PracticeId.nullable(),
   confidence: z.number().min(0).max(1),
   answers: z.record(z.string(), AnswerValue),
@@ -126,12 +133,23 @@ export const intakeTask: Task<z.infer<typeof IntakeInput>, z.infer<typeof Intake
     },
     untrusted: [{ kind: "citizen_text", text: i.text }],
   }),
-  heuristic: (i) => ({
-    ...extractFacts(i.text, i.language, i.practiceId ?? undefined),
-    reply: "",
-    manipulation: false,
-  }),
+  heuristic: (i) => {
+    const facts = extractFacts(i.text, i.language, i.practiceId ?? undefined);
+    const intent = localIntakeIntent(
+      i.text,
+      Boolean(facts.practiceId || Object.keys(facts.answers).length),
+    );
+    return {
+      ...(intent === "need" ? facts : { practiceId: null, confidence: 0, answers: {} }),
+      intent,
+      reply: "",
+      manipulation: intent === "manipulation",
+    };
+  },
   validate: (o, i) =>
+    (!intakeEmergency(i.text) || o.intent === "emergency") &&
+    (!o.manipulation || o.intent === "manipulation" || o.intent === "emergency") &&
+    (o.intent === "need" || (o.practiceId === null && Object.keys(o.answers).length === 0)) &&
     (o.practiceId !== null || i.practiceId !== null || Object.keys(o.answers).length === 0) &&
     (!o.practiceId ||
       listPractices("it").some((p) => p.id === o.practiceId && p.availability !== "coming_soon")) &&
