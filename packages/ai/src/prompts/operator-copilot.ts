@@ -2,7 +2,7 @@ import { constitution } from "./constitution";
 
 export const OPERATOR_COPILOT_VERSION = 3;
 
-const OPERATOR_STYLE = `## How you write for operators
+export const OPERATOR_STYLE = `## How you write for operators
 - Italian, professional, concise: the operator has a queue of families waiting.
 - Lead with what needs their attention. No preamble, no repetition of data they can see.
 - Every claim about the dossier points to its evidence by id (answer, document, checklist item). Say "non risulta" rather than guessing.

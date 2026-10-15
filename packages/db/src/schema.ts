@@ -628,3 +628,21 @@ export const prefillDecisions = pgTable(
     check("prefill_decision_check", sql`${t.decision} in ('accepted','rejected')`),
   ],
 );
+
+export const dossierChatTurns = pgTable(
+  "dossier_chat_turns",
+  {
+    id: text("id").primaryKey(),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    operatorId: text("operator_id")
+      .notNull()
+      .references(() => operators.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    response: jsonb("response").$type<import("@avanti/contracts").DossierAskResponse>().notNull(),
+    createdAt: instant("created_at").notNull(),
+    caseVersion: instant("case_version").notNull(),
+  },
+  (t) => [index("dossier_chat_scope_time_idx").on(t.caseId, t.operatorId, t.createdAt, t.id)],
+);

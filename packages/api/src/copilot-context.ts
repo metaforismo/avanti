@@ -6,7 +6,15 @@ export function redactContact(text: string): string {
     .replace(/(?<!\w)\+?\d[\d ().-]{7,}\d(?!\w)/g, "[contatto omesso]");
 }
 export function copilotDossier(d: CaseDossier): CopilotDossier {
-  const clean = redactContact;
+  // Rule findings also embed filenames; omitting only documents.fileName is insufficient.
+  const names = d.documents
+    .map((doc) => doc.fileName)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  const clean = (text: string) =>
+    redactContact(
+      names.reduce((value, name) => value.split(name).join("Documento caricato"), text),
+    );
   const count = d.answers.find((a) => a.questionId === "accounts_count")?.answer;
   return {
     practice: d.practice,
