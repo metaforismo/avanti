@@ -50,6 +50,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link className="hover:text-ink" href="/accessibilita">
+                Accessibilità
+              </Link>
+            </li>
+            <li>
               <a className="hover:text-ink" href="mailto:ciao@avanti.example">
                 Contatti
               </a>

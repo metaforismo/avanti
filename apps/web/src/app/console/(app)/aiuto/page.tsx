@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { KnowledgeAsk } from "@/components/console/knowledge-ask";
+import { PageContainer, PageHeader, SectionHeader } from "@/components/ui/page-header";
 
 export const metadata: Metadata = { title: "Aiuto" };
 
@@ -37,21 +38,18 @@ const FAQ = [
 
 export default function HelpPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:py-8">
-      <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Aiuto</h1>
-      <p className="mt-2 text-lg text-ink-2">
-        Avanti prepara la pratica prima che il cittadino arrivi. Tu verifichi e decidi; la pratica
-        ufficiale si fa come sempre nel vostro gestionale.
-      </p>
+    <PageContainer width="3xl">
+      <PageHeader
+        title="Aiuto"
+        lead="Avanti prepara la pratica prima che il cittadino arrivi. Tu verifichi e decidi; la pratica ufficiale si fa come sempre nel vostro gestionale."
+      />
 
       <div className="mt-8">
         <KnowledgeAsk />
       </div>
 
       <section className="mt-10" aria-labelledby="flow">
-        <h2 id="flow" className="font-display text-xl font-semibold">
-          Una pratica, dall&apos;inizio alla fine
-        </h2>
+        <SectionHeader id="flow" title={<>Una pratica, dall&apos;inizio alla fine</>} />
         <ol className="mt-4 grid gap-4">
           {[
             [
@@ -86,9 +84,7 @@ export default function HelpPage() {
       </section>
 
       <section className="mt-10" aria-labelledby="queue">
-        <h2 id="queue" className="font-display text-xl font-semibold">
-          Gli stati della coda
-        </h2>
+        <SectionHeader id="queue" title="Gli stati della coda" />
         <dl className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
           {QUEUE.map(([term, description]) => (
             <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[12rem_1fr]">
@@ -100,9 +96,7 @@ export default function HelpPage() {
       </section>
 
       <section className="mt-10" aria-labelledby="good">
-        <h2 id="good" className="font-display text-xl font-semibold">
-          Da sapere
-        </h2>
+        <SectionHeader id="good" title="Da sapere" />
         <ul className="mt-4 grid gap-3 text-ink-2">
           <li>
             La revisione e il cronometro partono alla tua prima azione, non quando apri la pratica.
@@ -126,9 +120,7 @@ export default function HelpPage() {
       </section>
 
       <section className="mt-10" aria-labelledby="faq">
-        <h2 id="faq" className="font-display text-xl font-semibold">
-          Domande frequenti
-        </h2>
+        <SectionHeader id="faq" title="Domande frequenti" />
         <div className="mt-4 divide-y divide-line border-y border-line">
           {FAQ.map(([q, a]) => (
             <details key={q} className="group py-1">
@@ -143,6 +135,6 @@ export default function HelpPage() {
           ))}
         </div>
       </section>
-    </div>
+    </PageContainer>
   );
 }

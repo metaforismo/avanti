@@ -7,6 +7,7 @@ import {
   useBrowserLanguage,
   useDocumentLanguage,
 } from "@/lib/citizen/document-language";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AssistantContext, type AssistantFocus } from "@/lib/citizen/assistant";
 import { forgetCaseToken } from "@/lib/citizen/local-cases";
 import { messagesFor, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
@@ -117,7 +118,7 @@ export function CitizenApp({ token }: { token: string }) {
       >
         <a
           href="#contenuto"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-sm focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-50 focus:rounded-sm focus:bg-contrast focus:px-4 focus:py-2 focus:text-on-contrast"
         >
           {m.common.skipToContent}
         </a>
@@ -153,16 +154,16 @@ function LoadingShell({ label }: { label: string }) {
       <div className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-4">
           <div className="flex-1 space-y-2">
-            <div className="h-4 w-40 animate-pulse rounded-xs bg-sunk" />
-            <div className="h-3 w-24 animate-pulse rounded-xs bg-sunk" />
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-24" />
           </div>
         </div>
       </div>
       <div className="mx-auto max-w-xl space-y-4 px-4 pt-8">
-        <div className="h-8 w-3/4 animate-pulse rounded-sm bg-sunk" />
-        <div className="h-4 w-full animate-pulse rounded-xs bg-sunk" />
-        <div className="h-4 w-2/3 animate-pulse rounded-xs bg-sunk" />
-        <div className="mt-8 h-32 animate-pulse rounded-lg bg-sunk" />
+        <Skeleton className="h-8 w-3/4 rounded-sm" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="mt-8 h-32 rounded-lg" />
       </div>
     </div>
   );

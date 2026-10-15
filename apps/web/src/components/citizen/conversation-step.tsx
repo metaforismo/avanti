@@ -1,14 +1,15 @@
 "use client";
 
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { MemberRole } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { ProgressBar } from "@/components/ui/progress";
 import { errorMessage, format } from "@/lib/citizen/messages";
 import { useConversation, type ConversationTurn } from "@/lib/citizen/conversation";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
-import { cn } from "@/lib/cn";
+import { ChatBubble } from "./chat-bubble";
 import type { StepProps } from "./citizen-app";
 import { Composer } from "./composer";
 import { AnsweredList, InterviewStep } from "./interview-step";
@@ -92,9 +93,9 @@ export function ConversationStep(props: StepProps) {
       </ol>
 
       {conversation.error && conversation.error.status !== 404 && (
-        <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
+        <Notice tone="danger" size="md">
           {errorMessage(m, conversation.error.status === 0 ? "network" : conversation.error.code)}
-        </p>
+        </Notice>
       )}
 
       {state && state.proposals.length > 0 && (
@@ -177,29 +178,11 @@ export function ConversationStep(props: StepProps) {
 function Turn({ turn, you, avanti }: { turn: ConversationTurn; you: string; avanti: string }) {
   const mine = turn.role === "citizen";
   return (
-    <li className={cn("flex", mine ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[85%] animate-fade-in rounded-2xl px-4 py-2.5",
-          mine
-            ? "rounded-ee-md bg-stamp text-on-stamp"
-            : "rounded-es-md bg-surface ring-1 ring-line",
-        )}
-      >
-        <p
-          className={cn(
-            "mb-0.5 flex items-center gap-1 text-xs",
-            mine ? "text-on-stamp/80" : "text-ink-3",
-          )}
-        >
-          {!mine && <Sparkles className="size-3" aria-hidden />}
-          {mine ? you : avanti}
-        </p>
-        <p dir="auto" className="break-words whitespace-pre-line">
-          {turn.text}
-        </p>
-      </div>
-    </li>
+    <ChatBubble
+      from={mine ? "citizen" : "assistant"}
+      label={mine ? you : avanti}
+      text={turn.text}
+    />
   );
 }
 

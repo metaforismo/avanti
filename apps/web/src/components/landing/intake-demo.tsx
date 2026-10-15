@@ -85,7 +85,9 @@ export function IntakeDemo() {
             }}
             className={cn(
               "h-8 rounded-full px-3 font-sans text-sm transition-colors duration-150",
-              i === sampleIndex ? "bg-ink text-white" : "text-ink-2 hover:bg-sunk hover:text-ink",
+              i === sampleIndex
+                ? "bg-contrast text-on-contrast"
+                : "text-ink-2 hover:bg-sunk hover:text-ink",
             )}
           >
             {s.label}
@@ -148,7 +150,7 @@ export function IntakeDemo() {
           </p>
           <span className="font-mono text-xs whitespace-nowrap text-ink-3">AV-2027-000318</span>
         </div>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 px-5 py-4 text-[0.9375rem] sm:px-6">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 px-5 py-4 text-body-sm sm:px-6">
           {FACTS.map((fact, i) => (
             <div key={fact.key} className="contents">
               <dt className="text-ink-3">{fact.key}</dt>
@@ -156,7 +158,7 @@ export function IntakeDemo() {
                 <span
                   aria-hidden
                   className={cn(
-                    "absolute inset-y-1 left-0 w-28 rounded-xs bg-sunk transition-opacity duration-200",
+                    "absolute inset-y-1 start-0 w-28 rounded-xs bg-sunk transition-opacity duration-200",
                     shown > i ? "opacity-0" : "opacity-100",
                   )}
                 />
@@ -174,7 +176,7 @@ export function IntakeDemo() {
         </dl>
         <ul
           className={cn(
-            "grid gap-2 border-t border-dashed border-line px-5 py-4 text-[0.9375rem] transition-opacity duration-500 sm:px-6",
+            "grid gap-2 border-t border-dashed border-line px-5 py-4 text-body-sm transition-opacity duration-500 sm:px-6",
             done ? "opacity-100" : "opacity-0",
           )}
           aria-hidden={!done}

@@ -6,6 +6,9 @@ import { useEffect, type ReactNode } from "react";
 import type { Route } from "next";
 import type { SystemStatus, SystemStatusLevel } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
+import { PageContainer, PageHeader, SectionHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
@@ -70,10 +73,10 @@ export default function SystemStatusPage() {
   const operator = useOperator();
   if (operator.role !== "admin") {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
+      <PageContainer width="3xl" className="py-16 text-center lg:py-16">
         <h1 className="font-display text-2xl font-semibold">Stato riservato</h1>
         <p className="mt-2 text-ink-2">Lo stato del sistema lo consulta un amministratore.</p>
-      </div>
+      </PageContainer>
     );
   }
   return <StatusView />;
@@ -91,44 +94,40 @@ function StatusView() {
   }, [reload]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Stato del sistema</h1>
-          <p className="mt-1 text-ink-2">Si aggiorna ogni minuto. Non mostra dati dei cittadini.</p>
-        </div>
-        <Button
-          variant="secondary"
-          loading={status.refreshing || status.reloading}
-          onClick={() => reload()}
-        >
-          <RefreshCw className="size-4" aria-hidden />
-          Aggiorna
-        </Button>
-      </div>
+    <PageContainer width="5xl">
+      <PageHeader
+        title="Stato del sistema"
+        lead="Si aggiorna ogni minuto. Non mostra dati dei cittadini."
+        actions={
+          <Button
+            variant="secondary"
+            loading={status.refreshing || status.reloading}
+            onClick={() => reload()}
+          >
+            <RefreshCw className="size-4" aria-hidden />
+            Aggiorna
+          </Button>
+        }
+      />
 
       {status.status === "error" && !status.data ? (
-        <div role="alert" className="mt-6 rounded-lg bg-danger-wash p-6 text-danger">
-          <p className="font-semibold">Stato non disponibile.</p>
-          <p className="mt-1 text-sm">{status.error.message}</p>
-        </div>
+        <Notice tone="danger" size="page" className="mt-6" title="Stato non disponibile.">
+          {status.error.message}
+        </Notice>
       ) : !status.data ? (
-        <div className="mt-6 h-64 animate-pulse rounded-lg bg-sunk" aria-hidden />
+        <Skeleton className="mt-6 h-64 rounded-lg" />
       ) : (
         <>
           {status.status === "error" && (
-            <p
-              role="alert"
-              className="mt-6 rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
-            >
+            <Notice tone="danger" className="mt-6">
               Aggiornamento non riuscito: i dati qui sotto sono quelli del{" "}
               {formatDateTime(status.data.generatedAt)}. {status.error.message}
-            </p>
+            </Notice>
           )}
           <StatusBody data={status.data} />
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }
 
@@ -160,9 +159,7 @@ function StatusBody({ data }: { data: SystemStatus }) {
       </section>
 
       <section aria-labelledby="components-title">
-        <h2 id="components-title" className="font-display text-xl font-semibold">
-          Componenti
-        </h2>
+        <SectionHeader id="components-title" title="Componenti" />
         <ul className="mt-3 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
           <ComponentRow name="Database" level={database.status} code={database.code} />
           <ComponentRow name="Archivio documenti" level={storage.status} code={storage.code} />
@@ -196,9 +193,7 @@ function StatusBody({ data }: { data: SystemStatus }) {
       </section>
 
       <section aria-labelledby="counters-title">
-        <h2 id="counters-title" className="font-display text-xl font-semibold">
-          Da tenere d&apos;occhio
-        </h2>
+        <SectionHeader id="counters-title" title={<>Da tenere d&apos;occhio</>} />
         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
           <Counter
             label="Documenti in analisi da più di 10 minuti"

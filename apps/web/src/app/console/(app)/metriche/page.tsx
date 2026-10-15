@@ -6,7 +6,10 @@ import type { Route } from "next";
 import type { Metrics } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
+import { Notice } from "@/components/ui/notice";
+import { PageContainer, PageHeader, SectionHeader } from "@/components/ui/page-header";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DailyChart } from "@/components/console/daily-chart";
 import { formatMinutes, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
@@ -18,6 +21,7 @@ const RANGES = [
   { days: 30, label: "30 giorni" },
   { days: 90, label: "90 giorni" },
 ] as const;
+const RANGE_OPTIONS = RANGES.map((range) => ({ value: String(range.days), label: range.label }));
 
 // Calendar days in Italian time: toISOString() would drop "today" between 00:00 and 02:00.
 const romeDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" });
@@ -64,62 +68,58 @@ function MetricsView() {
   const data = metrics.data;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Metriche</h1>
-          <p className="mt-1 text-ink-2">
-            Tempi e completezza misurati sulle pratiche reali, non stimati.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {operator.offices.length > 1 && (
-            <Select
-              value={officeId}
-              onChange={(e) => setOfficeId(e.target.value)}
-              aria-label="Sportello"
-              compact
-              className="h-9 text-sm"
-            >
-              <option value="">Tutti gli sportelli</option>
-              {operator.offices.map((office) => (
-                <option key={office.id} value={office.id}>
-                  {office.name}
-                </option>
-              ))}
-            </Select>
-          )}
-          <div role="group" aria-label="Periodo" className="flex rounded-sm bg-sunk p-0.5">
-            {RANGES.map((range) => (
-              <button
-                key={range.days}
-                type="button"
-                aria-pressed={days === range.days}
-                onClick={() => setDays(range.days)}
-                className={cn(
-                  "h-8 rounded-[5px] px-3 text-sm transition-colors",
-                  days === range.days
-                    ? "bg-surface font-semibold shadow-raised"
-                    : "text-ink-2 hover:text-ink",
-                )}
+    <PageContainer width="6xl">
+      <PageHeader
+        title="Metriche"
+        lead="Tempi e completezza misurati sulle pratiche reali, non stimati."
+        actions={
+          <>
+            {operator.offices.length > 1 && (
+              <Select
+                value={officeId}
+                onChange={(e) => setOfficeId(e.target.value)}
+                aria-label="Sportello"
+                compact
+                className="h-9 text-sm"
               >
-                {range.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+                <option value="">Tutti gli sportelli</option>
+                {operator.offices.map((office) => (
+                  <option key={office.id} value={office.id}>
+                    {office.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+            <SegmentedControl
+              label="Periodo"
+              value={String(days)}
+              options={RANGE_OPTIONS}
+              onChange={(value) => setDays(Number(value))}
+            />
+          </>
+        }
+      />
 
       {metrics.status === "error" && !data ? (
-        <div className="mt-8 rounded-lg bg-danger-wash p-6 text-danger">
-          <p className="font-semibold">Metriche non disponibili.</p>
-          <Button variant="secondary" className="mt-4" onClick={() => void metrics.reload()}>
-            Riprova
-          </Button>
-        </div>
+        <Notice
+          tone="danger"
+          size="page"
+          className="mt-8"
+          title="Metriche non disponibili."
+          action={
+            <Button variant="secondary" onClick={() => void metrics.reload()}>
+              Riprova
+            </Button>
+          }
+        />
       ) : !data ? (
-        <div className="grid min-h-80 place-items-center text-ink-3">
-          <Spinner label="Caricamento metriche" />
+        <div className="mt-8 grid gap-8">
+          <p role="status" className="sr-only">
+            Caricamento metriche
+          </p>
+          <Skeleton className="h-28 rounded-lg" />
+          <Skeleton className="h-48 rounded-lg" />
+          <Skeleton className="h-64 rounded-lg" />
         </div>
       ) : (
         <div
@@ -144,9 +144,7 @@ function MetricsView() {
             aria-labelledby="time-title"
             className="rounded-lg bg-surface p-5 ring-1 ring-line sm:p-6"
           >
-            <h2 id="time-title" className="font-display text-xl font-semibold">
-              Tempo per pratica
-            </h2>
+            <SectionHeader id="time-title" title="Tempo per pratica" />
             <div className="mt-5 grid gap-6 sm:grid-cols-3">
               <TimeFigure label="Revisione dell'operatore" value={data.avgReviewMinutes} emphasis />
               <TimeFigure
@@ -192,7 +190,7 @@ function MetricsView() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

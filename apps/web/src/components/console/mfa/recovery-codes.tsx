@@ -3,7 +3,9 @@
 import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CopyButton } from "@/components/ui/copy-button";
+import { Notice } from "@/components/ui/notice";
 
 /** Recovery codes leave the server once: the operator must keep them before moving on. */
 export function RecoveryCodes({
@@ -44,9 +46,10 @@ export function RecoveryCodes({
 
   return (
     <div className="grid max-w-xl gap-5">
-      <div className="rounded-md bg-ok-wash px-4 py-3 text-ok">
+      {/* Focus moves to the codes below: announcing this too would talk over them. */}
+      <Notice tone="ok" role="none">
         Verifica in due passaggi attiva.
-      </div>
+      </Notice>
       <div>
         <h3 ref={heading} tabIndex={-1} className="font-display text-lg font-semibold outline-none">
           Salva i codici di recupero
@@ -82,15 +85,11 @@ export function RecoveryCodes({
           Scarica .txt
         </Button>
       </div>
-      <label className="flex cursor-pointer items-start gap-3">
-        <input
-          type="checkbox"
-          checked={saved}
-          onChange={(e) => setSaved(e.target.checked)}
-          className="mt-1 size-4.5 shrink-0 accent-stamp"
-        />
-        <span>Ho salvato i codici in un posto sicuro</span>
-      </label>
+      <Checkbox
+        label="Ho salvato i codici in un posto sicuro"
+        checked={saved}
+        onChange={(e) => setSaved(e.target.checked)}
+      />
       <Button type="button" disabled={!saved} onClick={onDone} className="w-fit">
         {doneLabel}
       </Button>

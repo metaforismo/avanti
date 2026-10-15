@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Phone, Sparkles } from "lucide-react";
+import { History, MapPin, Phone, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
@@ -8,6 +8,9 @@ import type { Language, Office, OrganizationPublic, StartIntakeResponse } from "
 import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Notice } from "@/components/ui/notice";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { forgetCase, recallCase, rememberCase } from "@/lib/citizen/local-cases";
 import { errorMessage, format, LANGUAGE_NAMES, messagesFor } from "@/lib/citizen/messages";
@@ -124,8 +127,8 @@ export function OfficeStart({
             </div>
           ) : (
             <div className="flex-1 space-y-2" aria-hidden>
-              <div className="h-4 w-40 animate-pulse rounded-xs bg-sunk" />
-              <div className="h-3 w-28 animate-pulse rounded-xs bg-sunk" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-28" />
             </div>
           )}
           <span translate="no" className="flex items-center gap-1.5 text-xs text-ink-3" dir="ltr">
@@ -137,23 +140,29 @@ export function OfficeStart({
 
       <main className="mx-auto max-w-xl px-4 pt-8 pb-16">
         {resumeToken && (
-          <section className="mb-8 animate-rise rounded-lg bg-stamp-wash p-5">
-            <p className="font-semibold">{m.start.resumeHint}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button asChild>
-                <Link href={`/pratica/${resumeToken}`}>{m.start.resume}</Link>
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  forgetCase(officeSlug);
-                  setResumeToken(null);
-                }}
-              >
-                {m.start.startNew}
-              </Button>
-            </div>
-          </section>
+          <Notice
+            tone="info"
+            size="md"
+            icon={History}
+            title={m.start.resumeHint}
+            className="mb-8 animate-rise"
+            action={
+              <div className="flex flex-wrap gap-2">
+                <Button asChild>
+                  <Link href={`/pratica/${resumeToken}`}>{m.start.resume}</Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    forgetCase(officeSlug);
+                    setResumeToken(null);
+                  }}
+                >
+                  {m.start.startNew}
+                </Button>
+              </div>
+            }
+          />
         )}
 
         <h1 className="font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em] sm:text-[2.5rem]">
@@ -228,21 +237,18 @@ export function OfficeStart({
                 {m.start.privacyLink}
               </a>
             </p>
-            <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-md bg-surface p-4 ring-1 ring-line-strong ring-inset has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp">
-              <input
-                id="consent"
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => {
-                  setConsent(e.target.checked);
-                  setConsentError(false);
-                }}
-                aria-invalid={consentError || undefined}
-                aria-describedby={consentError ? "consent-error" : undefined}
-                className="mt-0.5 size-5 shrink-0 accent-stamp"
-              />
-              <span className="font-semibold">{m.start.consent}</span>
-            </label>
+            <Checkbox
+              look="card"
+              id="consent"
+              label={m.start.consent}
+              checked={consent}
+              onChange={(e) => {
+                setConsent(e.target.checked);
+                setConsentError(false);
+              }}
+              aria-invalid={consentError || undefined}
+              aria-describedby={consentError ? "consent-error" : undefined}
+            />
             {consentError && (
               <p id="consent-error" role="alert" className="text-sm font-medium text-danger">
                 {m.start.consentRequired}
@@ -251,9 +257,9 @@ export function OfficeStart({
           </div>
 
           {startError && (
-            <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-danger">
+            <Notice tone="danger" size="md">
               {startError}
-            </p>
+            </Notice>
           )}
 
           <Button type="submit" size="lg" loading={starting} disabled={!info} className="w-full">

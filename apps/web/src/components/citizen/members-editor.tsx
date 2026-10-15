@@ -190,7 +190,7 @@ function MemberRow({
           <button
             type="button"
             onClick={onRemove}
-            className="-m-2 grid size-11 place-items-center rounded-sm text-ink-3 hover:bg-danger-wash hover:text-danger"
+            className="-m-2 grid size-11 shrink-0 place-items-center rounded-sm text-ink-3 hover:bg-danger-wash hover:text-danger"
             aria-label={
               member.firstName.trim()
                 ? `${m.common.remove}: ${member.firstName.trim()}`
@@ -212,7 +212,7 @@ function MemberRow({
                   "inline-flex min-h-10 cursor-pointer items-center rounded-full px-3.5 text-sm ring-1 ring-line-strong ring-inset",
                   "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
                   member.role === role
-                    ? "bg-ink font-semibold text-white ring-ink"
+                    ? "bg-contrast font-semibold text-on-contrast ring-contrast"
                     : "bg-surface hover:bg-sunk",
                 )}
               >

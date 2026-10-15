@@ -4,6 +4,8 @@ import { ChevronDown, Clock } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { PracticeSummary } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
+import { Pill } from "@/components/ui/pill";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { format } from "@/lib/citizen/messages";
@@ -119,7 +121,7 @@ export function NeedStep({ api, data, m }: StepProps) {
               type="button"
               disabled={sending}
               onClick={() => void send(example)}
-              className="rounded-full bg-surface px-4 py-2.5 text-start text-[0.9375rem] text-ink ring-1 ring-line-strong transition-colors ring-inset hover:bg-sunk disabled:opacity-50"
+              className="rounded-full bg-surface px-4 py-2.5 text-start text-body-sm text-ink ring-1 ring-line-strong transition-colors ring-inset hover:bg-sunk disabled:opacity-50"
             >
               {example}
             </button>
@@ -169,22 +171,25 @@ function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
   }
   if (practices === "error") {
     return (
-      <div
-        role="alert"
-        className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-danger-wash px-4 py-3 text-danger"
+      <Notice
+        tone="danger"
+        size="md"
+        className="mt-3"
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setPractices(null);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            {m.common.retry}
+          </Button>
+        }
       >
-        <span className="flex-1">{m.errors.network}</span>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            setPractices(null);
-            setAttempt((n) => n + 1);
-          }}
-        >
-          {m.common.retry}
-        </Button>
-      </div>
+        {m.errors.network}
+      </Notice>
     );
   }
 
@@ -215,20 +220,21 @@ function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{practice.name}</span>
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-xs font-semibold",
-                      practice.availability === "available" && "bg-ok-wash text-ok",
-                      practice.availability === "beta" && "bg-stamp-wash text-stamp",
-                      practice.availability === "coming_soon" && "bg-sunk text-ink-3",
-                    )}
+                  <Pill
+                    tone={
+                      practice.availability === "available"
+                        ? "ok"
+                        : practice.availability === "beta"
+                          ? "stamp"
+                          : "muted"
+                    }
                   >
                     {practice.availability === "available"
                       ? m.need.available
                       : practice.availability === "beta"
                         ? m.need.beta
                         : m.need.comingSoon}
-                  </span>
+                  </Pill>
                 </span>
                 <span className="mt-1 block text-ink-2">{practice.description}</span>
                 {!disabled && (

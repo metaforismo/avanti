@@ -139,7 +139,7 @@ export function QuestionCard({
           type="button"
           disabled={busy}
           onClick={() => void api.turn({ type: "skip", questionId: question.id }, "skip")}
-          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-sm text-ink-2 underline underline-offset-4 hover:text-ink disabled:opacity-50"
+          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-sm text-ink-2 underline underline-offset-2 hover:text-ink disabled:opacity-50"
         >
           {m.interview.skip}
           {api.pending === "skip" && <Spinner className="size-4" />}
@@ -421,7 +421,7 @@ function AskAbout({ questionId, label }: { questionId: string; label: string }) 
     <button
       type="button"
       onClick={() => open({ questionId })}
-      className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-stamp underline underline-offset-4"
+      className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-stamp underline underline-offset-2"
     >
       <MessageCircleQuestion className="size-4" aria-hidden />
       {label}

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { AlertTriangle, Check, Clock3, FileCheck2, Languages, ShieldCheck } from "lucide-react";
+import { CitizenSnippet, OperatorSnippet } from "@/components/landing/ai-snippets";
 import { IntakeDemo } from "@/components/landing/intake-demo";
 import { LanguageShowcase } from "@/components/landing/language-showcase";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { Button } from "@/components/ui/button";
+import { Pill } from "@/components/ui/pill";
 
 // Public demo office (seeded, fictitious data). Unset in environments without demo data.
 const DEMO_OFFICE = process.env.NEXT_PUBLIC_DEMO_OFFICE_SLUG;
@@ -38,7 +40,7 @@ const STEPS = [
   },
   {
     title: "Risponde",
-    body: "Avanti fa solo le domande che mancano, una alla volta. Chi ha già detto «vivo con mia madre» non se lo sente richiedere.",
+    body: "Una conversazione, scritta o a voce, con le sole domande che mancano. Chi ha già detto «vivo con mia madre» non se lo sente richiedere: conferma quello che Avanti ha capito.",
   },
   {
     title: "Carica",
@@ -48,6 +50,44 @@ const STEPS = [
     title: "Consegna",
     body: "Il fascicolo arriva in coda allo sportello, già ordinato: riepilogo, nucleo, documenti, cosa manca. L'operatore verifica e fa la pratica.",
   },
+] as const;
+
+/** What the AI does in Avanti today, and what stays with people. Each line is a shipped feature. */
+const AI_CITIZEN = [
+  [
+    "Parla o scrive come allo sportello",
+    "Nella sua lingua, anche a voce. L'assistente capisce più informazioni in un messaggio, ripete cosa ha capito da confermare e chiede solo ciò che manca.",
+  ],
+  [
+    "Ha un dubbio a metà strada",
+    "Chiede all'assistente cosa vuol dire una domanda o dove trovare un documento. Se serve una persona, la domanda arriva allo sportello.",
+  ],
+  [
+    "Carica una foto sbagliata",
+    "Avanti la legge e avvisa subito se è il documento sbagliato, di un'altra persona, scaduto o illeggibile, prima che il fascicolo parta.",
+  ],
+] as const;
+
+const AI_OPERATOR = [
+  [
+    "Un riepilogo da collega",
+    "La situazione in due righe, cosa controllare e perché: ogni punto rimanda alla risposta o al documento da cui viene.",
+  ],
+  [
+    "Dichiarazioni e documenti a confronto",
+    "Nomi che non tornano, anni sbagliati, conti dichiarati senza estratto. E il prospetto DSU precompilato dai documenti, da confermare voce per voce.",
+  ],
+  [
+    "Meno scrittura",
+    "Bozze delle richieste d'integrazione e delle risposte ai cittadini, risposte rapide, domande normative con le fonti.",
+  ],
+] as const;
+
+const AI_LIMITS = [
+  "Non decide se un cittadino ha diritto a qualcosa e non manda nulla al suo posto: decide l'operatore.",
+  "Non inventa documenti, anni o regole: quelle stanno nel motore di Avanti, con le fonti ufficiali.",
+  "Se il fornitore AI non risponde o il budget del mese finisce, Avanti continua con le regole.",
+  "Usa solo fornitori che non conservano i dati e non li usano per addestrare, e solo ciò che serve a ogni compito.",
 ] as const;
 
 const PRACTICES = [
@@ -109,7 +149,11 @@ const FAQ = [
   },
   {
     q: "Cosa succede se l'AI sbaglia a riconoscere un documento?",
-    a: "Il cittadino vede a quale voce è stato abbinato e può spostarlo. L'operatore vede il grado di certezza e ha sempre l'ultima parola su ogni voce.",
+    a: "Il cittadino vede a quale voce è stato abbinato e può spostarlo; se l'avviso è sbagliato può dire «è giusto così». L'operatore vede il grado di certezza e ha sempre l'ultima parola su ogni voce: nessun documento è mai accettato o rifiutato dall'AI.",
+  },
+  {
+    q: "Dove finiscono i dati che passano dall'AI?",
+    a: "Solo a fornitori che non li conservano e non li usano per addestrare modelli, e solo la parte che serve a ogni compito: mai note interne o altri fascicoli. Il CAF può spegnere l'AI per i cittadini o per gli operatori: Avanti continua con le regole.",
   },
   {
     q: "Funziona con il nostro gestionale?",
@@ -152,7 +196,7 @@ export default function HomePage() {
               Vuoi vederlo dal lato del cittadino?{" "}
               <Link
                 href={`/s/${DEMO_OFFICE}`}
-                className="font-semibold text-stamp underline underline-offset-4"
+                className="font-semibold text-stamp underline underline-offset-2"
               >
                 Prova la demo dal telefono
               </Link>
@@ -211,7 +255,7 @@ export default function HomePage() {
           {STEPS.map((step, i) => (
             <li key={step.title} className="relative">
               <div className="flex items-center gap-3">
-                <span className="tabular grid size-9 place-items-center rounded-full bg-stamp font-display text-base font-bold text-white">
+                <span className="tabular grid size-9 place-items-center rounded-full bg-stamp font-display text-base font-bold text-on-stamp">
                   {i + 1}
                 </span>
                 {i < STEPS.length - 1 && (
@@ -227,8 +271,65 @@ export default function HomePage() {
         </ol>
       </section>
 
+      {/* AI */}
+      <section aria-labelledby="ai-title" className="border-y border-line bg-surface">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
+          <div className="max-w-2xl">
+            <h2
+              id="ai-title"
+              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
+            >
+              L&apos;intelligenza artificiale, dove fa risparmiare tempo.
+            </h2>
+            <p className="mt-5 text-lg text-ink-2">
+              Non un chatbot appoggiato sopra: l&apos;AI lavora dentro il percorso, accanto a regole
+              scritte con le fonti ufficiali che decidono cosa chiedere e cosa serve.
+            </p>
+          </div>
+          <div className="mt-14 grid gap-12 lg:grid-cols-2">
+            {(
+              [
+                ["Per il cittadino", AI_CITIZEN],
+                ["Per l'operatore", AI_OPERATOR],
+              ] as const
+            ).map(([title, items], index) => (
+              <div key={title}>
+                <h3 className="font-display text-2xl font-semibold tracking-[-0.015em]">{title}</h3>
+                <div className="mt-6">{index === 0 ? <CitizenSnippet /> : <OperatorSnippet />}</div>
+                <dl className="mt-8 grid gap-6">
+                  {items.map(([term, text]) => (
+                    <div key={term}>
+                      <dt className="font-semibold">{term}</dt>
+                      <dd className="mt-1 leading-relaxed text-ink-2">{text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+          <div className="mt-14 rounded-lg bg-paper p-6 ring-1 ring-line">
+            <h3 className="flex items-center gap-2 font-semibold">
+              <ShieldCheck className="size-5 text-stamp" aria-hidden />
+              Cosa resta alle persone
+            </h3>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {AI_LIMITS.map((line) => (
+                <li key={line} className="flex gap-2.5 leading-relaxed text-ink-2">
+                  <Check className="mt-1 size-4 shrink-0 text-ok" aria-hidden />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Operators */}
-      <section id="operatori" aria-labelledby="operatori-title" className="bg-ink text-white">
+      <section
+        id="operatori"
+        aria-labelledby="operatori-title"
+        className="bg-contrast text-on-contrast"
+      >
         <div className="mx-auto grid max-w-6xl gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
           <div>
             <h2
@@ -237,7 +338,7 @@ export default function HomePage() {
             >
               L&apos;operatore apre il fascicolo e sa già dove guardare.
             </h2>
-            <p className="mt-5 text-lg leading-relaxed text-white/75">
+            <p className="mt-5 text-lg leading-relaxed text-on-contrast/75">
               Prima i problemi bloccanti, poi gli avvisi, poi tutto il resto. Ogni voce si verifica
               con un clic; le integrazioni si chiedono nel link del cittadino, nella sua lingua.
             </p>
@@ -260,7 +361,7 @@ export default function HomePage() {
                   text: "Tempi, mancanti e integrazioni misurati pratica per pratica: nel pilota li confrontiamo con il vostro flusso abituale",
                 },
               ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex gap-3.5 text-white/90">
+                <li key={text} className="flex gap-3.5 text-on-contrast/90">
                   <Icon className="mt-0.5 size-5 shrink-0 text-marker" aria-hidden />
                   {text}
                 </li>
@@ -283,7 +384,7 @@ export default function HomePage() {
           <ol className="mt-8 grid gap-6 md:grid-cols-3">
             {[
               "L'operatore verifica documenti e mancanti, voce per voce.",
-              "Consulta il prospetto DSU, nell'ordine del modello, con la fonte di ogni campo; scarica il riepilogo PDF o i dati JSON.",
+              "Consulta il prospetto DSU nell'ordine del modello: le risposte del cittadino, e gli importi letti dai documenti che ha confermato. Scarica il riepilogo PDF o i dati JSON.",
               "Copia i dati e carica gli originali nel software del CAF, con la procedura provata insieme durante l'avvio.",
             ].map((text, i) => (
               <li key={text} className="flex gap-4">
@@ -295,9 +396,9 @@ export default function HomePage() {
             ))}
           </ol>
           <p className="mt-8 max-w-3xl text-sm text-ink-3">
-            Avanti non legge gli importi dai documenti e non invia nulla agli enti: saldi e redditi
-            li legge l&apos;operatore nel documento indicato. Le integrazioni dirette con i
-            gestionali si definiscono con i piloti.
+            Gli importi letti dall&apos;AI nei documenti restano proposte finché l&apos;operatore
+            non li conferma sul file. Avanti non invia nulla agli enti; le integrazioni dirette con
+            i gestionali si definiscono con i piloti.
           </p>
         </div>
       </section>
@@ -375,8 +476,8 @@ export default function HomePage() {
                   aria-hidden
                   className={
                     p.live
-                      ? "absolute top-1.5 -left-[2.4rem] size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
-                      : "absolute top-1.5 -left-[2.3rem] size-3 rounded-full bg-surface ring-2 ring-line-strong"
+                      ? "absolute -start-[2.4rem] top-1.5 size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
+                      : "absolute -start-[2.3rem] top-1.5 size-3 rounded-full bg-surface ring-2 ring-line-strong"
                   }
                 />
                 <p className="tabular text-sm text-ink-3">{p.when}</p>
@@ -427,7 +528,7 @@ export default function HomePage() {
             </p>
             <Link
               href="/sicurezza"
-              className="mt-4 inline-block font-semibold text-stamp underline underline-offset-4"
+              className="mt-4 inline-block font-semibold text-stamp underline underline-offset-2"
             >
               Come proteggiamo i dati
             </Link>
@@ -526,7 +627,7 @@ function DossierPreview() {
     { label: "Targa del veicolo", state: "ok", note: "Dichiarata dal cittadino" },
   ] as const;
   return (
-    <figure className="self-center rounded-xl bg-paper text-ink shadow-float ring-1 ring-white/10">
+    <figure className="self-center rounded-xl bg-paper text-ink shadow-float ring-1 ring-on-contrast/10">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
         <div>
           <p className="font-display text-lg font-semibold tracking-[-0.01em]">
@@ -534,9 +635,9 @@ function DossierPreview() {
           </p>
           <p className="text-sm text-ink-3">Mario Rossi, nucleo di 3 persone</p>
         </div>
-        <span className="rounded-full bg-warn-wash px-2.5 py-1 text-sm font-semibold text-warn">
+        <Pill tone="warn" size="sm">
           12 di 13 documenti
-        </span>
+        </Pill>
       </div>
       <ul className="divide-y divide-line">
         {rows.map((row) => (

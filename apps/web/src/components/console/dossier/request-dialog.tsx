@@ -4,7 +4,9 @@ import { Sparkles } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import type { CaseDossier, ChatMessage, QuickReply, ReplyDraftResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog } from "@/components/ui/dialog";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { LANGUAGE_IT } from "@/lib/console/labels";
 import { useResource } from "@/lib/console/use-resource";
@@ -219,21 +221,18 @@ function RequestForm({
   }
 
   const renderItem = (item: (typeof dossier.checklist)[number]) => (
-    <label
+    <Checkbox
       key={item.id}
-      className="flex cursor-pointer items-start gap-3 rounded-sm px-2 py-2 hover:bg-paper"
-    >
-      <input
-        type="checkbox"
-        checked={selected.includes(item.id)}
-        onChange={(e) => toggle(item.id, e.target.checked)}
-        className="mt-0.5 size-4.5 shrink-0 accent-stamp"
-      />
-      <span className="text-[0.9375rem]">
-        {item.title}
-        {item.memberName && <span className="text-ink-3"> · {item.memberName}</span>}
-      </span>
-    </label>
+      checked={selected.includes(item.id)}
+      onChange={(e) => toggle(item.id, e.target.checked)}
+      className="rounded-sm px-2 py-2 text-body-sm hover:bg-paper"
+      label={
+        <>
+          {item.title}
+          {item.memberName && <span className="text-ink-3"> · {item.memberName}</span>}
+        </>
+      }
+    />
   );
 
   const items = (
@@ -333,9 +332,9 @@ function RequestForm({
           aria-describedby={error ? "request-error" : undefined}
           rows={6}
           maxLength={1000}
-          className="w-full resize-y rounded-sm bg-surface p-3 text-[0.9375rem] ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
+          className="w-full resize-y rounded-sm bg-surface p-3 text-body-sm ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
         />
-        <p className="tabular text-right text-xs text-ink-3">{message.length}/1000</p>
+        <p className="tabular text-end text-xs text-ink-3">{message.length}/1000</p>
         <p role="status" className={notice ? "text-sm text-warn" : "sr-only"}>
           {notice}
         </p>
@@ -365,13 +364,9 @@ function RequestForm({
         )}
       </div>
       {error && (
-        <p
-          id="request-error"
-          role="alert"
-          className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
-        >
+        <Notice tone="danger" id="request-error">
           {error}
-        </p>
+        </Notice>
       )}
       <Button type="submit" size="lg" loading={pending}>
         {reply ? "Invia la risposta" : "Invia al cittadino"}

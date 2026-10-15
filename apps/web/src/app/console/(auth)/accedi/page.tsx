@@ -9,17 +9,17 @@ export const metadata: Metadata = { title: "Accesso operatori", robots: { index:
 export default function LoginPage() {
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,32rem)]">
-      <section className="hidden flex-col justify-between bg-ink p-12 text-white lg:flex">
-        <Link href="/" className="w-fit rounded-sm [&_span]:text-white">
+      <section className="hidden flex-col justify-between bg-contrast p-12 text-on-contrast lg:flex">
+        <Link href="/" className="w-fit rounded-sm [&_span]:text-on-contrast">
           <Logo />
         </Link>
         <blockquote className="max-w-md">
           <p className="font-display text-4xl leading-[1.05] font-semibold tracking-[-0.02em] [font-stretch:92%]">
             Prima i problemi bloccanti, poi gli avvisi, poi tutto il resto.
           </p>
-          <footer className="mt-4 text-white/60">Come è ordinato ogni fascicolo</footer>
+          <footer className="mt-4 text-on-contrast/60">Come è ordinato ogni fascicolo</footer>
         </blockquote>
-        <p className="text-sm text-white/50">
+        <p className="text-sm text-on-contrast/50">
           Accesso riservato agli operatori di CAF e patronati.
         </p>
       </section>
@@ -37,6 +37,11 @@ export default function LoginPage() {
           <Suspense>
             <LoginForm />
           </Suspense>
+          {/* Citizens sometimes land here from a search: they never need an account. */}
+          <p className="mt-10 border-t border-line pt-5 text-sm text-ink-2">
+            Devi preparare una pratica? Non serve accedere: apri il link o inquadra il QR che ti ha
+            dato lo sportello del tuo CAF.
+          </p>
         </div>
       </section>
     </main>

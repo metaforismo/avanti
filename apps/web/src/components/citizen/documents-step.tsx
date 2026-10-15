@@ -19,6 +19,8 @@ import type { ChecklistItem, CitizenCase, DocumentSummary, Finding } from "@avan
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
+import { Pill } from "@/components/ui/pill";
 import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
@@ -95,10 +97,9 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
       )}
 
       {data.reuseNotice && (
-        <p className="flex items-start gap-3 rounded-lg bg-stamp-wash p-4 text-ink ring-1 ring-stamp/15">
-          <History className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
+        <Notice tone="info" size="md" icon={History}>
           <span dir="auto">{data.reuseNotice}</span>
-        </p>
+        </Notice>
       )}
 
       <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
@@ -172,7 +173,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
         </section>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface shadow-[0_-8px_24px_-16px_rgb(20_27_45/0.25)]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface shadow-dock">
         <div className="mx-auto flex max-w-xl flex-col gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <p
             className={cn(
@@ -224,25 +225,20 @@ function groupByMember(items: ChecklistItem[], m: M) {
 
 function StatusBadge({ item, m }: { item: ChecklistItem; m: M }) {
   const tone = DONE_STATUSES.has(item.status)
-    ? "bg-ok-wash text-ok"
+    ? "ok"
     : item.status === "issue" || item.status === "rejected"
-      ? "bg-warn-wash text-warn"
-      : "bg-sunk text-ink-2";
+      ? "warn"
+      : "neutral";
   const Icon = DONE_STATUSES.has(item.status)
     ? Check
     : item.status === "issue" || item.status === "rejected"
       ? AlertTriangle
       : CircleDashed;
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold",
-        tone,
-      )}
-    >
-      <Icon className="size-3.5" aria-hidden />
+    <Pill tone={tone} size="sm">
+      <Icon aria-hidden />
       {m.docs.status[item.status]}
-    </span>
+    </Pill>
   );
 }
 
@@ -357,7 +353,7 @@ function FindingLine({ finding }: { finding: Finding }) {
         ? "text-warn"
         : "text-ink-2";
   return (
-    <p className={cn("mt-2 flex items-start gap-2 text-[0.9375rem]", tone)}>
+    <p className={cn("mt-2 flex items-start gap-2 text-body-sm", tone)}>
       <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
       {finding.message}
     </p>
@@ -499,7 +495,7 @@ function PendingUploads({
               <button
                 type="button"
                 onClick={() => api.dismissUpload(upload.id)}
-                className="grid size-10 shrink-0 place-items-center rounded-sm text-danger hover:bg-danger/10"
+                className="grid size-11 shrink-0 place-items-center rounded-sm text-danger hover:bg-danger/10"
                 aria-label={m.common.close}
               >
                 <X className="size-4" aria-hidden />
@@ -588,10 +584,10 @@ function DocumentRow({
                 <span dir="ltr">{formatSize(doc.sizeBytes, data.language)}</span>
                 {doc.pages && doc.pages > 1 ? ` · ${format(m.docs.pages, { n: doc.pages })}` : ""}
                 {doc.reuse && (
-                  <span className="ms-2 inline-flex items-center gap-1 rounded-full bg-stamp-wash px-2 py-0.5 text-xs font-semibold text-stamp">
-                    <History className="size-3" aria-hidden />
+                  <Pill tone="stamp" className="ms-2">
+                    <History aria-hidden />
                     {m.docs.reused.label} · {m.docs.reused[doc.reuse.status]}
-                  </span>
+                  </Pill>
                 )}
               </>
             )}
@@ -703,7 +699,7 @@ function DocumentCheck({ doc, api, m }: { doc: DocumentSummary; api: CitizenCase
     >
       <ul className="grid gap-1">
         {check.messages.map((message) => (
-          <li key={message} className="flex items-start gap-2 text-[0.9375rem]">
+          <li key={message} className="flex items-start gap-2 text-body-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span dir="auto">{message}</span>
           </li>

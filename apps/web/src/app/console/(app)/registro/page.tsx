@@ -6,7 +6,12 @@ import { useMemo, useState } from "react";
 import type { Route } from "next";
 import type { AuditAction, AuditEvent, AuditPage, OperatorSummary } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Select } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
+import { PageContainer, PageHeader } from "@/components/ui/page-header";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
@@ -50,10 +55,10 @@ export default function AuditLogPage() {
   const operator = useOperator();
   if (operator.role !== "admin") {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
+      <PageContainer width="3xl" className="py-16 text-center lg:py-16">
         <h1 className="font-display text-2xl font-semibold">Registro riservato</h1>
         <p className="mt-2 text-ink-2">Il registro delle attività lo consulta un amministratore.</p>
-      </div>
+      </PageContainer>
     );
   }
   return <AuditLog />;
@@ -98,40 +103,27 @@ function AuditLog() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-[-0.025em]">Registro attività</h1>
-          <p className="mt-1 max-w-2xl text-ink-2">
-            Chi ha fatto cosa, e quando: per rispondere a un interessato o a un controllo. Il
-            registro non contiene dati personali dei cittadini.
-          </p>
-        </div>
-        <Button variant="secondary" asChild>
-          <a href={`/api/audit/export.csv?${query}`} download>
-            <Download className="size-4" aria-hidden />
-            Esporta CSV
-          </a>
-        </Button>
-      </div>
+    <PageContainer width="6xl">
+      <PageHeader
+        title="Registro attività"
+        lead="Chi ha fatto cosa, e quando: per rispondere a un interessato o a un controllo. Il registro non contiene dati personali dei cittadini."
+        actions={
+          <Button variant="secondary" asChild>
+            <a href={`/api/audit/export.csv?${query}`} download>
+              <Download className="size-4" aria-hidden />
+              Esporta CSV
+            </a>
+          </Button>
+        }
+      />
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        <div role="group" aria-label="Periodo" className="flex rounded-sm bg-sunk p-0.5">
-          {PERIODS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              aria-pressed={period === p.key}
-              onClick={() => setPeriod(p.key)}
-              className={cn(
-                "rounded-xs px-3 py-1.5 text-sm",
-                period === p.key ? "bg-surface font-semibold text-ink shadow-xs" : "text-ink-2",
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Periodo"
+          value={period}
+          options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
+          onChange={setPeriod}
+        />
         <Select
           compact
           aria-label="Cosa cerchi"
@@ -179,19 +171,22 @@ function AuditLog() {
 
       <section aria-busy={page.status === "loading"} className="mt-5">
         {page.status === "error" && !page.data ? (
-          <div role="alert" className="rounded-lg bg-danger-wash p-6 text-danger">
-            <p className="font-semibold">Registro non disponibile.</p>
-            <p className="mt-1 text-sm">{page.error.message}</p>
-            <Button variant="secondary" className="mt-4" onClick={() => page.reload()}>
-              Riprova
-            </Button>
-          </div>
+          <Notice
+            tone="danger"
+            size="page"
+            title="Registro non disponibile."
+            action={
+              <Button variant="secondary" onClick={() => page.reload()}>
+                Riprova
+              </Button>
+            }
+          >
+            {page.error.message}
+          </Notice>
         ) : !page.data ? (
-          <div className="h-64 animate-pulse rounded-lg bg-sunk" aria-hidden />
+          <Skeleton className="h-64 rounded-lg" />
         ) : items.length === 0 ? (
-          <p className="rounded-lg border-2 border-dashed border-line px-6 py-12 text-center text-ink-2">
-            Nessuna attività con questi filtri.
-          </p>
+          <EmptyState title="Nessuna attività con questi filtri." className="py-12" />
         ) : (
           <>
             <ol className="divide-y divide-line overflow-hidden rounded-lg bg-surface ring-1 ring-line">
@@ -209,7 +204,7 @@ function AuditLog() {
           </>
         )}
       </section>
-    </div>
+    </PageContainer>
   );
 }
 

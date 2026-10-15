@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Route } from "next";
 import { Button } from "@/components/ui/button";
+import { SectionHeader } from "@/components/ui/page-header";
 import { useOperator } from "@/lib/console/operator-context";
 import { NewCaseDialog } from "./new-case-dialog";
 
@@ -60,13 +61,11 @@ export function FirstSteps() {
 
   return (
     <section aria-labelledby="first-steps" className="rounded-lg bg-surface p-6 ring-1 ring-line">
-      <h2 id="first-steps" className="font-display text-xl font-semibold">
-        Per iniziare
-      </h2>
-      <p className="mt-1 text-ink-2">
-        I fascicoli inviati dai cittadini arriveranno qui. Intanto, {steps.length} passi per
-        partire.
-      </p>
+      <SectionHeader
+        id="first-steps"
+        title="Per iniziare"
+        lead={`I fascicoli inviati dai cittadini arriveranno qui. Intanto, ${steps.length} passi per partire.`}
+      />
       <ol className="mt-5 grid gap-3">
         {steps.map((step, index) => (
           <li

@@ -1,4 +1,4 @@
-import { AlertCircle, X } from "lucide-react";
+import { Notice } from "@/components/ui/notice";
 import { errorMessage, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { ActionError } from "@/lib/citizen/use-citizen-case";
 
@@ -13,20 +13,14 @@ export function ActionErrorNotice({
 }) {
   if (!error) return null;
   return (
-    <div
-      role="alert"
-      className="flex animate-fade-in items-start gap-3 rounded-md bg-danger-wash px-4 py-3 text-danger"
+    <Notice
+      tone="danger"
+      size="md"
+      onDismiss={onDismiss}
+      dismissLabel={m.common.close}
+      className="animate-fade-in"
     >
-      <AlertCircle className="mt-0.5 size-5 shrink-0" aria-hidden />
-      <p className="flex-1">{error.serverMessage ?? errorMessage(m, error.code)}</p>
-      <button
-        type="button"
-        onClick={onDismiss}
-        className="-m-2 grid size-10 shrink-0 place-items-center rounded-sm hover:bg-danger/10"
-        aria-label={m.common.close}
-      >
-        <X className="size-4" aria-hidden />
-      </button>
-    </div>
+      {error.serverMessage ?? errorMessage(m, error.code)}
+    </Notice>
   );
 }

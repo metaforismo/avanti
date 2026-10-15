@@ -9,16 +9,18 @@ const variants = {
   secondary: "bg-surface text-ink ring-1 ring-line-strong ring-inset hover:bg-sunk",
   ghost: "text-ink-2 hover:bg-sunk hover:text-ink",
   danger: "bg-surface text-danger ring-1 ring-danger/30 ring-inset hover:bg-danger-wash",
-  marker: "bg-marker text-ink hover:bg-[#ffdc2e]",
+  marker: "bg-marker text-ink hover:bg-marker-hover",
 } as const;
 
 const sizes = {
   sm: "h-8 gap-1.5 rounded-sm px-3 text-sm",
-  md: "h-10 gap-2 rounded-sm px-4 text-[0.9375rem]",
+  md: "h-10 gap-2 rounded-sm px-4 text-body-sm",
   // Full-width calls to action: long translations wrap onto two balanced lines.
   lg: "min-h-12 gap-2.5 rounded-md px-5 py-2.5 text-base leading-tight text-balance whitespace-normal",
   icon: "size-10 rounded-sm",
   "icon-sm": "size-8 rounded-sm",
+  // 44px: the touch target for icon-only actions on the citizen's phone.
+  "icon-lg": "size-11 rounded-sm",
 } as const;
 
 export type ButtonProps = ComponentProps<"button"> & {

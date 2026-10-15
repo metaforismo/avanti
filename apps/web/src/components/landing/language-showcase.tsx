@@ -109,7 +109,7 @@ export function LanguageShowcase() {
               document.getElementById(`lang-tab-${QUESTIONS[next]!.lang}`)?.focus();
             }}
             className={cn(
-              "rounded-sm px-3 py-2 text-left text-base transition-colors duration-150 lg:py-2.5",
+              "rounded-sm px-3 py-2 text-start text-base transition-colors duration-150 lg:py-2.5",
               i === active
                 ? "bg-surface font-semibold text-ink shadow-raised ring-1 ring-line"
                 : "text-ink-2 hover:text-ink",

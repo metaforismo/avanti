@@ -4,6 +4,7 @@ import { useState, type RefObject } from "react";
 import type { CaseDossier, RegenerateLinkResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { formatDateTime } from "@/lib/console/labels";
 import { ShareCitizenLink } from "../share-citizen-link";
@@ -78,11 +79,7 @@ export function NewLinkDialog({
         </div>
       ) : (
         <div className="grid gap-4">
-          {error && (
-            <p role="alert" className="rounded-md bg-danger-wash px-4 py-3 text-sm text-danger">
-              {error}
-            </p>
-          )}
+          {error && <Notice tone="danger">{error}</Notice>}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>
               Annulla

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import type { Operator } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { CodeField, codeError, normalizeCode, type CodeKind } from "./code-field";
 
@@ -55,12 +56,9 @@ export function MfaVerifyForm({
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
       <CodeField kind={kind} error={error} autoFocus />
       {formError && (
-        <p
-          role="alert"
-          className="animate-fade-in rounded-md bg-danger-wash px-4 py-3 text-sm text-danger"
-        >
+        <Notice tone="danger" className="animate-fade-in">
           {formError}
-        </p>
+        </Notice>
       )}
       <Button type="submit" size="lg" loading={pending}>
         Verifica ed entra
