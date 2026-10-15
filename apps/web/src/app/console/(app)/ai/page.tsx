@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
+import { NearReadyPilot } from "@/components/console/near-ready-pilot";
 
 const TASKS: Record<string, string> = {
   "intake.understand": "Comprensione del racconto",
@@ -26,6 +27,9 @@ const TASKS: Record<string, string> = {
   "request.draft": "Bozze delle richieste",
   "message.reply_draft": "Bozze delle risposte",
   "operator.ask": "Domande normative",
+  "dossier.ask": "Chiedi al fascicolo",
+  "near_ready.read": "Quasi pronta: lettura dei dati",
+  "near_ready.compare": "Quasi pronta: confronto",
 };
 
 const PROVIDER: Record<string, string> = {
@@ -273,6 +277,8 @@ function AiView() {
           </p>
         </section>
       )}
+
+      <NearReadyPilot />
     </PageContainer>
   );
 }

@@ -1148,6 +1148,7 @@ export const AuditAction = z.enum([
   "operator.activated",
   "operator.password_reset",
   "settings.updated",
+  "near_ready.resumed",
   "quick_reply.created",
   "quick_reply.updated",
   "quick_reply.deleted",

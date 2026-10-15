@@ -45,6 +45,7 @@ const labels: Partial<Record<AuditAction, string>> = {
   "quick_reply.deleted": "Risposta rapida eliminata",
   "quick_reply.reordered": "Risposte rapide riordinate",
   "settings.updated": "Impostazioni dell’organizzazione aggiornate",
+  "near_ready.resumed": "Suggerimento «quasi pronta» riattivato dopo una sospensione",
   "office.created": "Sportello creato",
   "office.updated": "Sportello aggiornato",
   "organization.bootstrapped": "Organizzazione e primo amministratore creati",

@@ -164,12 +164,21 @@ export function mountAdministrationRoutes(app: App, s: Services) {
           .where(eq(settings.organizationId, actor.organizationId));
         return current;
       }
+      const [before] = await tx
+        .select({ suspendedAt: settings.nearReadySuspendedAt })
+        .from(settings)
+        .where(eq(settings.organizationId, actor.organizationId));
+      // A confirmed critical error suspends the visible suggestion and falls back to shadow mode;
+      // an administrator choosing "visible" again is the explicit decision to resume it.
+      const resume = input.nearReadyMode === "visible" && Boolean(before?.suspendedAt);
       const [updated] = await tx
         .update(settings)
-        .set(input)
+        .set({ ...input, ...(resume ? { nearReadySuspendedAt: null } : {}) })
         .where(eq(settings.organizationId, actor.organizationId))
         .returning();
       await recordActivity(tx, actor.organizationId, actor.id, "settings.updated", s.clock());
+      if (resume)
+        await recordActivity(tx, actor.organizationId, actor.id, "near_ready.resumed", s.clock());
       return updated;
     });
     return c.json(settingsView(row));
