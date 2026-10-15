@@ -1,3 +1,4 @@
+import { nearReadyView, type NearReadyViewData } from "./near-ready-view";
 import { conversationState } from "./conversation-state";
 import { copilotDossier } from "./copilot-context";
 import { queuePrioritySql } from "./copilot-queue";
@@ -13,6 +14,8 @@ import {
   checklistReviews,
   prefillDecisions,
   settings,
+  nearReadyEvaluations,
+  nearReadyBlindReviews,
   type Database,
 } from "@avanti/db";
 import {
@@ -85,7 +88,13 @@ export async function audit(
   });
 }
 type ViewData = {
-  organization: typeof organizations.$inferSelect & { aiCitizenAssistant?: boolean | null };
+  organization: typeof organizations.$inferSelect & {
+    aiCitizenAssistant?: boolean | null;
+    aiQueuePriority?: CaseDossier["aiPriority"];
+    nearReadyEvaluation?: NearReadyViewData["evaluation"] | null;
+    nearReadyPolicy?: NearReadyViewData["policy"];
+    nearReadyBlind?: string | null;
+  };
   office: typeof offices.$inferSelect | undefined;
   storedDocs: (typeof documents.$inferSelect)[];
   reviews: (typeof checklistReviews.$inferSelect)[];
@@ -203,15 +212,45 @@ function evaluateCase(
   return { household, checklist, docViews, evaluation };
 }
 
-async function loadViewData(db: Database, row: CaseRow): Promise<ViewData> {
+async function loadViewData(
+  db: Database,
+  row: CaseRow,
+  now?: Date,
+  profile?: string,
+  operatorId?: string,
+): Promise<ViewData> {
   const [[organization], [office], storedDocs, reviews, chat] = await Promise.all([
     db
       .select({
         ...getTableColumns(organizations),
         aiCitizenAssistant: settings.aiCitizenAssistant,
+        nearReadyEvaluation: nearReadyEvaluations,
+        nearReadyPolicy: settings,
+        nearReadyBlind: nearReadyBlindReviews.caseId,
+        aiQueuePriority: sql<
+          CaseDossier["aiPriority"]
+        >`(select ${queuePrioritySql(profile, now)} from ${cases} where ${cases.id} = ${row.id})`,
       })
       .from(organizations)
       .leftJoin(settings, eq(settings.organizationId, organizations.id))
+      .leftJoin(
+        nearReadyEvaluations,
+        and(
+          eq(nearReadyEvaluations.caseId, row.id),
+          eq(
+            nearReadyEvaluations.caseVersion,
+            sql`(select max(nr.case_version) from near_ready_evaluations nr where nr.case_id = ${row.id})`,
+          ),
+        ),
+      )
+      .leftJoin(
+        nearReadyBlindReviews,
+        and(
+          eq(nearReadyBlindReviews.caseId, row.id),
+          eq(nearReadyBlindReviews.caseVersion, row.updatedAt),
+          eq(nearReadyBlindReviews.operatorId, operatorId ?? ""),
+        ),
+      )
       .where(eq(organizations.id, row.organizationId)),
     db
       .select()
@@ -327,8 +366,14 @@ export async function citizenView(
     expiresAt: iso(row.expiresAt),
   };
 }
-export async function dossierView(db: Database, row: CaseRow, now: Date): Promise<CaseDossier> {
-  const data = await loadViewData(db, row);
+export async function dossierView(
+  db: Database,
+  row: CaseRow,
+  now: Date,
+  operatorId?: string,
+  profile?: string,
+): Promise<CaseDossier> {
+  const data = await loadViewData(db, row, now, profile, operatorId);
   const view = await citizenView(db, row, now, "it", true, data);
   const [timeline, actors] = await Promise.all([
     db
@@ -344,9 +389,24 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
   const summary = dossierSummary(row.practiceId, row.answers, view.household);
   const dossier: CaseDossier = {
     id: row.id,
+    nearReady: await nearReadyView(
+      db,
+      row,
+      operatorId,
+      profile,
+      now,
+      data.organization.nearReadyEvaluation
+        ? {
+            evaluation: data.organization.nearReadyEvaluation,
+            policy: data.organization.nearReadyPolicy ?? null,
+            blind: data.organization.nearReadyBlind ?? null,
+          }
+        : null,
+    ),
+    nearReadyBadge: false,
     reference: row.reference,
     aiAttention: row.aiAttention,
-    aiPriority: null,
+    aiPriority: data.organization.aiQueuePriority ?? null,
     citizenName: row.contact?.firstName
       ? [row.contact.firstName, row.contact.lastName].filter(Boolean).join(" ")
       : null,
@@ -422,6 +482,20 @@ export async function dossierView(db: Database, row: CaseRow, now: Date): Promis
       copilotDossier(dossier),
       decisions.map((decision) => decision.field),
     );
+  if (dossier.nearReady?.state === "accepted") {
+    const order = dossier.nearReady.reviewOrder;
+    const rank = (id: string) => {
+      const at = order.indexOf(id);
+      return at < 0 ? order.length : at;
+    };
+    dossier.documents.sort((a, b) => rank(a.id) - rank(b.id));
+    dossier.checklist.sort(
+      (a, b) =>
+        Math.min(...a.documentIds.map(rank), order.length) -
+        Math.min(...b.documentIds.map(rank), order.length),
+    );
+  }
+  dossier.nearReadyBadge = dossier.aiPriority === "near_ready";
   return dossier;
 }
 
@@ -444,7 +518,7 @@ export const caseListColumns = {
   submittedAt: cases.submittedAt,
 };
 type CaseListRow = Pick<CaseRow, Exclude<keyof typeof caseListColumns, "aiPriority">> & {
-  aiPriority: "quick_review" | "attention" | "citizen_question" | null;
+  aiPriority: "quick_review" | "attention" | "citizen_question" | "near_ready" | null;
 };
 function byCase<T extends { caseId: string }>(rows: T[]) {
   const grouped = new Map<string, T[]>();
@@ -506,6 +580,7 @@ export async function caseListViews(db: Database, rows: CaseListRow[], now: Date
       warnings: evaluation.findings.filter((f) => f.severity === "warning").length,
       aiAttention: row.aiAttention,
       aiPriority: row.aiPriority,
+      nearReadyBadge: row.aiPriority === "near_ready",
       createdAt: iso(row.createdAt),
       updatedAt: iso(row.updatedAt),
       submittedAt: row.submittedAt ? iso(row.submittedAt) : null,

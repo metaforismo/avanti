@@ -552,6 +552,10 @@ describe("organization administration", () => {
     );
     expect(current).toEqual({
       mfaRequired: false,
+      nearReadyMode: "shadow",
+      nearReadyCriticalThreshold: 0.98,
+      nearReadyOtherThreshold: 0.95,
+      nearReadySuspendedAt: null,
       baselineMinutesPerCase: null,
       aiMonthlyBudgetEur: null,
       aiCopilot: true,
@@ -583,6 +587,10 @@ describe("organization administration", () => {
     expect(edited.status).toBe(200);
     expect(OrganizationSettings.parse(await edited.json())).toEqual({
       mfaRequired: false,
+      nearReadyMode: "shadow",
+      nearReadyCriticalThreshold: 0.98,
+      nearReadyOtherThreshold: 0.95,
+      nearReadySuspendedAt: null,
       baselineMinutesPerCase: 30,
       aiMonthlyBudgetEur: null,
       aiCopilot: true,

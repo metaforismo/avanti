@@ -200,6 +200,8 @@ export async function analyzeConsistency(s: Services, row: CaseRow, force = fals
 export async function refreshConsistency(s: Services, row: CaseRow) {
   try {
     await analyzeConsistency(s, row);
+    const { evaluateCaseNearReady } = await import("./near-ready");
+    await evaluateCaseNearReady(s, row);
   } catch {
     /* The case version is durable; a later read or maintenance retries it. */
   }
@@ -209,7 +211,11 @@ export function scheduleCopilot(s: Services, row: CaseRow) {
     s.background?.(async () => {
       try {
         const current = await caseById(s.db, row.id, row.organizationId);
-        if (current.status !== "closed") await analyzeConsistency(s, current);
+        if (current.status !== "closed") {
+          await analyzeConsistency(s, current);
+          const { evaluateCaseNearReady } = await import("./near-ready");
+          await evaluateCaseNearReady(s, current);
+        }
       } catch {
         /* A later read or maintenance run recovers the version. */
       }

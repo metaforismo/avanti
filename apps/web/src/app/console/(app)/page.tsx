@@ -1,6 +1,14 @@
 "use client";
 
-import { AlertTriangle, Inbox, MessageCircleQuestion, Search, Sparkles, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCheck,
+  Inbox,
+  MessageCircleQuestion,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -447,6 +455,11 @@ type Priority = NonNullable<CaseListItem["aiPriority"]>;
 
 // Suggestions to order the work, never a decision on the case: the operator still reviews all.
 const PRIORITY: Record<Priority, { filter: string; badge: string; tone: Tone }> = {
+  near_ready: {
+    filter: "Quasi pronte",
+    badge: "Quasi pronta",
+    tone: "ok",
+  },
   citizen_question: {
     filter: "Il cittadino ha scritto",
     badge: "Ha scritto allo sportello",
@@ -466,7 +479,8 @@ const PRIORITY: Record<Priority, { filter: string; badge: string; tone: Tone }> 
 
 function PriorityBadge({ item }: { item: CaseListItem }) {
   const key = item.aiPriority!;
-  const Icon = key === "citizen_question" ? MessageCircleQuestion : Sparkles;
+  const Icon =
+    key === "citizen_question" ? MessageCircleQuestion : key === "near_ready" ? CheckCheck : Sparkles;
   return (
     <Pill tone={PRIORITY[key].tone} className="mt-1 w-fit whitespace-normal">
       <Icon aria-hidden />

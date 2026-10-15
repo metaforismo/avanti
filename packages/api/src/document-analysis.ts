@@ -118,6 +118,8 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
   const [updated] = await s.db.select().from(cases).where(eq(cases.id, row.id));
   if (updated) {
     await analyzeConsistency(s, updated);
+    const { evaluateCaseNearReady } = await import("./near-ready");
+    await evaluateCaseNearReady(s, updated);
   }
 }
 

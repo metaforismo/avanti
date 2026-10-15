@@ -52,7 +52,9 @@ function SettingsForm({
   initial: OrganizationSettings;
   onSaved: (settings: OrganizationSettings) => void;
 }) {
-  const [errors, setErrors] = useState<Partial<Record<Key, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<Key | "nearReadyCriticalThreshold" | "nearReadyOtherThreshold", string>>
+  >({});
   const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
   const [formError, setFormError] = useState<string | null>(null);
   // Requiring it before having it would lock the admin out of the console until set up.
@@ -84,6 +86,13 @@ function SettingsForm({
     values.notifyCitizenReminders = data.get("notifyCitizenReminders") === "on";
     values.aiCopilot = data.get("aiCopilot") === "on";
     values.aiCitizenAssistant = data.get("aiCitizenAssistant") === "on";
+    values.nearReadyMode = data.get("nearReadyMode") as OrganizationSettings["nearReadyMode"];
+    for (const key of ["nearReadyCriticalThreshold", "nearReadyOtherThreshold"] as const) {
+      const percent = Number(data.get(key));
+      if (!Number.isFinite(percent) || percent < 80 || percent > 100)
+        next[key] = "Una percentuale tra 80 e 100.";
+      else values[key] = percent / 100;
+    }
     const first = Number(data.get("reminderFirst"));
     const second = Number(data.get("reminderSecond"));
     values.citizenReminderDays = second ? [first, second] : [first];
@@ -253,6 +262,56 @@ function SettingsForm({
           label="Copilota per gli operatori"
           hint="Riepilogo del fascicolo, controlli incrociati, importi letti dai documenti, bozze di messaggi e domande normative. Spento: restano i controlli con le regole."
         />
+      </fieldset>
+      <fieldset className="grid gap-3">
+        <legend className="mb-2 text-sm font-semibold">Pratica «quasi pronta»</legend>
+        {initial.nearReadySuspendedAt && (
+          <Notice tone="warn" role="none">
+            Sospesa il {new Date(initial.nearReadySuspendedAt).toLocaleDateString("it-IT")} dopo un
+            errore grave segnalato da un operatore. Torna «in ombra» finché non scegli di nuovo
+            «Visibile agli operatori».
+          </Notice>
+        )}
+        <Field
+          label="Modalità"
+          hint="In ombra il suggerimento si calcola e si misura senza mostrarlo: è il modo di iniziare il pilota. Visibile: gli operatori vedono «quasi pronta» e possono usare la revisione rapida. Non segna mai una pratica come pronta."
+        >
+          {(p) => (
+            <Select {...p} name="nearReadyMode" defaultValue={initial.nearReadyMode} compact>
+              <option value="off">Spenta</option>
+              <option value="shadow">In ombra (misura senza mostrare)</option>
+              <option value="visible">Visibile agli operatori</option>
+            </Select>
+          )}
+        </Field>
+        <div className="flex flex-wrap gap-4">
+          <Field
+            label="Soglia di lettura, dati critici (%)"
+            hint="Identità, nucleo, anni. Sotto soglia la pratica non è suggerita."
+            error={errors.nearReadyCriticalThreshold}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                name="nearReadyCriticalThreshold"
+                inputMode="numeric"
+                defaultValue={Math.round(initial.nearReadyCriticalThreshold * 100)}
+                className="tabular max-w-24"
+              />
+            )}
+          </Field>
+          <Field label="Soglia di lettura, altri dati (%)" error={errors.nearReadyOtherThreshold}>
+            {(p) => (
+              <Input
+                {...p}
+                name="nearReadyOtherThreshold"
+                inputMode="numeric"
+                defaultValue={Math.round(initial.nearReadyOtherThreshold * 100)}
+                className="tabular max-w-24"
+              />
+            )}
+          </Field>
+        </div>
       </fieldset>
       <fieldset className="grid gap-3">
         <legend className="mb-2 text-sm font-semibold">Sicurezza degli accessi</legend>

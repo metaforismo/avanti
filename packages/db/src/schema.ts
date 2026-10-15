@@ -358,6 +358,15 @@ export const settings = pgTable(
     organizationId: text("organization_id")
       .primaryKey()
       .references(() => organizations.id, { onDelete: "cascade" }),
+    nearReadyMode: text("near_ready_mode")
+      .$type<import("@avanti/contracts").NearReadyMode>()
+      .notNull()
+      .default("shadow"),
+    nearReadyCriticalThreshold: doublePrecision("near_ready_critical_threshold")
+      .notNull()
+      .default(0.98),
+    nearReadyOtherThreshold: doublePrecision("near_ready_other_threshold").notNull().default(0.95),
+    nearReadySuspendedAt: instant("near_ready_suspended_at"),
     mfaRequired: boolean("mfa_required").notNull().default(false),
     baselineMinutesPerCase: integer("baseline_minutes_per_case"),
     aiCopilot: boolean("ai_copilot").notNull().default(true),
@@ -385,6 +394,11 @@ export const settings = pgTable(
     check(
       "settings_ai_budget_check",
       sql`${t.aiMonthlyBudgetEur} is null or (${t.aiMonthlyBudgetEur} >= 0 and ${t.aiMonthlyBudgetEur} <= 100000)`,
+    ),
+    check("settings_near_ready_mode_check", sql`${t.nearReadyMode} in ('off','shadow','visible')`),
+    check(
+      "settings_near_ready_threshold_check",
+      sql`${t.nearReadyCriticalThreshold} between 0 and 1 and ${t.nearReadyOtherThreshold} between 0 and 1`,
     ),
     check("settings_days_check", sql`${t.retentionDays} > 0 and ${t.linkDays} > 0`),
     check(
@@ -645,4 +659,131 @@ export const dossierChatTurns = pgTable(
     caseVersion: instant("case_version").notNull(),
   },
   (t) => [index("dossier_chat_scope_time_idx").on(t.caseId, t.operatorId, t.createdAt, t.id)],
+);
+
+// No extracted values or free text in snapshots/events; references follow case retention.
+export type NearReadySnapshot = {
+  rulesVersion: string;
+  catalogVersion: string;
+  schemaVersion: string;
+  configurationKey: string;
+  validUntil: string;
+  conditions: Record<string, boolean>;
+  criticalThreshold: number;
+  otherThreshold: number;
+  fields: import("@avanti/contracts").NearReadyField[];
+  exclusions: import("@avanti/contracts").NearReadyReason[];
+  tasks: {
+    task: string;
+    version: string;
+    model: string | null;
+    engine: "ai" | "heuristic";
+    fallbackReason: string | null;
+    latencyMs: number;
+    inputTokens: number;
+    outputTokens: number;
+    costEstimate: number;
+    attempts: number;
+  }[];
+  durationMs: number;
+};
+export const nearReadyEvaluations = pgTable(
+  "near_ready_evaluations",
+  {
+    id: text("id").primaryKey(),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    caseVersion: instant("case_version").notNull(),
+    currentVersion: instant("current_version").notNull(),
+    checkedAt: instant("checked_at").notNull(),
+    eligible: boolean("eligible").notNull(),
+    mode: text("mode").$type<import("@avanti/contracts").NearReadyMode>().notNull(),
+    state: text("state").$type<import("@avanti/contracts").NearReady["state"]>().notNull(),
+    language: text("language").$type<Language>().notNull(),
+    reading: text("reading")
+      .$type<"ai" | "manual" | "mixed" | "heuristic" | "unavailable">()
+      .notNull(),
+    snapshot: jsonb("snapshot").$type<NearReadySnapshot>().notNull(),
+    // Protected application note, deliberately excluded from audit and telemetry.
+    dismissalNote: text("dismissal_note"),
+  },
+  (t) => [
+    unique("near_ready_case_version_unique").on(t.caseId, t.caseVersion),
+    index("near_ready_case_time_idx").on(t.caseId, t.checkedAt),
+    check(
+      "near_ready_state_check",
+      sql`${t.state} in ('suggested','not_eligible','withdrawn','accepted','dismissed','shadow')`,
+    ),
+    check("near_ready_mode_check", sql`${t.mode} in ('off','shadow','visible')`),
+  ],
+);
+export const nearReadyEvents = pgTable(
+  "near_ready_events",
+  {
+    id: text("id").primaryKey(),
+    evaluationId: text("evaluation_id")
+      .notNull()
+      .references(() => nearReadyEvaluations.id, { onDelete: "cascade" }),
+    action: text("action")
+      .$type<
+        | "evaluated"
+        | "proposed"
+        | "withdrawn"
+        | "viewed"
+        | "accepted"
+        | "dismissed"
+        | "blind_review"
+        | "final_decision"
+        | "critical_error"
+      >()
+      .notNull(),
+    actor: text("actor").$type<"operator" | "system">().notNull(),
+    actorId: text("actor_id"),
+    at: instant("at").notNull(),
+    caseVersion: instant("case_version").notNull(),
+    reason: text("reason").$type<
+      | "identity"
+      | "household"
+      | "document_match"
+      | "year"
+      | "amount"
+      | "other"
+      | "identity"
+      | "household"
+      | "year"
+      | "missing_document"
+    >(),
+    ready: boolean("ready"),
+    durationMinutes: doublePrecision("duration_minutes"),
+  },
+  (t) => [
+    index("near_ready_events_eval_idx").on(t.evaluationId, t.at),
+    check(
+      "near_ready_action_check",
+      sql`${t.action} in ('evaluated','proposed','withdrawn','viewed','accepted','dismissed','blind_review','final_decision','critical_error')`,
+    ),
+    check(
+      "near_ready_reason_check",
+      sql`${t.reason} is null or ${t.reason} in ('identity','household','document_match','year','amount','other','missing_document')`,
+    ),
+  ],
+);
+export const nearReadyBlindReviews = pgTable(
+  "near_ready_blind_reviews",
+  {
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    caseVersion: instant("case_version").notNull(),
+    operatorId: text("operator_id")
+      .notNull()
+      .references(() => operators.id, { onDelete: "cascade" }),
+    ready: boolean("ready").notNull(),
+    reason: text("reason")
+      .$type<"identity" | "household" | "document_match" | "year" | "amount" | "other">()
+      .notNull(),
+    at: instant("at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.caseId, t.caseVersion, t.operatorId] })],
 );

@@ -8,6 +8,9 @@ import {
   settings,
   quickReplies,
   prefillDecisions,
+  nearReadyEvaluations,
+  nearReadyEvents,
+  nearReadyBlindReviews,
   cases,
   documents,
   messages,
@@ -203,6 +206,22 @@ export async function exportOrganization(
         .from(operators)
         .where(eq(operators.organizationId, organization.id))
         .orderBy(operators.id),
+      nearReadyEvaluations: await tx
+        .select(getTableColumns(nearReadyEvaluations))
+        .from(nearReadyEvaluations)
+        .innerJoin(cases, eq(nearReadyEvaluations.caseId, cases.id))
+        .where(caseFilter),
+      nearReadyEvents: await tx
+        .select(getTableColumns(nearReadyEvents))
+        .from(nearReadyEvents)
+        .innerJoin(nearReadyEvaluations, eq(nearReadyEvents.evaluationId, nearReadyEvaluations.id))
+        .innerJoin(cases, eq(nearReadyEvaluations.caseId, cases.id))
+        .where(caseFilter),
+      nearReadyBlindReviews: await tx
+        .select(getTableColumns(nearReadyBlindReviews))
+        .from(nearReadyBlindReviews)
+        .innerJoin(cases, eq(nearReadyBlindReviews.caseId, cases.id))
+        .where(caseFilter),
       cases: caseRows,
       documents: documentRows,
       messages: messageRows,

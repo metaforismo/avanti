@@ -9,6 +9,8 @@ import { exportPdf } from "./export";
 function sample(language: Language, name: string): CaseDossier {
   const now = "2027-01-10T12:00:00Z";
   return {
+    nearReady: null,
+    nearReadyBadge: false,
     id: "example-case",
     assistantTurns: [],
     hasCitizenQuestion: false,

@@ -1,3 +1,6 @@
+import { nearReadyProfile, currentNearReadyProfile } from "./near-ready-profile";
+import { evaluateCaseNearReady, nearReadyEvent, recordNearReadyFinal } from "./near-ready";
+import { latestNearReady } from "./near-ready-view";
 import { queuePrioritySql } from "./copilot-queue";
 import { and, eq, desc, lt, or, ilike, sql, count, gte, inArray } from "drizzle-orm";
 import { enqueueCitizen, scheduleNotificationDelivery } from "./notifications";
@@ -10,6 +13,7 @@ import {
   messages,
   events,
   settings,
+  nearReadyEvaluations,
 } from "@avanti/db";
 import {
   CaseListQuery,
@@ -58,11 +62,14 @@ const emptyCounts = () =>
     number
   >;
 export function mountOperatorRoutes(app: App, s: Services) {
+  const profile = nearReadyProfile(s.ai);
   app.get("/cases", async (c) => {
     const query = parse(CaseListQuery, c.req.query());
     const operator = c.get("operator");
     const filters = [eq(cases.organizationId, operator.organizationId)];
-    if (query.ai) filters.push(eq(queuePrioritySql(), query.ai));
+    const priorityFilter = query.ai
+      ? eq(queuePrioritySql(profile, s.clock()), query.ai)
+      : undefined;
     if (query.practiceId) filters.push(eq(cases.practiceId, query.practiceId));
     if (query.officeId) filters.push(eq(cases.officeId, query.officeId));
     if (query.assignee === "none") filters.push(sql`${cases.assigneeId} is null`);
@@ -77,11 +84,22 @@ export function mountOperatorRoutes(app: App, s: Services) {
         )!,
       );
     }
+    const nearReadyFilter = and(
+      query.status ? eq(cases.status, query.status) : undefined,
+      eq(queuePrioritySql(profile, s.clock()), "near_ready"),
+    );
     const totals = await s.db
-      .select({ status: cases.status, total: count() })
+      .select({
+        status: cases.status,
+        total: priorityFilter
+          ? sql<number>`count(*) filter (where ${priorityFilter})`.mapWith(Number)
+          : count(),
+        nearReadyTotal: sql<number>`count(*) filter (where ${nearReadyFilter})`.mapWith(Number),
+      })
       .from(cases)
       .where(and(...filters))
       .groupBy(cases.status);
+    if (priorityFilter) filters.push(priorityFilter);
     const counts = emptyCounts();
     for (const t of totals) counts[t.status] = t.total;
     if (query.status) filters.push(eq(cases.status, query.status));
@@ -95,7 +113,10 @@ export function mountOperatorRoutes(app: App, s: Services) {
       );
     }
     const rows = await s.db
-      .select(caseListColumns)
+      .select({
+        ...caseListColumns,
+        aiPriority: queuePrioritySql(profile, s.clock()).as("ai_priority"),
+      })
       .from(cases)
       .where(and(...filters))
       .orderBy(desc(cases.updatedAt), desc(cases.id))
@@ -106,6 +127,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     return c.json({
       items,
       counts,
+      priorityCounts: { near_ready: totals.reduce((sum, t) => sum + t.nearReadyTotal, 0) },
       nextCursor:
         rows.length > query.limit && last
           ? Buffer.from(JSON.stringify({ at: iso(last.updatedAt), id: last.id })).toString(
@@ -141,7 +163,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     return c.json(
       {
         case: {
-          ...(await dossierView(s.db, row, s.clock())),
+          ...(await dossierView(s.db, row, s.clock(), operator.id, profile)),
           citizenLink: `${s.publicUrl.replace(/\/$/, "")}/pratica/${token}`,
         },
         citizenLink: `${s.publicUrl.replace(/\/$/, "")}/pratica/${token}`,
@@ -152,11 +174,43 @@ export function mountOperatorRoutes(app: App, s: Services) {
   app.get("/cases/:id", async (c) => {
     const operator = c.get("operator");
     const row = await caseById(s.db, c.req.param("id"), operator.organizationId);
-    const view = await dossierView(s.db, row, s.clock());
+    let view = await dossierView(s.db, row, s.clock(), operator.id, profile);
+    if (!view.nearReady) {
+      await evaluateCaseNearReady(s, row);
+      view = await dossierView(s.db, row, s.clock(), operator.id, profile);
+    }
     await s.db.transaction(async (tx) => {
-      await audit(tx, row, "operator", "case.viewed", s.clock(), operator.id);
-      if (view.dsuSheet)
-        await audit(tx, row, "operator", "dsu_sheet.viewed", s.clock(), operator.id);
+      await tx.insert(events).values(
+        ["case.viewed", ...(view.dsuSheet ? ["dsu_sheet.viewed"] : [])].map((type) => ({
+          id: crypto.randomUUID(),
+          caseId: row.id,
+          caseReference: row.reference,
+          organizationId: row.organizationId,
+          actor: "operator" as const,
+          actorId: operator.id,
+          type,
+          at: s.clock().toISOString(),
+          metadata: {},
+        })),
+      );
+      if (view.nearReady?.evaluationId && !view.nearReady.blindReviewRequired) {
+        const current = await caseById(tx, row.id, row.organizationId, true);
+        assertCaseVersion(current, row.updatedAt);
+        const evaluation = await latestNearReady(tx, row.id);
+        if (evaluation) {
+          if (
+            ["suggested", "accepted", "shadow"].includes(evaluation.state) &&
+            !currentNearReadyProfile(evaluation.snapshot, profile, s.clock())
+          ) {
+            await tx
+              .update(nearReadyEvaluations)
+              .set({ state: "withdrawn", currentVersion: current.updatedAt })
+              .where(eq(nearReadyEvaluations.id, evaluation.id));
+            await nearReadyEvent(tx, evaluation, "withdrawn", s.clock());
+          }
+          await nearReadyEvent(tx, evaluation, "viewed", s.clock(), operator.id);
+        }
+      }
     });
     const seen = view.messages.filter((m) => m.role === "citizen").map((m) => m.id);
     if (seen.length)
@@ -225,7 +279,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     const id = parse(Id, c.req.param("id"));
     const row = await caseById(s.db, id, operator.organizationId);
-    const dossier = await dossierView(s.db, row, s.clock());
+    const dossier = await dossierView(s.db, row, s.clock(), operator.id, profile);
     const sheet = DsuSheetResponse.parse(dossier.dsuSheet);
     await audit(s.db, row, "operator", "dsu_sheet.viewed", s.clock(), operator.id);
     return c.json(sheet);
@@ -292,6 +346,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .returning();
       if (!updated) throw notFound();
       if (input.status === "ready" && current.status !== "ready") {
+        await recordNearReadyFinal(tx, updated, now, operator.id, true);
         notificationId = await enqueueCitizen(tx, s, updated, "citizen_ready");
         await audit(tx, updated, "operator", "review.completed", now, operator.id, {
           durationMinutes: minutes(updated.reviewStartedAt, updated.reviewCompletedAt),
@@ -317,7 +372,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       return updated;
     });
     scheduleNotificationDelivery(s, notificationId);
-    return c.json(await dossierView(s.db, row, s.clock()));
+    return c.json(await dossierView(s.db, row, s.clock(), operator.id, profile));
   });
   app.post("/cases/:id/checklist/:itemId/review", async (c) => {
     const input = await body(c, ReviewChecklistItemRequest);
@@ -384,7 +439,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       await audit(tx, updated, "operator", `checklist.${input.decision}`, s.clock(), operator.id);
       return updated;
     });
-    return c.json(await dossierView(s.db, row, s.clock()));
+    return c.json(await dossierView(s.db, row, s.clock(), operator.id, profile));
   });
   app.post("/cases/:id/requests", async (c) => {
     const input = await body(c, RequestFromCitizenRequest);
@@ -478,13 +533,13 @@ export function mountOperatorRoutes(app: App, s: Services) {
     });
     scheduleNotificationDelivery(s, notificationId);
     if (translated.engine) c.header("X-Avanti-Engine", translated.engine);
-    return c.json(await dossierView(s.db, row, s.clock()));
+    return c.json(await dossierView(s.db, row, s.clock(), operator.id, profile));
   });
   app.get("/cases/:id/export", async (c) => {
     const format = parse(ExportFormat, c.req.query("format") ?? "json");
     const operator = c.get("operator");
     const row = await caseById(s.db, c.req.param("id"), operator.organizationId);
-    const dossier = await dossierView(s.db, row, s.clock());
+    const dossier = await dossierView(s.db, row, s.clock(), operator.id, profile);
     c.header("Content-Disposition", `attachment; filename="${row.reference}.${format}"`);
     if (format === "json") {
       await audit(s.db, row, "operator", "case.exported", s.clock(), operator.id);

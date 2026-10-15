@@ -924,3 +924,164 @@ una versione precedente; `quick_review` richiede invece analisi della versione c
 `aiMonthlyBudgetEur`, default null (budget da configurazione). Un PATCH omesso non
 resetta questi valori. La vista cittadino espone `aiCitizenAssistant`, senza budget.
 Impostazione off o budget esaurito: `engine:"heuristic"`, nessuna nuova chiamata.
+
+## Pratica quasi pronta — pilota backend
+
+Contratti: `NearReady`, `NearReadyMode`, `NearReadyReason`, `NearReadyField`,
+`NearReadyVersionRequest`, `NearReadyBlindRequest`, `NearReadyDecisionRequest`,
+`NearReadyFinalRequest`, `NearReadyPilotResponse` da `@avanti/contracts`.
+Sono additivi: il cittadino continua a usare il flusso esistente.
+
+| Endpoint                                        | Risposta / effetto                                                              |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| `GET /api/cases/:id`                            | `CaseDossier.nearReady`, null se mai valutata; prima lettura avvia il controllo |
+| `POST /api/cases/:id/near-ready/evaluate`       | `NearReady`; ricalcolo esplicito con `expectedUpdatedAt`                        |
+| `POST /api/cases/:id/near-ready/blind-review`   | `NearReady`, dopo giudizio cieco personale immutabile                           |
+| `POST /api/cases/:id/near-ready/decision`       | `NearReady`; accetta percorso rapido o scarta con motivo                        |
+| `POST /api/cases/:id/near-ready/final-decision` | `NearReady`; registra esito negativo/errore critico confermato                  |
+| `GET /api/cases?ai=near_ready`                  | Coda filtrata prima della paginazione; `priorityCounts.near_ready`              |
+| `GET /api/reports/near-ready`                   | `NearReadyPilotResponse`, solo admin e solo CAF della sessione                  |
+
+Tutte le POST richiedono sessione operatore, origine valida e versione ISO corrente.
+`evaluationId` identifica esattamente il suggerimento su cui agire. Una decisione concorrente,
+un vecchio risultato o una modifica nel frattempo danno `409 conflict` nel formato `ApiError`.
+I motivi codificati di esclusione sono l’enum `NearReadyReason`; il testo italiano è fornito
+in `exclusions[].text`, senza valori fiscali. Non usare `eligible` come stato ufficiale.
+
+Impostazioni admin, con default ombra e soglie per campo (mai medie):
+
+```http
+PATCH /api/settings
+Content-Type: application/json
+
+{"nearReadyMode":"visible","nearReadyCriticalThreshold":0.98,"nearReadyOtherThreshold":0.95}
+```
+
+`nearReadyMode`: `off | shadow | visible`. `nearReadySuspendedAt` è di sola lettura.
+Cambiare queste impostazioni invalida le versioni dei fascicoli aperti: rileggerle prima
+di inviare decisioni. Un errore critico confermato da un admin sospende il CAF e riporta
+la modalità in ombra. Impostare di nuovo visible non aggira la sospensione.
+
+Esempio di oggetto nel fascicolo (ID e date dimostrativi):
+
+```json
+{
+  "nearReady": {
+    "evaluationId": "evaluation-1",
+    "state": "suggested",
+    "result": "eligible",
+    "caseVersion": "2027-01-15T12:00:00.000Z",
+    "evaluatedVersion": "2027-01-15T12:00:00.000Z",
+    "checkedAt": "2027-01-15T12:00:10.000Z",
+    "mode": "visible",
+    "rulesVersion": "isee-pilot.1",
+    "conditionsMet": ["Intervista conclusa con risposte confermate"],
+    "criticalFields": [
+      {
+        "fieldId": "doc-1:identity",
+        "label": "Identità del componente",
+        "critical": true,
+        "source": "ai",
+        "documentId": "doc-1",
+        "page": 1,
+        "answerId": null,
+        "confidence": 0.99
+      }
+    ],
+    "visualChecks": ["Controllare identità e composizione del nucleo sui documenti originali."],
+    "reviewOrder": [],
+    "exclusions": [],
+    "blindReviewRequired": false
+  }
+}
+```
+
+Gli stati sono `suggested | not_eligible | withdrawn | accepted | dismissed | shadow`.
+`caseVersion` è la versione attuale; `evaluatedVersion` resta quella controllata.
+`source` distingue `ai | manual | answer`: provenienza documentale con pagina per AI,
+oppure `answerId` per risposta confermata; la verifica manuale può non avere pagina.
+Il backend non inserisce nel segnale nomi, CF o importi letti. I documenti originali
+restano negli endpoint protetti esistenti. In accepted, `reviewOrder` contiene ID documento
+e il fascicolo restituisce documenti/checklist nell’ordine di controllo rapido.
+
+In shadow, prima del giudizio personale, il payload è sempre `state: shadow`,
+`result: null`, `evaluationId: null`, `conditionsMet: []`, `criticalFields: []`,
+`exclusions: []`, `blindReviewRequired: true`, anche per i non selezionati.
+Non mostrare quindi il suggerimento né dedurlo dagli altri campi. Ogni operatore
+registra il proprio giudizio prima della rivelazione:
+
+```http
+POST /api/cases/case-1/near-ready/blind-review
+Content-Type: application/json
+
+{"expectedUpdatedAt":"2027-01-15T12:00:00.000Z","ready":false,"reason":"identity"}
+```
+
+La risposta rivela il risultato soltanto all’operatore che ha risposto. Un secondo
+operatore resta cieco; un giudizio già registrato o successivo a una visualizzazione
+non può essere riscritto. Nessun badge/filtro near_ready in shadow.
+
+Accettazione e scarto (solo visible, nessun cambio automatico a pronta):
+
+```json
+{
+  "expectedUpdatedAt": "2027-01-15T12:00:00.000Z",
+  "evaluationId": "evaluation-1",
+  "decision": "accept"
+}
+```
+
+```json
+{
+  "expectedUpdatedAt": "2027-01-15T12:00:00.000Z",
+  "evaluationId": "evaluation-1",
+  "decision": "dismiss",
+  "reason": "document_match",
+  "note": "Ricontrollare l’abbinamento"
+}
+```
+
+Motivi: `identity | household | document_match | year | amount | other`.
+La nota è facoltativa (1000 caratteri), protetta nel dato applicativo e mai copiata
+negli eventi o nei log. Una nuova risposta, un documento, una segnalazione, un rifiuto
+o altra modifica di versione ritira immediatamente suggerimento e accettazione.
+La conferma finale continua a passare da `PATCH /api/cases/:id` con `status: ready` e
+le verifiche ordinarie; quell’azione registra automaticamente l’esito positivo del pilota.
+
+Per il rifiuto finale o una successiva conferma di errore critico:
+
+```http
+POST /api/cases/case-1/near-ready/final-decision
+Content-Type: application/json
+
+{"expectedUpdatedAt":"2027-01-15T12:00:00.000Z","ready":false,"reason":"identity","criticalError":"identity"}
+```
+
+`criticalError`: `identity | household | year | missing_document`; richiede admin.
+L’endpoint non cambia lo stato ufficiale. `ready: true` è ammesso solo se lo stato
+è già ready. La prima decisione finale di ogni valutazione resta immutabile; gli errori
+critici successivi sono eventi separati e peggiorano il conteggio anche dopo un esito positivo.
+
+La coda restituisce `aiPriority: near_ready` e `nearReadyBadge: true` soltanto per segnali
+correnti in visible, senza sospensione. Domande cittadino e attenzione hanno precedenza.
+`priorityCounts.near_ready` conta l’intero insieme dei filtri correnti (e dello stato),
+prima di cursore/paginazione e indipendentemente dal filtro `ai`; `counts` mantiene
+la semantica esistente per stato.
+
+Il report admin include `total` e `groups` per lingua/modalità di lettura
+(`ai | manual | mixed | heuristic | unavailable`): `precision`, `falseNearReady`,
+`criticalErrors`, `selectionRate`, `missedOpportunities`, `suggestedReview` e
+`ordinaryReview` con `medianMinutes`/`p95Minutes` e conteggio dei tempi disponibili.
+`precisionInterval` è null senza revisioni, altrimenti contiene `lower`, `upper`
+(intervallo esatto bilaterale 95%) e `oneSidedLower95` per il criterio di attivazione.
+Il denominatore è la prima valutazione attiva per caso; non si eliminano i ritiri.
+Le durate non misurate restano null, non zero. `synthetic: true` identifica il CAF demo.
+`calibration` e `calibrationProfile` separano il campione del profilo AI, regole e soglie correnti: cambiare versione riapre la calibrazione, senza sommare i risultati precedenti. Il CAF demo non supera mai la calibrazione.
+`calibrationPassed` è una misura del protocollo, non un’autorizzazione automatica al rilascio.
+
+Demo: `demo-case-2` dopo `pnpm db:seed`. Con visible e letture/confronto AI validi può
+risultare suggested; senza provider restituisce not_eligible con `ai_unavailable`.
+`POST .../evaluate` con la versione corrente permette una nuova prova dopo aver configurato
+l’AI; se già valutata apre una nuova versione e conserva l’audit precedente.
+
+I controlli scadono alla successiva mezzanotte di Roma: prima di riutilizzare il segnale serve un ricalcolo; un vecchio controllo non resta valido quando scadenze o annualità cambiano.

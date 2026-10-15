@@ -87,7 +87,7 @@ const NAV: NavItem[] = [
   },
   {
     href: "/console/ai",
-    label: "Intelligenza artificiale",
+    label: "AI e consumi",
     icon: Sparkles,
     match: (p) => p.startsWith("/console/ai"),
     adminOnly: true,

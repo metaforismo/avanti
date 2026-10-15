@@ -38,6 +38,7 @@ import { useResource } from "@/lib/console/use-resource";
 import { ChecklistSection } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
 import { CopilotPanel } from "./copilot-panel";
+import { NearReadyPanel } from "./near-ready-panel";
 import { DossierChat } from "./dossier-chat";
 import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
@@ -60,6 +61,11 @@ export type DossierActions = {
   openDocument: (doc: DocumentSummary) => void;
   /** Confirms or discards a value the AI read from a document for the DSU sheet. */
   decidePrefill: (fieldId: string, decision: "accept" | "reject") => Promise<boolean>;
+  /** Near-ready actions; every one carries the version the suggestion was computed on. */
+  nearReady: (
+    action: "evaluate" | "blind-review" | "decision" | "final-decision",
+    input: Record<string, unknown>,
+  ) => Promise<boolean>;
   pending: string | null;
 };
 
@@ -199,6 +205,13 @@ export function DossierView({ caseId }: { caseId: string }) {
   const actions: DossierActions = {
     pending,
     openDocument: setViewing,
+    nearReady: (action, input) =>
+      mutate(`near:${action}`, () =>
+        apiFetch(`${base}/near-ready/${action}`, {
+          method: "POST",
+          body: { ...input, expectedUpdatedAt: data.updatedAt },
+        }),
+      ),
     decidePrefill: (fieldId, decision) =>
       mutate(`prefill:${fieldId}`, async () => {
         await startReview();
@@ -387,6 +400,7 @@ export function DossierView({ caseId }: { caseId: string }) {
             pending={pending}
             onReply={(question) => void openReply(question)}
           />
+          {data.nearReady && <NearReadyPanel dossier={data} actions={actions} />}
           {data.status !== "intake" && (
             <CopilotPanel dossier={data} actions={actions} onAsk={() => setChatOpen(true)} />
           )}
