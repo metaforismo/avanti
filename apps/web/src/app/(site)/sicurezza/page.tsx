@@ -24,7 +24,7 @@ const CONTROLS = [
   },
   {
     title: "Accessi degli operatori",
-    body: "Password conservate con scrypt e sale casuale. Sessioni in cookie protetti, con scadenza massima, e controllo dell'origine su ogni modifica per bloccare richieste da altri siti. Tentativi di accesso limitati.",
+    body: "Password conservate con scrypt e sale casuale. Verifica in due passaggi con app di autenticazione e codici di recupero, che il CAF può rendere obbligatoria. Sessioni in cookie protetti, con scadenza massima, e controllo dell'origine su ogni modifica per bloccare richieste da altri siti. Tentativi di accesso limitati. Un account disattivato o una sessione chiusa non possono più modificare nulla, nemmeno con una richiesta già partita.",
   },
   {
     title: "Documenti controllati prima di essere accettati",
@@ -32,11 +32,15 @@ const CONTROLS = [
   },
   {
     title: "Registro degli accessi, log senza dati personali",
-    body: "Chi ha fatto cosa e quando resta registrato nel fascicolo. I log tecnici contengono categorie, tempi e conteggi: mai nomi, codici fiscali, contatti o contenuto dei documenti.",
+    body: "Chi ha fatto cosa e quando resta registrato: il responsabile del CAF consulta il registro attività (accessi anche falliti, fascicoli aperti, esportazioni, cancellazioni) e lo esporta. I log tecnici contengono categorie, tempi e conteggi: mai nomi, codici fiscali, contatti o contenuto dei documenti.",
   },
   {
     title: "Conservazione decisa dal CAF",
     body: "Durata dei link e conservazione dei documenti sono configurabili per ogni CAF. Su richiesta del CAF cancelliamo dati e file di un fascicolo da Avanti, senza toccare l'archivio ufficiale del gestionale.",
+  },
+  {
+    title: "Email senza link e senza contenuti",
+    body: "Gli avvisi al cittadino non contengono link né dati della pratica, per non insegnare a cliccare su email che potrebbero essere imitazioni. Restano cifrati finché non partono; quelli che il cittadino può far partire da solo, come la ricevuta, sono limitati per destinatario.",
   },
   {
     title: "AI con il minimo indispensabile",
