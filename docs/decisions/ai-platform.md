@@ -69,7 +69,7 @@ AI_MODEL_VISION=…                 # lettura dei documenti
 AI_MODEL_AUDIO=google/gemini-3.5-flash-lite # trascrizione letterale
 AI_MODEL_FALLBACKS=…,…            # catena di riserva (OpenRouter: parametro models)
 AI_DATA_POLICY=strict             # strict: solo provider senza conservazione né addestramento
-AI_MONTHLY_BUDGET_EUR=…           # tetto per CAF, sovrascrivibile dall'amministratore
+AI_MONTHLY_BUDGET_EUR=…           # tetto per CAF, deciso dalla piattaforma
 ```
 
 In produzione si sceglie un modello solo e lo si valuta con `pnpm ai:eval` prima del pilota.
@@ -151,7 +151,7 @@ al provider il precedente output potenzialmente ostile.
 ## Uso per CAF
 
 Migrazione unica `0015_ai_runtime`: tabella `ai_usage` e `settings.ai_monthly_budget_eur`.
-`PATCH /api/settings` accetta `aiMonthlyBudgetEur` (null ripristina il default configurato).
+`PATCH /api/settings` accettava `aiMonthlyBudgetEur`; dal 16 ottobre 2026 lo ignora (vedi sotto).
 `GET /api/ai/usage?month=YYYY-MM` è autenticato e riservato agli admin; usa sempre il CAF
 della sessione, aggrega per compito/versione/modello/motore/esito/giorno UTC. Espone token,
 costo EUR stimato, latenza media per gruppo, tentativi e conteggio manipolazioni, nessun contenuto.
@@ -242,6 +242,8 @@ consumo. Avanti la offre dentro il canone. Di conseguenza:
   privacy, e le misure della «quasi pronta», ora nel rapporto del pilota;
 - il budget mensile per organizzazione resta come protezione della piattaforma: lo imposta
   Avanti (default da `AI_MONTHLY_BUDGET_EUR`, valore per CAF in `settings.ai_monthly_budget_eur`)
-  e non è modificabile dall'API delle impostazioni del CAF;
+  e non è modificabile dall'API delle impostazioni del CAF; la migrazione `0021_ai_budget_platform`
+  azzera i valori che gli admin avevano impostato prima, così nessun CAF resta con un tetto
+  alzato da sé;
 - fornitore, modelli e chiavi restano configurazione di piattaforma (`docs/DEPLOY.md`), con lo
   stesso vincolo: solo endpoint a conservazione zero, regione UE quando disponibile.

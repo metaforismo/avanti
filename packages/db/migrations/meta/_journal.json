@@ -148,6 +148,13 @@
       "when": 1792093828307,
       "tag": "0020_near_ready",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792115674639,
+      "tag": "0021_ai_budget_platform",
+      "breakpoints": true
     }
   ]
 }
