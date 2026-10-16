@@ -97,7 +97,8 @@ const it = {
     resumeHint: "Hai già iniziato una pratica su questo telefono.",
     startNew: "Inizia una nuova pratica",
     officeNotFound: "Sportello non trovato",
-    officeNotFoundHint: "Il link potrebbe essere incompleto: inquadra di nuovo il QR code o chiedi allo sportello un nuovo link.",
+    officeNotFoundHint:
+      "Il link potrebbe essere incompleto: inquadra di nuovo il QR code o chiedi allo sportello un nuovo link.",
     noAccount: "Non serve registrarsi.",
     time: "Circa 10 minuti, puoi interrompere e riprendere quando vuoi.",
     aiNotice:
@@ -267,6 +268,8 @@ const it = {
     closed: "La pratica è chiusa.",
     book: "Prenota l'appuntamento",
     bookHint: "Si apre il sito di prenotazione dello sportello.",
+    bringMissing: "Porta anche questi documenti allo sportello",
+    bringMore: "e altri {n}",
     officeNote: "Indicazioni dello sportello",
   },
   request: {
@@ -404,7 +407,8 @@ const en: Widen<CitizenMessages> = {
     resumeHint: "You already started an application on this phone.",
     startNew: "Start a new application",
     officeNotFound: "Desk not found",
-    officeNotFoundHint: "The link may be incomplete: scan the QR code again or ask the desk for a new link.",
+    officeNotFoundHint:
+      "The link may be incomplete: scan the QR code again or ask the desk for a new link.",
     noAccount: "No sign-up needed.",
     time: "About 10 minutes. You can stop and come back whenever you like.",
     aiNotice:
@@ -574,6 +578,8 @@ const en: Widen<CitizenMessages> = {
     closed: "This application is closed.",
     book: "Book your appointment",
     bookHint: "Opens the office's booking site.",
+    bringMissing: "Also bring these documents to the desk",
+    bringMore: "and {n} more",
     officeNote: "Notes from the office (in Italian)",
   },
   request: {
