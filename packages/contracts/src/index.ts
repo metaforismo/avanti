@@ -1678,6 +1678,10 @@ export const DossierChatTurn = z.object({
   createdAt: IsoDateTime,
   caseVersion: IsoDateTime,
 });
+/** POST answer, plus the saved turn's identity so the client never invents one. */
+export const DossierAskResult = DossierAskResponse.extend({
+  turn: DossierChatTurn.pick({ id: true, createdAt: true, caseVersion: true }),
+});
 export const DossierChatQuery = z.object({ beforeId: Id.optional() }).strict();
 export const DossierChatResponse = z.object({
   /** Chronological order within this page. Old references describe the version at generation. */
@@ -1687,6 +1691,7 @@ export const DossierChatResponse = z.object({
 export type DossierAskRequest = z.infer<typeof DossierAskRequest>;
 export type DossierAskResponse = z.infer<typeof DossierAskResponse>;
 export type DossierChatTurn = z.infer<typeof DossierChatTurn>;
+export type DossierAskResult = z.infer<typeof DossierAskResult>;
 export type DossierChatResponse = z.infer<typeof DossierChatResponse>;
 
 export * from "./platform";

@@ -15,7 +15,7 @@ import {
   messages,
   type Database,
 } from "@avanti/db";
-import { DossierAskResponse, DossierChatResponse } from "@avanti/contracts";
+import { DossierAskResponse, DossierAskResult, DossierChatResponse } from "@avanti/contracts";
 import { loadAiConfig } from "@avanti/ai/config";
 import type { Transport } from "@avanti/ai";
 import { createApp } from "./app";
@@ -370,6 +370,11 @@ it("paginates operator-private history without duplicates and rejects another op
       )
     ).status,
   ).toBe(404);
+});
+it("returns the identity of the saved turn, as the history will show it", async () => {
+  const answer = DossierAskResult.parse(await (await ask()).json());
+  const page = DossierChatResponse.parse(await (await request()).json());
+  expect(page.turns.at(-1)).toMatchObject(answer.turn);
 });
 it("deletes the chat with dossier retention and keeps only a text-free audit", async () => {
   await ask();
