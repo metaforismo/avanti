@@ -1106,3 +1106,202 @@ risultare suggested; senza provider restituisce not_eligible con `ai_unavailable
 l’AI; se già valutata apre una nuova versione e conserva l’audit precedente.
 
 I controlli scadono alla successiva mezzanotte di Roma: prima di riutilizzare il segnale serve un ricalcolo; un vecchio controllo non resta valido quando scadenze o annualità cambiano.
+
+## Campagna rinnovi ISEE
+
+Contratti condivisi: `RenewalsQuery`, `RenewalsResponse`, `CreateRenewalsRequest`,
+`CreateRenewalsResponse`, `RenewalItem`, `RenewalStatus`, `RenewalConsentRequest`.
+Solo sessioni operatore/admin attive e complete (password/MFA come per creazione
+pratica), sempre nel CAF autenticato. GET e POST rispondono con
+`Cache-Control: private, no-store`. Nessun endpoint trasmette DSU a INPS.
+
+### Elenco e avanzamento
+
+`GET /api/renewals?year=2028&status=not_invited&limit=25`
+
+- `year`: intero 2021–2100, anno della nuova pratica; non anno dei redditi.
+- `status`: `not_invited` (default), `invited`, `started`, `submitted`, `all`.
+- `limit`: 1–50, default 25. `after`: ultimo `sourceCaseId` restituito in
+  `nextAfter`; ordinamento crescente per ID. Conservare anno e filtro durante
+  la paginazione; `nextAfter:null` indica fine elenco.
+- Sorgenti: esclusivamente `isee_ordinario`, `status=ready|submitted`, anno pratica
+  precedente, ancora entro retention. L'anno viene da `answers.practice_year`,
+  con il default 2027 del catalogo per i record precedenti. Non si usa l'anno di upload.
+- Il default esclude sorgenti con una pratica ISEE già collegata per l'anno richiesto,
+  compreso il riuso ordinario. Gli altri filtri consentono di seguirne l'avanzamento.
+  `counts` riguarda l'intera coorte eleggibile, prima di filtro e paginazione.
+
+```json
+{
+  "year": 2028,
+  "items": [
+    {
+      "sourceCaseId": "source-id",
+      "reference": "AV-2027-000001",
+      "citizenName": "Persona Esempio",
+      "householdCount": 3,
+      "documents": { "valid": 2, "toUpdate": 4, "toVerify": 1 },
+      "status": "not_invited",
+      "renewalCaseId": null,
+      "lastInvitedAt": null
+    }
+  ],
+  "counts": { "not_invited": 1, "invited": 0, "started": 0, "submitted": 0 },
+  "nextAfter": null
+}
+```
+
+`citizenName` usa il contatto, come la coda; può essere null. I conteggi documentali
+usano gli stessi controlli di eleggibilità del riuso e la valutazione per il nuovo
+anno: `valid` compatibile, `toUpdate` scaduto/annuale non compatibile, `toVerify`
+incerto. Non sono verifiche ufficiali e non comprendono file ancora in analisi.
+Gli scaduti restano conservati nel fascicolo con la richiesta di aggiornamento.
+
+Stati: `not_invited` nessun rinnovo collegato; `invited` link emesso ma nucleo ancora
+da confermare; `started` nucleo confermato dal cittadino; `submitted` almeno un invio
+cittadino registrato, anche se poi chieste integrazioni. Un fascicolo creato prima
+tramite riuso ordinario è già `started` o `submitted`, senza trasformazione retroattiva.
+`lastInvitedAt` è l'emissione/rigenerazione del link, non una ricevuta di consegna email.
+Una sorgente successivamente cancellata o non più eleggibile sparisce dalla campagna:
+il suo rinnovo resta autonomo nella coda pratiche.
+
+### Creazione in lotto e link mostrati una volta
+
+`POST /api/renewals`, HTTP 200 sia alla prima chiamata sia nei retry:
+
+```json
+{ "sourceCaseIds": ["source-id"], "year": 2028 }
+```
+
+```json
+{
+  "year": 2028,
+  "items": [
+    {
+      "sourceCaseId": "source-id",
+      "caseId": "renewal-id",
+      "reference": "AV-2028-000001",
+      "status": "invited",
+      "created": true,
+      "citizenLink": "http://localhost:3400/pratica/TOKEN",
+      "invitation": "queued"
+    }
+  ]
+}
+```
+
+Da 1 a 50 ID distinti, lotto atomico, risultati nello stesso ordine della richiesta.
+La nuova pratica usa sede e lingua della sorgente. Copia nucleo e documenti eleggibili,
+con verifiche indipendenti, e solo i contatti/preferenza rinnovi; non copia risposte
+economiche, note, messaggi, revisioni o autorizzazioni documentali degli altri componenti.
+Il CF non è necessario: si tratta di un collegamento esplicito all'ID sorgente.
+
+Un retry restituisce lo stesso `caseId`, `created:false`, `citizenLink:null`,
+`invitation:"existing"`. Non riproduce il segreto e non accoda un'altra email.
+`regenerateLinks:true` ruota esplicitamente il token del rinnovo ancora in intervista
+(`intake|needs_citizen`, senza primo invio) e restituisce un nuovo link; il precedente
+smette di funzionare. Può recuperare un link scaduto, mai un caso oltre retention.
+Non rigenera dalla campagna i fascicoli preesistenti di riuso ordinario: usare la
+normale gestione del loro link. Il lotto viene annullato se una rigenerazione non è ammessa.
+
+`invitation`: `queued` accodata nell'outbox AES-GCM, `disabled` preferenza CAF spenta,
+`no_email`, `no_consent`, `rate_limited` limite destinatario raggiunto, `existing` retry
+senza rigenerazione. Il link è disponibile una sola volta anche senza email.
+`queued` non significa consegnata: valgono retry, simulazione locale e retention
+outbox esistenti. L'email è nella lingua della sorgente e contiene il link personale
+solo nell'envelope cifrato. Il dispatcher ricontrolla consenso, preferenza, lingua,
+email, scadenza, stato e hash del token: non invia un link sostituito.
+
+### Conferma cittadino e consenso
+
+`GET /api/c/:token` aggiunge a `CitizenCase`:
+
+```json
+{
+  "renewal": {
+    "year": 2028,
+    "previousYear": 2027,
+    "householdConfirmationRequired": true,
+    "householdConfirmedAt": null,
+    "notice": "Stai preparando il rinnovo ISEE 2028 dalla pratica 2027. Conferma il nucleo attuale e rispondi alle domande del nuovo anno."
+  },
+  "renewalContactConsent": true,
+  "nextQuestion": {
+    "id": "members",
+    "kind": "members",
+    "required": true,
+    "prompt": "Il tuo nucleo familiare è ancora questo?",
+    "help": "Questi sono i componenti dell'anno scorso. Conferma l'elenco, togli chi non fa più parte del nucleo e aggiungi le nuove persone.",
+    "min": 1,
+    "max": 20,
+    "section": "Nucleo familiare"
+  }
+}
+```
+
+Per pratiche non di rinnovo `renewal:null`. La UI mostra i componenti di `household`
+con il controllo `members` esistente, preserva gli ID delle stesse persone, omette
+chi è uscito e omette l'ID dei nuovi membri. Conferma mediante il turno esistente:
+
+```http
+POST /api/c/:token/turn
+```
+
+```json
+{
+  "type": "answer",
+  "questionId": "members",
+  "value": [
+    {
+      "id": "person-id",
+      "role": "richiedente",
+      "firstName": "Persona",
+      "lastName": "Esempio",
+      "birthYear": 1980
+    }
+  ]
+}
+```
+
+Risponde con `IntakeTurnResponse`. Il backend blocca salti, risposte alle domande
+successive e invio finché il nucleo non è confermato; supporta anche la conferma
+esplicita della proposta `members` con `/conversation/confirm`. Il rinnovo resta
+ISEE ordinario. Dopo la conferma, tutte le domande obbligatorie del catalogo corrente
+sono applicate al nucleo aggiornato. Non trattare la sola apertura GET come `started`.
+Testi di conferma, avviso e invito disponibili in it/en/fr/es/ro/uk/ar/bn; usare il
+normale layout RTL per l'arabo. I documenti degli altri membri sono solo operatore,
+anche se la sorgente li mostrava al cittadino; letture, modifiche e download lo rispettano.
+
+La nuova preferenza CAF `notifyCitizenRenewals` è false per default, leggibile via
+`GET /api/settings`, modificabile dall'admin con
+`PATCH /api/settings {"notifyCitizenRenewals":true}`. I contatti preesistenti non hanno
+consenso ai rinnovi: nessun backfill. `SubmitCaseRequest` accetta il nuovo boolean
+opzionale `renewalContactConsent` accanto a `contact` e `confirmed`; ometterlo conserva
+la preferenza. Il consenso può anche essere aggiornato con un link attivo, incluso
+un fascicolo già inviato:
+
+```http
+PUT /api/c/:token/renewal-consent
+```
+
+```json
+{ "consented": true }
+```
+
+Risposta `{ "consented": true }`. `false` revoca anche le copie della preferenza nei
+fascicoli dello stesso gruppo famiglia nel CAF. L'accettazione abilita soltanto il
+fascicolo corrente e i suoi futuri rinnovi. Nessuna accodatura retroattiva automatica.
+L'operatore non può impostare questo consenso creando una pratica.
+
+Limiti persistenti: POST campagna 5/minuto e 20/ora per operatore (IP fidato 50/minuto,
+200/ora); GET 60/minuto per operatore (IP 600/minuto); inviti email 2/24 ore per
+indirizzo canonico, condivisi tra CAF e pratiche. Il limite consenso usa i turni
+cittadino esistenti. Errori nel formato `ApiError`: 400 input invalido, 401/403 accesso,
+404 sorgente estranea/assente/oltre retention, 409 sorgente o rigenerazione non ammessa,
+410 link cittadino scaduto, 429 con `Retry-After`. Dopo sostituzione del token il vecchio
+link è 404 perché non esiste più il suo hash. Audit: `renewals.listed`, `renewal.created`,
+`renewal.link_regenerated`, `renewal.invitation_queued`, `renewal.household_confirmed`,
+`renewal.consent_updated`; solo ID tecnici, anno, conteggi e booleani.
+
+Fonti e limiti annuali: [ricerca](research/isee-renewals.md).
+Scelte, migrazione e verifiche: [decisione rinnovi](decisions/renewals.md).

@@ -65,6 +65,12 @@ export function dossierSummary(
 
 const timelineLabels: Record<string, string> = {
   "citizen.safety_notice": "Mostrato avviso di sicurezza: emergenza, contattare il 112",
+  "renewals.listed": "Elenco rinnovi consultato",
+  "renewal.created": "Rinnovo ISEE creato",
+  "renewal.link_regenerated": "Link del rinnovo rigenerato",
+  "renewal.invitation_queued": "Invito al rinnovo accodato",
+  "renewal.household_confirmed": "Nucleo del rinnovo confermato dal cittadino",
+  "renewal.consent_updated": "Preferenza per gli inviti al rinnovo aggiornata",
   "case.reused": "Nucleo e documenti riusati per una nuova pratica",
   "document.reuse_checked": "Validità del documento riusato controllata",
   "citizen.question": "Domanda del cittadino allo sportello",

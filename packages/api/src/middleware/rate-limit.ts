@@ -23,6 +23,8 @@ interface Policy {
 const minute = (limit: number): WindowLimit => ({ limit, seconds: 60 });
 const hour = (limit: number): WindowLimit => ({ limit, seconds: 3600 });
 export const RATE_POLICIES = {
+  renewals: { category: "renewals", primary: [minute(5), hour(20)], ip: [minute(50), hour(200)] },
+  renewalsRead: { category: "renewalsRead", primary: [minute(60)], ip: [minute(600)] },
   assistant: {
     category: "assistant",
     primary: [hour(30), { limit: 80, seconds: 86400 }],
@@ -49,6 +51,14 @@ export const RATE_POLICIES = {
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
+  if (path === "/api/renewals")
+    return method === "POST"
+      ? RATE_POLICIES.renewals
+      : method === "GET"
+        ? RATE_POLICIES.renewalsRead
+        : null;
+  if (method === "PUT" && /^\/api\/c\/[^/]+\/renewal-consent$/.test(path))
+    return RATE_POLICIES.turn;
   if (
     (method === "GET" && /^\/api\/cases\/[^/]+\/ai\/(brief|consistency|dsu-prefill)$/.test(path)) ||
     (method === "POST" && /^\/api\/cases\/[^/]+\/near-ready\/evaluate$/.test(path))
@@ -116,7 +126,9 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       return next();
     if (
       rule &&
-      (!["export", "link", "translate", "copilot"].includes(rule.category) ||
+      (!["export", "link", "translate", "copilot", "renewals", "renewalsRead"].includes(
+        rule.category,
+      ) ||
         context.get("operator"))
     ) {
       const identities: string[] = [];

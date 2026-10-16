@@ -55,6 +55,12 @@ export function applyTurn(
   let practiceId = current.practiceId;
   let answers = { ...current.answers };
   const unavailablePractice: PracticeId | null = null;
+  if (
+    current.renewalYear &&
+    input.type === "choose_practice" &&
+    input.practiceId !== "isee_ordinario"
+  )
+    throw new ApiFailure("conflict", 409, "Il rinnovo riguarda la pratica ISEE ordinario.");
   if (input.type === "choose_practice") {
     assertStartable(input.practiceId);
     if (practiceId !== input.practiceId)

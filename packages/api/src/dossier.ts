@@ -27,6 +27,8 @@ import {
   type Language,
 } from "@avanti/contracts";
 import {
+  renewalNotice,
+  renewalPending,
   assessDocumentReuse,
   practiceYear,
   buildHousehold,
@@ -310,18 +312,32 @@ export async function citizenView(
     progress: evaluation.progress,
     nextQuestion: question,
     answers: row.answers,
-    answered: answeredQuestions(
-      row.practiceId ? getQuestions(row.practiceId, row.answers, language) : [],
-      row.answers,
-      row.confirmedAnswers,
-      language,
-    ),
+    answered: renewalPending(row.answers)
+      ? []
+      : answeredQuestions(
+          row.practiceId ? getQuestions(row.practiceId, row.answers, language) : [],
+          row.answers,
+          row.confirmedAnswers,
+          language,
+        ),
     contact: CitizenContact.safeParse(row.contact).success
       ? CitizenContact.parse(row.contact)
       : null,
     household,
     checklist,
     documents: docViews,
+    renewal: row.renewalYear
+      ? {
+          year: row.renewalYear,
+          previousYear: row.renewalYear - 1,
+          householdConfirmationRequired: renewalPending(row.answers),
+          householdConfirmedAt: row.renewalHouseholdConfirmedAt
+            ? iso(row.renewalHouseholdConfirmedAt)
+            : null,
+          notice: renewalNotice(language, row.renewalYear - 1, row.renewalYear),
+        }
+      : null,
+    renewalContactConsent: row.renewalContactConsentAt !== null,
     practiceYear: practiceYear(row.answers),
     reuseNotice: storedDocs.some((doc) => doc.reusedFromYear !== null && visibleToCitizen(doc, row))
       ? reuseNotice[language]

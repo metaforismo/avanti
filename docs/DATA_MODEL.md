@@ -234,3 +234,28 @@ alla visibilità. La coda verifica i riferimenti prima di ogni cancellazione fis
 La retention elimina una sola pratica alla volta; la richiesta dell'interessato
 usa `family-erasure` per l'intero gruppo. Nessuna variazione alla portata dell'export.
 Dettagli ed esempi in [document-reuse.md](decisions/document-reuse.md).
+
+## Rinnovi ISEE (0023)
+
+La migrazione `0023_isee_renewals` è generata con drizzle-kit (numero da riallineare
+al merge). Su `cases`: `renewal_source_id` è provenienza opaca senza FK,
+`renewal_year` anno nuovo, `renewal_household_confirmed_at` conferma cittadino,
+`renewal_invited_at` ultima emissione link, `renewal_contact_consent_at` consenso
+esplicito all'invito annuale. Le colonne sono nullable; nessun consenso pregresso
+viene presunto. CHECK vincola la coppia sorgente/anno ai rinnovi ISEE collegati a
+una famiglia; indice univoco CAF/sorgente/anno. Lo stato della campagna è derivato
+dalla presenza del rinnovo e dai timestamp, senza uno stato duplicato da sincronizzare.
+
+`settings.notify_citizen_renewals` è false per default.
+L'outbox ammette `citizen_renewal` e contiene `citizen_link_hash`, confrontato al
+momento dell'invio con il token corrente. Il link in chiaro è solo nell'envelope
+cifrato; una rigenerazione rende obsoleti gli inviti precedenti. La cancellazione
+segue la FK al rinnovo, non alla sorgente. Il consenso viene trasferito al rinnovo
+soltanto se esplicito; la revoca lo rimuove dai fascicoli del gruppo nel CAF.
+
+`answers.renewal_household_confirmed=false` fa riproporre obbligatoriamente `members`
+come prima domanda, pur conservando il nucleo proposto dell'anno precedente. Solo
+la risposta cittadino lo porta a true; `confirmed_answers` parte vuoto. Nessuna
+risposta economica annuale è trasferita. Il gruppo famiglia e i file condivisi
+seguono le stesse regole del riuso ordinario e rimangono validi dopo la cancellazione
+della sorgente. [Decisione e verifiche](decisions/renewals.md).

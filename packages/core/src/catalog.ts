@@ -9,6 +9,7 @@ import {
   type Question,
 } from "@avanti/contracts";
 import { localize, t, type Text, type TextKey } from "./i18n";
+import { renewalPending, renewalQuestion } from "./renewal";
 import { buildHousehold, householdMinimum } from "./household";
 
 export const CATALOG_VERSION = "2027-preparation.1";
@@ -732,5 +733,7 @@ export function getQuestions(
   answers: Answers,
   language: Language,
 ): Question[] {
+  if (practiceId === "isee_ordinario" && renewalPending(answers))
+    return [renewalQuestion(language)];
   return questionDefinitions(practiceId, answers, language).map(({ question }) => question);
 }

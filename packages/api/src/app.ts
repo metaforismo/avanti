@@ -30,6 +30,7 @@ import { mountAuditRoutes } from "./audit-log";
 import { mountNearReady } from "./near-ready";
 import { mountCopilot } from "./copilot";
 import { mountAiUsage } from "./ai-usage";
+import { mountRenewalRoutes } from "./renewals";
 import { mountFamilyReuseRoutes } from "./family-reuse";
 import { mountSystemStatus } from "./system-status";
 
@@ -77,6 +78,7 @@ export function createApp(options: ApiOptions) {
     "/auth/password",
     "/auth/mfa/*",
     "/cases/*",
+    "/renewals",
     "/metrics",
     "/reports/*",
     "/status",
@@ -111,6 +113,7 @@ export function createApp(options: ApiOptions) {
   mountConversationRoutes(app, services);
   mountOperatorRoutes(app, services);
   mountFamilyReuseRoutes(app, services);
+  mountRenewalRoutes(app, services);
   mountAdministrationRoutes(app, services);
   mountQuickReplyRoutes(app, services);
   mountAuditRoutes(app, services);

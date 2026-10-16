@@ -41,16 +41,18 @@ export async function eraseCase(db: Database, row: CaseRow, now: Date, actorId: 
   });
 }
 
+export function pastRetention(now: Date) {
+  const retention = sql`coalesce(${settings.retentionDays}, 180) * interval '1 day'`;
+  return sql`coalesce((${cases.status} = 'closed' and ${cases.closedAt} < ${now.toISOString()}::timestamptz - ${retention}), false) or ${cases.expiresAt} < ${now.toISOString()}::timestamptz - ${retention}`;
+}
+
 export async function purgeRetainedCases(s: Services, now: Date): Promise<number> {
   return s.db.transaction(async (tx) => {
-    const retention = sql`coalesce(${settings.retentionDays}, 180) * interval '1 day'`;
     const rows = await tx
       .select({ row: cases })
       .from(cases)
       .leftJoin(settings, eq(settings.organizationId, cases.organizationId))
-      .where(
-        sql`(${cases.status} = 'closed' and ${cases.closedAt} < ${now.toISOString()}::timestamptz - ${retention}) or ${cases.expiresAt} < ${now.toISOString()}::timestamptz - ${retention}`,
-      )
+      .where(pastRetention(now))
       .orderBy(asc(cases.expiresAt), asc(cases.id))
       .limit(RETENTION_BATCH_SIZE)
       .for("update", { of: cases, skipLocked: true });

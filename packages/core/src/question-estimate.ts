@@ -1,3 +1,4 @@
+import { renewalPending } from "./renewal";
 import type { Language, PracticeId } from "@avanti/contracts";
 import { getQuestions, type Answers } from "./catalog";
 import { buildHousehold, householdMinimum } from "./household";
@@ -5,7 +6,19 @@ import { buildHousehold, householdMinimum } from "./household";
 /** Planning range, not a catalog maximum. Unknown sizes assume 3 people, 3 financial
  * relationships, 2 properties and 2 vehicles. Explicit counts always override these
  * product assumptions; the range may grow when a larger household is declared. */
-export function questionEstimate(practiceId: PracticeId, answers: Answers, language: Language) {
+export function questionEstimate(
+  practiceId: PracticeId,
+  answers: Answers,
+  language: Language,
+): { min: number; max: number } {
+  if (renewalPending(answers)) {
+    const remaining = questionEstimate(
+      practiceId,
+      { ...answers, renewal_household_confirmed: true },
+      language,
+    );
+    return { min: remaining.min + 1, max: remaining.max + 1 };
+  }
   const active = getQuestions(practiceId, answers, language);
   const answered = active.filter((q) => Object.hasOwn(answers, q.id)).length;
   if (practiceId !== "isee_ordinario")
