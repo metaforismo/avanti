@@ -117,18 +117,20 @@ senza decidere al suo posto.
 3. **Informativa breve incompleta:** mancano identità/recapiti puntuali, basi, termini,
    destinatari/trasferimenti, alcuni diritti, riuso/rinnovi e gestione dati indiretti.
    Confronto dettagliato in [informativa, parte D](informativa-cittadino.md#d-differenze-rispetto-a-privacy-e-sicurezza-attuali).
-4. **Retention e rinnovo annuale:** il default 180 giorni può eliminare le sorgenti prima
-   dell'anno successivo; non è un bug da risolvere prolungando automaticamente. Occorre
-   una decisione proporzionata. La scadenza link non coincide con cancellazione.
+4. **Retention e rinnovo annuale:** il backend ora conserva, per ISEE inviato con
+   consenso versionato e contatto utile, solo il [promemoria minimo](../decisions/renewals.md#promemoria-minimo-alla-retention-16-ottobre-2026)
+   fino al marzo seguente, senza prorogare fascicoli/file. Necessità dei dati familiari,
+   informativa e base vanno approvate da CAF/DPO; scheduler e ambiente da collaudare.
+   La scadenza link non coincide con cancellazione.
 5. **Prove operative aperte:** il runbook non attesta provisioning/hosting UE,
    backup DB/file, restore, cron e trasferimenti già funzionanti in produzione.
    Export JSON senza binari non significa backup né restituzione completa.
-6. **Consenso rinnovi:** `renewals.md` descrive la UI come da collegare, ma il codice
-   attuale contiene già checkbox nel riepilogo, submit della preferenza e console
-   campagna. Nella ricerca mirata del frontend non risulta una chiamata dedicata a
-   `renewal-consent`: verificare facilità della revoca dopo invio/scadenza e mantenere
-   il canale CAF. Nessuna prova browser/email reale eseguita qui; timestamp/audit non
-   dimostrano da soli versione del testo e identità del consenziente.
+6. **Consenso rinnovi:** checkbox, submit e console campagna esistono. Il backend ora
+   registra data/versione per lingua (testi immutabili nel core), con revoca cittadino
+   di sola capacità anche dopo retention e due route CAF di sola revoca. Restano da
+   collegare i controlli UI e da approvare l'informativa sul promemoria; nessuna prova
+   browser/email reale. Versione/azione sulla capability non dimostrano identità civile
+   o rappresentanza dei componenti del nucleo.
 7. **Misure da non sovrastimare:** MFA configurabile, non automaticamente obbligatoria;
    isolamento tra CAF non dimostra isolamento per singola sede; controlli upload non
    sono antivirus; audit pseudonimo non è anonimo né archivio immodificabile certificato.
@@ -140,7 +142,8 @@ senza decidere al suo posto.
    requisito di contatto nella UI. Il CAF deve motivarlo e definire l'alternativa
    assistita, evitando di descrivere indistintamente tutti i contatti come facoltativi.
 
-Sono rilievi documentali; non modificano il prodotto. L'eventuale correzione frontend,
+I punti 4 e 6 includono l’aggiornamento backend del promemoria minimo del 16 ottobre 2026.
+Gli altri sono rilievi documentali; non modificano il prodotto. L'eventuale correzione frontend,
 runbook o codice resta fuori da questa attività.
 
 ## Fonti ufficiali e metodo di verifica

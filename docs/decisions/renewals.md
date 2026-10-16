@@ -34,8 +34,8 @@ Le modifiche a `packages/contracts` sono necessarie per rendere espliciti filtri
 conteggi, idempotenza senza segreto, fase cittadino e consenso/preferenza. I campi
 cittadino sono additivi/opzionali per i consumer esistenti; la nuova preferenza è
 false per default e un PATCH parziale la conserva. Non vengono modificati `near-ready*`
-o il frontend. La UI deve collegare i contratti documentati: questo lavoro non
-aggiunge schermate.
+o il frontend. La UI esistente contiene checkbox e campagna; i nuovi controlli di revoca e gli
+indicatori del promemoria vanno collegati ai contratti. Questo lavoro non aggiunge schermate.
 
 ## Integrità e privacy
 
@@ -59,10 +59,10 @@ aggiunge schermate.
   documenti validi o revisioni approvate per la sola copia. Visibilità pregressa degli
   altri componenti non si propaga; nessuna nuova copia fisica dei file.
 - Retention usa lo stesso predicato della cancellazione, anche prima del cron, con
-  identico confine stretto. La campagna non estende la conservazione della sorgente.
-  Con 180 giorni molti fascicoli di gennaio precedente saranno già cancellati: la
-  campagna lavora soltanto sui dati legittimamente ancora conservati. La retention del
-  nuovo fascicolo è indipendente; family-erasure include entrambi e le notifiche.
+  identico confine stretto. Il fascicolo sorgente non viene prorogato. Alla cancellazione
+  per retention può sopravvivere esclusivamente il promemoria minimo descritto sotto;
+  il nuovo fascicolo mantiene retention propria. Family-erasure include fascicoli,
+  promemoria e notifiche.
 - Link mostrato una volta, hash nel DB. Un retry non può ricostruirlo. Solo
   `regenerateLinks:true` può ruotarlo; il token precedente nell'outbox viene respinto
   confrontando `citizen_link_hash` con la capability corrente. `queued` e `invited`
@@ -83,8 +83,8 @@ Unica migrazione `0023_isee_renewals`, generata con
 numero da riallineare al merge. Cinque colonne nullable su `cases`, preferenza
 CAF false, hash capability su `notifications`, indici e CHECK coerenti. Nessun
 backfill dei dati personali o del consenso, nessuna modifica alle migrazioni precedenti.
-La nuova pratica non dipende dalla sopravvivenza della sorgente; non serve una
-migrazione per riscrivere i collegamenti al momento della cancellazione.
+La nuova pratica non dipende dalla sopravvivenza della sorgente. Il promemoria
+minimo richiede ora la migrazione separata descritta sotto.
 
 ## Verifica e limiti
 
@@ -128,3 +128,110 @@ conteggio grezzo a un rapporto che oggi applica protezioni statistiche.
   e 16 MiB di cache Turbo radice; non è una misura dello spazio fisico APFS recuperato.
 - **BLOCKED** PostgreSQL nativo per il limite `shmget` del sandbox, come sopra;
   **NOT RUN** email provider reale e verifica browser UI.
+
+## Promemoria minimo alla retention (16 ottobre 2026)
+
+**Decisione implementata nel backend; testi/informative e base del trattamento restano
+bozze da approvare con CAF e legale/DPO.** Il default 180 giorni non cambia. Alla
+retention, nella stessa transazione che elimina la pratica, `renewal_reminders`
+conserva una sola riga per sorgente se è ISEE ordinario, ha un primo invio
+(`submitted_at`), consenso esplicito con versione registrata e almeno email o telefono.
+Non basta lo stato `ready` senza invio; non si presume una prova per i consensi
+storici con sola data. Niente backfill.
+
+Alternative valutate: mantenere un fascicolo svuotato in `cases` avrebbe confuso
+scadenza del link, autorizzazione alla lettura, metriche e retention del fascicolo;
+un archivio autonomo rende espliciti dati e scadenza. Si sceglie quindi la tabella
+separata, senza un secondo stato campagna: avanzamento e idempotenza restano sul
+rinnovo. `renewal-reminders.ts` possiede allowlist/TTL/cancellazione;
+`renewal-consent.ts` possiede prova e revoca; `renewals.ts` unisce le due sorgenti.
+Il core possiede proiezione minima, versioni e calcolo della scadenza senza I/O.
+
+Dati ammessi: CAF, sportello, lingua, anno pratica, riferimento, contatto già fornito
+(nome/cognome ed email/telefono), nucleo con soli ruoli, nomi/cognomi e anni di nascita,
+data e identificatore del testo del consenso. **Niente CF**, data completa di nascita,
+ID documentali, risposte economiche, documenti/metadati/file, messaggi o note.
+Il CF non serve: la selezione usa ID sorgente e famiglia espliciti, senza match
+anagrafico. Gli ID delle persone proposte vengono ricreati per il nuovo fascicolo.
+Il gruppo famiglia opaco è mantenuto (o usa l'ID sorgente se non c'è un gruppo) per
+revoca ed erasure; non è un indice di ricerca per nome/CF.
+
+Unico ulteriore dato tecnico: hash del token sorgente, utilizzabile **solo per
+revocare** via `PUT /api/c/:token/renewal-consent {consented:false}` dopo scadenza o
+retention. Non abilita letture né un nuovo consenso e non viene restituito nelle API.
+Il vecchio token in chiaro non viene conservato. Ruotare un link prima della retention
+invalida l'hash precedente come prima.
+
+Limite scelto: **pratica ISEE 2027 → campagna 2028 → fine del 31 marzo 2028,
+Europe/Rome**, istante escluso `2028-03-31T22:00:00Z`. È una scelta applicativa
+proporzionata per coprire il primo trimestre seguente, non un termine imposto da INPS.
+La [fonte INPS verificata](../research/isee-renewals.md) conferma soltanto la validità
+ISEE al 31 dicembre. Se la retention arriva dopo questo limite, non crea alcun
+promemoria. GET/POST lo escludono immediatamente alla scadenza; il cron ne elimina
+la riga al successivo passaggio, anche senza fascicoli da eliminare. Nessuna scadenza
+mobile dall'ultima consultazione o dall'invito.
+
+La campagna applica filtri, conteggi, cursore, tenant e audit comuni all'unione di
+fascicoli eleggibili e promemoria attivi. `sourceCaseId` resta l'ID originario anche
+dopo retention. La sorgente promemoria ha sempre conteggi documentali zero, nucleo
+da confermare e nessun riuso file; conserva la prova del consenso nel rinnovo.
+Il trasferimento al nuovo fascicolo non costituisce una nuova espressione di consenso.
+
+Revoca cittadino e CAF (`PUT /api/cases/:id/renewal-consent` oppure
+`PUT /api/renewals/:id/renewal-consent`, solo `{consented:false}`) eliminano
+immediatamente tutti i promemoria del gruppo nel CAF e azzerano il consenso nelle
+pratiche collegate, con data di revoca e audit tecnico. CAF agisce su richiesta del
+cittadino e non può concedere consenso. Il dispatcher rivalida la preferenza prima
+del provider; payload pendenti non più autorizzati vengono annullati al controllo
+successivo secondo il ciclo outbox esistente. Nessun nuovo promemoria viene creato
+dalle copie revocate. Retention, creazione campagna e revoca acquisiscono il lock CAF
+prima dei lock pratica/promemoria. Un invio già completato non può essere richiamato.
+
+`POST /api/cases/:id/family-erasure` accetta anche l'ID di una sorgente ormai presente
+solo come promemoria, con riferimento e conferma, ed elimina il gruppo. La cancellazione
+su richiesta di un fascicolo ancora conservato elimina anche i promemoria del gruppo;
+nessuna cancellazione su richiesta ne crea uno. La richiesta elimina anche il consenso
+nelle copie conservate del gruppo, impedendo ricreazioni successive. Audit pseudonimo e retry dei file
+seguono le durate già documentate, senza conservare il payload del promemoria.
+
+Prova del consenso: `RENEWAL_CONSENT_VERSIONS` e snapshot immutabile
+`RENEWAL_CONSENT_TEXT_V1` nel core identificano checkbox **e hint** per lingua come
+`isee-renewal-email:<lingua>:1`. Submit e PUT espliciti registrano data/versione;
+non il testo integrale nel DB. Cambiare un testo richiede nuova versione e snapshot.
+Audit: `renewal.consent_updated`, boolean `consented`, `consentTextVersion:1` e
+`consentLanguage` (indice di `Language.options`), senza testo, nomi, contatti o hash.
+La revoca di un promemoria resta nell'audit scollegato dal fascicolo eliminato.
+Questo prova l'azione sulla capability e la versione associata dal server, non
+l'identità civile né da solo l'effettiva lettura dell'informativa. L'informativa deve
+esplicitare il promemoria e la rappresentanza per i familiari va valutata dal CAF.
+
+Contratti modificati perché la UI deve distinguere sorgenti, scadenza e possibilità
+di revoca: nuovi campi in `RenewalItem` e `CitizenCase`, schema CAF di sola revoca;
+`EraseFamilyResponse` ammette zero fascicoli quando cancella solo promemoria e riporta
+`deletedReminders` quando presenti. `RenewalReminderMember` è l'allowlist zod condivisa
+tra core e DB; i nuovi campi numerici di `AuditDetails` rendono leggibile la prova
+senza ammettere testi personali nell'audit. Nessuna modifica al frontend.
+
+Migrazione **`0024_renewal_retention_reminders` generata con drizzle-kit**; SQL,
+snapshot e journal insieme. Numero provvisorio: la PR metering usa già 0024 e sarà
+riallineato dall'utente. Aggiunge tabella/indici/FK tenant-sportello, CHECK lingua,
+anno e limite scadenza, più versione e data revoca su `cases`. Nessuna modifica alle
+migrazioni precedenti.
+
+L’export organizzazione include i promemoria del solo CAF, escludendo sempre l’hash
+di revoca. Il formato rimane versione 1 con campo additivo `renewalReminders`.
+
+### Verifica locale del promemoria minimo
+
+- **PASS** `TURBO_CACHE_DIR=.turbo/cache pnpm check --concurrency=2`: 18 task,
+  1.562 test passati e 38 opzionali saltati; API 692, core 695, DB 43, AI 85, web 47.
+- **PASS** 20 test nuovi (14 API, 6 core), più regressioni aggiornate per export e
+  schema. Coperti consenso assente/storico, ISEE non inviato, allowlist senza CF/data
+  completa, revoca prima/dopo retention e concorrente, canali CAF di sola revoca,
+  campagna mista con paginazione, scadenza Roma anche prima del cron, isolamento,
+  erasure con/senza fascicoli e mancata ricreazione dopo cancellazione su richiesta.
+- **PASS** `TURBO_CACHE_DIR=.turbo/cache pnpm build`: 3 task e Next.js produzione.
+  Preflight locale con fallback senza chiavi; `drizzle-kit generate` successivo non
+  rileva differenze schema/snapshot.
+- **NOT RUN** PostgreSQL nativo, browser e provider email reale in questa attività.
+  Le prove concorrenti PGlite non sostituiscono lock su connessioni PostgreSQL distinte.

@@ -1,5 +1,5 @@
 import { and, desc, eq, sql } from "drizzle-orm";
-import { cases, documents, offices, type Database } from "@avanti/db";
+import { cases, documents, offices, renewalReminders, type Database } from "@avanti/db";
 import {
   CheckDocumentReuseRequest,
   DocumentAnalysis,
@@ -28,6 +28,7 @@ import { recordActivity } from "./audit-log";
 import { administer } from "./routes/administration";
 import { eraseCase } from "./case-erasure";
 import { retryStorageDeletions } from "./storage-cleanup";
+import { eraseRenewalReminders, reminderOwner } from "./renewal-reminders";
 import { deadline } from "./deadline";
 import { nextCaseUpdate } from "./case-version";
 
@@ -181,9 +182,26 @@ export function mountFamilyReuseRoutes(app: App, s: Services) {
     const input = await body(c, EraseFamilyRequest);
     const id = parse(Id, c.req.param("id"));
     const actor = c.get("operator");
+    let deletedReminders = 0;
     const deletedIds = await administer(s, c, async (tx) => {
       // Tenant lock held by administer prevents new links while the group is enumerated.
-      const source = await caseById(tx, id, actor.organizationId);
+      const [caseSource] = await tx
+        .select()
+        .from(cases)
+        .where(and(eq(cases.id, id), eq(cases.organizationId, actor.organizationId)));
+      const [reminder] = caseSource
+        ? []
+        : await tx
+            .select()
+            .from(renewalReminders)
+            .where(
+              and(
+                eq(renewalReminders.sourceCaseId, id),
+                eq(renewalReminders.organizationId, actor.organizationId),
+              ),
+            );
+      const source = caseSource ?? (reminder ? reminderOwner(reminder) : null);
+      if (!source) throw notFound();
       if (input.confirmReference.toLowerCase() !== source.reference.toLowerCase())
         throw bad("Il riferimento non corrisponde al fascicolo.");
       const linked = await tx
@@ -197,21 +215,29 @@ export function mountFamilyReuseRoutes(app: App, s: Services) {
         )
         .orderBy(cases.id)
         .for("update");
+      deletedReminders = (await eraseRenewalReminders(tx, source)).length;
       for (const row of linked) await eraseCase(tx, row, s.clock(), actor.id);
       await recordActivity(tx, actor.organizationId, actor.id, "family.erased", s.clock(), null, {
         cases: linked.length,
+        ...(deletedReminders ? { reminders: deletedReminders } : {}),
       });
       return linked.map((row) => row.id);
     });
     for (const caseId of deletedIds) await retryStorageDeletions(s, undefined, caseId);
-    return c.json({ deletedCases: deletedIds.length });
+    return c.json({
+      deletedCases: deletedIds.length,
+      ...(deletedReminders ? { deletedReminders } : {}),
+    });
   });
 }
 
 // Caller holds tenant authorization and the source row lock.
 export async function createReusedCase(
   tx: Database,
-  source: CaseRow,
+  source: Pick<
+    CaseRow,
+    "id" | "organizationId" | "reference" | "answers" | "practiceId" | "contact" | "familyId"
+  >,
   office: typeof offices.$inferSelect,
   input: ReuseCaseRequest,
   now: Date,
@@ -324,7 +350,7 @@ export async function createReusedCase(
 }
 
 export function eligibleReuseDocuments(
-  source: CaseRow,
+  source: Pick<CaseRow, "answers" | "practiceId">,
   household: import("@avanti/contracts").Member[],
   sourceDocuments: (typeof documents.$inferSelect)[],
 ) {

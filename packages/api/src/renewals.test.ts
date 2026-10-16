@@ -6,6 +6,7 @@ import {
   documents,
   events,
   notifications,
+  renewalReminders,
   offices,
   operators,
   organizations,
@@ -20,7 +21,7 @@ import {
   type DocumentAnalysis,
   type Member,
 } from "@avanti/contracts";
-import { getQuestions, nextQuestion } from "@avanti/core";
+import { getQuestions, nextQuestion, RENEWAL_CONSENT_VERSIONS } from "@avanti/core";
 import { GatewayIntelligence } from "./ai";
 import { mfaCipher } from "./mfa";
 import { createApp } from "./app";
@@ -29,7 +30,7 @@ import { hashToken, newToken } from "./security";
 import { unseal, type NotificationOptions } from "./notification-config";
 import { sendNotifications } from "./notifications";
 import { caseById } from "./dossier";
-import { eraseCase } from "./case-erasure";
+import { eraseCase, purgeRetainedCases } from "./case-erasure";
 import type { Services } from "./context";
 
 const postgresUrl = process.env.RENEWALS_TEST_DATABASE_URL;
@@ -180,6 +181,7 @@ async function fixture(patch: Partial<typeof cases.$inferInsert> = {}) {
       email: `${id}@example.test`,
     },
     renewalContactConsentAt: "2027-12-01T00:00:00Z",
+    renewalContactConsentVersion: RENEWAL_CONSENT_VERSIONS.it,
     internalNotes: "NOTA RISERVATA",
     createdAt: "2027-01-15T10:00:00Z",
     updatedAt: "2027-01-16T10:00:00Z",
@@ -755,6 +757,312 @@ it("completes the new-year interview through citizen turns and records the first
   expect(submitted.status).toBe(200);
   expect(result.status).toBe("submitted");
   expect(result.renewalContactConsent).toBe(true);
+  expect(result.renewalContactConsentVersion).toBe(RENEWAL_CONSENT_VERSIONS.it);
+  expect(result.renewalContactConsentAt).toBe(now.toISOString());
   expect(result.submittedAt).not.toBeNull();
   expect((await list("&status=submitted")).items[0]!.renewalCaseId).toBe(item.caseId);
+});
+
+async function retention(at = now) {
+  return purgeRetainedCases({ db }, at);
+}
+async function retainedSource(patch: Partial<typeof cases.$inferInsert> = {}) {
+  await db.update(settings).set({ retentionDays: 180 }).where(eq(settings.organizationId, "a"));
+  return fixture({ submittedAt: "2027-01-16T10:00:00Z", ...patch });
+}
+
+it("retention keeps only the consented delivered ISEE allowlist and erases all dossier payloads", async () => {
+  const source = await retainedSource({
+    answers: {
+      practice_year: 2027,
+      accounts_count: 123,
+      housing: "rent",
+      members: [{ ...person, taxCode: "RSSMRA80A01H501U", birthDate: "1980-05-06" }, spouse],
+    },
+  });
+  await fixture({ submittedAt: "2027-01-16T10:00:00Z", renewalContactConsentAt: null });
+  await fixture({ submittedAt: "2027-01-16T10:00:00Z", renewalContactConsentVersion: null });
+  await fixture({ submittedAt: null });
+  await fixture({ practiceId: "modello_730", submittedAt: "2027-01-16T10:00:00Z" });
+  await fixture({ submittedAt: "2027-01-16T10:00:00Z", contact: { firstName: "Persona" } });
+  await fixture({
+    submittedAt: "2027-01-16T10:00:00Z",
+    answers: { practice_year: 2100, members: [person] },
+  });
+  expect(await retention()).toBe(7);
+  expect(await db.select().from(cases)).toHaveLength(0);
+  expect(await db.select().from(documents)).toHaveLength(0);
+  const reminders = await db.select().from(renewalReminders);
+  expect(reminders).toHaveLength(1);
+  const reminder = reminders[0]!;
+  expect(Object.keys(reminder).sort()).toEqual(
+    [
+      "sourceCaseId",
+      "organizationId",
+      "officeId",
+      "familyId",
+      "reference",
+      "language",
+      "practiceYear",
+      "contact",
+      "household",
+      "consentAt",
+      "consentVersion",
+      "withdrawalTokenHash",
+      "expiresAt",
+    ].sort(),
+  );
+  expect(reminder.sourceCaseId).toBe(source.id);
+  expect(reminder.household).toEqual([
+    {
+      role: "richiedente",
+      firstName: person.firstName,
+      lastName: person.lastName,
+      birthYear: 1980,
+    },
+    { role: "coniuge", firstName: spouse.firstName, lastName: spouse.lastName, birthYear: 1981 },
+  ]);
+  expect(reminder.consentVersion).toBe(RENEWAL_CONSENT_VERSIONS.it);
+  expect(reminder.expiresAt).toBe("2028-03-31 22:00:00+00");
+  const serialized = JSON.stringify(reminder);
+  for (const forbidden of [
+    "taxCode",
+    "birthDate",
+    "accounts_count",
+    "housing",
+    "NOTA RISERVATA",
+    "storageKey",
+    "answers",
+    "1980-05-06",
+    source.token,
+  ])
+    expect(serialized).not.toContain(forbidden);
+  expect((await request(`/c/${source.token}`, undefined, "GET", null)).status).toBe(404);
+});
+
+it("uses reminders in the paginated campaign and creates a renewal without reused documents", async () => {
+  const source = await retainedSource();
+  await retention();
+  const page = await list();
+  expect(page.counts.not_invited).toBe(1);
+  expect(page.items[0]).toMatchObject({
+    sourceCaseId: source.id,
+    sourceKind: "reminder",
+    renewalContactConsent: true,
+    householdConfirmationRequired: true,
+    documents: { valid: 0, toUpdate: 0, toVerify: 0 },
+  });
+  const created = (await create([source.id])).items[0]!;
+  expect(created.invitation).toBe("queued");
+  const view = await citizen(tokenFrom(created.citizenLink!));
+  expect(view.renewal?.householdConfirmationRequired).toBe(true);
+  expect(view.nextQuestion?.id).toBe("members");
+  expect(view.household).toHaveLength(3);
+  expect(view.documents).toEqual([]);
+  expect(view.answers.accounts_count).toBeUndefined();
+  const [target] = await db.select().from(cases).where(eq(cases.id, created.caseId));
+  expect(target?.internalNotes).toBeNull();
+  expect(target?.familyId).toBe(source.id);
+  expect(target?.renewalContactConsentVersion).toBe(RENEWAL_CONSENT_VERSIONS.it);
+  expect((await create([source.id])).items[0]?.created).toBe(false);
+  expect((await list("&status=all")).items[0]?.status).toBe("invited");
+});
+
+it("withdraws before retention through an expired citizen link and cannot recreate the reminder", async () => {
+  const source = await retainedSource();
+  expect(
+    (await request(`/c/${source.token}/renewal-consent`, { consented: false }, "PUT", null)).status,
+  ).toBe(200);
+  const [row] = await db.select().from(cases).where(eq(cases.id, source.id));
+  expect(row?.renewalContactRevokedAt).not.toBeNull();
+  expect(row?.renewalContactConsentVersion).toBeNull();
+  await retention();
+  expect(await db.select().from(renewalReminders)).toEqual([]);
+});
+
+it("withdraws after retention using the original capability only for withdrawal, across the family", async () => {
+  const source = await retainedSource();
+  await retention();
+  expect(
+    (await request(`/c/${source.token}/renewal-consent`, { consented: true }, "PUT", null)).status,
+  ).toBe(404);
+  const created = (await create([source.id])).items[0]!;
+  expect(
+    (await request(`/c/${source.token}/renewal-consent`, { consented: false }, "PUT", null)).status,
+  ).toBe(200);
+  expect(await db.select().from(renewalReminders)).toEqual([]);
+  expect((await citizen(tokenFrom(created.citizenLink!))).renewalContactConsent).toBe(false);
+  await deliver();
+  expect(send).not.toHaveBeenCalled();
+  const [event] = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.deletedCaseId, source.id), eq(events.type, "renewal.consent_updated")));
+  expect(event?.actor).toBe("citizen");
+  expect(event?.metadata).toEqual({ consented: false });
+  expect(JSON.stringify(event)).not.toContain(person.firstName);
+});
+
+it.each(["cases", "renewals"])(
+  "CAF withdrawal via /%s works before and after retention and cannot grant consent",
+  async (path) => {
+    const source = await retainedSource();
+    const endpoint = `/${path}/${source.id}/renewal-consent`;
+    expect((await request(endpoint, { consented: true }, "PUT")).status).toBe(400);
+    if (path === "renewals") await retention();
+    expect((await request(endpoint, { consented: false }, "PUT", null)).status).toBe(401);
+    expect((await request(endpoint, { consented: false }, "PUT")).status).toBe(200);
+    await retention();
+    expect(await db.select().from(renewalReminders)).toHaveLength(0);
+    const auditRows = await db
+      .select()
+      .from(events)
+      .where(eq(events.type, "renewal.consent_updated"));
+    expect(auditRows[0]).toMatchObject({
+      actor: "operator",
+      actorId: "operator",
+      metadata: { consented: false },
+    });
+  },
+);
+
+it("isolates reminder listing, creation, withdrawal and erasure between CAFs", async () => {
+  const own = await retainedSource();
+  const foreign = await fixture({
+    organizationId: "b",
+    officeId: "b",
+    submittedAt: "2027-01-16T10:00:00Z",
+  });
+  await db.update(settings).set({ retentionDays: 180 });
+  await retention();
+  expect((await list()).items.map((i) => i.sourceCaseId)).toEqual([own.id]);
+  expect(
+    (await request("/renewals", { sourceCaseIds: [own.id, foreign.id], year: 2028 })).status,
+  ).toBe(404);
+  expect(
+    (await request(`/renewals/${foreign.id}/renewal-consent`, { consented: false }, "PUT")).status,
+  ).toBe(404);
+  expect(
+    (
+      await request(
+        `/cases/${foreign.id}/family-erasure`,
+        { confirmReference: `TEST-${foreign.id}`, confirmed: true },
+        "POST",
+        admin,
+      )
+    ).status,
+  ).toBe(404);
+  expect(await db.select().from(renewalReminders)).toHaveLength(2);
+  expect(await db.select().from(cases)).toHaveLength(0);
+});
+
+it.each([false, true])(
+  "family erasure removes a reminder even when its source is already erased (target=%s)",
+  async (withTarget) => {
+    const source = await retainedSource();
+    await retention();
+    const target = withTarget ? (await create([source.id])).items[0]! : null;
+    const id = target?.caseId ?? source.id;
+    const reference = target?.reference ?? `TEST-${source.id}`;
+    const response = await request(
+      `/cases/${id}/family-erasure`,
+      { confirmReference: reference, confirmed: true },
+      "POST",
+      admin,
+    );
+    expect(response.status).toBe(200);
+    expect(await db.select().from(renewalReminders)).toEqual([]);
+    expect(await db.select().from(cases)).toEqual([]);
+    expect(await db.select().from(notifications)).toEqual([]);
+  },
+);
+
+it("request deletion of a retained family dossier erases reminders without preserving new ones", async () => {
+  const source = await retainedSource();
+  await retention();
+  const target = (await create([source.id])).items[0]!;
+  const response = await request(
+    `/cases/${target.caseId}`,
+    { confirmReference: target.reference },
+    "DELETE",
+    admin,
+  );
+  expect(response.status).toBe(204);
+  expect(await db.select().from(renewalReminders)).toEqual([]);
+});
+
+it("expires at the end of March in Rome, hides expired reminders before cron and never recreates overdue ones", async () => {
+  const source = await retainedSource();
+  await retention();
+  const expiry = new Date("2028-03-31T22:00:00Z");
+  app = createApp({ db, storage, clock: () => expiry, notifications: notices });
+  // Refresh test credentials for the expiry clock.
+  await db
+    .update(sessions)
+    .set({ createdAt: expiry.toISOString(), expiresAt: "2028-04-01T05:00:00Z" });
+  expect((await list()).items).toEqual([]);
+  expect((await request("/renewals", { sourceCaseIds: [source.id], year: 2028 })).status).toBe(404);
+  expect(
+    (await request(`/c/${source.token}/renewal-consent`, { consented: false }, "PUT", null)).status,
+  ).toBe(404);
+  await retention(expiry);
+  expect(await db.select().from(renewalReminders)).toEqual([]);
+  await fixture({ submittedAt: "2027-01-16T10:00:00Z" });
+  await retention(expiry);
+  expect(await db.select().from(renewalReminders)).toEqual([]);
+});
+
+it("paginates one stable mixed cohort of dossiers and reminders without duplicates", async () => {
+  const archived = await retainedSource();
+  await retention();
+  const live = await fixture({ expiresAt: "2028-02-01T00:00:00Z" });
+  const first = await list("&limit=1");
+  expect(first.counts.not_invited).toBe(2);
+  expect(first.nextAfter).not.toBeNull();
+  const second = await list(`&limit=1&after=${first.nextAfter}`);
+  expect(second.nextAfter).toBeNull();
+  const items = [...first.items, ...second.items];
+  expect(items.map((i) => i.sourceCaseId).sort()).toEqual([archived.id, live.id].sort());
+  expect(items.map((i) => i.sourceKind).sort()).toEqual(["case", "reminder"]);
+  const results = (await create([live.id, archived.id])).items;
+  expect(results.map((i) => i.sourceCaseId)).toEqual([live.id, archived.id]);
+  expect((await list("&status=all")).counts.invited).toBe(2);
+});
+
+it("serializes retention and citizen withdrawal without resurrecting consented data", async () => {
+  const source = await retainedSource();
+  const [, response] = await Promise.all([
+    retention(),
+    request(`/c/${source.token}/renewal-consent`, { consented: false }, "PUT", null),
+  ]);
+  expect(response.status).toBe(200);
+  expect(await db.select().from(renewalReminders)).toEqual([]);
+  await retention();
+  expect(await db.select().from(renewalReminders)).toEqual([]);
+});
+
+it("request deletion also withdraws retained family copies before their own retention", async () => {
+  const source = await retainedSource();
+  // Keep source temporarily eligible for campaign creation.
+  await db.update(settings).set({ retentionDays: 365 }).where(eq(settings.organizationId, "a"));
+  const target = (await create([source.id])).items[0]!;
+  expect(
+    (
+      await request(
+        `/cases/${source.id}`,
+        { confirmReference: `TEST-${source.id}` },
+        "DELETE",
+        admin,
+      )
+    ).status,
+  ).toBe(204);
+  const [copy] = await db.select().from(cases).where(eq(cases.id, target.caseId));
+  expect(copy?.renewalContactConsentAt).toBeNull();
+  expect(copy?.renewalContactRevokedAt).not.toBeNull();
+  await db
+    .update(cases)
+    .set({ submittedAt: now.toISOString(), status: "submitted", expiresAt: "2027-01-01T00:00:00Z" })
+    .where(eq(cases.id, target.caseId));
+  await retention();
+  expect(await db.select().from(renewalReminders)).toEqual([]);
 });

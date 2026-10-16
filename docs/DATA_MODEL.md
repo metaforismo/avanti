@@ -23,6 +23,7 @@ della directory. In produzione le migrazioni si applicano esplicitamente con
 | `offices`            | Sedi e slug pubblico univoco; appartenenza a un'organizzazione.                                                                                                               |
 | `operators`          | Operatori, ruolo e hash scrypt; email normalizzata dall'API e univoca.                                                                                                        |
 | `sessions`           | Hash del token casuale, operatore e scadenza; nessun token in chiaro.                                                                                                         |
+| `renewal_reminders`  | Promemoria ISEE minimo dopo retention, con consenso versionato, scadenza fissa e sola capability di revoca hashata.                                                           |
 | `cases`              | Pratica, risposte tipizzate JSON, lingua, contatto, stato, link hash, assegnatario, note e istanti KPI.                                                                       |
 | `checklist_reviews`  | Decisione e nota per coppia pratica/voce stabile; operatore e istante della revisione.                                                                                        |
 | `storage_deletions`  | Tombstone e backoff per cancellazioni storage da ritentare tramite cron, senza nome o contenuto del file.                                                                     |
@@ -78,7 +79,8 @@ di account sconosciuti, senza attore/risorsa identificabile; un CHECK limita que
 eccezione. Nessun admin può consultarli. Gli audit già privi di pratica prima della
 migrazione non possono recuperare un riferimento che non è più nel DB.
 
-I membri sono salvati soltanto in `cases.answers.members`, con UUID persistenti;
+I membri del fascicolo sono salvati in `cases.answers.members`, con UUID persistenti;
+il promemoria minimo conserva una proiezione senza UUID, CF o data completa di nascita.
 la vecchia tabella `members` è stata rimossa. `confirmed_answers` conserva le chiavi
 confermate e `editing_question` la domanda da riproporre durante un edit. Per i casi
 preesistenti la migrazione conferma tutte le chiavi delle risposte già salvate.
@@ -232,7 +234,7 @@ referenziare la stessa `storage_key`. `reused_from_year` conserva l'anno origina
 `reused_member` l'identità al momento del riuso e `citizen_visible` l'autorizzazione
 alla visibilità. La coda verifica i riferimenti prima di ogni cancellazione fisica.
 La retention elimina una sola pratica alla volta; la richiesta dell'interessato
-usa `family-erasure` per l'intero gruppo. Nessuna variazione alla portata dell'export.
+usa `family-erasure` per l'intero gruppo. L'export organizzazione include anche i promemoria minimi, senza hash di revoca.
 Dettagli ed esempi in [document-reuse.md](decisions/document-reuse.md).
 
 ## Rinnovi ISEE (0023)
@@ -259,3 +261,36 @@ la risposta cittadino lo porta a true; `confirmed_answers` parte vuoto. Nessuna
 risposta economica annuale è trasferita. Il gruppo famiglia e i file condivisi
 seguono le stesse regole del riuso ordinario e rimangono validi dopo la cancellazione
 della sorgente. [Decisione e verifiche](decisions/renewals.md).
+
+## Promemoria minimo rinnovi dopo retention (0024 provvisoria)
+
+`0024_renewal_retention_reminders`, generata con drizzle-kit e da rinumerare rispetto
+alla PR metering, introduce `renewal_reminders`. PK `source_case_id` senza FK a
+`cases`: la sorgente viene eliminata. FK cascade al CAF e composta sportello/CAF;
+indici campagna CAF/anno/ID, famiglia CAF/gruppo e scadenza. Il gruppo opaco non
+richiede la sopravvivenza di alcun fascicolo. Anno e lingua hanno CHECK; la scadenza
+non può superare mezzanotte Roma del 1 aprile dell'anno successivo alla pratica.
+
+Payload chiuso dal solo writer: contatto (soli nome/cognome/email/telefono già dati),
+`household` (soli ruolo, nomi, anno nascita), riferimento, lingua, anno, CAF/sportello,
+consenso (`consent_at`, `consent_version`), famiglia tecnica e scadenza. Nessun CF,
+data completa di nascita, ID persona o documento, risposta economica, documento,
+nota, messaggio o chiave storage. `withdrawal_token_hash` è l'hash del token sorgente
+per la sola revoca, senza estenderne l'accesso ai dati. Non è esportato dalle API.
+
+Su `cases`: `renewal_contact_consent_version` e `renewal_contact_revoked_at`, nullable,
+senza backfill. La prova della versione nasce dall'azione esplicita submit/PUT;
+il timestamp pregresso da solo non rende eleggibili alla conservazione minima.
+Le copie di rinnovo mantengono data/versione originarie; la revoca nel gruppo le
+azzera e registra la revoca. Audit con soli codici numerici della versione/lingua,
+booleani e riferimenti tecnici, soggetto alla durata propria di 365 giorni.
+
+Retenzione: solo ISEE con primo invio, consenso versionato e contatto utile; nessuna
+proroga del fascicolo o dei file. Esempio 2027: promemoria fino a fine 31 marzo 2028
+(Roma), escluso dalle query alla scadenza ed eliminato dal cron successivo. Revoca
+e cancellazione su richiesta eliminano subito i promemoria del gruppo. Family-erasure
+funziona anche da ID sorgente ormai cancellata; se restano solo promemoria può
+restituire `deletedCases:0`. Vedi [decisione](decisions/renewals.md#promemoria-minimo-alla-retention-16-ottobre-2026).
+
+L’export CLI del CAF include `renewalReminders` per portabilità, senza `withdrawal_token_hash`;
+non esporta nuove capability. Il formato resta versione 1 con campo additivo.

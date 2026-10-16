@@ -72,7 +72,15 @@ automatizzate per il solo uso di un chatbot. Fonte di supporto: [scheda DPIA Gar
    nucleo attuale da confermare, dati economici annuali non copiati, verifiche documentali
    nuove. La preparazione del nuovo fascicolo e la sua base sono distinte dall'invito.
 8. Il cron applica retention e retry dei file; audit e backup hanno termini separati.
-   I binari condivisi sopravvivono finché esiste un altro riferimento legittimo.
+   Solo per ISEE già inviato con consenso versionato e contatto utile, alla retention
+   resta un promemoria minimo autonomo: CAF/sportello, lingua, anno/riferimento,
+   nomi/contatti già forniti, ruoli/nomi/anni di nascita del nucleo, data/versione del
+   consenso e gruppo tecnico. Esclusi CF, data completa di nascita, documenti/file,
+   risposte economiche, messaggi e note. Scade a fine 31 marzo dell'anno seguente
+   alla pratica (es. 2027 → marzo 2028, Roma), escluso subito dalle query e cancellato
+   al cron successivo; revoca o erasure lo cancellano subito. L'hash del vecchio link
+   permette solo revoca, mai lettura/nuovo consenso. I binari condivisi sopravvivono
+   finché esiste un altro riferimento legittimo.
 
 Flusso: cittadino → applicazione UE → DB e storage privato UE; applicazione → eventuale
 router/endpoint testo, visione, audio approvato; applicazione → email → casella cittadino;
@@ -83,7 +91,7 @@ Nessun contratto o deployment reale è stato verificato da questa analisi docume
 ## 4. Necessità, proporzionalità e basi
 
 | Finalità/mezzo           | Valutazione e decisione richiesta                                                                                                                                                                                |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Intake e fascicolo       | Serve a preparare il servizio richiesto; raccogliere solo campi/documenti del verticale. CAF identifica base art. 6, norma/mandato e necessità dei singoli dati **[da completare]**                              |
 | Dati salute/disabilità   | Una base art. 6 non basta: condizione art. 9 e garanzie nazionali **[da completare]**. Non usare consenso generico o interesse legittimo come titolo autonomo per l'art. 9                                       |
 | Dati art. 10             | Esclusione dal primo pilota salvo precisa norma/autorizzazione e garanzie **[da completare]**; permesso di soggiorno non è di per sé dato giudiziario                                                            |
@@ -91,7 +99,7 @@ Nessun contratto o deployment reale è stato verificato da questa analisi docume
 | AI e documenti integrali | Valutare per compito utilità rispetto a regole/assistenza umana, qualità nelle lingue e invio del documento completo. Niente training. Disabilitare il compito se garanzie/necessità non dimostrate              |
 | Audio                    | Canale facoltativo alternativo a testo/sportello, nessuna identificazione biometrica prevista. Non registrare terzi; ZDR audio da documentare                                                                    |
 | Email servizio           | Contatto facoltativo; distinguere integrazione, ricevuta e disponibilità. Base coerente con il servizio **[da completare]**; mantenere alternativa senza email                                                   |
-| Inviti rinnovo           | Consenso dedicato revocabile per ricontatto; prova testo/versione/azione e canale di revoca **[da completare]**. Base del riuso e conservazione distinta; nessuna proroga del fascicolo per il solo consenso     |
+| Inviti rinnovo           | Consenso dedicato; backend registra data/versione per lingua, snapshot testi nel core, revoca cittadino anche dopo retention e canale CAF. Promemoria minimo fino al marzo seguente, senza CF/file/economia; nessuna proroga fascicolo. Necessità dei dati familiari, informativa, rappresentanza e basi **da completare dal CAF/DPO** |
 | Sicurezza e audit        | Necessità di ricostruire accessi, contrastare abusi e proteggere il servizio; motivare basi e termine di 365 giorni, accesso admin, diritti operatori. Audit non anonimi                                         |
 | Metriche                 | Finalità organizzativa del pilota; usare aggregati e soppressione celle piccole. Non equiparare pseudonimizzazione ad anonimizzazione né riusare per controllo individuale dei lavoratori senza analisi separata |
 
@@ -129,7 +137,7 @@ del rischio. Un punteggio medio non neutralizza automaticamente un rischio eleva
 ai sensi dell'art. 36; serve giudizio motivato, specie su impatti gravi poco probabili.
 
 | ID / scenario e danno                                                                   | Iniziale P×G | Misure nel repo e integrazioni richieste                                                                                                                                                              | Residuo obiettivo / stato / responsabile                                                              |
-| --------------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| --------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | R1 Link rubato/inoltrato: esposizione del nucleo e furto identità                       | 3×4=12       | Token 256 bit/hash/scadenza/revoca, no-referrer nelle pagine; collaudare proxy senza token, distribuzione e recupero. Email rinnovo espone capability alla casella/provider                           | 1×4=4; **aperto** fino a prova canali; CAF + Avanti                                                   |
 | R2 Accesso tra CAF o abuso operatore/admin: divulgazione patrimoniale/sanitaria         | 3×4=12       | Tenant da sessione, ruoli, audit e revoche. MFA implementata ma da imporre, accessi tecnici minimi, revisione privilegi; non presumere isolamento per sede                                            | 1×4=4; **aperto** fino a collaudo produzione e matrice accessi; Avanti + CAF                          |
 | R3 Minori/famiglia: documento di un componente visto da altro non autorizzato           | 3×4=12       | Visibilità del riuso esplicita, gruppo opaco, nessun match automatico; verificare rappresentanza e informativa indiretta, casi separazione/conflitto e recapiti condivisi                             | 1×4=4; **aperto** fino a procedura CAF e test assistiti; CAF                                          |
@@ -139,11 +147,11 @@ ai sensi dell'art. 36; serve giudizio motivato, specie su impatti gravi poco pro
 | R7 Prompt injection/istruzioni nei file: contenuti ingannevoli o fuga dati              | 3×4=12       | Delimitatori input, guard, schemi, contesto minimo e nessuna esecuzione istruzioni; rilevatori euristici limitati. Aggiornare prove e procedura di segnalazione                                       | 1×4=4; **aperto** per configurazione reale; Avanti                                                    |
 | R8 File malevoli compromettono postazione/servizio                                      | 3×4=12       | Controlli formato/size/PDF attivi, allegato e header; antivirus e decodifica isolata completa non attestati. Decidere scansione/isolamento, viewer e misure postazioni                                | 2×4=8; **alto e aperto** fino a rimedio o rivalutazione motivata; Avanti + CAF                        |
 | R9 Retention estesa/restore reintroduce dati: esposizione e perdita controllo           | 3×4=12       | Purge, retry e gruppo famiglia; file all'ultimo riferimento. Approvare tempi, monitorare backlog, gestire export e backup, riapplicare revoche da registro separato                                   | 1×4=4; **aperto** fino a prove purge/restore; Avanti + CAF                                            |
-| R10 Email errata o rinnovo non voluto: divulgazione di relazione CAF e accesso con link | 3×3=9        | Email non verificata, quote destinatario; outbox cifrata e rivalidazione. Consenso separato, revoca e no tracking; definire consegna sicura e test di errore/revoca                                   | 2×3=6; **aperto**, valutare impatto 4 per link a dati particolari; CAF + Avanti                       |
+| R10 Email errata o rinnovo non voluto: divulgazione di relazione CAF e accesso con link | 3×3=9        | Email non verificata, quote destinatario; outbox cifrata e rivalidazione. Consenso separato con data/versione per lingua; revoca via capability di sola revoca dopo retention o CAF, promemoria eliminato subito. Definire consegna sicura, no tracking e collaudo UI/provider                                       | 2×3=6; **aperto**, valutare impatto 4 per link a dati particolari; CAF + Avanti                       |
 | R11 Indisponibilità/perdita file: impossibilità o ritardo nell'assistenza               | 3×3=9        | Fallback e recupero lavori; backup DB/file e restore sono runbook da attivare, non prova operativa. Canale assistito alternativo e scadenze presidiate                                                | 1×3=3; **aperto** fino a restore e piano continuità; Avanti + CAF                                     |
 | R12 Export/log/ticket/metriche reidentificabili o copiati                               | 3×4=12       | Log applicativi minimizzati, audit pseudonimi, export riservato; verificare log infrastruttura, destinazioni, dispositivi e cancellazione copie. Analizzare telemetria senza contenuti                | 1×4=4; **aperto** fino a disciplina copie; Avanti + CAF                                               |
 | R13 Esclusione digitale/linguistica di stranieri o persone disabili                     | 3×3=9        | Otto lingue e alternativa sportello dichiarate; fallback ha limiti semantici. Provare accessibilità e traduzioni, canale umano realmente disponibile senza penalizzazioni                             | 1×3=3; **aperto** fino a prove e organizzazione; CAF + Avanti                                         |
-| R14 Riuso/rinnovo conserva nucleo errato o supera revoca/retention                      | 3×3=9        | Conferma nucleo cittadino, niente dati economici annuali copiati, revoca nel gruppo, controllo prima invio; checkbox consenso presente nella UI; prova testo/versione e revoca autonoma da verificare | 1×3=3; **aperto**, limitare campagna finché i controlli non sono operativi; CAF + Avanti              |
+| R14 Riuso/rinnovo conserva nucleo errato o supera revoca/retention                      | 3×3=9        | Conferma nucleo; promemoria con sola allowlist, senza CF/file/economia, scadenza fissa al marzo seguente; consenso versionato senza backfill, revoca immediata del promemoria nel gruppo e controllo prima invio. Lock CAF comuni e family-erasure anche da sorgente eliminata; UI e Postgres/provider da collaudare | 1×3=3; **aperto**, limitare campagna finché i controlli non sono operativi; CAF + Avanti              |
 
 ## 7. Estensioni da valutare separatamente
 
@@ -164,14 +172,14 @@ classificazione ufficiale specifica di Avanti è acquisita da questa bozza.
 ## 8. Piano, consultazioni e decisione
 
 | Azione prima dei dati reali                                                                | Owner                  | Scadenza / prova / esito                              |
-| ------------------------------------------------------------------------------------------ | ---------------------- | ----------------------------------------------------- |
+| ---------------------------------------------------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------- |
 | Completare basi per verticale, informativa art. 13/14, rappresentanza e diritti            | CAF + DPO/legale       | **da completare**                                     |
 | Firmare DPA, censire/approvare catena, trasferimenti e matrice endpoint                    | Avanti + CAF           | **da completare**; in assenza AI esterna disabilitata |
 | Imporre MFA, verificare accessi, canali link/email e log                                   | Avanti + admin CAF     | **da completare**                                     |
 | Decidere trattamento file malevoli e rivalutare R8 alto                                    | Avanti + CAF/DPO       | **da completare**, eventuale consultazione art. 36    |
 | Provare backup DB e binari, purge, riuso/famiglia e restore                                | Avanti + referente CAF | **da completare**, verbali con soli dati sintetici    |
 | Provare lingue, accessibilità e revisione umana senza esclusione                           | CAF + Avanti           | **da completare**                                     |
-| Documentare consenso inviti/versione e revoca; collaudare UI presente e percorso di revoca | CAF + Avanti           | **da completare**, rinnovi non attivati prima         |
+| Approvare informativa del promemoria/necessità dei familiari; collaudare UI, versioni, revoca e scadenza backend | CAF + Avanti           | **da completare**, rinnovi non attivati prima         |
 | Completare classificazione AI, trasparenza e formazione                                    | Avanti + CAF           | **da completare**, vedi memo AI Act                   |
 
 **Parere DPO:** **[da completare; se non designato annotare valutazione e consulente]**.

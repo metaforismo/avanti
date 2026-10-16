@@ -112,6 +112,49 @@ export const sessions = pgTable(
   ],
 );
 
+// Independent of cases: retention removes the dossier but preserves only this allowlist.
+export const renewalReminders = pgTable(
+  "renewal_reminders",
+  {
+    sourceCaseId: text("source_case_id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    officeId: text("office_id").notNull(),
+    familyId: text("family_id").notNull(),
+    reference: text("reference").notNull(),
+    language: text("language").$type<Language>().notNull(),
+    practiceYear: integer("practice_year").notNull(),
+    contact: jsonb("contact").$type<Partial<CitizenContactRequest>>().notNull(),
+    household: jsonb("household")
+      .$type<import("@avanti/contracts").RenewalReminderMember[]>()
+      .notNull(),
+    consentAt: instant("consent_at").notNull(),
+    consentVersion: text("consent_version").notNull(),
+    // Only authorizes withdrawal, including after the dossier link has expired.
+    withdrawalTokenHash: text("withdrawal_token_hash").notNull().unique(),
+    expiresAt: instant("expires_at").notNull(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.officeId, t.organizationId],
+      foreignColumns: [offices.id, offices.organizationId],
+    }).onDelete("cascade"),
+    index("renewal_reminders_campaign_idx").on(t.organizationId, t.practiceYear, t.sourceCaseId),
+    index("renewal_reminders_family_idx").on(t.organizationId, t.familyId),
+    index("renewal_reminders_expiry_idx").on(t.expiresAt),
+    check("renewal_reminders_year_check", sql`${t.practiceYear} between 2020 and 2099`),
+    check(
+      "renewal_reminders_language_check",
+      sql`${t.language} in ('it','en','fr','es','ro','uk','ar','bn')`,
+    ),
+    check(
+      "renewal_reminders_expiry_check",
+      sql`${t.expiresAt} <= make_timestamptz(${t.practiceYear} + 1, 4, 1, 0, 0, 0, 'Europe/Rome')`,
+    ),
+  ],
+);
+
 export const cases = pgTable(
   "cases",
   {
@@ -129,6 +172,8 @@ export const cases = pgTable(
     renewalHouseholdConfirmedAt: instant("renewal_household_confirmed_at"),
     renewalInvitedAt: instant("renewal_invited_at"),
     renewalContactConsentAt: instant("renewal_contact_consent_at"),
+    renewalContactConsentVersion: text("renewal_contact_consent_version"),
+    renewalContactRevokedAt: instant("renewal_contact_revoked_at"),
     language: text("language").$type<Language>().notNull(),
     practiceId: text("practice_id").$type<PracticeId>(),
     status: text("status").$type<CaseStatus>().notNull().default("intake"),

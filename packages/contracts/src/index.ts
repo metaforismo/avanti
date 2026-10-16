@@ -125,6 +125,15 @@ export const MemberInput = z.object({
 });
 export type MemberInput = z.infer<typeof MemberInput>;
 
+/** Retention allowlist: no fiscal code, full birth date or document identity. */
+export const RenewalReminderMember = MemberInput.pick({
+  role: true,
+  firstName: true,
+  lastName: true,
+  birthYear: true,
+}).strict();
+export type RenewalReminderMember = z.infer<typeof RenewalReminderMember>;
+
 export const Member = MemberInput.extend({ id: Id });
 export type Member = z.infer<typeof Member>;
 
@@ -484,6 +493,9 @@ export const CitizenCase = z.object({
     .nullable()
     .optional(),
   renewalContactConsent: z.boolean().optional(),
+  renewalContactConsentAt: IsoDateTime.nullable().optional(),
+  renewalContactConsentVersion: z.string().nullable().optional(),
+  renewalConsentVersion: z.string().optional(),
   messages: z.array(ChatMessage),
   conversation: ConversationState.optional(),
   /** Contact details the citizen already gave, to prefill a resubmission. */
@@ -870,6 +882,10 @@ export const CreateRenewalsRequest = z
 export type CreateRenewalsRequest = z.infer<typeof CreateRenewalsRequest>;
 export const RenewalItem = z.object({
   sourceCaseId: Id,
+  sourceKind: z.enum(["case", "reminder"]),
+  reminderExpiresAt: IsoDateTime.nullable(),
+  renewalContactConsent: z.boolean(),
+  householdConfirmationRequired: z.boolean(),
   reference: z.string(),
   citizenName: z.string().nullable(),
   householdCount: z.number().int().nonnegative(),
@@ -919,6 +935,9 @@ export const CreateRenewalsResponse = z.object({
 export type CreateRenewalsResponse = z.infer<typeof CreateRenewalsResponse>;
 export const RenewalConsentRequest = z.object({ consented: z.boolean() }).strict();
 export type RenewalConsentRequest = z.infer<typeof RenewalConsentRequest>;
+/** CAF acts only on withdrawal requested by the citizen, never on a consent grant. */
+export const RevokeRenewalConsentRequest = z.object({ consented: z.literal(false) }).strict();
+export type RevokeRenewalConsentRequest = z.infer<typeof RevokeRenewalConsentRequest>;
 
 /** POST, so personal search terms never appear in request URLs or access logs. */
 export const FamilySearchRequest = z.union([
@@ -951,7 +970,10 @@ export const EraseFamilyRequest = z.object({
   confirmReference: SafeName.trim().min(1),
   confirmed: z.literal(true),
 });
-export const EraseFamilyResponse = z.object({ deletedCases: z.number().int().positive() });
+export const EraseFamilyResponse = z.object({
+  deletedCases: z.number().int().nonnegative(),
+  deletedReminders: z.number().int().nonnegative().optional(),
+});
 
 export const RegenerateLinkResponse = z.object({
   /** Secret capability URL, returned only by the regeneration request. */
@@ -1268,6 +1290,8 @@ export type AuditAction = z.infer<typeof AuditAction>;
 export const AuditDetails = z.object({
   year: z.number().int().min(2020).max(2100).optional(),
   consented: z.boolean().optional(),
+  consentTextVersion: z.number().int().positive().optional(),
+  consentLanguage: z.number().int().min(0).max(7).optional(),
   answersCount: z.number().int().nonnegative().optional(),
   heuristic: z.boolean().optional(),
   bytes: z.number().int().nonnegative().optional(),
@@ -1276,6 +1300,7 @@ export const AuditDetails = z.object({
   itemsCount: z.number().int().nonnegative().optional(),
   durationMinutes: z.number().nonnegative().nullable().optional(),
   cases: z.number().int().nonnegative().optional(),
+  reminders: z.number().int().nonnegative().optional(),
   documents: z.number().int().nonnegative().optional(),
   rows: z.number().int().nonnegative().optional(),
   rateLimited: z.boolean().optional(),

@@ -57,6 +57,8 @@ function policy(path: string, method: string): Policy | null {
       : method === "GET"
         ? RATE_POLICIES.renewalsRead
         : null;
+  if (method === "PUT" && /^\/api\/(cases|renewals)\/[^/]+\/renewal-consent$/.test(path))
+    return RATE_POLICIES.link;
   if (method === "PUT" && /^\/api\/c\/[^/]+\/renewal-consent$/.test(path))
     return RATE_POLICIES.turn;
   if (

@@ -75,6 +75,8 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [withdraw, setWithdraw] = useState<"ask" | "saving" | "done" | null>(null);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmReady, setConfirmReady] = useState(false);
   const [newLink, setNewLink] = useState(false);
@@ -366,6 +368,11 @@ export function DossierView({ caseId }: { caseId: string }) {
                 <MenuItem onSelect={() => setReuse(true)}>
                   Nuova pratica per questa famiglia…
                 </MenuItem>
+                {data.practice?.id === "isee_ordinario" && (
+                  <MenuItem onSelect={() => setWithdraw("ask")}>
+                    Revoca l&apos;avviso di rinnovo…
+                  </MenuItem>
+                )}
                 {assignedToMe && (
                   <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
                     Lascia la pratica
@@ -387,6 +394,16 @@ export function DossierView({ caseId }: { caseId: string }) {
           </DropdownMenu.Root>
         </div>
       </header>
+      {withdraw === "done" && (
+        <Notice
+          tone="ok"
+          className="mt-4"
+          onDismiss={() => setWithdraw(null)}
+          dismissLabel="Chiudi avviso"
+        >
+          Avviso di rinnovo revocato: il cittadino non riceverà l&apos;email per il rinnovo.
+        </Notice>
+      )}
 
       {error && (
         <Notice tone="danger" size="md" className="mt-4">
@@ -438,6 +455,46 @@ export function DossierView({ caseId }: { caseId: string }) {
         onNavigate={setViewing}
         actions={actions}
       />
+      <Dialog
+        open={withdraw === "ask" || withdraw === "saving"}
+        onOpenChange={(open) => !open && setWithdraw(null)}
+        returnFocusTo={moreButton}
+        title="Revocare l'avviso di rinnovo?"
+        description="Usalo quando il cittadino chiede allo sportello di non ricevere più l'email per il rinnovo dell'ISEE. Vale per tutta la famiglia in questo CAF e cancella subito l'eventuale promemoria conservato."
+      >
+        {withdrawError && (
+          <Notice tone="danger" className="mb-4">
+            {withdrawError}
+          </Notice>
+        )}
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={() => setWithdraw(null)}>
+            Annulla
+          </Button>
+          <Button
+            variant="danger"
+            loading={withdraw === "saving"}
+            onClick={async () => {
+              setWithdraw("saving");
+              setWithdrawError(null);
+              try {
+                await apiFetch(`${base}/renewal-consent`, {
+                  method: "PUT",
+                  body: { consented: false },
+                });
+                setWithdraw("done");
+              } catch (err) {
+                setWithdraw("ask");
+                setWithdrawError(
+                  err instanceof ApiRequestError ? err.message : "Revoca non riuscita. Riprova.",
+                );
+              }
+            }}
+          >
+            Revoca l&apos;avviso
+          </Button>
+        </div>
+      </Dialog>
       <Dialog
         open={confirmClose}
         onOpenChange={setConfirmClose}

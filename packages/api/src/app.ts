@@ -78,7 +78,7 @@ export function createApp(options: ApiOptions) {
     "/auth/password",
     "/auth/mfa/*",
     "/cases/*",
-    "/renewals",
+    "/renewals/*",
     "/metrics",
     "/reports/*",
     "/status",
@@ -101,7 +101,11 @@ export function createApp(options: ApiOptions) {
     });
   });
   const citizen = authenticateCitizen(services);
-  app.use("/c/:token/*", citizen);
+  app.use("/c/:token/*", (c, next) => {
+    // Withdrawal authenticates its own restricted capability, also after retention.
+    if (c.req.method === "PUT" && c.req.path.endsWith("/renewal-consent")) return next();
+    return citizen(c, next);
+  });
   mountPublicRoutes(app, services);
   mountAuthRoutes(app, services);
   mountMfaRoutes(app, services);

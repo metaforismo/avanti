@@ -1,3 +1,4 @@
+import { RENEWAL_CONSENT_VERSIONS } from "@avanti/core";
 import { nearReadyView, type NearReadyViewData } from "./near-ready-view";
 import { conversationState } from "./conversation-state";
 import { copilotDossier } from "./copilot-context";
@@ -70,7 +71,8 @@ export async function caseById(
 }
 export async function audit(
   db: Database,
-  row: CaseRow,
+  // Reminders kept after retention have no full case row; the office still attributes usage.
+  row: Pick<CaseRow, "id" | "organizationId" | "reference"> & Partial<Pick<CaseRow, "officeId">>,
   actor: "citizen" | "operator" | "system" | "ai",
   type: string,
   now: Date,
@@ -81,7 +83,7 @@ export async function audit(
     id: crypto.randomUUID(),
     caseId: row.id,
     caseReference: row.reference,
-    officeId: row.officeId,
+    officeId: row.officeId ?? null,
     organizationId: row.organizationId,
     actor,
     actorId,
@@ -339,6 +341,9 @@ export async function citizenView(
         }
       : null,
     renewalContactConsent: row.renewalContactConsentAt !== null,
+    renewalContactConsentAt: row.renewalContactConsentAt ? iso(row.renewalContactConsentAt) : null,
+    renewalContactConsentVersion: row.renewalContactConsentVersion,
+    renewalConsentVersion: RENEWAL_CONSENT_VERSIONS[row.language],
     practiceYear: practiceYear(row.answers),
     reuseNotice: storedDocs.some((doc) => doc.reusedFromYear !== null && visibleToCitizen(doc, row))
       ? reuseNotice[language]
