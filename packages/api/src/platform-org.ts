@@ -1,9 +1,10 @@
 import { PlatformOrgCommand } from "@avanti/contracts";
 import { usageMonth, usagePercent } from "@avanti/core";
 import { loadAiConfig } from "@avanti/ai/config";
-import { aiUsage, events, organizations, settings, type Database } from "@avanti/db";
-import { and, eq, sql } from "drizzle-orm";
-import { commercialStatus } from "./commercial-usage";
+import { events, organizations, settings, type Database } from "@avanti/db";
+import { eq } from "drizzle-orm";
+import { monthlyAiSpend } from "./ai-usage";
+import { commercialStatus, resetUsageAlerts } from "./commercial-usage";
 
 export async function platformOrg(
   db: Database,
@@ -32,6 +33,8 @@ export async function platformOrg(
         .insert(settings)
         .values({ organizationId: input.org, ...changes })
         .onConflictDoUpdate({ target: settings.organizationId, set: changes });
+      if (input.cap !== undefined && input.cap !== (before?.monthlyDeliveryCap ?? null))
+        await resetUsageAlerts(tx, input.org, now);
       await tx.insert(events).values({
         id: crypto.randomUUID(),
         organizationId: input.org,
@@ -49,25 +52,16 @@ export async function platformOrg(
         },
       });
     }
-    const [config] = await tx.select().from(settings).where(eq(settings.organizationId, input.org));
-    const month = usageMonth(now);
-    const [ai] = await tx
-      .select({
-        cost: sql<number>`coalesce(sum(${aiUsage.costEstimateEur}),0)::float8`,
-        reserved: sql<number>`coalesce(sum(${aiUsage.reservedEur}),0)::float8`,
-      })
-      .from(aiUsage)
-      .where(and(eq(aiUsage.organizationId, input.org), sql`left(${aiUsage.day},7) = ${month}`));
-    const budgetEur = config?.aiMonthlyBudgetEur ?? defaultBudget;
+    const ai = await monthlyAiSpend(tx, input.org, usageMonth(now), defaultBudget);
     return {
       organizationId: input.org,
       meteringExcluded: org.meteringExcluded,
       ai: {
-        overrideEur: config?.aiMonthlyBudgetEur ?? null,
-        budgetEur,
-        costEstimateEur: ai?.cost ?? 0,
-        reservedEur: ai?.reserved ?? 0,
-        budgetPercent: usagePercent((ai?.cost ?? 0) + (ai?.reserved ?? 0), budgetEur),
+        overrideEur: ai.overrideEur,
+        budgetEur: ai.budgetEur,
+        costEstimateEur: ai.usedEur,
+        reservedEur: ai.reservedEur,
+        budgetPercent: usagePercent(ai.usedEur + ai.reservedEur, ai.budgetEur),
       },
       usage: await commercialStatus(tx, input.org, now),
     };

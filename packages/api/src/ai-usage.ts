@@ -1,17 +1,23 @@
 import { usageDay, usageMonth, usageMonthRange as monthRange } from "@avanti/core";
-import { aiUsage, organizations, settings } from "@avanti/db";
+import { aiUsage, organizations, settings, type Database } from "@avanti/db";
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import type { TaskContext } from "@avanti/ai";
 import { loadAiConfig } from "@avanti/ai/config";
 import type { Services } from "./context";
 
-export async function aiBudget(s: Services, organizationId: string, month = usageMonth(s.clock())) {
+/** Shared by the runtime and the platform CLI, so both read the same month and default. */
+export async function monthlyAiSpend(
+  db: Database,
+  organizationId: string,
+  month: string,
+  defaultBudgetEur: number,
+) {
   const { from, until } = monthRange(month);
-  const [row] = await s.db
-    .select()
+  const [row] = await db
+    .select({ budget: settings.aiMonthlyBudgetEur })
     .from(settings)
     .where(eq(settings.organizationId, organizationId));
-  const [usage] = await s.db
+  const [usage] = await db
     .select({
       used: sql<number>`coalesce(sum(${aiUsage.costEstimateEur}), 0)::float8`,
       reserved: sql<number>`coalesce(sum(${aiUsage.reservedEur}), 0)::float8`,
@@ -24,13 +30,30 @@ export async function aiBudget(s: Services, organizationId: string, month = usag
         lt(aiUsage.day, until),
       ),
     );
-  const budgetEur =
-    row?.aiMonthlyBudgetEur ??
-    s.ai.configuration?.monthlyBudgetEur ??
-    loadAiConfig().monthlyBudgetEur;
+  const overrideEur = row?.budget ?? null;
+  const budgetEur = overrideEur ?? defaultBudgetEur;
   const usedEur = Number(usage?.used ?? 0),
     reservedEur = Number(usage?.reserved ?? 0);
-  return { month, budgetEur, usedEur, reservedEur, exhausted: usedEur + reservedEur >= budgetEur };
+  return {
+    month,
+    overrideEur,
+    budgetEur,
+    usedEur,
+    reservedEur,
+    exhausted: usedEur + reservedEur >= budgetEur,
+  };
+}
+export function defaultAiBudget(s: Pick<Services, "ai">) {
+  return s.ai.configuration?.monthlyBudgetEur ?? loadAiConfig().monthlyBudgetEur;
+}
+export async function aiBudget(s: Services, organizationId: string, month = usageMonth(s.clock())) {
+  const { overrideEur: _override, ...budget } = await monthlyAiSpend(
+    s.db,
+    organizationId,
+    month,
+    defaultAiBudget(s),
+  );
+  return budget;
 }
 export function cafAiContext(s: Services, organizationId: string, officeId?: string): TaskContext {
   const day = usageDay(s.clock());

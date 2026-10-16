@@ -762,15 +762,15 @@ il cap software è mensile per CAF e si rinnova ogni mese, senza riporto.
 **Quota e console.** Il primo invio verifica il cap nella stessa transazione. Al 70%, 90% e
 100% crea una riga in `usage_quota_alerts` e una notifica `usage_quota` nell’outbox per ogni
 admin attivo del CAF, all’email esistente; nessun invio a cittadini. Il registro persistente
-impedisce ripetizioni nello stesso mese anche dopo la pulizia dell’outbox o modifiche del cap.
-Un salto di soglia genera tutte le soglie raggiunte. A commit avvenuto si scrive nei log operativi
+impedisce ripetizioni nello stesso mese anche dopo la pulizia dell’outbox. Un salto di soglia
+registra tutte le soglie raggiunte ma manda una sola email, per la più alta. Un cambio di cap
+con `platform:org` azzera le soglie del mese corrente: si ripartono dal nuovo cap. A commit avvenuto si scrive nei log operativi
 `usage.quota` con ID CAF, mese, soglia, cap e consegne, senza indirizzi o contenuti personali;
 il registro DB resta la prova se un arresto impedisce la riga di log. Senza admin attivi resta
 il registro ma non ci sono destinatari. Controllare sempre almeno un admin attivo del CAF.
 Il 100% non blocca l’invio: il contatore e la percentuale possono superare il cap.
 
-Il cap aggiornato viene valutato al successivo primo invio, senza avvisi retroattivi dal
-comando CLI. Le notifiche usano cifratura, retry e cron dell’outbox esistente, indipendentemente
+Il cap aggiornato viene valutato al successivo primo invio: il comando CLI non manda email. Le notifiche usano cifratura, retry e cron dell’outbox esistente, indipendentemente
 dalle preferenze dei digest; in locale `console` simula e non consegna email. A consegna si
 ricontrollano ruolo admin, attività, organizzazione ed email del destinatario. Le scadenze e
 la cancellazione dei payload dell’outbox restano quelle del [runbook email](#notifiche-email-e-outbox).
