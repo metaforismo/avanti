@@ -34,4 +34,25 @@ describe("names quoted from the dossier", () => {
       "language",
     );
   });
+  it("never exempts a reply mostly written with words pasted into the context", async () => {
+    const { languageViolation } = await import("./guard");
+    const pasted = "Документ відсутній, завантажте його ще раз";
+    expect(languageViolation(`Nota: ${pasted}.`, "it", JSON.stringify({ message: pasted }))).toBe(
+      true,
+    );
+    expect(
+      languageViolation(
+        "Il documento di Оленка risulta mancante.",
+        "it",
+        JSON.stringify({ firstName: "Олена" }),
+      ),
+    ).toBe(true);
+    expect(
+      languageViolation(
+        "Il documento di Олена risulta mancante.",
+        "it",
+        JSON.stringify({ firstName: "Оленаааа" }),
+      ),
+    ).toBe(true);
+  });
 });
