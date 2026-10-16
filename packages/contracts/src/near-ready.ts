@@ -97,6 +97,8 @@ export const NearReadyPilotGroup = z.object({
   language: z.string(),
   reading: z.enum(["ai", "manual", "mixed", "heuristic", "unavailable"]),
   evaluated: z.number(),
+  unjudged: z.number().int().nonnegative(),
+  disagreements: z.number().int().nonnegative(),
   selected: z.number(),
   selectionRate: z.number().nullable(),
   reviewedSelected: z.number(),

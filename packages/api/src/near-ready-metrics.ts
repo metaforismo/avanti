@@ -1,5 +1,11 @@
-import { asc, eq } from "drizzle-orm";
-import { cases, nearReadyEvaluations, nearReadyEvents, type Database } from "@avanti/db";
+import { and, asc, eq, ne, or } from "drizzle-orm";
+import {
+  cases,
+  nearReadyBlindReviews,
+  nearReadyEvaluations,
+  nearReadyEvents,
+  type Database,
+} from "@avanti/db";
 import { NearReadyPilotResponse } from "@avanti/contracts";
 import { nearReadyPilotGroup, type PilotObservation } from "@avanti/core";
 import { currentNearReadyProfile } from "./near-ready-profile";
@@ -17,7 +23,17 @@ export async function nearReadyPilot(db: Database, org: string, profile: string)
         .from(nearReadyEvents)
         .innerJoin(nearReadyEvaluations, eq(nearReadyEvaluations.id, nearReadyEvents.evaluationId))
         .innerJoin(cases, eq(cases.id, nearReadyEvaluations.caseId))
-        .where(eq(cases.organizationId, org))
+        // Compare versions in SQL, preserving PostgreSQL's microsecond precision
+        // for historical rows as well as the current millisecond API versions.
+        .where(
+          and(
+            eq(cases.organizationId, org),
+            or(
+              ne(nearReadyEvents.action, "final_decision"),
+              eq(nearReadyEvents.caseVersion, nearReadyEvaluations.caseVersion),
+            ),
+          ),
+        )
         .orderBy(asc(nearReadyEvents.at))
     : [];
   const historyByEvaluation = new Map<string, (typeof nearReadyEvents.$inferSelect)[]>();
@@ -25,6 +41,26 @@ export async function nearReadyPilot(db: Database, org: string, profile: string)
     const group = historyByEvaluation.get(event.evaluationId);
     if (group) group.push(event);
     else historyByEvaluation.set(event.evaluationId, [event]);
+  }
+  const blindReviews = evaluations.length
+    ? await db
+        .select({ evaluationId: nearReadyEvaluations.id, ready: nearReadyBlindReviews.ready })
+        .from(nearReadyBlindReviews)
+        .innerJoin(
+          nearReadyEvaluations,
+          and(
+            eq(nearReadyEvaluations.caseId, nearReadyBlindReviews.caseId),
+            eq(nearReadyEvaluations.caseVersion, nearReadyBlindReviews.caseVersion),
+          ),
+        )
+        .innerJoin(cases, eq(cases.id, nearReadyEvaluations.caseId))
+        .where(eq(cases.organizationId, org))
+    : [];
+  const blindByEvaluation = new Map<string, boolean[]>();
+  for (const review of blindReviews) {
+    const group = blindByEvaluation.get(review.evaluationId);
+    if (group) group.push(review.ready);
+    else blindByEvaluation.set(review.evaluationId, [review.ready]);
   }
   // First screening per case is the prospective cohort. Later rescreening after human
   // corrections must not turn an ordinary review into a successful suggestion.
@@ -36,14 +72,20 @@ export async function nearReadyPilot(db: Database, org: string, profile: string)
     if (seen.has(e.caseId) || e.mode === "off" || !e.snapshot.conditions.active) continue;
     seen.add(e.caseId);
     const events = historyByEvaluation.get(e.id) ?? [];
-    const final = events.find((h) => h.action === "final_decision");
+    // Older writers attached later outcomes to every evaluation. Their recorded
+    // caseVersion is the provenance: never relabel an earlier dossier with them.
+    const final = events.find((h) => h.action === "final_decision" && h.ready !== null);
+    const labels = [...(blindByEvaluation.get(e.id) ?? [])];
+    if (final?.ready !== null && final?.ready !== undefined) labels.push(final.ready);
+    const criticalError = events.some((h) => h.action === "critical_error");
     const observation: PilotObservation = {
       caseId: e.caseId,
       language: e.language,
       reading: e.reading,
       selected: e.eligible,
-      ready: final?.ready ?? null,
-      criticalError: events.some((h) => h.action === "critical_error"),
+      ready: criticalError ? false : labels.length ? labels.every(Boolean) : null,
+      disagreement: labels.includes(true) && labels.includes(false),
+      criticalError,
       durationMinutes: final?.durationMinutes ?? null,
     };
     observations.push(observation);
