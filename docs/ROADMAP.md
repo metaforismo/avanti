@@ -66,6 +66,13 @@ nelle PR.
 - Revisione di sicurezza delle PR #78–#86: interruttore AI rispettato nella chat del cittadino,
   emergenze gestite in locale, limiti anche per le richieste HEAD.
 - Dettagli di interfaccia su tutte le pagine; scorciatoie da tastiera con «?».
+- Uso misurato per CAF e sportello (fascicoli consegnati, costo AI per fascicolo), quote con
+  avvisi al 70/90/100% senza blocchi e CLI di piattaforma (`platform:usage`, `platform:org`).
+- Bozze del pacchetto legale per il pilota in `docs/legal/` (art. 28, DPIA, registri,
+  informativa, AI Act), da far verificare a un legale/DPO; pagine privacy e sicurezza
+  allineate a quanto il prodotto fa davvero.
+- Rinnovi oltre la retention: con il consenso del cittadino resta solo un promemoria minimo
+  fino al 31 marzo dell'anno dopo; revoca dal cittadino e dallo sportello.
 
 ## Fatto di recente (15 ottobre, sera): l'AI dentro il flusso
 
