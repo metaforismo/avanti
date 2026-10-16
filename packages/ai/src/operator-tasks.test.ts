@@ -9,7 +9,7 @@ import {
   unambiguousPrefill,
 } from "./operator-tasks";
 import { normativeRetriever, citationFor } from "@avanti/core";
-it("rejects invented citations and degrades to cited verbatim excerpts", async () => {
+it("rejects invented citations and degrades to a short cited excerpt", async () => {
   const transport = vi.fn(async () => ({
     output: { answer: "Una regola inventata.", coverage: "full", citations: ["invented"] },
   }));
@@ -28,6 +28,9 @@ it("rejects invented citations and degrades to cited verbatim excerpts", async (
   expect(result.output.coverage).toBe("partial");
   expect(result.output.citations.every((id) => chunks.some((c) => c.id === id))).toBe(true);
   expect(result.output.answer).not.toContain("inventata");
+  expect(result.output.citations).toHaveLength(1);
+  expect(result.output.answer).not.toContain("\n");
+  expect(result.output.answer).toContain("2025");
 });
 it("out-of-base questions never call the provider", async () => {
   const transport = vi.fn();

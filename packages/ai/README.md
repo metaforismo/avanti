@@ -122,8 +122,15 @@ restano v1; i prompt nuovi hanno versione 1, salvo la selezione DSU v2: i confli
 per sezione e campo anche quando gli ID opachi delle proposte sono diversi.
 
 Rigenerare l'indice senza rete: `node packages/core/scripts/build-knowledge.mjs` dalla
-root. Le sezioni con link esterni commerciali vengono escluse anziché attribuirle a una
-fonte istituzionale. L'indice non certifica che una norma sia tuttora vigente.
+root. L’allowlist di file, sezioni e titoli in
+`packages/core/scripts/build-knowledge.mjs` ammette soltanto guide normative e operative
+per le pratiche e il servizio pubblico 1522. Nuovi file/sezioni restano esclusi fino
+alla revisione esplicita; una sezione ammessa senza fonti ufficiali o con link commerciali
+fa fallire la generazione. Note di progetto, mercato, demografia e dettagli implementativi
+non sono fonti per l’operatore. L’indice non certifica che una norma sia tuttora vigente.
+Il fallback delle domande normative sceglie al massimo due frasi consecutive da un
+singolo paragrafo pertinente, con una citazione e copertura `partial`; se trova solo
+frammenti, tabelle o corrispondenze deboli restituisce `none`. Non calcola diritti o importi.
 
 Eval del copilota: `pnpm --filter @avanti/ai exec tsx eval/operator.ts`, offline per default.
 Live richiede `AI_LIVE=1 AI_PROVIDER=openrouter` e la configurazione A di `docs/DEPLOY.md`.

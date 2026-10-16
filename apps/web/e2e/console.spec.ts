@@ -173,8 +173,8 @@ test("the activity log shows a failed login to the administrator only", async ({
   await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  // The helper waits out the per-email login limit the rest of the suite also spends.
+  await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
   // Operators don't see it.
   await expect(page.getByRole("link", { name: "Registro attività" })).toHaveCount(0);

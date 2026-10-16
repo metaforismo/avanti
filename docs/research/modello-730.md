@@ -22,15 +22,22 @@ La CU proviene dal sostituto d'imposta; non presumere che il cittadino ne abbia 
 Acconti, eccedenze e versamenti vanno verificati, senza duplicare importi già acquisiti.
 [AdE, altre informazioni](https://infoprecompilata.agenziaentrate.gov.it/portale/altre-informazioni-semplificata).
 
+## Spese da valutare
+
 Chiedere spese solo quando dichiarate: salute, istruzione, assicurazioni/previdenza,
 immobili, erogazioni e altre categorie. La presenza in precompilata non sostituisce
 la verifica del diritto alla deduzione/detrazione. Per spese pluriennali può essere
 necessaria documentazione di anni precedenti: non segnalarla tutta come anno errato.
 [AdE, oneri e spese 2026](https://infoprecompilata.agenziaentrate.gov.it/portale/it/web/guest/oneri-e-spese-semplificata),
 [AdE, Quadro E e istruzioni 730/2026](https://infoprecompilata.agenziaentrate.gov.it/portale/quadro-e-oneri-e-spese).
+
+## Spese sanitarie e pagamenti
+
 La tracciabilità delle spese sanitarie ha eccezioni (farmaci/dispositivi e strutture
 pubbliche/accreditate): non imporre prova POS per ogni scontrino.
 [AdE, spese sanitarie](https://infoprecompilata.agenziaentrate.gov.it/portale/web/guest/spese-sanitarie).
+
+## Limiti della preparazione
 
 Limite beta: poche domande per raccogliere il fascicolo, senza copertura esaustiva di
 bonus edilizi, attività d'impresa, plusvalenze, cripto-attività e fiscalità estera.
