@@ -1,6 +1,6 @@
 import type { CaseDossier, NearReadyField, NearReadyReason } from "@avanti/contracts";
 import { CATALOG_VERSION, getQuestions, practiceYear, type Answers } from "./catalog";
-import { calendarDate } from "./calendar";
+import { calendarDate, calendarYear } from "./calendar";
 import { nextQuestion } from "./interview";
 import { requirements, type RequirementId } from "./requirements";
 
@@ -183,7 +183,7 @@ export function evaluateNearReady(i: NearReadyInput) {
     "catalog",
     i.catalogVersion === CATALOG_VERSION &&
       practiceYear(a) === 2027 &&
-      i.now.getUTCFullYear() <= 2027,
+      calendarYear(i.now) <= 2027,
     "catalog_outdated",
   );
   test(

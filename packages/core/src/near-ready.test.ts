@@ -196,6 +196,13 @@ const gates: [NearReadyReason, (i: NearReadyInput) => void][] = [
     },
   ],
   [
+    "catalog_outdated",
+    (i) => {
+      // Already 1 January 2028 in Rome.
+      i.now = new Date("2027-12-31T23:30:00Z");
+    },
+  ],
+  [
     "documents_missing",
     (i) => {
       i.dossier.checklist[0]!.documentIds = [];
