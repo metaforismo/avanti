@@ -78,6 +78,15 @@ export function NearReadyPilot() {
             Falsi «quasi pronta»: {data.total.falseNearReady}; occasioni mancate:{" "}
             {data.total.missedOpportunities}.
           </p>
+          {(data.total.unjudged > 0 || data.total.disagreements > 0) && (
+            <p className="text-sm text-ink-3">
+              Ogni suggerimento si giudica solo sulla pratica com&apos;era quando è stato dato.{" "}
+              {data.total.unjudged > 0 &&
+                `${data.total.unjudged} ${data.total.unjudged === 1 ? "valutazione non giudicabile" : "valutazioni non giudicabili"} (la pratica è cambiata prima della decisione), escluse dalla precisione. `}
+              {data.total.disagreements > 0 &&
+                `${data.total.disagreements} ${data.total.disagreements === 1 ? "caso" : "casi"} con giudizi discordanti, contati come non pronti.`}
+            </p>
+          )}
           <p className="flex flex-wrap items-center gap-2 text-sm">
             <Pill tone={data.calibrationPassed ? "ok" : "muted"}>
               {data.calibrationPassed
