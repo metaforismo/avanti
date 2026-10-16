@@ -73,7 +73,9 @@ export async function nearReadyView(
   const { evaluation, blind } = entry;
   const policy = policyView(entry.policy);
   const hidden = policy.mode === "shadow" && !blind && !policy.suspendedAt;
+  // A withdrawal can happen at the same version (AI attention changed): it is stale too.
   const stale =
+    evaluation.state === "withdrawn" ||
     new Date(evaluation.caseVersion).toISOString() !== version ||
     !currentNearReadyProfile(evaluation.snapshot, profile, now);
   const reasons =
