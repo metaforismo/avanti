@@ -268,6 +268,7 @@ export const fr: M = {
     bookHint: "Ouvre le site de réservation du guichet.",
     bringMissing: "Apportez aussi ces documents au guichet",
     bringMore: "et {n} autres",
+    renewalSaved: "Choix enregistré",
     officeNote: "Indications du guichet (en italien)",
   },
   request: {
@@ -573,6 +574,7 @@ export const es: M = {
     bookHint: "Se abre la web de citas de la oficina.",
     bringMissing: "Lleva también estos documentos a la ventanilla",
     bringMore: "y {n} más",
+    renewalSaved: "Preferencia guardada",
     officeNote: "Indicaciones de la oficina (en italiano)",
   },
   request: {
@@ -876,6 +878,7 @@ export const ro: M = {
     bookHint: "Se deschide site-ul de programări al ghișeului.",
     bringMissing: "Adu și aceste documente la ghișeu",
     bringMore: "și încă {n}",
+    renewalSaved: "Alegerea a fost salvată",
     officeNote: "Indicații de la ghișeu (în italiană)",
   },
   request: {
@@ -1174,6 +1177,7 @@ export const uk: M = {
     bookHint: "Відкриється сайт запису до офісу.",
     bringMissing: "Також візьміть ці документи до вікна обслуговування",
     bringMore: "і ще {n}",
+    renewalSaved: "Вибір збережено",
     officeNote: "Вказівки офісу (італійською)",
   },
   request: {
@@ -1473,6 +1477,7 @@ export const ar: M = {
     bookHint: "يفتح موقع الحجز الخاص بالمكتب.",
     bringMissing: "أحضر أيضاً هذه الوثائق إلى شباك الخدمة",
     bringMore: "و{n} أخرى",
+    renewalSaved: "تم حفظ اختيارك",
     officeNote: "تعليمات المكتب (بالإيطالية)",
   },
   request: {
@@ -1773,6 +1778,7 @@ export const bn: M = {
     bookHint: "অফিসের বুকিং সাইট খুলবে।",
     bringMissing: "এই নথিগুলোও সেবা কাউন্টারে নিয়ে আসুন",
     bringMore: "এবং আরও {n}টি",
+    renewalSaved: "আপনার পছন্দ সংরক্ষিত হয়েছে",
     officeNote: "অফিসের নির্দেশনা (ইতালীয় ভাষায়)",
   },
   request: {

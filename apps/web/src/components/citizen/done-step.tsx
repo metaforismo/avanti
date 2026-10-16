@@ -11,7 +11,10 @@ import {
   MapPin,
   Phone,
 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { apiFetch } from "@/lib/api";
 import { Notice } from "@/components/ui/notice";
 import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
 import { format } from "@/lib/citizen/messages";
@@ -20,7 +23,7 @@ import { SaveLinkActions } from "./save-link";
 
 const MAX_SHOWN = 6;
 
-export function DoneStep({ data, m }: StepProps) {
+export function DoneStep({ api, data, m, token }: StepProps) {
   // Once sent, the citizen can no longer upload: what is still missing goes to the office.
   const missing =
     data.status === "submitted" || data.status === "in_review"
@@ -91,6 +94,15 @@ export function DoneStep({ data, m }: StepProps) {
         </section>
       )}
 
+      {data.practice?.id === "isee_ordinario" && data.renewalContactConsent !== undefined && (
+        <RenewalConsent
+          token={token}
+          consented={data.renewalContactConsent}
+          m={m}
+          onSaved={() => void api.reload()}
+        />
+      )}
+
       <dl className="rounded-lg bg-surface p-5 ring-1 ring-line">
         <dt className="text-sm text-ink-3">{m.done.reference}</dt>
         <dd
@@ -155,6 +167,58 @@ export function DoneStep({ data, m }: StepProps) {
           )}
         </address>
       )}
+    </div>
+  );
+}
+
+/**
+ * The renewal reminder can be turned on or off at any time from here: the consent given in
+ * the summary must be as easy to withdraw as it was to give.
+ */
+function RenewalConsent({
+  token,
+  consented,
+  m,
+  onSaved,
+}: {
+  token: string;
+  consented: boolean;
+  m: StepProps["m"];
+  onSaved: () => void;
+}) {
+  const [checked, setChecked] = useState(consented);
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+
+  async function change(next: boolean) {
+    setChecked(next);
+    setState("saving");
+    try {
+      await apiFetch(`/api/c/${encodeURIComponent(token)}/renewal-consent`, {
+        method: "PUT",
+        body: { consented: next },
+      });
+      setState("saved");
+      onSaved();
+    } catch {
+      setChecked(!next);
+      setState("failed");
+    }
+  }
+
+  return (
+    <div className="grid gap-1.5">
+      <Checkbox
+        look="card"
+        checked={checked}
+        disabled={state === "saving"}
+        onChange={(e) => void change(e.currentTarget.checked)}
+        label={m.review.renewalConsent}
+        hint={m.review.renewalConsentHint}
+      />
+      <p role="status" className="min-h-5 ps-1 text-sm">
+        {state === "saved" && <span className="text-ok">{m.done.renewalSaved}</span>}
+        {state === "failed" && <span className="text-danger">{m.errors.generic}</span>}
+      </p>
     </div>
   );
 }

@@ -270,6 +270,7 @@ const it = {
     bookHint: "Si apre il sito di prenotazione dello sportello.",
     bringMissing: "Porta anche questi documenti allo sportello",
     bringMore: "e altri {n}",
+    renewalSaved: "Scelta salvata",
     officeNote: "Indicazioni dello sportello",
   },
   request: {
@@ -580,6 +581,7 @@ const en: Widen<CitizenMessages> = {
     bookHint: "Opens the office's booking site.",
     bringMissing: "Also bring these documents to the desk",
     bringMore: "and {n} more",
+    renewalSaved: "Choice saved",
     officeNote: "Notes from the office (in Italian)",
   },
   request: {
