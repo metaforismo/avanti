@@ -205,6 +205,27 @@ test("slash jumps to the queue search and Escape clears it", async ({ page }) =>
   await expect(search).not.toBeFocused();
 });
 
+test("question mark lists the shortcuts, but not while typing", async ({ page }) => {
+  await page.goto("/console/accedi");
+  await logIn(page, DEMO);
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+
+  const search = page.getByRole("searchbox", { name: "Cerca pratiche" });
+  await search.focus();
+  await page.keyboard.press("?");
+  await expect(search).toHaveValue("?");
+  await expect(page.getByRole("dialog", { name: "Scorciatoie da tastiera" })).toHaveCount(0);
+  await search.fill("");
+  await search.blur();
+
+  await page.keyboard.press("?");
+  const dialog = page.getByRole("dialog", { name: "Scorciatoie da tastiera" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Verifica la voce")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+});
+
 test("email notices are off by default and an administrator's choice survives a reload", async ({
   page,
 }) => {

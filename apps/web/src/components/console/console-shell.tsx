@@ -33,6 +33,7 @@ import { PasswordForm } from "./admin/password-form";
 import { MfaSetupFlow } from "./mfa/setup-flow";
 import { MfaVerifyForm } from "./mfa/verify-form";
 import { NewCaseDialog } from "./new-case-dialog";
+import { isTyping, ShortcutsDialog } from "./shortcuts-dialog";
 import { CommandPalette } from "./command-palette";
 import { useRecentCases } from "@/lib/console/recent-cases";
 
@@ -105,7 +106,19 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [shortcuts, setShortcuts] = useState(false);
   const pathname = usePathname();
+
+  // «?» lists the shortcuts, as in most work tools; never while typing a question mark.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "?" || event.metaKey || event.ctrlKey || isTyping(event.target)) return;
+      event.preventDefault();
+      setShortcuts(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ⌘K / Ctrl+K opens the search from anywhere in the console, as in most work tools.
   useEffect(() => {
@@ -319,10 +332,12 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <NewCaseDialog open={creating} onOpenChange={setCreating} />
+      <ShortcutsDialog open={shortcuts} onOpenChange={setShortcuts} />
       <CommandPalette
         open={searching}
         onOpenChange={setSearching}
         onNewCase={() => setCreating(true)}
+        onShortcuts={() => setShortcuts(true)}
         operatorId={operator.id}
         pages={NAV.filter((item) => !item.adminOnly || operator.role === "admin").map(
           ({ href, label, icon }) => ({ href, label, icon }),
