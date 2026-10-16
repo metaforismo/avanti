@@ -84,8 +84,17 @@ export const TONE_CLASSES: Record<Tone, string> = {
 };
 
 const relative = new Intl.RelativeTimeFormat("it", { numeric: "auto" });
-const dateTime = new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeStyle: "short" });
-const dateOnly = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short" });
+// The CAF works on Italian time, whatever the operator's computer is set to.
+const dateTime = new Intl.DateTimeFormat("it-IT", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Europe/Rome",
+});
+const dateOnly = new Intl.DateTimeFormat("it-IT", {
+  day: "numeric",
+  month: "short",
+  timeZone: "Europe/Rome",
+});
 
 /** "3 min fa", "ieri", or a date when older than a week. */
 export function timeAgo(iso: string, now = Date.now()) {

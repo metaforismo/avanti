@@ -17,7 +17,7 @@ export default function ConsoleNotFound() {
         }
       >
         Se arrivi da un link a una pratica, potrebbe essere stata eliminata o appartenere a un altro
-        CAF. Puoi cercarla con ⌘K.
+        CAF. Puoi cercarla con ⌘K o Ctrl+K.
       </EmptyState>
     </PageContainer>
   );

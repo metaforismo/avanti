@@ -127,12 +127,13 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // ⌘K / Ctrl+K opens the search from anywhere in the console, as in most work tools.
+  // ⌘K / Ctrl+K opens the search from anywhere in the console. It only opens: closing goes
+  // through the palette (Esc), which also clears its query.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return;
       event.preventDefault();
-      setSearching((open) => !open);
+      setSearching(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

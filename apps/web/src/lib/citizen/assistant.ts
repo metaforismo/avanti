@@ -25,7 +25,6 @@ export function useAssistant(token: string) {
   const [history, setHistory] = useState<History | null>(null);
   const [pending, setPending] = useState<"load" | "ask" | "desk" | null>(null);
   const [error, setError] = useState<ApiRequestError | null>(null);
-  const [deskSent, setDeskSent] = useState(false);
 
   const fail = (err: unknown) =>
     setError(err instanceof ApiRequestError ? err : new ApiRequestError(0, "internal", ""));
@@ -95,7 +94,6 @@ export function useAssistant(token: string) {
       setError(null);
       try {
         await apiFetch(`${base}/ask-desk`, { method: "POST", body: { message } });
-        setDeskSent(true);
         return true;
       } catch (err) {
         fail(err);
@@ -107,5 +105,5 @@ export function useAssistant(token: string) {
     [base],
   );
 
-  return { history, pending, error, deskSent, load, ask, askDesk };
+  return { history, pending, error, load, ask, askDesk };
 }
