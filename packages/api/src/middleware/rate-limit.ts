@@ -98,7 +98,9 @@ export function remoteAddress(context: ApiContext, services: Services): string |
 export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
   const secret = rateLimitSecret(services.rateLimitSecret);
   return async (context, next) => {
-    let rule = policy(context.req.path, context.req.method);
+    // HEAD runs the GET handler (and its AI calls or exports), so it shares the GET quota.
+    const method = context.req.method === "HEAD" ? "GET" : context.req.method;
+    let rule = policy(context.req.path, method);
     if (rule?.category === "turn") {
       const input: unknown = await context.req.json().catch(() => null);
       if (input && typeof input === "object" && "type" in input && input.type === "text")
