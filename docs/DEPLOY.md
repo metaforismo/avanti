@@ -661,11 +661,11 @@ come JSON testuale sullo stesso modello, con motivo `empty_structured_output` in
 
 Applicare la migrazione `0015_ai_runtime` prima del rilascio. `AI_MONTHLY_BUDGET_EUR=50` è il
 tetto mensile per CAF, deciso dalla piattaforma: l'AI è inclusa nel piano e l'admin del CAF non
-può modificarlo (`/api/settings` ignora `aiMonthlyBudgetEur`; la migrazione
+può né vederlo né modificarlo (`/api/settings` non lo espone e ignora `aiMonthlyBudgetEur`; la migrazione
 `0021_ai_budget_platform` azzera i valori impostati prima). Un tetto diverso per un singolo
 CAF si imposta con `pnpm platform:org --org <id> --budget <EUR>` (0 disattiva AI,
 `--budget reset` ripristina il default). Vedi [Operare la piattaforma](#operare-la-piattaforma).
-`/api/ai/usage?month=YYYY-MM` offre aggregati mensili del CAF,
+L'uso mensile per CAF si legge con le CLI di piattaforma (nessuna API per i CAF);
 `/api/status` mostra budget, provider, livelli, policy e presenza chiave. Le tariffe
 `AI_PRICES` può specificare una coppia input/output EUR per milione per ciascun ID modello.
 `AI_INPUT_EUR_PER_MILLION` e `AI_OUTPUT_EUR_PER_MILLION` coprono i modelli non elencati e

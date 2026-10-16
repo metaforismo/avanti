@@ -1,11 +1,9 @@
 import { usageDay, usageMonth, usageMonthRange as monthRange } from "@avanti/core";
 import { aiUsage, organizations, settings } from "@avanti/db";
 import { and, eq, gte, lt, sql } from "drizzle-orm";
-import { AiUsageQuery, AiUsageResponse } from "@avanti/contracts";
 import type { TaskContext } from "@avanti/ai";
 import { loadAiConfig } from "@avanti/ai/config";
-import { parse, type App, type Services } from "./context";
-import { ApiFailure } from "./security";
+import type { Services } from "./context";
 
 export async function aiBudget(s: Services, organizationId: string, month = usageMonth(s.clock())) {
   const { from, until } = monthRange(month);
@@ -110,63 +108,4 @@ export function cafAiContext(s: Services, organizationId: string, officeId?: str
       }
     },
   };
-}
-export function mountAiUsage(app: App, s: Services) {
-  app.get("/ai/usage", async (c) => {
-    const actor = c.get("operator");
-    if (actor.role !== "admin")
-      throw new ApiFailure("forbidden", 403, "Operazione riservata agli amministratori.");
-    const query = parse(AiUsageQuery, c.req.query());
-    const month = query.month ?? usageMonth(s.clock());
-    const { from, until } = monthRange(month);
-    const groups = await s.db
-      .select({
-        task: aiUsage.task,
-        version: aiUsage.version,
-        model: aiUsage.model,
-        engine: aiUsage.engine,
-        outcome: aiUsage.outcome,
-        day: aiUsage.day,
-        calls: sql<number>`count(*)::int`,
-        attempts: sql<number>`sum(${aiUsage.attempts})::int`,
-        latencyMs: sql<number>`avg(${aiUsage.latencyMs})::float8`,
-        inputTokens: sql<number>`sum(${aiUsage.inputTokens})::float8`,
-        outputTokens: sql<number>`sum(${aiUsage.outputTokens})::float8`,
-        costEstimateEur: sql<number>`sum(${aiUsage.costEstimateEur})::float8`,
-        manipulationAttempts: sql<number>`sum(${aiUsage.manipulationAttempts})::int`,
-      })
-      .from(aiUsage)
-      .where(
-        and(
-          eq(aiUsage.organizationId, actor.organizationId),
-          gte(aiUsage.day, from),
-          lt(aiUsage.day, until),
-        ),
-      )
-      .groupBy(
-        aiUsage.task,
-        aiUsage.version,
-        aiUsage.model,
-        aiUsage.engine,
-        aiUsage.outcome,
-        aiUsage.day,
-      );
-    const totals = groups.reduce(
-      (sum, row) => ({
-        calls: sum.calls + row.calls,
-        inputTokens: sum.inputTokens + row.inputTokens,
-        outputTokens: sum.outputTokens + row.outputTokens,
-        costEstimateEur: sum.costEstimateEur + row.costEstimateEur,
-        manipulationAttempts: sum.manipulationAttempts + row.manipulationAttempts,
-      }),
-      { calls: 0, inputTokens: 0, outputTokens: 0, costEstimateEur: 0, manipulationAttempts: 0 },
-    );
-    return c.json(
-      AiUsageResponse.parse({
-        ...(await aiBudget(s, actor.organizationId, month)),
-        totals,
-        groups,
-      }),
-    );
-  });
 }

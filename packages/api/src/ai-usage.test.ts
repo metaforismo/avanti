@@ -54,82 +54,43 @@ beforeEach(async () => {
     production: false,
   };
 });
-it("isolates tenants and months, validates query and protects the endpoint", async () => {
-  for (const [id, role, org] of [
-    ["admin", "admin", "a"],
-    ["operator", "operator", "a"],
-    ["foreign", "admin", "b"],
-  ] as const) {
-    await db.insert(operators).values({
-      id,
-      organizationId: org,
-      name: "Synthetic",
-      email: `${id}@test.invalid`,
-      passwordHash: "none",
-      role,
-    });
-    await db.insert(sessions).values({
-      id,
-      operatorId: id,
-      tokenHash: hashToken(`${id}-token`.padEnd(43, "x")),
-      expiresAt: "2027-02-01T00:00:00Z",
-      createdAt: "2027-01-10T12:00:00Z",
-    });
-  }
-  await observeAi(s, "a", () => s.ai.translate("Porta il documento allo sportello", "en"));
-  await db.insert(aiUsage).values({
-    id: "old",
+it("keeps model, spend and budget away from the CAF: AI is included in the plan", async () => {
+  await db.insert(operators).values({
+    id: "admin",
     organizationId: "a",
-    task: "translate",
-    version: "1",
-    engine: "ai",
-    outcome: "success",
-    day: "2026-12-01",
-    costEstimateEur: 99,
+    name: "Synthetic",
+    email: "admin@test.invalid",
+    passwordHash: "none",
+    role: "admin",
   });
+  await db.insert(sessions).values({
+    id: "admin",
+    operatorId: "admin",
+    tokenHash: hashToken("admin-token".padEnd(43, "x")),
+    expiresAt: "2027-02-01T00:00:00Z",
+    createdAt: "2027-01-10T12:00:00Z",
+  });
+  await observeAi(s, "a", () => s.ai.translate("Porta il documento allo sportello", "en"));
   const app = createApp(s);
-  const request = (id?: string, query = "") =>
-    app.request(`/api/ai/usage${query}`, {
-      headers: id ? { cookie: `avanti_session=${`${id}-token`.padEnd(43, "x")}` } : {},
-    });
-  expect((await request()).status).toBe(401);
-  expect((await request("operator")).status).toBe(403);
-  expect((await request("admin", "?month=2027-13")).status).toBe(400);
-  const current = await (await request("admin", "?month=2027-01")).json();
-  expect(current).toMatchObject({
-    month: "2027-01",
-    totals: { calls: 1, inputTokens: 50, outputTokens: 10 },
-  });
-  expect(current.groups[0]).toMatchObject({
-    task: "translate",
-    version: "1.3",
-    outcome: "success",
-    engine: "ai",
-  });
-  expect((await (await request("foreign")).json()).totals.calls).toBe(0);
-  expect(JSON.stringify(current)).not.toMatch(/Porta|synthetic|Bring/);
+  const cookie = `avanti_session=${"admin-token".padEnd(43, "x")}`;
+  expect((await app.request("/api/ai/usage?month=2027-01", { headers: { cookie } })).status).toBe(
+    404,
+  );
   const patch = (budget: number | null) =>
     app.request("/api/settings", {
       method: "PATCH",
-      headers: {
-        cookie: `avanti_session=${"admin-token".padEnd(43, "x")}`,
-        origin: s.publicUrl,
-        "content-type": "application/json",
-      },
+      headers: { cookie, origin: s.publicUrl, "content-type": "application/json" },
       body: JSON.stringify({ aiMonthlyBudgetEur: budget }),
     });
-  // AI is included in the plan: a CAF administrator cannot move the platform's budget.
   expect((await patch(1000)).status).toBe(200);
   expect((await aiBudget(s, "a")).budgetEur).toBe(1);
+  const view = await (await app.request("/api/settings", { headers: { cookie } })).json();
+  expect(view).not.toHaveProperty("aiMonthlyBudgetEur");
   await db
     .insert(settings)
     .values({ organizationId: "a", aiMonthlyBudgetEur: 0 })
     .onConflictDoUpdate({ target: settings.organizationId, set: { aiMonthlyBudgetEur: 0 } });
-  const status = await (
-    await app.request("/api/status", {
-      headers: { cookie: `avanti_session=${"admin-token".padEnd(43, "x")}` },
-    })
-  ).json();
+  const status = await (await app.request("/api/status", { headers: { cookie } })).json();
   expect(status.components.ai).toMatchObject({
     mode: "fallback",
     budget: { exhausted: true, budgetEur: 0 },

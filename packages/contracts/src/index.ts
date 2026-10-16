@@ -1370,7 +1370,6 @@ export const OrganizationSettings = z.object({
   mfaRequired: z.boolean().default(false),
   aiCopilot: z.boolean().default(true),
   aiCitizenAssistant: z.boolean().default(true),
-  aiMonthlyBudgetEur: z.number().finite().min(0).max(100000).nullable().default(null),
   /** Minutes per case measured by the CAF before Avanti; null until measured. */
   baselineMinutesPerCase: z.number().int().min(1).max(600).nullable(),
   /** Validity of citizen links, in days. */
@@ -1392,11 +1391,10 @@ export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 
 // PATCH must preserve omitted preferences: Zod defaults would otherwise reset them
 // (an unrelated PATCH would turn off required MFA or the email notices).
-// The AI budget protects the platform's own provider bill: AI is included in the plan, so a CAF
-// cannot raise it. Avanti sets it per organization; unknown keys are stripped, not rejected.
+// AI is included in the plan: the budget is not part of the CAF's settings. A stale client
+// sending `aiMonthlyBudgetEur` is not rejected, because unknown keys are stripped.
 export const UpdateSettingsRequest = OrganizationSettings.omit({
   nearReadySuspendedAt: true,
-  aiMonthlyBudgetEur: true,
 })
   .partial()
   .extend({
@@ -1547,49 +1545,6 @@ export const ApiError = z.object({
 export type ApiError = z.infer<typeof ApiError>;
 
 export * from "./pilot-report";
-
-export const AiUsageQuery = z
-  .object({
-    month: z
-      .string()
-      .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
-      .optional(),
-  })
-  .strict();
-export const AiUsageResponse = z.object({
-  month: z.string(),
-  budgetEur: z.number().nonnegative(),
-  usedEur: z.number().nonnegative(),
-  reservedEur: z.number().nonnegative(),
-  exhausted: z.boolean(),
-  totals: z.object({
-    calls: z.number(),
-    inputTokens: z.number(),
-    outputTokens: z.number(),
-    costEstimateEur: z.number(),
-    manipulationAttempts: z.number(),
-  }),
-  groups: z.array(
-    z.object({
-      task: z.string(),
-      version: z.string(),
-      model: z.string().nullable(),
-      engine: z.enum(["ai", "heuristic"]),
-      outcome: z.string(),
-      day: z.string(),
-      calls: z.number(),
-      attempts: z.number(),
-      latencyMs: z.number(),
-      inputTokens: z.number(),
-      outputTokens: z.number(),
-      costEstimateEur: z.number(),
-      manipulationAttempts: z.number(),
-    }),
-  ),
-});
-
-export type AiUsageQuery = z.infer<typeof AiUsageQuery>;
-export type AiUsageResponse = z.infer<typeof AiUsageResponse>;
 
 /* Copilota: le proposte non sono decisioni sulla pratica. */
 export const Evidence = z.object({

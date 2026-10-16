@@ -921,8 +921,8 @@ marca i messaggi cittadino come letti. Il conteggio dell'ultima analisi può ess
 una versione precedente; `quick_review` richiede invece analisi della versione corrente.
 
 `GET/PATCH /settings`: `aiCopilot` e `aiCitizenAssistant`, default true;
-`aiMonthlyBudgetEur` è in sola lettura (default null, budget della piattaforma): il PATCH lo
-ignora. Un PATCH omesso non resetta gli interruttori. La vista cittadino espone `aiCitizenAssistant`, senza budget.
+il budget AI è della piattaforma e non compare nelle impostazioni; un PATCH con
+`aiMonthlyBudgetEur` lo ignora. Un PATCH omesso non resetta gli interruttori. La vista cittadino espone `aiCitizenAssistant`, senza budget.
 Impostazione off o budget esaurito: `engine:"heuristic"`, nessuna nuova chiamata.
 
 ## Pratica quasi pronta — pilota backend

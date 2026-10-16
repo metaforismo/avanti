@@ -499,9 +499,9 @@ it("preserves omitted AI preferences on settings PATCH and disables the citizen 
   expect(await (await request("/settings")).json()).toMatchObject({
     aiCopilot: false,
     aiCitizenAssistant: false,
-    aiMonthlyBudgetEur: null,
     linkDays: 40,
   });
+  expect(await (await request("/settings")).json()).not.toHaveProperty("aiMonthlyBudgetEur");
   await db.update(cases).set({ status: "intake" });
   const view = await (await createApp(options()).request(`/api/c/${"c".repeat(43)}`)).json();
   expect(view.aiCitizenAssistant).toBe(false);
