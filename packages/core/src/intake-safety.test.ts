@@ -28,3 +28,25 @@ it("does not match roles alone and separates immediate danger from violence", ()
   expect(intakeEmergency("non respiro")).toBe(true);
   expect(intakeViolence("non respiro")).toBe(false);
 });
+it.each([
+  "Що потрібно зробити для ISEE?",
+  "Je veux effectuer ma déclaration",
+  "Je dois constituer le dossier",
+  "Sono iscritto come matricola all'università",
+  "Je suis immatriculé, je me matriculé ici",
+  "I'm afraid I lost the CU",
+  "Mon fils me bataille pour les devoirs, je veux l'ISEE",
+])("does not treat ordinary words containing a danger term as danger: %s", (text) => {
+  expect(intakeEmergency(text)).toBe(false);
+  expect(localIntakeIntent(text, true)).toBe("need");
+});
+it.each([
+  "Mi marido me mata si se entera",
+  "I'm afraid of him, I need ISEE",
+  "Il veut me tuer",
+  "Він погрожує мені",
+  "Вони хочуть мене бити",
+  "أخاف من العنف في البيت",
+])("still recognizes danger at word boundaries: %s", (text) => {
+  expect(intakeEmergency(text)).toBe(true);
+});
