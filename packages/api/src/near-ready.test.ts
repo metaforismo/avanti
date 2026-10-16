@@ -14,6 +14,7 @@ import {
   nearReadyBlindReviews,
   events,
   copilotCache,
+  rateLimits,
   type Database,
 } from "@avanti/db";
 import {
@@ -30,6 +31,8 @@ import { createApp } from "./app";
 import { hashToken } from "./security";
 import { MemoryStorage } from "./storage";
 import { nextCaseUpdate } from "./case-version";
+import { rateKey } from "./middleware/rate-limit";
+import { rateLimitSecret } from "./rate-limit-key";
 let db: Database, close: () => Promise<void>, ai: AiIntelligence, storage: MemoryStorage;
 let now: Date, reply: Transport;
 const token = "a".repeat(43),
@@ -258,6 +261,90 @@ it("suggerisce solo con due compiti AI riusciti; espone badge, filtro e conteggi
   expect(dossierResponse.status).toBe(200);
   expect(CaseDossier.parse(await dossierResponse.json()).nearReady?.state).toBe("suggested");
 });
+it("condivide il lavoro AI della prima valutazione tra letture concorrenti", async () => {
+  let release!: () => void;
+  let entered!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const calls = vi.fn<Transport>(async (r) => {
+    entered();
+    await gate;
+    return baselineReply(r);
+  });
+  reply = calls;
+  const first = request("/cases/case");
+  await started;
+  const others = [request("/cases/case"), request("/cases/case")];
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  release();
+  const responses = await Promise.all([first, ...others]);
+  expect(responses.map((r) => r.status)).toEqual([200, 200, 200]);
+  expect(calls).toHaveBeenCalledTimes(3);
+  expect(await db.select().from(nearReadyEvaluations)).toHaveLength(1);
+});
+
+it("limita anche il ricontrollo esplicito prima di chiamare il provider o cambiare versione", async () => {
+  await db.insert(rateLimits).values({
+    key: rateKey(rateLimitSecret(undefined), "copilot:3600", "operator:admin"),
+    count: 60,
+    resetAt: new Date(now.getTime() + 3600000).toISOString(),
+  });
+  const calls = vi.fn(baselineReply);
+  reply = calls;
+  const version = (await current()).updatedAt;
+  const response = await evaluate();
+  expect(response.status).toBe(429);
+  expect(response.headers.get("Retry-After")).toBe("3600");
+  expect(calls).not.toHaveBeenCalled();
+  expect((await current()).updatedAt).toBe(version);
+  expect(await db.select().from(nearReadyEvaluations)).toHaveLength(0);
+});
+
+it("limita il report aggregato prima di leggere lo storico", async () => {
+  await db.insert(rateLimits).values({
+    key: rateKey(rateLimitSecret(undefined), "export:60", "operator:admin"),
+    count: 20,
+    resetAt: new Date(now.getTime() + 60000).toISOString(),
+  });
+  const response = await request("/reports/near-ready");
+  expect(response.status).toBe(429);
+  expect(response.headers.get("Retry-After")).toBe("60");
+});
+
+it("non pubblica il suggerimento se una nuova incongruenza arriva durante la lettura AI", async () => {
+  let changed = false;
+  reply = async (r) => {
+    if (!changed) {
+      changed = true;
+      await db.update(cases).set({ aiAttention: 1 }).where(eq(cases.id, "case"));
+    }
+    return baselineReply(r);
+  };
+  expect((await evaluate()).status).toBe(409);
+  expect(await db.select().from(nearReadyEvaluations)).toHaveLength(0);
+});
+
+it("una nuova incongruenza ritira il suggerimento anche senza cambiare versione", async () => {
+  const view = NearReady.parse(await (await evaluate()).json());
+  const version = (await current()).updatedAt;
+  await db.update(cases).set({ aiAttention: 1 }).where(eq(cases.id, "case"));
+  expect((await current()).updatedAt).toBe(version);
+  expect((await db.select().from(nearReadyEvaluations))[0]?.state).toBe("withdrawn");
+  expect(
+    (
+      await request("/cases/case/near-ready/decision", "POST", {
+        evaluationId: view.evaluationId,
+        expectedUpdatedAt: version,
+        decision: "accept",
+      })
+    ).status,
+  ).toBe(409);
+});
+
 it("due operatori non possono accettare/scartare lo stesso suggerimento", async () => {
   const view = NearReady.parse(await (await evaluate()).json()),
     row = await current();
@@ -708,29 +795,25 @@ it("una verifica manuale antecedente a nuove risposte non evita la rilettura deg
   const { checklistReviews } = await import("@avanti/db");
   const row = await current();
   const items = buildChecklist("isee_ordinario", row.answers, buildHousehold(row.answers), "it");
-  await db
-    .insert(checklistReviews)
-    .values(
-      items.map((item) => ({
-        caseId: row.id,
-        itemId: item.id,
-        decision: "verified" as const,
-        operatorId: "operator",
-        reviewedAt: now.toISOString(),
-      })),
-    );
+  await db.insert(checklistReviews).values(
+    items.map((item) => ({
+      caseId: row.id,
+      itemId: item.id,
+      decision: "verified" as const,
+      operatorId: "operator",
+      reviewedAt: now.toISOString(),
+    })),
+  );
   now = new Date(now.getTime() + 1000);
   await db.update(cases).set({ updatedAt: now.toISOString() }).where(eq(cases.id, row.id));
-  await db
-    .insert(events)
-    .values({
-      id: "new-answer",
-      caseId: row.id,
-      organizationId: "org",
-      actor: "citizen",
-      type: "answer.updated",
-      at: now.toISOString(),
-    });
+  await db.insert(events).values({
+    id: "new-answer",
+    caseId: row.id,
+    organizationId: "org",
+    actor: "citizen",
+    type: "answer.updated",
+    at: now.toISOString(),
+  });
   expect(NearReady.parse(await (await evaluate()).json()).state).toBe("suggested");
   const [evaluation] = await db.select().from(nearReadyEvaluations);
   expect(evaluation?.snapshot.tasks.filter((t) => t.task === "near_ready.read")).toHaveLength(

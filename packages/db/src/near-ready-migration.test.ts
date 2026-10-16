@@ -10,7 +10,7 @@ it("migra le organizzazioni esistenti in ombra e conserva budget e preferenze", 
     const journal: { entries: { tag: string }[] } = JSON.parse(
       await readFile(join(repoRoot, "packages/db/migrations/meta/_journal.json"), "utf8"),
     );
-    for (const e of journal.entries.filter((e) => e.tag !== "0020_near_ready"))
+    for (const e of journal.entries.slice(0, 20))
       await client.exec(
         await readFile(join(repoRoot, `packages/db/migrations/${e.tag}.sql`), "utf8"),
       );

@@ -1,0 +1,31 @@
+{
+  "method": "PGlite memory, synthetic 5000 cases/evaluations and 15000 events, 1 warmup + 5 sequential samples, full response consumed, natural EXPLAIN ANALYZE",
+  "scope": "Local synthetic benchmark only; no native or remote Postgres latency claim",
+  "baseline": {
+    "/cases?limit=50": {
+      "p50Ms": 102.9267920000002,
+      "p95Ms": 108.0838330000006,
+      "queries": 11
+    },
+    "/cases?ai=near_ready&limit=50": {
+      "p50Ms": 186.73691599999802,
+      "p95Ms": 188.79899999999907,
+      "queries": 11
+    },
+    "/reports/near-ready": {
+      "p50Ms": 439.3633329999975,
+      "p95Ms": 509.4232090000005,
+      "queries": 8,
+      "historyParameters": 5000
+    }
+  },
+  "reportAfter": {
+    "p50Ms": 161.04000000000087,
+    "p95Ms": 163.2066250000007,
+    "samplesMs": [
+      155.6732919999995, 159.7323749999996, 161.04000000000087, 162.77708399999938,
+      163.2066250000007
+    ],
+    "maxHistoryParams": 1
+  }
+}

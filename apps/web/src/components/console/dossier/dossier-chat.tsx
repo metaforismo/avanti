@@ -77,14 +77,12 @@ export function DossierChat({
     setPending({ question: value });
     setError(null);
     setText("");
-    const history = (turns ?? []).slice(-4).flatMap((turn) => [
-      { role: "user" as const, content: turn.question },
-      { role: "assistant" as const, content: turn.response.answer },
-    ]);
     try {
+      // No history from the client: the server rebuilds it from saved answers about this
+      // dossier version only, so an answer about an older version never becomes a fact.
       const response = await apiFetch<DossierAskResponse>(base, {
         method: "POST",
-        body: { question: value, history },
+        body: { question: value },
       });
       setTurns((current) => [
         ...(current ?? []),
