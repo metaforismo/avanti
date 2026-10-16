@@ -87,7 +87,7 @@ const AI_LIMITS = [
   "Non decide se un cittadino ha diritto a qualcosa e non manda nulla al suo posto: decide l'operatore.",
   "Non inventa documenti, anni o regole: quelle stanno nel motore di Avanti, con le fonti ufficiali.",
   "Se l'AI non risponde, Avanti continua con le regole: le pratiche non si fermano.",
-  "Usa solo fornitori che non conservano i dati e non li usano per addestrare, e solo ciò che serve a ogni compito.",
+  "Usa fornitori configurati per non conservare i dati né addestrare modelli, scritti nell'accordo con il CAF, e solo ciò che serve a ogni compito.",
 ] as const;
 
 const PRACTICES = [

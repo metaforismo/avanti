@@ -131,6 +131,12 @@ test("a citizen goes from the office QR to a submitted dossier", async ({ page }
   await expect(
     page.getByRole("heading", { name: "Porta anche questi documenti allo sportello" }),
   ).toBeVisible();
+  // The renewal reminder can be turned on (and off again) after sending.
+  const reminder = page.getByLabel(/Avvisami via email/);
+  await expect(reminder).not.toBeChecked();
+  await reminder.check();
+  await expect(page.getByText("Scelta salvata")).toBeVisible();
+  await expect(reminder).toBeChecked();
   // What to do next: the office's own booking site, opened without a referrer, and its note.
   const book = page.getByRole("link", { name: /Prenota l'appuntamento/ });
   await expect(book).toHaveAttribute("href", "https://prenota.example.it/milano");

@@ -16,7 +16,7 @@ const CONTROLS = [
   },
   {
     title: "Link personali, non password",
-    body: "Il cittadino accede con un link casuale a 256 bit. Nel database ne conserviamo solo l'impronta (hash): chi legge il database non può ricostruire i link. Ogni link scade; la durata la decide il CAF.",
+    body: "Il cittadino accede con un link casuale a 256 bit. Nel fascicolo ne conserviamo solo l'impronta (hash): chi legge il database non può ricostruire i link. L'unica eccezione è l'invito al rinnovo, per cui il link resta cifrato nella coda delle email finché non parte. Ogni link scade; la durata la decide il CAF.",
   },
   {
     title: "Ogni CAF vede solo le sue pratiche",
@@ -39,12 +39,12 @@ const CONTROLS = [
     body: "Durata dei link e conservazione dei documenti sono configurabili per ogni CAF. Su richiesta del CAF cancelliamo dati e file di un fascicolo da Avanti, senza toccare l'archivio ufficiale del gestionale.",
   },
   {
-    title: "Email senza link e senza contenuti",
-    body: "Gli avvisi al cittadino non contengono link né dati della pratica, per non insegnare a cliccare su email che potrebbero essere imitazioni. Restano cifrati finché non partono; quelli che il cittadino può far partire da solo, come la ricevuta, sono limitati per destinatario.",
+    title: "Email senza link, salvo l'invito al rinnovo",
+    body: "Gli avvisi al cittadino non contengono link né dati della pratica, per non insegnare a cliccare su email che potrebbero essere imitazioni. L'unica email con il link personale è l'invito al rinnovo dell'ISEE: parte solo se il cittadino l'ha chiesto e il CAF ha attivato gli inviti. Le email restano cifrate finché non partono; quelli che il cittadino può far partire da solo, come la ricevuta, sono limitati per destinatario.",
   },
   {
     title: "AI con il minimo indispensabile",
-    body: "A ogni compito arriva solo ciò che serve: il messaggio del cittadino con le domande aperte, il singolo documento da leggere, il fascicolo senza contatti, note interne né nomi dei file per il riepilogo dell'operatore. Solo fornitori a conservazione zero, che non addestrano modelli; le registrazioni vocali non vengono salvate. Il testo dei cittadini è trattato come dato, mai come istruzione. Il CAF può spegnere l'AI per i cittadini o per gli operatori: senza AI Avanti funziona con le regole. Nulla di ciò che propone l'AI diventa una risposta o un valore senza la conferma di una persona.",
+    body: "A ogni compito arriva solo ciò che serve: il messaggio del cittadino con le domande aperte, il singolo documento da leggere, il fascicolo senza contatti, note interne né nomi dei file per il riepilogo dell'operatore. Usiamo fornitori configurati per non conservare i dati e non usarli per addestrare modelli; fornitori, regioni e garanzie sono elencati nell'accordo con il CAF. Avanti non salva le registrazioni vocali. Il testo dei cittadini è trattato come dato, mai come istruzione. Il CAF può spegnere l'AI per i cittadini o per gli operatori: senza AI Avanti funziona con le regole. Nulla di ciò che propone l'AI diventa una risposta o un valore senza la conferma di una persona.",
   },
 ] as const;
 
