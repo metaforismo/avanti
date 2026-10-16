@@ -15,6 +15,7 @@ import {
   events,
   aiUsage,
   operationalCounters,
+  rateLimits,
   type Database,
 } from "@avanti/db";
 import {
@@ -30,6 +31,8 @@ import { AiIntelligence } from "./ai";
 import { loadAiConfig } from "@avanti/ai/config";
 import type { Transport, TransportRequest } from "@avanti/ai";
 import { hashToken } from "./security";
+import { rateKey } from "./middleware/rate-limit";
+import { rateLimitSecret } from "./rate-limit-key";
 import { MemoryStorage } from "./storage";
 import { dossierView } from "./dossier";
 import { copilotDossier, analyzeConsistency, recoverCopilot } from "./copilot";
@@ -228,6 +231,22 @@ it("persists brief per version, coalesces concurrency and regenerates only on PO
   expect((await request("/cases/case/ai/brief")).status).toBe(200);
   expect(transport).toHaveBeenCalledTimes(3);
 });
+it.each(["brief", "consistency", "dsu-prefill"])(
+  "limits AI GET %s before cache misses reach the provider",
+  async (task) => {
+    await db.insert(rateLimits).values({
+      key: rateKey(rateLimitSecret(undefined), "copilot:3600", "operator:op"),
+      count: 60,
+      resetAt: new Date(now.getTime() + 3600000).toISOString(),
+    });
+    const response = await request(`/cases/case/ai/${task}`);
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("3600");
+    expect(transport).not.toHaveBeenCalled();
+    expect(await db.select().from(copilotCache)).toHaveLength(0);
+  },
+);
+
 it("discards late responses when case changes during model work", async () => {
   reply = async () => {
     now = new Date(now.getTime() + 1);

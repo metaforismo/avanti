@@ -155,6 +155,13 @@
       "when": 1792115674639,
       "tag": "0021_ai_budget_platform",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792115991833,
+      "tag": "0022_near_ready_invalidation",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,14 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { createDatabase, organizations, offices, cases, messages, type Database } from "@avanti/db";
+import {
+  createDatabase,
+  organizations,
+  offices,
+  cases,
+  messages,
+  settings,
+  type Database,
+} from "@avanti/db";
 import { ConversationState, LANGUAGES, type Language } from "@avanti/contracts";
 import { getQuestions, t } from "@avanti/core";
 import { createApp } from "./app";
@@ -95,6 +103,62 @@ beforeAll(async () => {
   });
 }, 30000);
 afterAll(async () => close?.());
+
+it("keeps direct conversation text local when the CAF disables citizen AI", async () => {
+  const provider = vi.fn(async () => ({ ...generated, engine: "ai" as const }));
+  const target = createApp({
+    ...appOptions(),
+    ai: {
+      intake: local.intake.bind(local),
+      analyze: local.analyze.bind(local),
+      translate: local.translate.bind(local),
+      converse: provider,
+    },
+  });
+  await db.insert(settings).values({
+    organizationId: "conversation-org",
+    aiCitizenAssistant: false,
+  });
+  try {
+    const { token } = await start("it", target);
+    const state = await converse(token, "Siamo in quattro", target);
+    expect(provider).not.toHaveBeenCalled();
+    expect(state.engine).toBe("heuristic");
+    expect(state.proposals.find((p) => p.questionId === "household_count")?.value).toBe(4);
+    expect(state.ask).toHaveLength(1);
+  } finally {
+    await db.delete(settings).where(eq(settings.organizationId, "conversation-org"));
+  }
+});
+
+it.each([
+  { text: "Mio marito mi sta picchiando", violence: true },
+  { text: "Non respiro", violence: false },
+])(
+  "handles conversation danger locally without storing the sensitive story: $text",
+  async ({ text, violence }) => {
+    const provider = vi.fn(async () => ({ ...generated, engine: "ai" as const }));
+    const target = createApp({
+      ...appOptions(),
+      ai: {
+        intake: local.intake.bind(local),
+        analyze: local.analyze.bind(local),
+        translate: local.translate.bind(local),
+        converse: provider,
+      },
+    });
+    const { token, case: item } = await start("it", target);
+    const state = await converse(token, text, target);
+    expect(provider).not.toHaveBeenCalled();
+    expect(state.engine).toBe("heuristic");
+    expect(state.proposals).toEqual([]);
+    expect(state.turns.at(-1)?.text).toContain("112");
+    if (violence) expect(state.turns.at(-1)?.text).toContain("1522");
+    expect(
+      JSON.stringify(await db.select().from(messages).where(eq(messages.caseId, item.id))),
+    ).not.toContain(text);
+  },
+);
 
 it("keeps initial intake answers as proposals and confirms corrected values through the same domain path", async () => {
   const { token, case: item } = await start("it", app(), false);

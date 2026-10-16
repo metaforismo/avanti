@@ -49,6 +49,11 @@ export const RATE_POLICIES = {
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
+  if (
+    (method === "GET" && /^\/api\/cases\/[^/]+\/ai\/(brief|consistency|dsu-prefill)$/.test(path)) ||
+    (method === "POST" && /^\/api\/cases\/[^/]+\/near-ready\/evaluate$/.test(path))
+  )
+    return RATE_POLICIES.copilot;
   if ((path === "/api/ai/ask" || /^\/api\/cases\/[^/]+\/ai\/ask$/.test(path)) && method === "POST")
     return RATE_POLICIES.copilot;
   if (
@@ -56,7 +61,8 @@ function policy(path: string, method: string): Policy | null {
     method === "POST"
   )
     return RATE_POLICIES.translate;
-  if (method === "GET" && path === "/api/reports/pilot") return RATE_POLICIES.export;
+  if (method === "GET" && ["/api/reports/pilot", "/api/reports/near-ready"].includes(path))
+    return RATE_POLICIES.export;
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
   if (method !== "POST") return null;

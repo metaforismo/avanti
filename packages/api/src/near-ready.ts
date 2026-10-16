@@ -41,6 +41,7 @@ import {
 import { body, parse, type App, type Services } from "./context";
 import { audit, caseById, dossierView, iso, type CaseRow } from "./dossier";
 import { copilotDossier } from "./copilot-context";
+import { cached } from "./copilot";
 import { assertCaseVersion, nextCaseUpdate } from "./case-version";
 import { lockOperatorAccess } from "./operator-access";
 import { deadline } from "./deadline";
@@ -77,6 +78,28 @@ export async function nearReadyEvent(
   });
 }
 export async function evaluateCaseNearReady(s: Services, row: CaseRow) {
+  const current = await caseById(s.db, row.id, row.organizationId);
+  assertCaseVersion(current, iso(row.updatedAt));
+  const previous = await latestNearReady(s.db, row.id);
+  if (previous && iso(previous.caseVersion) === iso(current.updatedAt)) return previous;
+  // Share the durable copilot lease across HTTP reads and background workers. Only the
+  // evaluation id is cached; document readings and values never enter this payload.
+  const id = await cached(
+    s,
+    current,
+    "near-ready",
+    Id,
+    false,
+    async () => (await screenNearReady(s, current)).id,
+  );
+  const [evaluation] = await s.db
+    .select()
+    .from(nearReadyEvaluations)
+    .where(and(eq(nearReadyEvaluations.id, id), eq(nearReadyEvaluations.caseId, row.id)));
+  if (!evaluation) throw conflict();
+  return evaluation;
+}
+async function screenNearReady(s: Services, row: CaseRow) {
   const policy = await nearReadyPolicy(s.db, row.organizationId);
   const version = iso(row.updatedAt);
   const previous = await latestNearReady(s.db, row.id);
@@ -317,6 +340,9 @@ export async function evaluateCaseNearReady(s: Services, row: CaseRow) {
       .for("share");
     const current = await caseById(tx, row.id, row.organizationId, true);
     assertCaseVersion(current, version);
+    // Consistency publishes derived attention without advancing the dossier version.
+    // A reading started before that publication must not approve the older picture.
+    if (current.aiAttention !== row.aiAttention) throw conflict();
     const existing = await latestNearReady(tx, row.id);
     if (existing && iso(existing.caseVersion) === version) return existing;
     const currentPolicy = await nearReadyPolicy(tx, row.organizationId);

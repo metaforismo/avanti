@@ -87,6 +87,34 @@ beforeAll(async () => {
 afterAll(async () => {
   await close?.();
 });
+
+it("keeps a successful document analysis when the optional copilot enrichment fails", async () => {
+  await db.insert(cases).values({
+    id: "followup-failure",
+    organizationId: "org",
+    officeId: "office",
+    tokenHash: "followup-failure",
+    reference: "followup-failure",
+    language: "it",
+    practiceId: "isee_ordinario",
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    expiresAt: "2027-03-01T00:00:00Z",
+  });
+  await pending("followup-doc", "followup-failure");
+  const copilot = vi
+    .spyOn(ai, "runTask")
+    .mockRejectedValueOnce(new Error("private copilot failure"));
+  try {
+    await expect(analyzePendingDocument(services, "followup-doc")).resolves.toBeUndefined();
+    expect(
+      (await db.select().from(documents).where(eq(documents.id, "followup-doc")))[0]?.status,
+    ).toBe("analyzed");
+  } finally {
+    copilot.mockRestore();
+    await db.delete(cases).where(eq(cases.id, "followup-failure"));
+  }
+});
 async function pending(
   id: string,
   caseId = "case",

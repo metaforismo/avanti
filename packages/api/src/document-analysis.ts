@@ -1,4 +1,4 @@
-import { analyzeConsistency, recoverCopilot } from "./copilot";
+import { refreshConsistency, recoverCopilot } from "./copilot";
 import { and, eq, gt, isNull, lt, lte, or } from "drizzle-orm";
 import { cases, documents } from "@avanti/db";
 import { DocumentAnalysis } from "@avanti/contracts";
@@ -116,11 +116,7 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
         .where(eq(cases.id, current.id));
   });
   const [updated] = await s.db.select().from(cases).where(eq(cases.id, row.id));
-  if (updated) {
-    await analyzeConsistency(s, updated);
-    const { evaluateCaseNearReady } = await import("./near-ready");
-    await evaluateCaseNearReady(s, updated);
-  }
+  if (updated) await refreshConsistency(s, updated);
 }
 
 export async function recoverDocumentAnalysis(s: Services, caseId?: string) {

@@ -1,6 +1,6 @@
 import { appendConversationTurns } from "./conversation-messages";
 import { eq } from "drizzle-orm";
-import { cases } from "@avanti/db";
+import { cases, settings } from "@avanti/db";
 import {
   ConversationRequest,
   ConversationConfirmRequest,
@@ -25,6 +25,7 @@ import { detachRemovedMembers } from "./household-cleanup";
 import { observeAi } from "./operational-telemetry";
 import { ApiFailure, notFound } from "./security";
 import { body, mutableCitizen, type App, type Services } from "./context";
+import { intakeEmergency, intakeViolence, t } from "@avanti/core";
 
 const invalidText: Record<Language, string> = {
   it: "Scrivi un messaggio da 1 a 1000 caratteri.",
@@ -52,6 +53,38 @@ export function mountConversationRoutes(app: App, s: Services) {
     mutableCitizen(initial);
     const { text } = await readConversationText(c, initial);
     if (!initial.practiceId) throw new ApiFailure("bad_request", 400, "Scegli prima la pratica.");
+    if (intakeEmergency(text)) {
+      const updated = await s.db.transaction(async (tx) => {
+        const current = await lockCase(tx, initial, s.clock());
+        const now = s.clock();
+        const [updated] = await tx
+          .update(cases)
+          .set({
+            conversationProposals: [],
+            conversationEngine: "heuristic",
+            updatedAt: nextCaseUpdate(current, now),
+          })
+          .where(eq(cases.id, current.id))
+          .returning();
+        if (!updated) throw notFound();
+        await appendConversationTurns(tx, current.id, now, [
+          {
+            role: "assistant",
+            text: [
+              t(current.language, "intakeEmergency"),
+              intakeViolence(text) ? t(current.language, "intakeViolence") : "",
+            ]
+              .filter(Boolean)
+              .join(" "),
+            kind: "message",
+            questionId: null,
+          },
+        ]);
+        await audit(tx, updated, "citizen", "citizen.safety_notice", now);
+        return updated;
+      });
+      return c.json(await state(s, updated));
+    }
     const view = await citizenView(s.db, initial, s.clock());
     const input: ConverseInput = {
       text,
@@ -64,9 +97,14 @@ export function mountConversationRoutes(app: App, s: Services) {
       answered: confirmedContext(initial),
       turns: view.conversation!.turns.slice(-8),
     };
-    const result = s.ai.converse
-      ? await observeAi(s, initial.organizationId, () => s.ai.converse!(input))
-      : { ...converseTask.heuristic(input), engine: "heuristic" as const };
+    const [policy] = await s.db
+      .select({ enabled: settings.aiCitizenAssistant })
+      .from(settings)
+      .where(eq(settings.organizationId, initial.organizationId));
+    const result =
+      s.ai.converse && policy?.enabled !== false
+        ? await observeAi(s, initial.organizationId, () => s.ai.converse!(input))
+        : { ...converseTask.heuristic(input), engine: "heuristic" as const };
     const row = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, initial, s.clock());
       assertProposalCurrent(initial, current);

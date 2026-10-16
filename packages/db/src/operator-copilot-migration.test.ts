@@ -7,10 +7,10 @@ import { repoRoot } from "./client";
 it("preserves existing CAF budget and preferences while enabling both copilot switches", async () => {
   const client = new PGlite({ extensions: { pg_trgm } });
   try {
-    const journal: { entries: { tag: string }[] } = JSON.parse(
+    const journal: { entries: { idx: number; tag: string }[] } = JSON.parse(
       await readFile(join(repoRoot, "packages/db/migrations/meta/_journal.json"), "utf8"),
     );
-    for (const entry of journal.entries.filter((e) => e.tag !== "0018_operator_copilot"))
+    for (const entry of journal.entries.filter((e) => e.idx < 18))
       await client.exec(
         await readFile(join(repoRoot, `packages/db/migrations/${entry.tag}.sql`), "utf8"),
       );

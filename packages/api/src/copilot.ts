@@ -70,7 +70,7 @@ const conflict = () =>
 const busy = () => new ApiFailure("conflict", 409, "Analisi già in corso. Riprova tra poco.");
 
 // One durable lease per case version and task. Network work runs outside DB transactions.
-async function cached<T>(
+export async function cached<T>(
   s: Services,
   row: CaseRow,
   task: string,
