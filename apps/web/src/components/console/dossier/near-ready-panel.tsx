@@ -91,7 +91,7 @@ function Shell({
         >
           <CheckCheck className="size-4" />
         </span>
-        <h2 className="flex-1 font-display text-lg font-semibold">{title}</h2>
+        <h2 className="flex-1 basis-64 font-display text-lg font-semibold">{title}</h2>
         {meta && <span className="text-xs text-ink-3">{meta}</span>}
       </div>
       <div className="grid gap-4 p-5">{children}</div>
