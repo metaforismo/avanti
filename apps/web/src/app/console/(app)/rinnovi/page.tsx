@@ -21,6 +21,14 @@ import { Pill } from "@/components/ui/pill";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { formatDateTime, type Tone } from "@/lib/console/labels";
+
+const formatDate = (iso: string) =>
+  new Intl.DateTimeFormat("it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Rome",
+  }).format(new Date(iso));
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 
@@ -80,6 +88,26 @@ export default function RenewalsPage() {
     names: Map<string, string | null>;
   } | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  const [withdrawing, setWithdrawing] = useState<RenewalItem | null>(null);
+  const [withdrawPending, setWithdrawPending] = useState(false);
+
+  async function withdraw(item: RenewalItem) {
+    setWithdrawPending(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/renewals/${encodeURIComponent(item.sourceCaseId)}/renewal-consent`, {
+        method: "PUT",
+        body: { consented: false },
+      });
+      setMore(null);
+      void list.reload();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : "Revoca non riuscita. Riprova.");
+    } finally {
+      setWithdrawPending(false);
+      setWithdrawing(null);
+    }
+  }
 
   // The first year with something to renew is the useful one: in the pilot's first autumn
   // the CAF has no files from last year yet, only from this one.
@@ -299,6 +327,7 @@ export default function RenewalsPage() {
                   selectable={selectable}
                   checked={selected.has(item.sourceCaseId)}
                   onToggle={() => toggle(item.sourceCaseId)}
+                  onWithdraw={() => setWithdrawing(item)}
                 />
               ))}
             </ul>
@@ -364,6 +393,26 @@ export default function RenewalsPage() {
         </div>
       </Dialog>
 
+      <Dialog
+        open={withdrawing !== null}
+        onOpenChange={(open) => !open && setWithdrawing(null)}
+        title="Revocare l'avviso email?"
+        description="Usalo quando il cittadino chiede di non ricevere più l'email per il rinnovo. Vale per tutta la famiglia in questo CAF; se resta solo il promemoria, viene cancellato subito."
+      >
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setWithdrawing(null)}>
+            Annulla
+          </Button>
+          <Button
+            variant="danger"
+            loading={withdrawPending}
+            onClick={() => withdrawing && void withdraw(withdrawing)}
+          >
+            Revoca l&apos;avviso
+          </Button>
+        </div>
+      </Dialog>
+
       {result && <ResultDialog result={result} onClose={() => setResult(null)} />}
     </PageContainer>
   );
@@ -374,11 +423,13 @@ function RenewalRow({
   selectable,
   checked,
   onToggle,
+  onWithdraw,
 }: {
   item: RenewalItem;
   selectable: boolean;
   checked: boolean;
   onToggle: () => void;
+  onWithdraw: () => void;
 }) {
   const name = item.citizenName ?? "Cittadino senza nome";
   const { valid, toUpdate, toVerify } = item.documents;
@@ -402,8 +453,22 @@ function RenewalRow({
       )}
       <span className="min-w-0">
         <span className="block truncate font-semibold">{name}</span>
-        <span className="font-mono text-xs text-ink-3" translate="no">
-          {item.reference}
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="font-mono text-xs whitespace-nowrap text-ink-3" translate="no">
+            {item.reference}
+          </span>
+          {item.sourceKind === "reminder" && (
+            <span
+              className="rounded-xs bg-folder px-1.5 text-xs text-ink-2"
+              title={
+                item.reminderExpiresAt
+                  ? `Il fascicolo è stato cancellato a fine conservazione: restano contatto e nucleo, fino al ${formatDate(item.reminderExpiresAt)}.`
+                  : "Il fascicolo è stato cancellato a fine conservazione: restano contatto e nucleo."
+              }
+            >
+              Solo promemoria
+            </span>
+          )}
         </span>
       </span>
       <span className="flex items-center gap-1.5 text-sm text-ink-2">
@@ -445,6 +510,19 @@ function RenewalRow({
             Link del {formatDateTime(item.lastInvitedAt)}
           </span>
         )}
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-3">
+          {item.renewalContactConsent ? "Avviso email: sì" : "Avviso email: no"}
+          {item.renewalContactConsent && (
+            <button
+              type="button"
+              onClick={onWithdraw}
+              className="font-semibold text-ink-2 underline underline-offset-2 hover:text-danger"
+              aria-label={`Revoca l'avviso email di ${name}`}
+            >
+              Revoca
+            </button>
+          )}
+        </span>
       </span>
     </li>
   );

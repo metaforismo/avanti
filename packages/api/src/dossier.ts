@@ -71,7 +71,8 @@ export async function caseById(
 }
 export async function audit(
   db: Database,
-  row: Pick<CaseRow, "id" | "organizationId" | "reference">,
+  // Reminders kept after retention have no full case row; the office still attributes usage.
+  row: Pick<CaseRow, "id" | "organizationId" | "reference"> & Partial<Pick<CaseRow, "officeId">>,
   actor: "citizen" | "operator" | "system" | "ai",
   type: string,
   now: Date,
@@ -82,7 +83,7 @@ export async function audit(
     id: crypto.randomUUID(),
     caseId: row.id,
     caseReference: row.reference,
-    officeId: row.officeId,
+    officeId: row.officeId ?? null,
     organizationId: row.organizationId,
     actor,
     actorId,

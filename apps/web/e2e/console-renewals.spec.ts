@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { logIn } from "./helpers";
+import { logIn, openFirstCaseInReview } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -40,4 +40,15 @@ test("a new link for an invited family asks first", async ({ page }) => {
   await expect(ask.getByText(/smettono di funzionare subito/)).toBeVisible();
   await ask.getByRole("button", { name: "Annulla" }).click();
   await expect(ask).toHaveCount(0);
+});
+
+test("the desk withdraws a family's renewal reminder from the dossier", async ({ page }) => {
+  await logIn(page, DEMO);
+  await openFirstCaseInReview(page);
+  await page.getByRole("button", { name: /Altro/ }).click();
+  await page.getByRole("menuitem", { name: "Revoca l'avviso di rinnovo…" }).click();
+  const ask = page.getByRole("dialog", { name: "Revocare l'avviso di rinnovo?" });
+  await ask.getByRole("button", { name: "Revoca l'avviso" }).click();
+  await expect(ask).toHaveCount(0);
+  await expect(page.getByText(/Avviso di rinnovo revocato/)).toBeVisible();
 });
