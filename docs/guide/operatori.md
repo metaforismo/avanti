@@ -135,7 +135,7 @@ indicato. La responsabilità della DSU resta del CAF.
 L'ISEE vale fino al 31 dicembre. Da **Rinnovi ISEE** trovi le famiglie che hanno fatto l'ISEE
 con voi l'anno prima (pratiche pronte o inviate, ancora conservate).
 
-1. In «Da invitare» seleziona le famiglie e premi **Prepara i rinnovi** (al massimo 50 per volta).
+1. In «Da invitare» seleziona le famiglie e premi **Prepara il rinnovo** (con più famiglie «Prepara N rinnovi», al massimo 50 per volta).
 2. Avanti crea il nuovo fascicolo con il nucleo e i documenti ancora validi. I link si vedono
    solo in quel momento: copiali e consegnali, oppure lascia che parta l'email (solo se
    l'amministratore ha attivato gli inviti e il cittadino ha dato il consenso).
