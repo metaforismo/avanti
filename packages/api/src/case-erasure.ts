@@ -33,6 +33,7 @@ export async function eraseCase(db: Database, row: CaseRow, now: Date, actorId: 
     deletedCaseId: row.id,
     caseReference: row.reference,
     organizationId: row.organizationId,
+    officeId: row.officeId,
     actor: actorId ? "operator" : "system",
     actorId,
     type: actorId ? "case.deleted" : "case.retention_deleted",

@@ -89,7 +89,7 @@ export function mountCitizenAssistant(app: App, s: Services) {
       s.ai.assistant &&
       !assistantSafetyIntent(input.message) &&
       (await citizenAiAllowed(s, row.organizationId))
-        ? await observeAi(s, row.organizationId, () => s.ai.assistant!(taskInput))
+        ? await observeAi(s, row, () => s.ai.assistant!(taskInput))
         : { ...heuristicAssistant(taskInput), engine: "heuristic" as const };
     const safe = safeAssistantOutput(result, taskInput);
     const reply = AssistantReply.parse({
@@ -223,7 +223,7 @@ export function mountCitizenAssistant(app: App, s: Services) {
     } catch {
       throw new ApiFailure("bad_request", 400, citizenAssistantCopy("audioInvalid", row.language));
     }
-    const result = await observeAi(s, row.organizationId, () =>
+    const result = await observeAi(s, row, () =>
       s.ai.transcribe!({ bytes, mime, language }),
     );
     await currentCitizenLink(s.db, row, s.clock());

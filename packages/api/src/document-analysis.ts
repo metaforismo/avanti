@@ -73,7 +73,7 @@ export async function analyzePendingDocument(s: Services, id: string, recovery =
   const bytes = await deadline(s.storage.get(document.storageKey), 10_000);
   let analysis: DocumentAnalysis;
   try {
-    analysis = await observeAi(s, row.organizationId, async () =>
+    analysis = await observeAi(s, row, async () =>
       DocumentAnalysis.parse(
         await deadline(
           s.ai.analyze(bytes, document.mimeType, document.fileName, requirements),

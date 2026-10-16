@@ -159,6 +159,8 @@ function StatusBody({ data }: { data: SystemStatus }) {
         </div>
       </section>
 
+      {data.usage && <UsageCard usage={data.usage} />}
+
       <section aria-labelledby="components-title">
         <SectionHeader id="components-title" title="Componenti" />
         <ul className="mt-3 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
@@ -404,5 +406,66 @@ function Legend({ swatch, children }: { swatch: string; children: ReactNode }) {
       <span className={cn("size-2.5 rounded-[2px]", swatch)} aria-hidden />
       {children}
     </span>
+  );
+}
+
+const monthName = (month: string) =>
+  new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(`${month}-01T00:00:00Z`),
+  );
+
+/**
+ * Dossiers delivered this month against the plan's quota. Nothing is ever blocked at 100%:
+ * the citizen still sends, and Avanti talks with the CAF about the excess.
+ */
+function UsageCard({ usage }: { usage: NonNullable<SystemStatus["usage"]> }) {
+  const percent = usage.percent === null ? null : Math.round(usage.percent);
+  const tone =
+    percent === null || percent < 90 ? "bg-stamp" : percent < 100 ? "bg-warn" : "bg-danger";
+  return (
+    <section aria-labelledby="usage-title" className="rounded-lg bg-surface p-5 ring-1 ring-line">
+      <h2 id="usage-title" className="text-sm font-semibold text-ink-2">
+        Uso del piano, {monthName(usage.month)}
+      </h2>
+      <p className="mt-1 font-display text-2xl font-semibold">
+        <span className="tabular">{usage.delivered}</span>{" "}
+        {usage.delivered === 1 ? "fascicolo consegnato" : "fascicoli consegnati"}
+        {usage.cap !== null && (
+          <span className="text-base font-normal text-ink-2">
+            {" "}
+            su <span className="tabular">{usage.cap}</span> inclusi
+          </span>
+        )}
+      </p>
+      {percent !== null && (
+        <>
+          <div
+            className="mt-3 h-2 overflow-hidden rounded-full bg-sunk"
+            role="meter"
+            aria-label="Quota del mese usata"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(percent, 100)}
+            aria-valuetext={`${percent}%`}
+          >
+            <div
+              className={cn("h-full rounded-full", tone)}
+              style={{ width: `${Math.min(percent, 100)}%` }}
+            />
+          </div>
+          <p className="mt-2 text-sm text-ink-2">
+            {percent >= 100
+              ? "Quota del mese superata: i cittadini continuano a inviare e ne parliamo noi con voi."
+              : percent >= 70
+                ? `${percent}% della quota del mese. Vi avvisiamo anche per email al 70% e al 90%.`
+                : `${percent}% della quota del mese.`}
+          </p>
+        </>
+      )}
+      <p className="mt-2 text-xs text-ink-3">
+        Un fascicolo conta una volta, al primo invio del cittadino: integrazioni e reinvii sono
+        inclusi.
+      </p>
+    </section>
   );
 }

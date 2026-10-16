@@ -1,3 +1,4 @@
+import { commercialStatus } from "./commercial-usage";
 import { SystemStatus, SystemStatusQuery, type SystemStatusLevel } from "@avanti/contracts";
 import {
   cases,
@@ -288,6 +289,7 @@ export function mountSystemStatus(app: App, s: Services) {
         count: data?.email.queued ?? null,
       },
     };
+    const usage = await commercialStatus(s.db, actor.organizationId, now).catch(() => undefined);
     const version = SystemStatus.shape.version.safeParse({
       commit: s.appVersion?.commit ?? null,
       tag: s.appVersion?.tag ?? null,
@@ -295,6 +297,7 @@ export function mountSystemStatus(app: App, s: Services) {
     return c.json(
       SystemStatus.parse({
         schemaVersion: 1,
+        usage,
         generatedAt: now.toISOString(),
         status: worstStatus(
           [...Object.values(components), ...Object.values(counters)].map((x) => x.status),

@@ -452,7 +452,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     let notificationId: string | undefined;
     const initial = await caseById(s.db, c.req.param("id"), operator.organizationId);
     assertCaseVersion(initial, input.expectedUpdatedAt);
-    const translated = await observeAi(s, initial.organizationId, () =>
+    const translated = await observeAi(s, initial, () =>
       s.ai.translate(input.message, initial.language),
     );
     const row = await s.db.transaction(async (tx) => {

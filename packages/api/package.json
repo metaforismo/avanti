@@ -15,7 +15,9 @@
     "admin:bootstrap": "tsx src/admin-bootstrap-cli.ts",
     "admin:export": "tsx src/organization-export-cli.ts",
     "bench": "tsx src/bench-api.ts",
-    "bench:load": "tsx src/bench-load.ts"
+    "bench:load": "tsx src/bench-load.ts",
+    "platform:usage": "tsx src/platform-cli-main.ts usage",
+    "platform:org": "tsx src/platform-cli-main.ts org"
   },
   "dependencies": {
     "@avanti/ai": "workspace:*",

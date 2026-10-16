@@ -663,8 +663,9 @@ Applicare la migrazione `0015_ai_runtime` prima del rilascio. `AI_MONTHLY_BUDGET
 tetto mensile per CAF, deciso dalla piattaforma: l'AI è inclusa nel piano e l'admin del CAF non
 può modificarlo (`/api/settings` ignora `aiMonthlyBudgetEur`; la migrazione
 `0021_ai_budget_platform` azzera i valori impostati prima). Un tetto diverso per un singolo
-CAF si scrive in `settings.ai_monthly_budget_eur` dalla piattaforma (0 disattiva AI, null
-ripristina il default). `/api/ai/usage?month=YYYY-MM` offre aggregati mensili del CAF,
+CAF si imposta con `pnpm platform:org --org <id> --budget <EUR>` (0 disattiva AI,
+`--budget reset` ripristina il default). Vedi [Operare la piattaforma](#operare-la-piattaforma).
+`/api/ai/usage?month=YYYY-MM` offre aggregati mensili del CAF,
 `/api/status` mostra budget, provider, livelli, policy e presenza chiave. Le tariffe
 `AI_PRICES` può specificare una coppia input/output EUR per milione per ciascun ID modello.
 `AI_INPUT_EUR_PER_MILLION` e `AI_OUTPUT_EUR_PER_MILLION` coprono i modelli non elencati e
@@ -677,3 +678,118 @@ correzione amministrativa, senza liberarle a scadenza mentre potrebbe esserci la
 In questo worktree Turborepo può risolvere la cache nella checkout principale: usare
 `pnpm check --cache-dir="$PWD/.turbo/cache" --concurrency=1` e, per la build finale,
 `TURBO_CACHE_DIR="$PWD/.turbo/cache" pnpm build`. Non condividere cache mutate con altri lavori.
+
+## Operare la piattaforma
+
+Questi comandi sono per il tecnico Avanti con accesso diretto al DB, non per gli admin del
+CAF. Nessun endpoint HTTP amministrativo nuovo. In produzione esportare dal gestore segreti
+`NODE_ENV=production`, `DATABASE_URL` Postgres con TLS e la stessa configurazione AI del deploy
+(in particolare `AI_MONTHLY_BUDGET_EUR`). Non passare URL o credenziali negli argomenti.
+Le CLI verificano migrazioni e indici prima di procedere; non applicano migrazioni implicitamente.
+In locale, dopo `pnpm db:migrate`, funzionano senza chiavi su PGlite. Non aprire contemporaneamente
+il server e la CLI sullo stesso PGlite; più processi in produzione richiedono Postgres.
+
+```sh
+# Applicare anche 0024_commercial_metering, poi verificare il DB.
+pnpm db:migrate
+pnpm db:check
+
+# Tutti i CAF o uno solo; i report non contengono nomi, email o riferimenti dei cittadini.
+pnpm platform:usage --month 2027-01
+pnpm platform:usage --month 2027-01 --org <organizationId>
+# --silent elimina anche le intestazioni di pnpm per ottenere JSON puro su stdout.
+pnpm --silent platform:usage --month 2027-01 --org <organizationId> --json
+
+pnpm platform:org --org <organizationId>                      # stato corrente
+pnpm platform:org --org <organizationId> --budget 50 --cap 500
+pnpm platform:org --org <organizationId> --budget 0            # spegne l’AI per il CAF
+pnpm platform:org --org <organizationId> --budget reset        # torna al default del deploy
+pnpm platform:org --org <organizationId> --cap reset           # nessun cap consegne
+pnpm --silent platform:org --org <organizationId> --json
+```
+
+Budget ammesso: 0–100.000 EUR. Cap: intero positivo (massimo 2.147.483.647) o `reset`.
+Il budget modifica `settings.ai_monthly_budget_eur`, il cap `settings.monthly_delivery_cap`.
+Un reset cancella l’override, non azzera il consumo. La modifica è atomica e registra
+`platform.organization_limits_updated` nell’audit con valori precedenti/nuovi e soli
+numeri/booleani/null; nessun operatore/cittadino o testo libero. L’identità del tecnico va
+ricostruita dal controllo infrastrutturale degli accessi al DB: non è un login CAF.
+La lettura dello stato non aggiunge un evento di modifica. Le CLI non azzerano costi o riserve.
+
+**Lettura del report.** Mese civile in `Europe/Rome`, anche a cavallo di ora legale e anno.
+Ogni CAF ha totali e righe per sportello (inclusi quelli senza attività); `activeOffices`
+conta le sedi identificabili con avvii, consegne, chiamate AI o azioni operatore nel mese.
+È attività osservata, non numero di licenze contrattuali. `activeOperators` conta gli ID
+operatori distinti nell’audit disponibile del mese (admin inclusi); per sportello usa la
+provenienza registrata sugli eventi. Un operatore su due sedi conta una volta nel totale CAF.
+Non è il numero di account abilitati né una ricostruzione di audit già eliminato.
+
+`aiCalls` somma i tentativi remoti registrati (`ai_usage.attempts`), mentre `aiTasks` conta
+le righe di telemetria, inclusi fallback e riserve. `unresolvedReservations` segnala
+prenotazioni senza esito: il numero effettivo di chiamate dopo un crash può essere ignoto.
+`costEstimateEur` e `reservedEur` sono separati; `% budget` li somma. Budget 0 con spesa
+pregressa dà percentuale `null`; con spesa zero dà 0. `aiCostPerDeliveredEur` è `null` senza
+consegne e altrimenti alloca tutta la spesa AI del mese sul numero di consegne, incluse bozze.
+Le righe sportello usano lo stesso budget condiviso del CAF: non sono plafond aggiuntivi.
+La riga `unattributedAi` conserva costi precedenti senza sportello e compiti operatore generali
+(`/api/ai/ask`), senza distribuirli per ipotesi. La somma di sedi e AI non attribuita riconcilia
+il totale AI del CAF. Lo storico AI precedente a questa migrazione ha solo il giorno UTC:
+non si può correggere l’ultima ora del mese senza timestamp più precisi. I nuovi dati AI usano Roma.
+Budget e cap mostrati sono la configurazione corrente, anche nei report di mesi passati;
+non sono fatture né una ricostruzione storica delle condizioni commerciali.
+
+**Conteggio e backfill.** `commercial_usage` conserva avvii/consegne per CAF, sportello e mese,
+più un totale CAF con `office_id=''`; niente ID pratica, riferimenti o dati personali.
+Il trigger su `cases` aggiorna gli aggregati nella stessa transazione di creazione/primo invio.
+Il lock sul totale CAF serializza invii simultanei anche su sedi diverse. Reinvii e integrazioni
+non aggiungono consegne; cancellazione e retention non le sottraggono. Gli ID pratica sono
+immutabili e non riutilizzabili nel flusso applicativo. Le organizzazioni sintetiche devono
+avere `organizations.metering_excluded=true` **prima** dei test; il seed demo lo applica.
+Cambiare questo flag successivamente non rettifica contatori precedenti.
+
+La migrazione 0024 è generata con `drizzle-kit generate --name commercial_metering`, con SQL
+per trigger e backfill nella stessa transazione. Blocca le scritture su `cases` mentre ricostruisce
+una sola volta gli avvii da `created_at` e le consegne da `submitted_at` delle pratiche presenti.
+Per quelle cancellate recupera dagli eventi sopravvissuti `case.created` e `case.submitted`
+con `metadata.first=true`, deduplicati per ID cancellato; nessun doppio conteggio dei reinvii.
+Lo sportello storico non noto usa `__unattributed__` e non aumenta `activeOffices`.
+Audit già scaduto, primo invio non marcato e pratiche senza storia non sono recuperabili:
+lo storico è un minimo documentabile, non una misura completa retroattiva. Non ripetere a mano
+il backfill dopo cancellazioni: le normali migrazioni sono idempotenti tramite journal/hash.
+Rettifiche dei duplicati, fatturazione e cap trimestrali/cumulativi del pilota restano manuali;
+il cap software è mensile per CAF e si rinnova ogni mese, senza riporto.
+
+**Quota e console.** Il primo invio verifica il cap nella stessa transazione. Al 70%, 90% e
+100% crea una riga in `usage_quota_alerts` e una notifica `usage_quota` nell’outbox per ogni
+admin attivo del CAF, all’email esistente; nessun invio a cittadini. Il registro persistente
+impedisce ripetizioni nello stesso mese anche dopo la pulizia dell’outbox o modifiche del cap.
+Un salto di soglia genera tutte le soglie raggiunte. A commit avvenuto si scrive nei log operativi
+`usage.quota` con ID CAF, mese, soglia, cap e consegne, senza indirizzi o contenuti personali;
+il registro DB resta la prova se un arresto impedisce la riga di log. Senza admin attivi resta
+il registro ma non ci sono destinatari. Controllare sempre almeno un admin attivo del CAF.
+Il 100% non blocca l’invio: il contatore e la percentuale possono superare il cap.
+
+Il cap aggiornato viene valutato al successivo primo invio, senza avvisi retroattivi dal
+comando CLI. Le notifiche usano cifratura, retry e cron dell’outbox esistente, indipendentemente
+dalle preferenze dei digest; in locale `console` simula e non consegna email. A consegna si
+ricontrollano ruolo admin, attività, organizzazione ed email del destinatario. Le scadenze e
+la cancellazione dei payload dell’outbox restano quelle del [runbook email](#notifiche-email-e-outbox).
+
+Il **GET `/api/status` solo admin** aggiunge questo contratto per la UI:
+
+```json
+{ "usage": { "month": "2027-01", "delivered": 350, "cap": 500, "percent": 70 } }
+```
+
+Senza cap: `cap` e `percent` sono `null`. Il campo `usage` è omesso se la lettura DB fallisce,
+così la UI può mostrare indisponibilità senza inventare uno zero. Non contiene costi o modelli.
+Le modifiche a `packages/contracts` servono a validare questo nuovo campo e gli input CLI
+con schemi condivisi; non aggiungono capacità di gestione budget/quota agli endpoint CAF.
+Nessun componente frontend è modificato.
+
+Verifica locale: test API su invii, reinvii, integrazioni, doppio invio, sportelli concorrenti,
+CAF isolati, rollback, cancellazione/retention, soglie e pulizia outbox, cambio mese Roma,
+report, audit e reset dei limiti; test migrazione su dati preesistenti e audit di cancellati.
+La suite `packages/db/src/check.test.ts` include la concorrenza dei contatori sia su PGlite sia
+su Postgres: quest’ultimo richiede `AVANTI_TEST_DATABASE_URL` su DB sacrificabile `_test`.
+Nessuna verifica remota o email reale è implicita nei test locali.

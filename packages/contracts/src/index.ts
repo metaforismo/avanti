@@ -1,3 +1,4 @@
+import { CommercialUsage } from "./platform";
 /**
  * Shared API contracts between @avanti/api (backend) and @avanti/web (frontend).
  * Every request body is validated with these schemas on the server; the frontend
@@ -1089,6 +1090,7 @@ export const SystemStatus = z
   .object({
     schemaVersion: z.literal(1),
     generatedAt: IsoDateTime,
+    usage: CommercialUsage.optional(),
     status: SystemStatusLevel,
     version: z
       .object({
@@ -1706,3 +1708,5 @@ export type DossierAskRequest = z.infer<typeof DossierAskRequest>;
 export type DossierAskResponse = z.infer<typeof DossierAskResponse>;
 export type DossierChatTurn = z.infer<typeof DossierChatTurn>;
 export type DossierChatResponse = z.infer<typeof DossierChatResponse>;
+
+export * from "./platform";

@@ -46,7 +46,7 @@ async function enabled(s: Services, org: string) {
 }
 async function run<I, O>(
   s: Services,
-  row: Pick<CaseRow, "organizationId">,
+  row: Pick<CaseRow, "organizationId"> & Partial<Pick<CaseRow, "officeId">>,
   task: Task<I, O>,
   input: I,
   allow: boolean,
@@ -63,7 +63,7 @@ async function run<I, O>(
       fallbackReason: "not_configured",
       retryReasons: [],
     };
-  return observeAi(s, row.organizationId, () => s.ai.runTask!(task, input));
+  return observeAi(s, row, () => s.ai.runTask!(task, input));
 }
 const conflict = () =>
   new ApiFailure("conflict", 409, "Il fascicolo è cambiato. Ricaricalo prima di continuare.");

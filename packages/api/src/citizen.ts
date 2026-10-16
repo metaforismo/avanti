@@ -1,3 +1,4 @@
+import { enqueueUsageAlerts, logUsageAlerts } from "./commercial-usage";
 import { lockRenewalConsent, setRenewalConsent } from "./renewal-consent";
 import { turnAcknowledgement } from "./turn-acknowledgement";
 import { appendConversationTurns } from "./conversation-messages";
@@ -240,7 +241,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
       proposal =
         aiSettings?.enabled === false || localSafety
           ? await work()
-          : await observeAi(s, initial.organizationId, work);
+          : await observeAi(s, initial, work);
     }
     const result = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, initial, s.clock());
@@ -732,8 +733,14 @@ export function mountCitizenRoutes(app: App, s: Services) {
       });
       const notificationId =
         current.submittedAt === null ? await enqueueSubmissionReceipt(tx, s, updated) : undefined;
-      return { row: updated, notificationId };
+      const quota =
+        current.submittedAt === null
+          ? await enqueueUsageAlerts(tx, s, updated.organizationId, new Date(updated.submittedAt!))
+          : { ids: [], alerts: [] };
+      return { row: updated, notificationId, quota };
     });
+    logUsageAlerts(result.row.organizationId, result.quota.alerts);
+    for (const id of result.quota.ids) scheduleNotificationDelivery(s, id);
     scheduleNotificationDelivery(s, result.notificationId);
     scheduleCopilot(s, result.row);
     if (!s.background) await refreshConsistency(s, result.row);
