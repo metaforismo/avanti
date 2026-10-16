@@ -84,6 +84,7 @@ function settingsView(row?: typeof settings.$inferSelect): OrganizationSettings 
     retentionDays: row?.retentionDays ?? 180,
     notifyCitizenReady: row?.notifyCitizenReady ?? false,
     notifyCitizenSubmission: row?.notifyCitizenSubmission ?? false,
+    notifyCitizenRenewals: row?.notifyCitizenRenewals ?? false,
     notifyOperatorDigest: row?.notifyOperatorDigest ?? false,
     notifyCitizenReminders: row?.notifyCitizenReminders ?? false,
     citizenReminderDays: row?.citizenReminderDays ?? [3, 4],

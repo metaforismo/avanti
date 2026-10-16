@@ -472,6 +472,17 @@ export const CitizenCase = z.object({
   documents: z.array(DocumentSummary),
   practiceYear: z.number().int().optional(),
   reuseNotice: z.string().nullable().optional(),
+  renewal: z
+    .object({
+      year: z.number().int(),
+      previousYear: z.number().int(),
+      householdConfirmationRequired: z.boolean(),
+      householdConfirmedAt: IsoDateTime.nullable(),
+      notice: z.string(),
+    })
+    .nullable()
+    .optional(),
+  renewalContactConsent: z.boolean().optional(),
   messages: z.array(ChatMessage),
   conversation: ConversationState.optional(),
   /** Contact details the citizen already gave, to prefill a resubmission. */
@@ -530,6 +541,8 @@ export const SubmitCaseRequest = z.object({
   confirmed: z.literal(true),
   /** Free note to the operator. */
   note: SafeText.trim().max(1000).optional(),
+  /** Explicit permission for annual ISEE renewal email. Omission preserves the preference. */
+  renewalContactConsent: z.boolean().optional(),
 });
 export type SubmitCaseRequest = z.infer<typeof SubmitCaseRequest>;
 
@@ -828,6 +841,83 @@ export const ReuseCaseRequest = z.object({
 export type ReuseCaseRequest = z.infer<typeof ReuseCaseRequest>;
 export const ReuseCaseResponse = CreateCaseResponse;
 export type ReuseCaseResponse = z.infer<typeof ReuseCaseResponse>;
+
+export const RenewalStatus = z.enum(["not_invited", "invited", "started", "submitted"]);
+export type RenewalStatus = z.infer<typeof RenewalStatus>;
+export const RenewalsQuery = z
+  .object({
+    year: z.coerce.number().int().min(2021).max(2100),
+    status: z
+      .enum(["not_invited", "invited", "started", "submitted", "all"])
+      .default("not_invited"),
+    limit: z.coerce.number().int().min(1).max(50).default(25),
+    after: Id.optional(),
+  })
+  .strict();
+export type RenewalsQuery = z.infer<typeof RenewalsQuery>;
+export const CreateRenewalsRequest = z
+  .object({
+    sourceCaseIds: z
+      .array(Id)
+      .min(1)
+      .max(50)
+      .refine((ids) => new Set(ids).size === ids.length),
+    year: PracticeYear.min(2021),
+    regenerateLinks: z.boolean().default(false),
+  })
+  .strict();
+export type CreateRenewalsRequest = z.infer<typeof CreateRenewalsRequest>;
+export const RenewalItem = z.object({
+  sourceCaseId: Id,
+  reference: z.string(),
+  citizenName: z.string().nullable(),
+  householdCount: z.number().int().nonnegative(),
+  documents: z.object({
+    valid: z.number().int().nonnegative(),
+    toUpdate: z.number().int().nonnegative(),
+    toVerify: z.number().int().nonnegative(),
+  }),
+  status: RenewalStatus,
+  renewalCaseId: Id.nullable(),
+  lastInvitedAt: IsoDateTime.nullable(),
+});
+export type RenewalItem = z.infer<typeof RenewalItem>;
+export const RenewalsResponse = z.object({
+  year: PracticeYear,
+  items: z.array(RenewalItem),
+  counts: z.object({
+    not_invited: z.number().int().nonnegative(),
+    invited: z.number().int().nonnegative(),
+    started: z.number().int().nonnegative(),
+    submitted: z.number().int().nonnegative(),
+  }),
+  nextAfter: Id.nullable(),
+});
+export type RenewalsResponse = z.infer<typeof RenewalsResponse>;
+export const CreateRenewalsResponse = z.object({
+  year: PracticeYear,
+  items: z.array(
+    z.object({
+      sourceCaseId: Id,
+      caseId: Id,
+      reference: z.string(),
+      status: RenewalStatus,
+      created: z.boolean(),
+      citizenLink: z.string().nullable(),
+      invitation: z.enum([
+        "queued",
+        "disabled",
+        "no_email",
+        "no_consent",
+        "rate_limited",
+        "existing",
+      ]),
+    }),
+  ),
+});
+export type CreateRenewalsResponse = z.infer<typeof CreateRenewalsResponse>;
+export const RenewalConsentRequest = z.object({ consented: z.boolean() }).strict();
+export type RenewalConsentRequest = z.infer<typeof RenewalConsentRequest>;
 
 /** POST, so personal search terms never appear in request URLs or access logs. */
 export const FamilySearchRequest = z.union([
@@ -1130,6 +1220,12 @@ export const AuditAction = z.enum([
   "case.deleted",
   "case.retention_deleted",
   "family.searched",
+  "renewals.listed",
+  "renewal.created",
+  "renewal.link_regenerated",
+  "renewal.invitation_queued",
+  "renewal.household_confirmed",
+  "renewal.consent_updated",
   "case.reused",
   "document.reuse_checked",
   "family.erased",
@@ -1168,6 +1264,8 @@ export type AuditAction = z.infer<typeof AuditAction>;
 
 /** Fixed keys only: never citizen text, names, email, document names or credential hashes. */
 export const AuditDetails = z.object({
+  year: z.number().int().min(2020).max(2100).optional(),
+  consented: z.boolean().optional(),
   answersCount: z.number().int().nonnegative().optional(),
   heuristic: z.boolean().optional(),
   bytes: z.number().int().nonnegative().optional(),
@@ -1256,6 +1354,7 @@ export const OrganizationSettings = z.object({
   notifyCitizenReady: z.boolean().default(false),
   /** First-submission receipt. Off until the organization enables the email channel. */
   notifyCitizenSubmission: z.boolean().default(false),
+  notifyCitizenRenewals: z.boolean().default(false),
   /** Daily UTC aggregate, sent to active operators. No citizen data. */
   notifyOperatorDigest: z.boolean().default(false),
   notifyCitizenReminders: z.boolean().default(false),
@@ -1282,6 +1381,7 @@ export const UpdateSettingsRequest = OrganizationSettings.omit({
     mfaRequired: z.boolean().optional(),
     notifyCitizenReady: z.boolean().optional(),
     notifyCitizenSubmission: z.boolean().optional(),
+    notifyCitizenRenewals: z.boolean().optional(),
     notifyOperatorDigest: z.boolean().optional(),
     notifyCitizenReminders: z.boolean().optional(),
     citizenReminderDays: CitizenReminderDays.optional(),

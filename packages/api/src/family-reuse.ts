@@ -1,5 +1,5 @@
 import { and, desc, eq, sql } from "drizzle-orm";
-import { cases, documents, offices } from "@avanti/db";
+import { cases, documents, offices, type Database } from "@avanti/db";
 import {
   CheckDocumentReuseRequest,
   DocumentAnalysis,
@@ -19,7 +19,7 @@ import {
 } from "@avanti/core";
 import { normalizedName } from "@avanti/core";
 import { body, parse, type App, type Services } from "./context";
-import { audit, caseById, dossierView } from "./dossier";
+import { audit, caseById, dossierView, type CaseRow } from "./dossier";
 import { createCase } from "./citizen";
 import { storeMemberIds } from "./household-ids";
 import { lockOperatorAccess } from "./operator-access";
@@ -92,131 +92,7 @@ export function mountFamilyReuseRoutes(app: App, s: Services) {
           and(eq(offices.id, input.officeId), eq(offices.organizationId, actor.organizationId)),
         );
       if (!office) throw notFound();
-      const now = s.clock();
-      const before = buildHousehold(source.answers);
-      const answers = storeMemberIds(
-        {
-          members: input.members,
-          household_count: input.members.length,
-          household_roles: input.members.map((m) => m.role),
-          household_relations: [],
-          practice_year: input.practiceYear,
-        },
-        source.answers,
-        false,
-      );
-      const household = buildHousehold(answers);
-      if (
-        household.some(
-          (member) =>
-            (member.birthDate && member.birthDate > calendarDate(now)) ||
-            (member.birthYear && member.birthYear > Number(calendarDate(now).slice(0, 4))) ||
-            (member.birthDate &&
-              member.birthYear &&
-              Number(member.birthDate.slice(0, 4)) !== member.birthYear),
-        )
-      )
-        throw bad("Controlla le date di nascita del nucleo.");
-      const sourceApplicant = before.find((member) => member.role === "richiedente");
-      const applicant = household.find((member) => member.role === "richiedente");
-      if (!sourceApplicant || !applicant || !sameMemberIdentity(sourceApplicant, applicant))
-        throw bad("Per riusare il nucleo conferma lo stesso richiedente della pratica sorgente.");
-      const kept = new Set(
-        household
-          .filter((member) => before.some((old) => sameMemberIdentity(old, member)))
-          .map((m) => m.id),
-      );
-      const sourceDocuments = await tx
-        .select()
-        .from(documents)
-        .where(eq(documents.caseId, source.id));
-      const sourceChecklist = source.practiceId
-        ? buildChecklist(source.practiceId, source.answers, before, "it")
-        : [];
-      const eligible = sourceDocuments.filter(
-        (doc) =>
-          doc.status !== "processing" &&
-          (doc.memberId
-            ? kept.has(doc.memberId)
-            : sourceChecklist.some(
-                (item) => item.id === doc.checklistItemId && item.memberId === null,
-              )) &&
-          (!doc.reusedMember ||
-            household.some((member) => sameMemberIdentity(doc.reusedMember!, member))),
-      );
-      const selected = eligible.filter(
-        (doc) => !input.documentIds || input.documentIds.includes(doc.id),
-      );
-      if (
-        input.documentIds?.some((docId) => !selected.some((doc) => doc.id === docId)) ||
-        input.citizenVisibleDocumentIds.some((docId) => !selected.some((doc) => doc.id === docId))
-      )
-        throw bad(
-          "Alcuni documenti non appartengono al nucleo confermato o sono ancora in analisi.",
-        );
-      const created = await createCase(
-        tx,
-        office,
-        {
-          language: input.language,
-          practiceId: input.practiceId,
-          practiceYear: input.practiceYear,
-          contact: source.contact,
-        },
-        now,
-        "operator",
-        actor.id,
-      );
-      const familyId = source.familyId ?? crypto.randomUUID();
-      if (!source.familyId) await tx.update(cases).set({ familyId }).where(eq(cases.id, source.id));
-      const [row] = await tx
-        .update(cases)
-        .set({
-          familyId,
-          answers,
-          confirmedAnswers: ["household_count", "members"],
-        })
-        .where(eq(cases.id, created.row.id))
-        .returning();
-      if (!row) throw notFound();
-      const checklist = buildChecklist(input.practiceId, answers, household, "it");
-      if (selected.length)
-        await tx.insert(documents).values(
-          selected.map((doc) => {
-            const oldItem = sourceChecklist.find((item) => item.id === doc.checklistItemId);
-            const requirement = oldItem?.requirementId ?? doc.analysis?.detectedRequirementId;
-            // Asset/account indexes are not portable; only one unambiguous target may be linked.
-            const targets = checklist.filter(
-              (item) => item.requirementId === requirement && item.memberId === doc.memberId,
-            );
-            return {
-              id: crypto.randomUUID(),
-              caseId: row.id,
-              fileName: doc.fileName,
-              mimeType: doc.mimeType,
-              sizeBytes: doc.sizeBytes,
-              pages: doc.pages,
-              storageKey: doc.storageKey,
-              sha256: doc.sha256,
-              uploadedAt: doc.uploadedAt,
-              checklistItemId: targets.length === 1 ? targets[0]!.id : null,
-              memberId: doc.memberId,
-              status: doc.status,
-              analysis: doc.analysis,
-              reusedFromYear: doc.reusedFromYear ?? practiceYear(source.answers),
-              reusedMember: before.find((member) => member.id === doc.memberId) ?? null,
-              citizenVisible:
-                doc.memberId === applicant.id || input.citizenVisibleDocumentIds.includes(doc.id),
-            };
-          }),
-        );
-      await audit(tx, row, "operator", "case.reused", now, actor.id, {
-        documents: selected.length,
-      });
-      await audit(tx, source, "operator", "case.reused", now, actor.id, {
-        documents: selected.length,
-      });
-      return { row, token: created.token };
+      return createReusedCase(tx, source, office, input, s.clock(), actor.id);
     });
     const citizenLink = `${s.publicUrl.replace(/\/$/, "")}/pratica/${token}`;
     return c.json(
@@ -330,4 +206,144 @@ export function mountFamilyReuseRoutes(app: App, s: Services) {
     for (const caseId of deletedIds) await retryStorageDeletions(s, undefined, caseId);
     return c.json({ deletedCases: deletedIds.length });
   });
+}
+
+// Caller holds tenant authorization and the source row lock.
+export async function createReusedCase(
+  tx: Database,
+  source: CaseRow,
+  office: typeof offices.$inferSelect,
+  input: ReuseCaseRequest,
+  now: Date,
+  actorId: string,
+) {
+  const before = buildHousehold(source.answers);
+  const answers = storeMemberIds(
+    {
+      members: input.members,
+      household_count: input.members.length,
+      household_roles: input.members.map((m) => m.role),
+      household_relations: [],
+      practice_year: input.practiceYear,
+    },
+    source.answers,
+    false,
+  );
+  const household = buildHousehold(answers);
+  if (
+    household.some(
+      (member) =>
+        (member.birthDate && member.birthDate > calendarDate(now)) ||
+        (member.birthYear && member.birthYear > Number(calendarDate(now).slice(0, 4))) ||
+        (member.birthDate &&
+          member.birthYear &&
+          Number(member.birthDate.slice(0, 4)) !== member.birthYear),
+    )
+  )
+    throw bad("Controlla le date di nascita del nucleo.");
+  const sourceApplicant = before.find((member) => member.role === "richiedente");
+  const applicant = household.find((member) => member.role === "richiedente");
+  if (!sourceApplicant || !applicant || !sameMemberIdentity(sourceApplicant, applicant))
+    throw bad("Per riusare il nucleo conferma lo stesso richiedente della pratica sorgente.");
+  const sourceDocuments = await tx.select().from(documents).where(eq(documents.caseId, source.id));
+  const sourceChecklist = source.practiceId
+    ? buildChecklist(source.practiceId, source.answers, before, "it")
+    : [];
+  const eligible = eligibleReuseDocuments(source, household, sourceDocuments);
+  const selected = eligible.filter(
+    (doc) => !input.documentIds || input.documentIds.includes(doc.id),
+  );
+  if (
+    input.documentIds?.some((docId) => !selected.some((doc) => doc.id === docId)) ||
+    input.citizenVisibleDocumentIds.some((docId) => !selected.some((doc) => doc.id === docId))
+  )
+    throw bad("Alcuni documenti non appartengono al nucleo confermato o sono ancora in analisi.");
+  const created = await createCase(
+    tx,
+    office,
+    {
+      language: input.language,
+      practiceId: input.practiceId,
+      practiceYear: input.practiceYear,
+      contact: source.contact,
+    },
+    now,
+    "operator",
+    actorId,
+  );
+  const familyId = source.familyId ?? crypto.randomUUID();
+  if (!source.familyId) await tx.update(cases).set({ familyId }).where(eq(cases.id, source.id));
+  const [row] = await tx
+    .update(cases)
+    .set({
+      familyId,
+      answers,
+      confirmedAnswers: ["household_count", "members"],
+    })
+    .where(eq(cases.id, created.row.id))
+    .returning();
+  if (!row) throw notFound();
+  const checklist = buildChecklist(input.practiceId, answers, household, "it");
+  if (selected.length)
+    await tx.insert(documents).values(
+      selected.map((doc) => {
+        const oldItem = sourceChecklist.find((item) => item.id === doc.checklistItemId);
+        const requirement = oldItem?.requirementId ?? doc.analysis?.detectedRequirementId;
+        // Asset/account indexes are not portable; only one unambiguous target may be linked.
+        const targets = checklist.filter(
+          (item) => item.requirementId === requirement && item.memberId === doc.memberId,
+        );
+        return {
+          id: crypto.randomUUID(),
+          caseId: row.id,
+          fileName: doc.fileName,
+          mimeType: doc.mimeType,
+          sizeBytes: doc.sizeBytes,
+          pages: doc.pages,
+          storageKey: doc.storageKey,
+          sha256: doc.sha256,
+          uploadedAt: doc.uploadedAt,
+          checklistItemId: targets.length === 1 ? targets[0]!.id : null,
+          memberId: doc.memberId,
+          status: doc.status,
+          analysis: doc.analysis,
+          reusedFromYear: doc.reusedFromYear ?? practiceYear(source.answers),
+          reusedMember: before.find((member) => member.id === doc.memberId) ?? null,
+          citizenVisible:
+            doc.memberId === applicant.id || input.citizenVisibleDocumentIds.includes(doc.id),
+        };
+      }),
+    );
+  await audit(tx, row, "operator", "case.reused", now, actorId, {
+    documents: selected.length,
+  });
+  await audit(tx, source, "operator", "case.reused", now, actorId, {
+    documents: selected.length,
+  });
+  return { row, token: created.token };
+}
+
+export function eligibleReuseDocuments(
+  source: CaseRow,
+  household: import("@avanti/contracts").Member[],
+  sourceDocuments: (typeof documents.$inferSelect)[],
+) {
+  const before = buildHousehold(source.answers);
+  const kept = new Set(
+    household
+      .filter((member) => before.some((old) => sameMemberIdentity(old, member)))
+      .map((member) => member.id),
+  );
+  const checklist = source.practiceId
+    ? buildChecklist(source.practiceId, source.answers, before, "it")
+    : [];
+  return sourceDocuments.filter(
+    (doc) =>
+      doc.status !== "processing" &&
+      (doc.memberId
+        ? kept.has(doc.memberId)
+        : checklist.some((item) => item.id === doc.checklistItemId && item.memberId === null)) &&
+      (!doc.reusedMember ||
+        household.some((member) => sameMemberIdentity(doc.reusedMember!, member))),
+  );
 }

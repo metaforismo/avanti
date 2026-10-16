@@ -122,6 +122,12 @@ export const cases = pgTable(
     tokenHash: text("token_hash").notNull().unique(),
     reference: text("reference").notNull(),
     familyId: text("family_id"),
+    // Opaque provenance, deliberately without FK: source erasure must not break a renewal.
+    renewalSourceId: text("renewal_source_id"),
+    renewalYear: integer("renewal_year"),
+    renewalHouseholdConfirmedAt: instant("renewal_household_confirmed_at"),
+    renewalInvitedAt: instant("renewal_invited_at"),
+    renewalContactConsentAt: instant("renewal_contact_consent_at"),
     language: text("language").$type<Language>().notNull(),
     practiceId: text("practice_id").$type<PracticeId>(),
     status: text("status").$type<CaseStatus>().notNull().default("intake"),
@@ -176,6 +182,15 @@ export const cases = pgTable(
     ),
     uniqueIndex("cases_org_reference_unique").on(t.organizationId, t.reference),
     index("cases_org_family_idx").on(t.organizationId, t.familyId),
+    uniqueIndex("cases_renewal_source_year_unique").on(
+      t.organizationId,
+      t.renewalSourceId,
+      t.renewalYear,
+    ),
+    check(
+      "cases_renewal_check",
+      sql`(${t.renewalSourceId} is null and ${t.renewalYear} is null and ${t.renewalHouseholdConfirmedAt} is null and ${t.renewalInvitedAt} is null) or (${t.renewalSourceId} is not null and ${t.renewalYear} is not null and ${t.practiceId} is not null and ${t.renewalYear} between 2021 and 2100 and ${t.practiceId} = 'isee_ordinario' and ${t.familyId} is not null)`,
+    ),
     index("cases_org_status_updated_idx").on(t.organizationId, t.status, t.updatedAt, t.id),
     index("cases_org_office_created_idx").on(t.organizationId, t.officeId, t.createdAt),
     index("cases_org_assignee_idx").on(t.organizationId, t.assigneeId),
@@ -376,6 +391,7 @@ export const settings = pgTable(
     linkDays: integer("link_days").notNull().default(60),
     notifyCitizenReady: boolean("notify_citizen_ready").notNull().default(false),
     notifyCitizenSubmission: boolean("notify_citizen_submission").notNull().default(false),
+    notifyCitizenRenewals: boolean("notify_citizen_renewals").notNull().default(false),
     notifyOperatorDigest: boolean("notify_operator_digest").notNull().default(false),
     notifyCitizenReminders: boolean("notify_citizen_reminders").notNull().default(false),
     citizenReminderDays: jsonb("citizen_reminder_days")
@@ -450,6 +466,7 @@ export type NotificationKind =
   | "citizen_request"
   | "citizen_ready"
   | "citizen_submission"
+  | "citizen_renewal"
   | "citizen_reminder"
   | "operator_digest";
 export const notifications = pgTable(
@@ -464,6 +481,7 @@ export const notifications = pgTable(
     }),
     caseId: text("case_id").references(() => cases.id, { onDelete: "cascade" }),
     citizenRequestId: text("citizen_request_id"),
+    citizenLinkHash: text("citizen_link_hash"),
     reminderNumber: integer("reminder_number"),
     leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
     operatorId: text("operator_id").references(() => operators.id, { onDelete: "cascade" }),
@@ -489,7 +507,11 @@ export const notifications = pgTable(
     index("notifications_completed_idx").on(t.completedAt),
     check(
       "notifications_kind_check",
-      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'citizen_submission', 'citizen_reminder', 'operator_digest')`,
+      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'citizen_submission', 'citizen_reminder', 'citizen_renewal', 'operator_digest')`,
+    ),
+    check(
+      "notifications_renewal_check",
+      sql`${t.kind} <> 'citizen_renewal' or (${t.citizenLinkHash} is not null and ${t.caseId} is not null and ${t.organizationId} is not null)`,
     ),
     check(
       "notifications_reminder_check",

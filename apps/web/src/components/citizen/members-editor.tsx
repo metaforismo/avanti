@@ -21,6 +21,8 @@ type Draft = {
   lastName?: string;
   /** Raw text, validated on submit: a half-typed year must not silently become "no year". */
   yearText: string;
+  /** Details this form doesn't show (set by the CAF), sent back unchanged for the same person. */
+  kept?: Pick<MemberInput, "birthDate" | "taxCode">;
 };
 
 type RowErrors = { name?: string; year?: string };
@@ -35,6 +37,12 @@ function toDraft(member: MemberInput): Draft {
     firstName: member.firstName,
     lastName: member.lastName,
     yearText: member.birthYear ? String(member.birthYear) : "",
+    kept: member.id
+      ? {
+          ...(member.birthDate ? { birthDate: member.birthDate } : {}),
+          ...(member.taxCode ? { taxCode: member.taxCode } : {}),
+        }
+      : undefined,
   };
 }
 
@@ -115,7 +123,7 @@ export function MembersEditor({
     }
     onSubmit(
       members.map((member) => ({
-        ...(member.id ? { id: member.id } : {}),
+        ...(member.id ? { id: member.id, ...member.kept } : {}),
         role: member.role,
         firstName: member.firstName.trim(),
         lastName: member.lastName?.trim() || undefined,

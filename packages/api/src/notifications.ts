@@ -19,6 +19,7 @@ import { seal, unseal, type Envelope, type NotificationOptions } from "./notific
 import { audit } from "./dossier";
 import { reminderNotification } from "./reminder-copy";
 import { DeliveryFailure } from "./email";
+import { renewalInvitation } from "./renewal-copy";
 import { submissionReceipt } from "./submission-receipt";
 import { rateKey, rateLimitSecret } from "./rate-limit-key";
 import { canonicalMailbox } from "./canonical-mailbox";
@@ -39,6 +40,7 @@ export async function enqueueNotification(
     organizationId?: string;
     caseId?: string;
     citizenRequestId?: string;
+    citizenLinkHash?: string;
     reminderNumber?: number;
     leadId?: string;
     operatorId?: string;
@@ -174,6 +176,54 @@ export async function enqueueSubmissionReceipt(db: Database, s: Services, row: C
   );
 }
 
+export async function enqueueRenewalInvitation(
+  db: Database,
+  s: Services,
+  row: CaseRow,
+  citizenLink: string,
+): Promise<{
+  status: "queued" | "disabled" | "no_email" | "no_consent" | "rate_limited";
+  id?: string;
+}> {
+  const [prefs] = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.organizationId, row.organizationId));
+  if (!prefs?.notifyCitizenRenewals) return { status: "disabled" };
+  if (!row.contact?.email) return { status: "no_email" };
+  if (!row.renewalContactConsentAt) return { status: "no_consent" };
+  const now = s.clock();
+  const limit = await consumeRateLimit(
+    db,
+    rateKey(
+      rateLimitSecret(s.rateLimitSecret),
+      "citizen_renewal:email:86400",
+      canonicalMailbox(row.contact.email),
+    ),
+    now,
+    2,
+    86400,
+  );
+  if (!limit.allowed) return { status: "rate_limited" };
+  const id = await enqueueNotification(
+    db,
+    s.notifications,
+    {
+      kind: "citizen_renewal",
+      language: row.language,
+      organizationId: row.organizationId,
+      caseId: row.id,
+      citizenLinkHash: row.tokenHash,
+      dedupeKey: `renewal:${row.id}:${row.tokenHash}`,
+      to: row.contact.email,
+      email: renewalInvitation(row.language, row.renewalYear!, citizenLink),
+    },
+    now,
+  );
+  await audit(db, row, "system", "renewal.invitation_queued", now);
+  return { status: "queued", id };
+}
+
 export async function enqueueDigests(s: Services, now: Date): Promise<number> {
   const day = now.toISOString().slice(0, 10);
   const ids = await s.db.transaction(async (tx) => {
@@ -242,7 +292,9 @@ async function stillRelevant(db: Database, row: Row, envelope: Envelope, now: Da
       .from(cases)
       .where(and(eq(cases.id, row.caseId), eq(cases.organizationId, row.organizationId!)));
     // Serialize delivery with citizen replies and state changes, including the provider call.
-    const [current] = await (row.kind === "citizen_reminder" ? query.for("update") : query);
+    const [current] = await (["citizen_reminder", "citizen_renewal"].includes(row.kind)
+      ? query.for("update")
+      : query);
     if (
       !current ||
       current.language !== row.language ||
@@ -250,6 +302,20 @@ async function stillRelevant(db: Database, row: Row, envelope: Envelope, now: Da
       Date.parse(current.expiresAt) <= now.getTime()
     )
       return false;
+    if (row.kind === "citizen_renewal") {
+      const [prefs] = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.organizationId, current.organizationId));
+      if (
+        !prefs?.notifyCitizenRenewals ||
+        !current.renewalContactConsentAt ||
+        current.tokenHash !== row.citizenLinkHash ||
+        current.submittedAt ||
+        !["intake", "needs_citizen"].includes(current.status)
+      )
+        return false;
+    }
     if (row.kind === "citizen_reminder") {
       const [prefs] = await db
         .select()

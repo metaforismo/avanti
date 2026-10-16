@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { errorMessage } from "@/lib/citizen/messages";
 import { useConversation, type ConversationTurn } from "@/lib/citizen/conversation";
-import { STEP_TITLE_ID } from "@/lib/citizen/view";
+import { initialAnswer, STEP_TITLE_ID } from "@/lib/citizen/view";
+import { RenewalNotice } from "./renewal-notice";
 import { ChatBubble, Thinking } from "./chat-bubble";
 import type { StepProps } from "./citizen-app";
 import { Composer } from "./composer";
@@ -39,16 +40,21 @@ export function ConversationStep(props: StepProps) {
   useEffect(() => {
     // Like chat apps: after a reply the citizen's last message goes to the top, so the answer
     // and the card below it are read from their start, not from the button at the bottom.
+    // With no conversation yet the page opens at its top: title, notices, first question.
+    if (turns.length === 0) return;
     const mine = list.current?.querySelectorAll<HTMLElement>('[data-from="citizen"]');
     const last = mine?.[mine.length - 1];
     if (last) last.scrollIntoView({ block: "start", behavior: "smooth" });
     else bottom.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [turns.length]);
+  const proposalCount = state?.proposals.length ?? 0;
+  const hadProposals = useRef(false);
   useEffect(() => {
     // A confirmed card makes room for the next question, which comes after everything else.
-    if (state?.proposals.length === 0)
+    if (hadProposals.current && proposalCount === 0)
       bottom.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [state?.proposals.length]);
+    hadProposals.current = proposalCount > 0;
+  }, [proposalCount]);
 
   if (!state && conversation.error?.status === 404) return <InterviewStep {...props} />;
 
@@ -70,6 +76,8 @@ export function ConversationStep(props: StepProps) {
         </div>
         <InterviewProgressBar progress={data.progress} m={m} />
       </div>
+
+      <RenewalNotice data={data} />
 
       <AnsweredList api={api} data={data} m={m} />
 
@@ -127,7 +135,7 @@ export function ConversationStep(props: StepProps) {
               api={api}
               question={question}
               m={m}
-              initial={data.answers[question.id]}
+              initial={initialAnswer(data, question.id)}
               autoFocus={false}
               expectedRoles={
                 Array.isArray(data.answers.household_roles)

@@ -11,6 +11,11 @@ import type { CaseRow } from "./dossier";
 const now = new Date("2027-01-05T10:00:00.000Z");
 const exampleCase: CaseRow = {
   familyId: null,
+  renewalSourceId: null,
+  renewalYear: null,
+  renewalHouseholdConfirmedAt: null,
+  renewalInvitedAt: null,
+  renewalContactConsentAt: null,
   conversationProposals: [],
   conversationEngine: "heuristic",
   aiAttention: null,

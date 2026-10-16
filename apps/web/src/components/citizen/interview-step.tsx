@@ -6,7 +6,8 @@ import type { MemberRole } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import { STEP_TITLE_ID } from "@/lib/citizen/view";
+import { initialAnswer, STEP_TITLE_ID } from "@/lib/citizen/view";
+import { RenewalNotice } from "./renewal-notice";
 import { ActionErrorNotice } from "./action-error";
 import { AssistantMessage, lastMessage } from "./assistant-message";
 import type { StepProps } from "./citizen-app";
@@ -34,6 +35,8 @@ export function InterviewStep({ api, data, m }: StepProps) {
         <InterviewProgressBar progress={data.progress} m={m} />
       </div>
 
+      <RenewalNotice data={data} />
+
       <AssistantMessage
         message={assistant}
         label={m.interview.assistant}
@@ -47,7 +50,7 @@ export function InterviewStep({ api, data, m }: StepProps) {
           api={api}
           question={question}
           m={m}
-          initial={data.answers[question.id]}
+          initial={initialAnswer(data, question.id)}
           autoFocus={api.lastTurn !== null}
           expectedRoles={
             Array.isArray(data.answers.household_roles)

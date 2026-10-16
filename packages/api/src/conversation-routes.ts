@@ -1,3 +1,4 @@
+import { renewalPending } from "@avanti/core";
 import { appendConversationTurns } from "./conversation-messages";
 import { eq } from "drizzle-orm";
 import { cases, settings } from "@avanti/db";
@@ -205,6 +206,9 @@ export function mountConversationRoutes(app: App, s: Services) {
         .update(cases)
         .set({
           answers,
+          ...(current.renewalYear && renewalPending(current.answers) && !renewalPending(answers)
+            ? { renewalHouseholdConfirmedAt: s.clock().toISOString() }
+            : {}),
           confirmedAnswers: [...confirmed].filter((id) => Object.hasOwn(answers, id)),
           conversationProposals: pendingProposals(candidate, s.clock()),
           editingQuestion: candidate.editingQuestion,
@@ -215,6 +219,14 @@ export function mountConversationRoutes(app: App, s: Services) {
         .returning();
       if (!updated) throw notFound();
       await detachRemovedMembers(tx, current, updated);
+      if (
+        current.renewalYear &&
+        renewalPending(current.answers) &&
+        !renewalPending(updated.answers)
+      )
+        await audit(tx, updated, "citizen", "renewal.household_confirmed", s.clock(), null, {
+          year: current.renewalYear,
+        });
       for (const confirmation of confirmations) {
         await appendConversationTurns(tx, current.id, s.clock(), [
           { role: "citizen", ...confirmation, kind: "confirmation" },

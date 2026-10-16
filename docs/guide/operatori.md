@@ -130,6 +130,22 @@ indicato. La responsabilità della DSU resta del CAF.
 - _Altro_ → _Scarica fascicolo PDF_ o _Scarica dati JSON_ per il gestionale.
 - _Altro_ → _Chiudi e archivia_ chiede conferma; una pratica chiusa si può riaprire.
 
+## Rinnovi ISEE
+
+L'ISEE vale fino al 31 dicembre. Da **Rinnovi ISEE** trovi le famiglie che hanno fatto l'ISEE
+con voi l'anno prima (pratiche pronte o inviate, ancora conservate).
+
+1. In «Da invitare» seleziona le famiglie e premi **Prepara il rinnovo** (con più famiglie «Prepara N rinnovi», al massimo 50 per volta).
+2. Avanti crea il nuovo fascicolo con il nucleo e i documenti ancora validi. I link si vedono
+   solo in quel momento: copiali e consegnali, oppure lascia che parta l'email (solo se
+   l'amministratore ha attivato gli inviti e il cittadino ha dato il consenso).
+3. Il cittadino conferma chi vive con lui e risponde alle domande del nuovo anno. Lo segui da
+   «Invitati», «Iniziati» e «Inviati»; se un link si perde, selezionalo in «Invitati» e premi
+   **Nuovo link** (quello vecchio smette di funzionare).
+
+I documenti «da aggiornare» sono scaduti o dell'anno sbagliato; quelli «validi» vanno comunque
+verificati come sempre.
+
 ## Per il responsabile (amministratori)
 
 _Impostazioni_ compare solo agli amministratori.

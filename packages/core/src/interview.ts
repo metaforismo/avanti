@@ -8,7 +8,8 @@ import {
 import { catalog, getQuestions, questionDefinitions, type Answers } from "./catalog";
 import { t } from "./i18n";
 import { normalizedName, knownHouseholdRoles } from "./household";
-import { calendarYear } from "./calendar";
+import { renewalPending } from "./renewal";
+import { calendarDate, calendarYear } from "./calendar";
 
 export class DomainValidationError extends Error {
   readonly code = "bad_request";
@@ -28,7 +29,7 @@ export function nextQuestion(
 ): Question | null {
   return (
     getQuestions(practiceId, answers, language).find(
-      (question) => !Object.hasOwn(answers, question.id),
+      (question) => renewalPending(answers) || !Object.hasOwn(answers, question.id),
     ) ?? null
   );
 }
@@ -122,7 +123,12 @@ export function applyAnswer(
         data.length <= (definition.max ?? 20) &&
         data.filter((member) => member.role === "richiedente").length === 1 &&
         data.every(
-          (member) => member.birthYear === undefined || member.birthYear <= calendarYear(now),
+          (member) =>
+            (member.birthYear === undefined || member.birthYear <= calendarYear(now)) &&
+            (!member.birthDate || member.birthDate <= calendarDate(now)) &&
+            (!member.birthDate ||
+              !member.birthYear ||
+              Number(member.birthDate.slice(0, 4)) === member.birthYear),
         ) &&
         new Set(data.map((member, index) => member.id ?? identities[index])).size === data.length;
       value = data;
@@ -138,6 +144,9 @@ export function applyAnswer(
       ? editAnswer(practiceId, answers, questionId)
       : answers),
     [questionId]: value,
+    ...(questionId === "members" && renewalPending(answers)
+      ? { renewal_household_confirmed: true }
+      : {}),
     // The declared count only suggests rows; the confirmed list is authoritative.
     ...(definition.kind === "members" && Array.isArray(value)
       ? {

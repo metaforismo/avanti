@@ -6,7 +6,13 @@ import type {
   Question,
 } from "@avanti/contracts";
 import { MemberInput } from "@avanti/contracts";
-import { applyAnswer, DomainValidationError, getQuestions, readableAnswer } from "@avanti/core";
+import {
+  renewalPending,
+  applyAnswer,
+  DomainValidationError,
+  getQuestions,
+  readableAnswer,
+} from "@avanti/core";
 import type { ConverseOutput } from "@avanti/ai";
 import type { CaseRow } from "./dossier";
 import type { messages } from "@avanti/db";
@@ -15,7 +21,10 @@ type InterviewRow = Pick<CaseRow, "practiceId" | "answers" | "editingQuestion" |
 export function openQuestions(row: InterviewRow, language: Language = row.language) {
   return row.practiceId
     ? getQuestions(row.practiceId, row.answers, language).filter(
-        (q) => !Object.hasOwn(row.answers, q.id) || q.id === row.editingQuestion,
+        (q) =>
+          renewalPending(row.answers) ||
+          !Object.hasOwn(row.answers, q.id) ||
+          q.id === row.editingQuestion,
       )
     : [];
 }

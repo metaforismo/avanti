@@ -1,3 +1,4 @@
+import { lockRenewalConsent, setRenewalConsent } from "./renewal-consent";
 import { turnAcknowledgement } from "./turn-acknowledgement";
 import { appendConversationTurns } from "./conversation-messages";
 import { readConversationText } from "./conversation-routes";
@@ -30,7 +31,7 @@ import {
   MemberInput,
   type PracticeId,
 } from "@avanti/contracts";
-import { calendarYear, getQuestions, t } from "@avanti/core";
+import { renewalPending, calendarYear, getQuestions, t } from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
 import { detachRemovedMembers } from "./household-cleanup";
 import { AiIntelligence, heuristicAnalysis } from "./ai";
@@ -308,6 +309,9 @@ export function mountCitizenRoutes(app: App, s: Services) {
           citizenRequestId: null,
           answers,
           confirmedAnswers: confirmedAnswers(current, input, answers),
+          ...(current.renewalYear && renewalPending(current.answers) && !renewalPending(answers)
+            ? { renewalHouseholdConfirmedAt: now.toISOString() }
+            : {}),
           editingQuestion: editingQuestion(input, answers),
           updatedAt: nextCaseUpdate(current, s.clock()),
         })
@@ -315,6 +319,14 @@ export function mountCitizenRoutes(app: App, s: Services) {
         .returning();
       if (!updated) throw notFound();
       await detachRemovedMembers(tx, current, updated);
+      if (
+        current.renewalYear &&
+        renewalPending(current.answers) &&
+        !renewalPending(updated.answers)
+      )
+        await audit(tx, updated, "citizen", "renewal.household_confirmed", s.clock(), null, {
+          year: current.renewalYear,
+        });
       await audit(
         tx,
         updated,
@@ -659,6 +671,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
   app.post("/c/:token/submit", async (c) => {
     const input = await body(c, SubmitCaseRequest);
     const result = await s.db.transaction(async (tx) => {
+      if (input.renewalContactConsent === false) await lockRenewalConsent(tx, c.get("citizen"));
       const current = await lockCase(tx, c.get("citizen"), s.clock());
       const [upload] = await tx
         .select({ id: storageDeletions.id })
@@ -691,6 +704,13 @@ export function mountCitizenRoutes(app: App, s: Services) {
           status: "submitted",
           citizenRequestId: null,
           contact: input.contact,
+          ...(input.renewalContactConsent === undefined
+            ? {}
+            : {
+                renewalContactConsentAt: input.renewalContactConsent
+                  ? s.clock().toISOString()
+                  : null,
+              }),
           citizenNote: input.note ?? null,
           submittedAt: current.submittedAt ?? s.clock().toISOString(),
           firstSubmissionComplete:
@@ -700,6 +720,12 @@ export function mountCitizenRoutes(app: App, s: Services) {
         .where(eq(cases.id, current.id))
         .returning();
       if (!updated) throw notFound();
+      if (input.renewalContactConsent !== undefined) {
+        await setRenewalConsent(tx, updated, input.renewalContactConsent, s.clock());
+        await audit(tx, updated, "citizen", "renewal.consent_updated", s.clock(), null, {
+          consented: input.renewalContactConsent,
+        });
+      }
       await audit(tx, updated, "citizen", "case.submitted", s.clock(), null, {
         blockers: view.findings.filter((f) => f.severity === "blocker").length,
         first: current.submittedAt === null,

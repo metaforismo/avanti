@@ -104,7 +104,8 @@ export default function HelpPage() {
           <li>Il link del cittadino è personale: non incollarlo in gruppi o email condivise.</li>
           <li>Le note interne si salvano da sole e non le vede il cittadino.</li>
           <li>
-            Nel visore dei documenti le frecce ← → passano al documento precedente o successivo.
+            Nel visore dei documenti V verifica, R rifiuta e le frecce ← → passano al documento
+            precedente o successivo. Premi ? da qualsiasi pagina per tutte le scorciatoie.
           </li>
           <li>
             Il cartello per la sala d&apos;attesa si stampa da{" "}

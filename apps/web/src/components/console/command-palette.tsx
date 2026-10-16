@@ -1,6 +1,14 @@
 "use client";
 
-import { CornerDownLeft, FileText, History, Plus, Search, type LucideIcon } from "lucide-react";
+import {
+  CornerDownLeft,
+  FileText,
+  History,
+  Keyboard,
+  Plus,
+  Search,
+  type LucideIcon,
+} from "lucide-react";
 import { Dialog as Primitive } from "radix-ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -32,6 +40,7 @@ export function CommandPalette({
   onOpenChange,
   pages,
   onNewCase,
+  onShortcuts,
   operatorId,
 }: {
   operatorId: string;
@@ -39,6 +48,7 @@ export function CommandPalette({
   onOpenChange: (open: boolean) => void;
   pages: PaletteLink[];
   onNewCase: () => void;
+  onShortcuts: () => void;
 }) {
   const router = useRouter();
   const recent = useRecentCases(operatorId);
@@ -117,6 +127,18 @@ export function CommandPalette({
         run: () => {
           close();
           onNewCase();
+        },
+      });
+    if (!term || "scorciatoie da tastiera".includes(lower))
+      list.push({
+        id: "action:shortcuts",
+        group: "Azioni",
+        label: "Scorciatoie da tastiera",
+        detail: "Premi ? da qualsiasi pagina",
+        icon: Keyboard,
+        run: () => {
+          close();
+          onShortcuts();
         },
       });
     for (const page of pages)

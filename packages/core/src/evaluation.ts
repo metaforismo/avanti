@@ -1,3 +1,4 @@
+import { renewalPending } from "./renewal";
 import type {
   ChecklistItem,
   DocumentSummary,
@@ -515,8 +516,8 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
   if (practiceId === "assegno_unico") finding("practice.auu_review", "warning");
   if (practiceId === "permesso_soggiorno") finding("practice.permit_review", "warning");
   const questions = practiceId ? getQuestions(practiceId, answers, language) : [];
-  const questionsAnswered = questions.filter((question) =>
-    Object.hasOwn(answers, question.id),
+  const questionsAnswered = questions.filter(
+    (question) => !renewalPending(answers) && Object.hasOwn(answers, question.id),
   ).length;
   const remaining = practiceId
     ? questionEstimate(practiceId, answers, language)
