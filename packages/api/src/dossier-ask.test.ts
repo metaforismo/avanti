@@ -395,29 +395,36 @@ it("limits all dossier questions to 60/hour per operator across cases, with Retr
   );
   expect(await db.select().from(dossierChatTurns)).toHaveLength(61);
 });
-it("resolves normative citations from the server corpus and uses the Rome date", async () => {
-  const { normativeRetriever } = await import("@avanti/core");
-  const question = "Perché la DSU dice FC2?";
-  const chunk = normativeRetriever.search(question, "isee_ordinario")[0]!.chunk;
-  now = new Date("2027-01-15T23:30:00Z");
-  reply = async () => ({
-    output: {
-      ...validOutput(),
-      statements: [
-        {
-          text: "Il quadro riguarda il patrimonio mobiliare.",
-          evidence: [],
-          citations: [chunk.id],
-          unavailable: false,
-        },
-      ],
-    },
-  });
-  const res = await ask(question);
-  expect(res.status).toBe(200);
-  const data = DossierAskResponse.parse(await res.json());
-  expect(data.citations[0]!.id).toBe(chunk.id);
-  expect(data.citations[0]!.url).toBe(chunk.url);
-  expect(data.answer).toContain("[fonte 1]");
-  expect(transport.mock.calls[0]![0].prompt).toContain('"today":"2027-01-16"');
-});
+it.each([
+  "Perché la DSU dice FC2?",
+  "Come si considera il conto cointestato nella giacenza media?",
+])(
+  "resolves normative citations from the server corpus and uses the Rome date: %s",
+  async (question) => {
+    const { normativeRetriever } = await import("@avanti/core");
+    const chunk = normativeRetriever.search(question, "isee_ordinario")[0]!.chunk;
+    now = new Date("2027-01-15T23:30:00Z");
+    reply = async () => ({
+      output: {
+        ...validOutput(),
+        statements: [
+          {
+            text: "Il quadro riguarda il patrimonio mobiliare.",
+            evidence: [],
+            citations: [chunk.id],
+            unavailable: false,
+          },
+        ],
+      },
+    });
+    const res = await ask(question);
+    expect(res.status).toBe(200);
+    const data = DossierAskResponse.parse(await res.json());
+    expect(data.citations[0]!.id).toBe(chunk.id);
+    expect(data.citations[0]!.url).toBe(chunk.url);
+    expect(data.citations[0]!.title).not.toMatch(/backend|PR #|pilota|revisione/i);
+    if (question.includes("cointestato")) expect(chunk.text).toContain("50%");
+    expect(data.answer).toContain("[fonte 1]");
+    expect(transport.mock.calls[0]![0].prompt).toContain('"today":"2027-01-16"');
+  },
+);

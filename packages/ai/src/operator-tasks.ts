@@ -167,7 +167,7 @@ export const operatorAskTask: Task<
       { kind: "knowledge", text: JSON.stringify(i.chunks) },
     ],
   }),
-  heuristic: (i) => heuristicKnowledge(i.chunks),
+  heuristic: (i) => heuristicKnowledge(i.chunks, i.question),
   validate: (o, i) =>
     o.citations.every((id) => i.chunks.some((c) => c.id === id)) &&
     (o.coverage === "none" ? o.citations.length === 0 : o.citations.length > 0),

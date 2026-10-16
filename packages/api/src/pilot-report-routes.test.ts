@@ -16,6 +16,7 @@ import { createApp } from "./app";
 import { MemoryStorage } from "./storage";
 import { hashToken, newToken } from "./security";
 import { PDFDocument } from "pdf-lib";
+import { auditLabel } from "./audit-log";
 
 let db: Database;
 let close: () => Promise<void>;
@@ -151,7 +152,18 @@ it("exports the same masked report in JSON/CSV/Unicode PDF and audits every acce
   const audit = (await (
     await app.request("/api/audit?action=pilot_report.exported", { headers: { Cookie: admin } })
   ).json()) as { items: { label: string }[] };
-  expect(audit.items.every((r) => r.label === "Rapporto del pilota esportato")).toBe(true);
+  expect(audit.items.map((r) => r.label).sort()).toEqual([
+    "Rapporto del pilota consultato",
+    "Rapporto del pilota consultato",
+    "Rapporto del pilota esportato (CSV)",
+    "Rapporto del pilota esportato (PDF)",
+  ]);
+  const csv = await app.request("/api/audit/export.csv?action=pilot_report.exported", {
+    headers: { Cookie: admin },
+  });
+  expect(csv.status).toBe(200);
+  const text = await csv.text();
+  for (const label of audit.items.map((r) => r.label)) expect(text).toContain(label);
 });
 it("shares the existing operator export rate limit", async () => {
   for (let i = 0; i < 20; i++) expect((await request()).status).toBe(200);
@@ -161,4 +173,9 @@ it("shares the existing operator export rate limit", async () => {
   expect(
     await db.select().from(events).where(eq(events.type, "pilot_report.exported")),
   ).toHaveLength(20);
+});
+
+it("does not claim a historical export when format metadata is unavailable", () => {
+  expect(auditLabel("pilot_report.exported")).toBe("Rapporto del pilota");
+  expect(auditLabel("pilot_report.exported", { reportJson: false })).toBe("Rapporto del pilota");
 });

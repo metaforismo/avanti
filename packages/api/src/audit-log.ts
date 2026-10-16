@@ -51,11 +51,17 @@ const labels: Partial<Record<AuditAction, string>> = {
   "office.updated": "Sportello aggiornato",
   "organization.bootstrapped": "Organizzazione e primo amministratore creati",
   "organization.exported": "Dati dell’organizzazione esportati",
-  "pilot_report.exported": "Rapporto del pilota esportato",
+  "pilot_report.exported": "Rapporto del pilota",
   "audit.exported": "Registro attività esportato in CSV",
   "activity.recorded": "Attività registrata",
 };
-export function auditLabel(action: AuditAction) {
+export function auditLabel(action: AuditAction, details: AuditDetails = {}) {
+  if (action === "pilot_report.exported") {
+    // Older events can lack format metadata: do not infer an export from the action name.
+    if (details.reportPdf) return "Rapporto del pilota esportato (PDF)";
+    if (details.reportCsv) return "Rapporto del pilota esportato (CSV)";
+    if (details.reportJson) return "Rapporto del pilota consultato";
+  }
   return labels[action] ?? timelineLabel(action);
 }
 
@@ -114,7 +120,10 @@ function eventView(row: typeof events.$inferSelect): AuditEvent {
     },
     subjectOperatorId: row.subjectOperatorId,
     action: action.success ? action.data : "activity.recorded",
-    label: auditLabel(action.success ? action.data : "activity.recorded"),
+    label: auditLabel(
+      action.success ? action.data : "activity.recorded",
+      details.success ? details.data : {},
+    ),
     case: caseId
       ? { id: caseId, reference: row.caseReference, deleted: row.caseId === null }
       : null,

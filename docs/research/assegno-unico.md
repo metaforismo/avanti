@@ -20,6 +20,9 @@ Raccolta proposta:
 | Affidamento, accordi o provvedimenti                           | Solo se pertinenti; documentazione già posseduta                                       |
 | Titolo di soggiorno e situazione transfrontaliera              | Se pertinenti; valutazione umana dei requisiti                                         |
 
+Per presentare la domanda di Assegno unico l'ISEE è facoltativo: senza ISEE è
+possibile richiedere l'importo minimo.
+
 L'AUU riguarda figli minorenni, maggiorenni fino al compimento dei 21 anni alle condizioni
 previste, e figli disabili senza limite d'età. Non bloccare un fascicolo solo perché manca
 l'ISEE e non trasformare l'assenza di documenti di lavoro in inammissibilità del figlio
