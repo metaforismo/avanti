@@ -27,7 +27,8 @@ const roles: Record<MemberRole, Text> = {
     "زوج/زوجة",
     "স্বামী/স্ত্রী",
   ],
-  figlio: ["figlio", "child", "enfant", "hijo", "copil", "дитина", "ابن/ابنة", "সন্তান"],
+  // Neutral or paired forms: the gender of a member is never inferred from the name.
+  figlio: ["figlio/a", "child", "enfant", "hijo/a", "copil", "дитина", "ابن/ابنة", "সন্তান"],
   genitore: [
     "genitore",
     "parent",

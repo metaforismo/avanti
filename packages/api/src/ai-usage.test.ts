@@ -118,8 +118,13 @@ it("isolates tenants and months, validates query and protects the endpoint", asy
       },
       body: JSON.stringify({ aiMonthlyBudgetEur: budget }),
     });
-  expect((await patch(-1)).status).toBe(400);
-  expect((await patch(0)).status).toBe(200);
+  // AI is included in the plan: a CAF administrator cannot move the platform's budget.
+  expect((await patch(1000)).status).toBe(200);
+  expect((await aiBudget(s, "a")).budgetEur).toBe(1);
+  await db
+    .insert(settings)
+    .values({ organizationId: "a", aiMonthlyBudgetEur: 0 })
+    .onConflictDoUpdate({ target: settings.organizationId, set: { aiMonthlyBudgetEur: 0 } });
   const status = await (
     await app.request("/api/status", {
       headers: { cookie: `avanti_session=${"admin-token".padEnd(43, "x")}` },
@@ -131,8 +136,6 @@ it("isolates tenants and months, validates query and protects the endpoint", asy
     configuration: { provider: "openai", keyPresent: true, dataPolicy: "strict" },
   });
   expect((await aiBudget(s, "b")).budgetEur).toBe(1);
-  expect((await patch(null)).status).toBe(200);
-  expect((await aiBudget(s, "a")).budgetEur).toBe(1);
 });
 it("honors organization overrides and admits only the reserved amount under concurrency", async () => {
   await db.insert(settings).values({ organizationId: "a", aiMonthlyBudgetEur: 0.1 });

@@ -231,3 +231,17 @@ La prova ha trovato problemi che le eval sintetiche non vedevano; tutti corretti
 
 Le bozze di risposta dell'operatore parlano con la voce dello sportello («verifichiamo»),
 non nominano «l'operatore» in terza persona e rimandano al caricamento dallo stesso link.
+
+## L'AI è inclusa nel piano — 16 ottobre 2026
+
+Decisione del fondatore: il CAF non sceglie fornitori, non inserisce chiavi e non paga l'AI a
+consumo. Avanti la offre dentro il canone. Di conseguenza:
+
+- la console del CAF non mostra fornitore, modelli, budget o costi (rimossa la pagina «AI e
+  consumi»); restano gli interruttori «AI per i cittadini» e «Copilota», che sono scelte di
+  privacy, e le misure della «quasi pronta», ora nel rapporto del pilota;
+- il budget mensile per organizzazione resta come protezione della piattaforma: lo imposta
+  Avanti (default da `AI_MONTHLY_BUDGET_EUR`, valore per CAF in `settings.ai_monthly_budget_eur`)
+  e non è modificabile dall'API delle impostazioni del CAF;
+- fornitore, modelli e chiavi restano configurazione di piattaforma (`docs/DEPLOY.md`), con lo
+  stesso vincolo: solo endpoint a conservazione zero, regione UE quando disponibile.

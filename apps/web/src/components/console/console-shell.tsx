@@ -13,7 +13,6 @@ import {
   Search,
   ScrollText,
   Settings,
-  Sparkles,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -83,13 +82,6 @@ const NAV: NavItem[] = [
     label: "Registro attività",
     icon: ScrollText,
     match: (p) => p.startsWith("/console/registro"),
-    adminOnly: true,
-  },
-  {
-    href: "/console/ai",
-    label: "AI e consumi",
-    icon: Sparkles,
-    match: (p) => p.startsWith("/console/ai"),
     adminOnly: true,
   },
   {
