@@ -12,6 +12,7 @@ import {
   nearReadyEvaluations,
   nearReadyEvents,
   nearReadyBlindReviews,
+  dossierChatTurns,
   cases,
   documents,
   messages,
@@ -234,6 +235,12 @@ export async function exportOrganization(
       renewalReminders: reminderRows,
       documents: documentRows,
       messages: messageRows,
+      dossierChatTurns: await tx
+        .select(getTableColumns(dossierChatTurns))
+        .from(dossierChatTurns)
+        .innerJoin(cases, eq(dossierChatTurns.caseId, cases.id))
+        .where(caseFilter)
+        .orderBy(dossierChatTurns.createdAt, dossierChatTurns.id),
       checklistReviews: reviews,
       events: await tx
         .select()

@@ -6,6 +6,7 @@ import {
   renewalReminders,
   cases,
   documents,
+  dossierChatTurns,
   events,
   messages,
   offices,
@@ -141,6 +142,15 @@ it("exports a consistent organization only, includes raw answers/events/hashes a
       text: id === "case" ? "Esempio" : "outside-content",
       createdAt: now.toISOString(),
     });
+    await db.insert(dossierChatTurns).values({
+      id: `turn-${id}`,
+      caseId: id!,
+      operatorId: adminId,
+      question: id === "case" ? "Domanda sintetica" : "outside-content",
+      response: { answer: "Risposta", evidence: [], citations: [], engine: "heuristic" },
+      createdAt: now.toISOString(),
+      caseVersion: now.toISOString(),
+    });
     await db.insert(events).values({
       id: `event-${id}`,
       organizationId: org!,
@@ -163,6 +173,7 @@ it("exports a consistent organization only, includes raw answers/events/hashes a
   expect(data.renewalReminders[0]?.sourceCaseId).toBe("erased-case");
   expect(data.cases[0]!.answers).toEqual({ household_size: 2 });
   expect(data.documents).toMatchObject([{ sha256: "a".repeat(64) }]);
+  expect(data.dossierChatTurns).toMatchObject([{ id: "turn-case", question: "Domanda sintetica" }]);
   expect(data.events.some((event) => event.type === "organization.exported")).toBe(true);
   expect(
     data.events.find(
