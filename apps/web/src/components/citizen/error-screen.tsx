@@ -1,4 +1,5 @@
 import { LinkIcon } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
 export function ErrorScreen({
@@ -20,6 +21,10 @@ export function ErrorScreen({
   return (
     <main lang={lang} dir={dir} className="grid min-h-dvh place-items-center px-4 py-16">
       <div className="max-w-md text-center">
+        {/* Someone who lands here from a broken link should still see where they are. */}
+        <span className="mb-10 inline-block">
+          <Logo />
+        </span>
         <span className="mx-auto grid size-14 place-items-center rounded-full bg-sunk text-ink-2">
           <LinkIcon className="size-6" aria-hidden />
         </span>

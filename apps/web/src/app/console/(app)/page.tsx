@@ -331,7 +331,7 @@ function Queue() {
           )
         ) : (
           <>
-            <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem] gap-4 px-4 pb-2 text-xs text-ink-3 md:grid">
+            <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] gap-4 px-4 pb-2 text-xs text-ink-3 md:grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]">
               <span>Cittadino</span>
               <span>Pratica</span>
               <span>Documenti</span>
@@ -381,14 +381,14 @@ function QueueRow({ item }: { item: CaseListItem }) {
         prefetch={false}
         onPointerEnter={prefetch}
         onFocus={prefetch}
-        className="grid gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-paper focus-visible:bg-paper md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem] md:items-center"
+        className="grid gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-paper focus-visible:bg-paper md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] md:items-center xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]"
       >
         <span className="min-w-0">
           <span className="block truncate font-semibold">
             {item.citizenName ?? "Cittadino senza nome"}
           </span>
-          <span className="flex items-center gap-2 text-sm text-ink-3">
-            <span className="font-mono text-xs" translate="no">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-3">
+            <span className="font-mono text-xs whitespace-nowrap" translate="no">
               {item.reference}
             </span>
             {item.language !== "it" && (

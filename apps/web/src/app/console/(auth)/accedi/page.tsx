@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { AlertOctagon, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
 import { Logo } from "@/components/brand/logo";
 import { LoginForm } from "@/components/console/login-form";
 
 export const metadata: Metadata = { title: "Accesso operatori", robots: { index: false } };
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/console/accedi">) {
+  const params = await searchParams;
+  const one = (value: string | string[] | undefined) => (typeof value === "string" ? value : null);
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,32rem)]">
       <section className="hidden flex-col justify-between bg-contrast p-12 text-on-contrast lg:flex">
@@ -55,9 +56,7 @@ export default function LoginPage() {
           <p className="mt-2 text-ink-2">
             Usa le credenziali che ti ha dato il responsabile del tuo CAF.
           </p>
-          <Suspense>
-            <LoginForm />
-          </Suspense>
+          <LoginForm nextPath={one(params.next)} expired={one(params.motivo) === "sessione"} />
           {/* Citizens sometimes land here from a search: they never need an account. */}
           <p className="mt-10 border-t border-line pt-5 text-sm text-ink-2">
             Devi preparare una pratica? Non serve accedere: apri il link o inquadra il QR che ti ha

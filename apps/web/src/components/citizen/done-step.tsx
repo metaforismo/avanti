@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   ExternalLink,
+  FileWarning,
   IdCard,
   Info,
   MapPin,
@@ -12,11 +13,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
-import { STEP_TITLE_ID } from "@/lib/citizen/view";
+import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
+import { format } from "@/lib/citizen/messages";
 import type { StepProps } from "./citizen-app";
 import { SaveLinkActions } from "./save-link";
 
+const MAX_SHOWN = 6;
+
 export function DoneStep({ data, m }: StepProps) {
+  // Once sent, the citizen can no longer upload: what is still missing goes to the office.
+  const missing =
+    data.status === "submitted" || data.status === "in_review"
+      ? data.checklist.filter((item) => item.required && !DONE_STATUSES.has(item.status))
+      : [];
   const statusLine =
     data.status === "in_review"
       ? m.done.inReview
@@ -55,6 +64,31 @@ export function DoneStep({ data, m }: StepProps) {
           </Button>
           <p className="text-center text-sm text-ink-3">{m.done.bookHint}</p>
         </div>
+      )}
+
+      {missing.length > 0 && (
+        <section aria-labelledby="bring-title" className="rounded-lg bg-warn-wash/60 p-5">
+          <h2 id="bring-title" className="flex items-center gap-2 font-semibold">
+            <FileWarning className="size-5 text-warn" aria-hidden />
+            {m.done.bringMissing}
+          </h2>
+          <ul className="mt-2 grid gap-1.5">
+            {missing.slice(0, MAX_SHOWN).map((item) => (
+              <li key={item.id} className="flex gap-2">
+                <span aria-hidden>•</span>
+                <span dir="auto">
+                  {item.title}
+                  {item.memberName && <span className="text-ink-2"> ({item.memberName})</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {missing.length > MAX_SHOWN && (
+            <p className="mt-1.5 ps-4 text-ink-2">
+              {format(m.done.bringMore, { n: missing.length - MAX_SHOWN })}
+            </p>
+          )}
+        </section>
       )}
 
       <dl className="rounded-lg bg-surface p-5 ring-1 ring-line">

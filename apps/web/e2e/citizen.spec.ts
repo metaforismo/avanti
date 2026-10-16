@@ -119,12 +119,18 @@ test("a citizen goes from the office QR to a submitted dossier", async ({ page }
   await expect(page.getByText("Scrivi almeno un telefono o un'email.")).toBeVisible();
 
   await page.getByLabel("Telefono").fill("3330000000");
+  // Next year's renewal reminder is opt-in.
+  await expect(page.getByLabel(/Avvisami via email/)).not.toBeChecked();
   await page.getByLabel(/Confermo che le informazioni sono vere/).check();
   await page.getByRole("button", { name: "Invia allo sportello" }).click();
   await expect(
     page.getByRole("heading", { name: "Fatto. La pratica è allo sportello." }),
   ).toBeVisible();
   await expect(page.getByText(/AV-\d{4}-\d{6}/)).toBeVisible();
+  // Uploads stop once sent: what is still missing is listed to bring to the desk.
+  await expect(
+    page.getByRole("heading", { name: "Porta anche questi documenti allo sportello" }),
+  ).toBeVisible();
   // What to do next: the office's own booking site, opened without a referrer, and its note.
   const book = page.getByRole("link", { name: /Prenota l'appuntamento/ });
   await expect(book).toHaveAttribute("href", "https://prenota.example.it/milano");
@@ -140,9 +146,7 @@ test("an invalid link explains what to do", async ({ page }) => {
 
 test("an unknown office says the QR is wrong", async ({ page }) => {
   await page.goto("/s/sportello-inesistente");
-  await expect(
-    page.getByText("Questo sportello non esiste o il link non è corretto."),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sportello non trovato" })).toBeVisible();
 });
 
 test("the documents step fits a 320px phone", async ({ page }) => {

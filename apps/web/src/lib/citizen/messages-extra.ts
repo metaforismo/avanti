@@ -93,8 +93,9 @@ export const fr: M = {
     resume: "Reprendre la demande commencée",
     resumeHint: "Vous avez déjà commencé une demande sur ce téléphone.",
     startNew: "Commencer une nouvelle demande",
-    officeNotFound: "Ce guichet n'existe pas ou le lien n'est pas correct.",
-    officeNotFoundHint: "Vérifiez le QR code ou demandez un nouveau lien au guichet.",
+    officeNotFound: "Guichet introuvable",
+    officeNotFoundHint:
+      "Le lien est peut-être incomplet : scannez à nouveau le QR code ou demandez un nouveau lien au guichet.",
     noAccount: "Pas besoin de créer un compte.",
     time: "Environ 10 minutes. Vous pouvez vous arrêter et reprendre quand vous voulez.",
     aiNotice:
@@ -265,6 +266,8 @@ export const fr: M = {
     closed: "Cette demande est close.",
     book: "Prendre rendez-vous",
     bookHint: "Ouvre le site de réservation du guichet.",
+    bringMissing: "Apportez aussi ces documents au guichet",
+    bringMore: "et {n} autres",
     officeNote: "Indications du guichet (en italien)",
   },
   request: {
@@ -396,8 +399,9 @@ export const es: M = {
     resume: "Continuar el trámite empezado",
     resumeHint: "Ya empezaste un trámite en este móvil.",
     startNew: "Empezar un trámite nuevo",
-    officeNotFound: "Esta ventanilla no existe o el enlace no es correcto.",
-    officeNotFoundHint: "Revisa el código QR o pide un enlace nuevo en la ventanilla.",
+    officeNotFound: "Ventanilla no encontrada",
+    officeNotFoundHint:
+      "Puede que el enlace esté incompleto: vuelve a escanear el código QR o pide un enlace nuevo en la ventanilla.",
     noAccount: "No hace falta registrarse.",
     time: "Unos 10 minutos. Puedes parar y seguir cuando quieras.",
     aiNotice:
@@ -567,6 +571,8 @@ export const es: M = {
     closed: "Este trámite está cerrado.",
     book: "Pide cita",
     bookHint: "Se abre la web de citas de la oficina.",
+    bringMissing: "Lleva también estos documentos a la ventanilla",
+    bringMore: "y {n} más",
     officeNote: "Indicaciones de la oficina (en italiano)",
   },
   request: {
@@ -695,8 +701,9 @@ export const ro: M = {
     resume: "Continuă cererea începută",
     resumeHint: "Ai început deja o cerere pe acest telefon.",
     startNew: "Începe o cerere nouă",
-    officeNotFound: "Acest ghișeu nu există sau linkul nu este corect.",
-    officeNotFoundHint: "Verifică codul QR sau cere un link nou la ghișeu.",
+    officeNotFound: "Ghișeul nu a fost găsit",
+    officeNotFoundHint:
+      "Linkul poate fi incomplet: scanează din nou codul QR sau cere un link nou la ghișeu.",
     noAccount: "Nu trebuie să te înregistrezi.",
     time: "Aproximativ 10 minute. Poți să te oprești și să continui când vrei.",
     aiNotice:
@@ -867,6 +874,8 @@ export const ro: M = {
     closed: "Această cerere este închisă.",
     book: "Fă o programare",
     bookHint: "Se deschide site-ul de programări al ghișeului.",
+    bringMissing: "Adu și aceste documente la ghișeu",
+    bringMore: "și încă {n}",
     officeNote: "Indicații de la ghișeu (în italiană)",
   },
   request: {
@@ -992,8 +1001,9 @@ export const uk: M = {
     resume: "Продовжити розпочату заяву",
     resumeHint: "Ви вже почали готувати заяву на цьому телефоні.",
     startNew: "Почати нову заяву",
-    officeNotFound: "Такого вікна обслуговування не існує або посилання неправильне.",
-    officeNotFoundHint: "Перевірте QR-код або попросіть нове посилання у вікні обслуговування.",
+    officeNotFound: "Вікно обслуговування не знайдено",
+    officeNotFoundHint:
+      "Можливо, посилання неповне: відскануйте QR-код ще раз або попросіть нове посилання у вікні обслуговування.",
     noAccount: "Реєстрація не потрібна.",
     time: "Приблизно 10 хвилин. Можна зупинитися й продовжити будь-коли.",
     aiNotice:
@@ -1162,6 +1172,8 @@ export const uk: M = {
     closed: "Цю заяву закрито.",
     book: "Записатися на прийом",
     bookHint: "Відкриється сайт запису до офісу.",
+    bringMissing: "Також візьміть ці документи до вікна обслуговування",
+    bringMore: "і ще {n}",
     officeNote: "Вказівки офісу (італійською)",
   },
   request: {
@@ -1289,8 +1301,9 @@ export const ar: M = {
     resume: "تابع الطلب الذي بدأته",
     resumeHint: "لقد بدأت طلباً على هذا الهاتف من قبل.",
     startNew: "ابدأ طلباً جديداً",
-    officeNotFound: "شباك الخدمة هذا غير موجود أو الرابط غير صحيح.",
-    officeNotFoundHint: "تحقق من رمز QR أو اطلب رابطاً جديداً من شباك الخدمة.",
+    officeNotFound: "لم يتم العثور على شباك الخدمة",
+    officeNotFoundHint:
+      "قد يكون الرابط غير مكتمل: امسح رمز QR مرة أخرى أو اطلب رابطاً جديداً من شباك الخدمة.",
     noAccount: "لا حاجة للتسجيل.",
     time: "حوالي 10 دقائق. يمكنك التوقف والمتابعة متى شئت.",
     aiNotice: "يرشدك مساعد آلي يعمل بالذكاء الاصطناعي. يراجع موظف الـ CAF كل شيء قبل إنجاز طلبك.",
@@ -1458,6 +1471,8 @@ export const ar: M = {
     closed: "هذا الطلب مغلق.",
     book: "احجز موعدك",
     bookHint: "يفتح موقع الحجز الخاص بالمكتب.",
+    bringMissing: "أحضر أيضاً هذه الوثائق إلى شباك الخدمة",
+    bringMore: "و{n} أخرى",
     officeNote: "تعليمات المكتب (بالإيطالية)",
   },
   request: {
@@ -1584,8 +1599,9 @@ export const bn: M = {
     resume: "শুরু করা আবেদন চালিয়ে যান",
     resumeHint: "আপনি এই ফোনে আগে একটি আবেদন শুরু করেছেন।",
     startNew: "নতুন আবেদন শুরু করুন",
-    officeNotFound: "এই সেবা কাউন্টারটি নেই অথবা লিংকটি সঠিক নয়।",
-    officeNotFoundHint: "QR কোডটি দেখুন অথবা সেবা কাউন্টার থেকে নতুন লিংক চান।",
+    officeNotFound: "সেবা কাউন্টারটি পাওয়া যায়নি",
+    officeNotFoundHint:
+      "লিংকটি হয়তো অসম্পূর্ণ: QR কোডটি আবার স্ক্যান করুন অথবা সেবা কাউন্টার থেকে নতুন লিংক চান।",
     noAccount: "নিবন্ধনের প্রয়োজন নেই।",
     time: "প্রায় ১০ মিনিট। যখন খুশি থামতে ও আবার শুরু করতে পারবেন।",
     aiNotice:
@@ -1755,6 +1771,8 @@ export const bn: M = {
     closed: "এই আবেদনটি বন্ধ হয়ে গেছে।",
     book: "অ্যাপয়েন্টমেন্ট বুক করুন",
     bookHint: "অফিসের বুকিং সাইট খুলবে।",
+    bringMissing: "এই নথিগুলোও সেবা কাউন্টারে নিয়ে আসুন",
+    bringMore: "এবং আরও {n}টি",
     officeNote: "অফিসের নির্দেশনা (ইতালীয় ভাষায়)",
   },
   request: {

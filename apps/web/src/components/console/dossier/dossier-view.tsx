@@ -394,7 +394,7 @@ export function DossierView({ caseId }: { caseId: string }) {
         </Notice>
       )}
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-8">
         <div className="grid min-w-0 content-start gap-8">
           <CitizenQuestions
             dossier={data}

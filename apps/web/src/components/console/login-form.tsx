@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { LoginResponse } from "@avanti/contracts";
 import { isEmail, text } from "@/lib/validation";
@@ -12,19 +12,22 @@ import { safeNext } from "@/lib/console/safe-next";
 import { clearResourceCache } from "@/lib/console/use-resource";
 import { MfaVerifyForm } from "./mfa/verify-form";
 
-export function LoginForm() {
+/**
+ * The page reads `next` and `motivo` on the server and passes them in: reading them here would
+ * render the form only after hydration and push the page down as it appears.
+ */
+export function LoginForm({ nextPath, expired }: { nextPath: string | null; expired: boolean }) {
   const router = useRouter();
-  const params = useSearchParams();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(
-    params.get("motivo") === "sessione" ? "La sessione è scaduta. Accedi di nuovo." : null,
+    expired ? "La sessione è scaduta. Accedi di nuovo." : null,
   );
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [challenged, setChallenged] = useState(false);
 
   const enter = () => {
     clearResourceCache();
-    router.replace(safeNext(params.get("next")));
+    router.replace(safeNext(nextPath));
     router.refresh();
   };
 
