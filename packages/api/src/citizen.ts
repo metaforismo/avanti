@@ -1,5 +1,5 @@
 import { enqueueUsageAlerts, logUsageAlerts } from "./commercial-usage";
-import { lockRenewalConsent, setRenewalConsent } from "./renewal-consent";
+import { lockRenewalConsent, setRenewalConsent, renewalConsentEvidence } from "./renewal-consent";
 import { turnAcknowledgement } from "./turn-acknowledgement";
 import { appendConversationTurns } from "./conversation-messages";
 import { readConversationText } from "./conversation-routes";
@@ -672,7 +672,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
   app.post("/c/:token/submit", async (c) => {
     const input = await body(c, SubmitCaseRequest);
     const result = await s.db.transaction(async (tx) => {
-      if (input.renewalContactConsent === false) await lockRenewalConsent(tx, c.get("citizen"));
+      if (input.renewalContactConsent !== undefined) await lockRenewalConsent(tx, c.get("citizen"));
       const current = await lockCase(tx, c.get("citizen"), s.clock());
       const [upload] = await tx
         .select({ id: storageDeletions.id })
@@ -705,13 +705,6 @@ export function mountCitizenRoutes(app: App, s: Services) {
           status: "submitted",
           citizenRequestId: null,
           contact: input.contact,
-          ...(input.renewalContactConsent === undefined
-            ? {}
-            : {
-                renewalContactConsentAt: input.renewalContactConsent
-                  ? s.clock().toISOString()
-                  : null,
-              }),
           citizenNote: input.note ?? null,
           submittedAt: current.submittedAt ?? s.clock().toISOString(),
           firstSubmissionComplete:
@@ -725,6 +718,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
         await setRenewalConsent(tx, updated, input.renewalContactConsent, s.clock());
         await audit(tx, updated, "citizen", "renewal.consent_updated", s.clock(), null, {
           consented: input.renewalContactConsent,
+          ...renewalConsentEvidence(updated.language),
         });
       }
       await audit(tx, updated, "citizen", "case.submitted", s.clock(), null, {
@@ -737,7 +731,8 @@ export function mountCitizenRoutes(app: App, s: Services) {
         current.submittedAt === null
           ? await enqueueUsageAlerts(tx, s, updated.organizationId, new Date(updated.submittedAt!))
           : { ids: [], alerts: [] };
-      return { row: updated, notificationId, quota };
+      const [finalRow] = await tx.select().from(cases).where(eq(cases.id, updated.id));
+      return { row: finalRow!, notificationId, quota };
     });
     logUsageAlerts(result.row.organizationId, result.quota.alerts);
     for (const id of result.quota.ids) scheduleNotificationDelivery(s, id);

@@ -1124,8 +1124,8 @@ pratica), sempre nel CAF autenticato. GET e POST rispondono con
 - `limit`: 1–50, default 25. `after`: ultimo `sourceCaseId` restituito in
   `nextAfter`; ordinamento crescente per ID. Conservare anno e filtro durante
   la paginazione; `nextAfter:null` indica fine elenco.
-- Sorgenti: esclusivamente `isee_ordinario`, `status=ready|submitted`, anno pratica
-  precedente, ancora entro retention. L'anno viene da `answers.practice_year`,
+- Sorgenti: fascicoli `isee_ordinario`, `status=ready|submitted`, anno pratica
+  precedente, ancora entro retention, oppure promemoria minimi attivi dell'anno precedente. L'anno viene da `answers.practice_year`,
   con il default 2027 del catalogo per i record precedenti. Non si usa l'anno di upload.
 - Il default esclude sorgenti con una pratica ISEE già collegata per l'anno richiesto,
   compreso il riuso ordinario. Gli altri filtri consentono di seguirne l'avanzamento.
@@ -1137,6 +1137,10 @@ pratica), sempre nel CAF autenticato. GET e POST rispondono con
   "items": [
     {
       "sourceCaseId": "source-id",
+      "sourceKind": "case",
+      "reminderExpiresAt": null,
+      "renewalContactConsent": true,
+      "householdConfirmationRequired": true,
       "reference": "AV-2027-000001",
       "citizenName": "Persona Esempio",
       "householdCount": 3,
@@ -1162,8 +1166,10 @@ da confermare; `started` nucleo confermato dal cittadino; `submitted` almeno un 
 cittadino registrato, anche se poi chieste integrazioni. Un fascicolo creato prima
 tramite riuso ordinario è già `started` o `submitted`, senza trasformazione retroattiva.
 `lastInvitedAt` è l'emissione/rigenerazione del link, non una ricevuta di consegna email.
-Una sorgente successivamente cancellata o non più eleggibile sparisce dalla campagna:
-il suo rinnovo resta autonomo nella coda pratiche.
+Una sorgente cancellata per retention può restare come `sourceKind:"reminder"` con
+lo stesso `sourceCaseId`, conteggi documentali tutti zero e `reminderExpiresAt` ISO.
+Non apre un fascicolo sorgente: la UI deve consentire revoca/cancellazione dal suo ID.
+Scadenza o revoca la rimuovono dalla campagna; il rinnovo resta autonomo nella coda.
 
 ### Creazione in lotto e link mostrati una volta
 
@@ -1305,3 +1311,56 @@ link è 404 perché non esiste più il suo hash. Audit: `renewals.listed`, `rene
 
 Fonti e limiti annuali: [ricerca](research/isee-renewals.md).
 Scelte, migrazione e verifiche: [decisione rinnovi](decisions/renewals.md).
+
+### Retention minima e revoca CAF dei rinnovi
+
+`RenewalItem` aggiunge `sourceKind:"case"|"reminder"`, `reminderExpiresAt:string|null`,
+`renewalContactConsent:boolean`, `householdConfirmationRequired:boolean` (true prima della creazione o della conferma
+del nucleo del rinnovo corrente). Per i promemoria `documents` ha sempre
+`valid=toUpdate=toVerify=0`; POST campagna usa gli stessi `sourceCaseIds`, senza file,
+risposte economiche o note. Esempio: ISEE 2027, promemoria fino a fine 31 marzo 2028
+Roma (`2028-03-31T22:00:00Z`, escluso). GET/POST escludono scaduti anche prima del cron.
+
+`CitizenCase` aggiunge campi opzionali: `renewalContactConsentAt:string|null`,
+`renewalContactConsentVersion:string|null` (prova salvata) e
+`renewalConsentVersion:string` (versione corrente per la lingua). La versione è
+`isee-renewal-email:<lingua>:1`, associata nel core a checkbox e hint immutabili.
+Submit con boolean esplicito e PUT consenso salvano data/versione; omissione nel
+submit conserva la preferenza. Il testo integrale non è salvato in DB/audit.
+
+Canali operatore/admin attivo, su richiesta del cittadino:
+
+```http
+PUT /api/cases/:id/renewal-consent
+PUT /api/renewals/:id/renewal-consent
+Content-Type: application/json
+
+{ "consented": false }
+```
+
+Le due route sono equivalenti: `id` è fascicolo corrente oppure `sourceCaseId`
+della campagna, incluso un promemoria dopo retention. Risposta 200
+`{"consented":false}`. Schema strict `RevokeRenewalConsentRequest`: `true` o campi
+extra → 400; nessun consenso concesso dall'operatore. 401/403 accesso, 404 altra
+organizzazione o sorgente assente, 429 quota operatore link (con `Retry-After`).
+Revoca atomica nel gruppo del CAF: promemoria cancellati immediatamente, consenso
+rimosso dai fascicoli collegati, data revoca e audit senza dati personali. Il dispatcher
+annulla gli inviti pendenti non più autorizzati al successivo controllo.
+
+`PUT /api/c/:token/renewal-consent` rimane il canale cittadino. **Solo `false`** è
+accettato anche a link scaduto/chiuso o dopo retention, grazie all'hash conservato nel
+promemoria attivo. Il token non consente letture dopo retention; `true` continua a
+richiedere un fascicolo con link attivo (410 se scaduto, 404 dopo cancellazione).
+Una revoca completata elimina l'hash: ripetizioni su un promemoria eliminato danno 404.
+
+`POST /api/cases/:id/family-erasure` (admin, `EraseFamilyRequest` esistente con
+`confirmReference` e `confirmed:true`) accetta anche l'ID sorgente di un promemoria,
+confermando il riferimento conservato. Risposta: `deletedCases` ora può essere zero;
+`deletedReminders` è presente se sono stati cancellati promemoria. La cancellazione
+singola di un fascicolo su richiesta elimina anche i promemoria del gruppo; nessuna
+cancellazione su richiesta ne crea uno.
+
+Audit `renewal.consent_updated`: solo boolean `consented`, eventuali
+`consentTextVersion` intero e `consentLanguage` indice di `Language.options`, attore,
+istante e riferimenti tecnici. Family-erasure include il conteggio `reminders` se
+presente. Versione e rappresentanza restano distinte dall'identità civile verificata.

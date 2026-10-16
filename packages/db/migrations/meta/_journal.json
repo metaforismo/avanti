@@ -176,6 +176,13 @@
       "when": 1792164645137,
       "tag": "0024_commercial_metering",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792167089940,
+      "tag": "0025_renewal_retention_reminders",
+      "breakpoints": true
     }
   ]
 }

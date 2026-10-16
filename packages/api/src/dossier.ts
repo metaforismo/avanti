@@ -1,3 +1,4 @@
+import { RENEWAL_CONSENT_VERSIONS } from "@avanti/core";
 import { nearReadyView, type NearReadyViewData } from "./near-ready-view";
 import { conversationState } from "./conversation-state";
 import { copilotDossier } from "./copilot-context";
@@ -70,7 +71,7 @@ export async function caseById(
 }
 export async function audit(
   db: Database,
-  row: CaseRow,
+  row: Pick<CaseRow, "id" | "organizationId" | "reference">,
   actor: "citizen" | "operator" | "system" | "ai",
   type: string,
   now: Date,
@@ -339,6 +340,9 @@ export async function citizenView(
         }
       : null,
     renewalContactConsent: row.renewalContactConsentAt !== null,
+    renewalContactConsentAt: row.renewalContactConsentAt ? iso(row.renewalContactConsentAt) : null,
+    renewalContactConsentVersion: row.renewalContactConsentVersion,
+    renewalConsentVersion: RENEWAL_CONSENT_VERSIONS[row.language],
     practiceYear: practiceYear(row.answers),
     reuseNotice: storedDocs.some((doc) => doc.reusedFromYear !== null && visibleToCitizen(doc, row))
       ? reuseNotice[language]

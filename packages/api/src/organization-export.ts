@@ -2,6 +2,7 @@ import { consumeMfaCode, mfaCipher, recordMfaFailure } from "./mfa";
 import { createHmac } from "node:crypto";
 import { eq, getTableColumns, sql } from "drizzle-orm";
 import {
+  renewalReminders,
   organizations,
   offices,
   operators,
@@ -125,6 +126,13 @@ export async function exportOrganization(
       .where(eq(organizations.id, input.organizationId));
     if (!organization) throw new AdminCommandFailure("Accesso negato.");
     const { tokenHash: _tokenHash, ...caseColumns } = getTableColumns(cases);
+    const { withdrawalTokenHash: _withdrawalHash, ...reminderColumns } =
+      getTableColumns(renewalReminders);
+    const reminderRows = await tx
+      .select(reminderColumns)
+      .from(renewalReminders)
+      .where(eq(renewalReminders.organizationId, organization.id))
+      .orderBy(renewalReminders.sourceCaseId);
     const caseRows = await tx
       .select(caseColumns)
       .from(cases)
@@ -223,6 +231,7 @@ export async function exportOrganization(
         .innerJoin(cases, eq(nearReadyBlindReviews.caseId, cases.id))
         .where(caseFilter),
       cases: caseRows,
+      renewalReminders: reminderRows,
       documents: documentRows,
       messages: messageRows,
       checklistReviews: reviews,

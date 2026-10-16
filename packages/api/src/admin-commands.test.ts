@@ -3,6 +3,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   createDatabase,
+  renewalReminders,
   cases,
   documents,
   events,
@@ -104,6 +105,24 @@ it("exports a consistent organization only, includes raw answers/events/hashes a
       updatedAt: now.toISOString(),
       expiresAt: "2027-03-01T00:00:00Z",
     });
+    await db.insert(renewalReminders).values({
+      sourceCaseId: `erased-${id}`,
+      organizationId: org!,
+      officeId: office!,
+      familyId: `family-${id}`,
+      reference: `erased-${id}`,
+      language: "it",
+      practiceYear: 2026,
+      contact: {
+        firstName: id === "case" ? "Contatto" : "outside-content",
+        email: "person@example.test",
+      },
+      household: [{ role: "richiedente", firstName: "Contatto", birthYear: 1980 }],
+      consentAt: "2026-01-01T00:00:00Z",
+      consentVersion: "isee-renewal-email:it:1",
+      withdrawalTokenHash: `withdrawal-private-${id}`,
+      expiresAt: "2027-03-31T22:00:00Z",
+    });
     await db.insert(documents).values({
       id: `doc-${id}`,
       caseId: id!,
@@ -140,6 +159,8 @@ it("exports a consistent organization only, includes raw answers/events/hashes a
   ).rejects.toThrow("Accesso negato");
   const data = await exportOrganization(db, { organizationId, login }, now, secret);
   expect(data.cases).toHaveLength(1);
+  expect(data.renewalReminders).toHaveLength(1);
+  expect(data.renewalReminders[0]?.sourceCaseId).toBe("erased-case");
   expect(data.cases[0]!.answers).toEqual({ household_size: 2 });
   expect(data.documents).toMatchObject([{ sha256: "a".repeat(64) }]);
   expect(data.events.some((event) => event.type === "organization.exported")).toBe(true);
@@ -154,6 +175,8 @@ it("exports a consistent organization only, includes raw answers/events/hashes a
   const json = JSON.stringify(data);
   for (const omitted of [
     "private-capability",
+    "withdrawal-private",
+    "withdrawalTokenHash",
     "private-storage-key",
     "passwordHash",
     "scrypt:",

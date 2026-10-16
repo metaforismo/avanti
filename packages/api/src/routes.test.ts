@@ -16,6 +16,8 @@ const exampleCase: CaseRow = {
   renewalHouseholdConfirmedAt: null,
   renewalInvitedAt: null,
   renewalContactConsentAt: null,
+  renewalContactConsentVersion: null,
+  renewalContactRevokedAt: null,
   conversationProposals: [],
   conversationEngine: "heuristic",
   aiAttention: null,
