@@ -173,7 +173,7 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="mx-auto grid max-w-6xl gap-12 px-4 pt-10 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-16 lg:pb-28">
+      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 pt-10 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-16 lg:pb-28">
         <div className="flex flex-col justify-center">
           <p className="mb-6 inline-flex w-fit items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-sm text-ink-2 ring-1 ring-line">
             <span className="size-1.5 rounded-full bg-ok" aria-hidden />
@@ -291,7 +291,7 @@ export default function HomePage() {
               servizio: niente chiavi da configurare né costi a consumo.
             </p>
           </div>
-          <div className="mt-14 grid gap-12 lg:grid-cols-2">
+          <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2">
             {(
               [
                 ["Per il cittadino", AI_CITIZEN],
@@ -335,7 +335,7 @@ export default function HomePage() {
         aria-labelledby="operatori-title"
         className="bg-contrast text-on-contrast"
       >
-        <div className="mx-auto grid max-w-6xl gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
           <div>
             <h2
               id="operatori-title"
@@ -440,7 +440,7 @@ export default function HomePage() {
         aria-labelledby="pratiche-title"
         className="border-y border-line bg-surface"
       >
-        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
           <div>
             <h2
               id="pratiche-title"
@@ -547,7 +547,7 @@ export default function HomePage() {
         aria-labelledby="pilota-title"
         className="border-t border-line bg-sunk/60"
       >
-        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:py-28">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:py-28">
           <div>
             <h2
               id="pilota-title"

@@ -1,8 +1,8 @@
 "use client";
 
-import { AlertTriangle, Download } from "lucide-react";
+import { AlertTriangle, ChevronDown, Download, Search } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Route } from "next";
 import type { AuditAction, AuditEvent, AuditPage, OperatorSummary } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -126,6 +126,7 @@ function AuditLog() {
         />
         <Select
           compact
+          wrapperClassName="w-60"
           aria-label="Cosa cerchi"
           value={question}
           onChange={(e) => setQuestion(Number(e.target.value))}
@@ -138,6 +139,7 @@ function AuditLog() {
         </Select>
         <Select
           compact
+          wrapperClassName="w-52"
           aria-label="Operatore"
           value={operatorId}
           onChange={(e) => setOperatorId(e.target.value)}
@@ -155,15 +157,20 @@ function AuditLog() {
             e.preventDefault();
             setAppliedReference(reference.trim().toUpperCase());
           }}
-          className="flex gap-2"
+          className="relative"
         >
+          <Search
+            className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
+            aria-hidden
+          />
           <Input
+            type="search"
             aria-label="Codice pratica"
-            placeholder="AV-2027-000123"
+            placeholder="Codice pratica"
             value={reference}
             onChange={(e) => setReference(e.target.value)}
             onBlur={() => setAppliedReference(reference.trim().toUpperCase())}
-            className="h-10 w-44 font-mono text-sm"
+            className="h-10 w-48 ps-9 font-mono text-sm placeholder:font-sans"
             spellCheck={false}
           />
         </form>
@@ -190,8 +197,8 @@ function AuditLog() {
         ) : (
           <>
             <ol className="divide-y divide-line overflow-hidden rounded-lg bg-surface ring-1 ring-line">
-              {items.map((event) => (
-                <EventRow key={event.id} event={event} names={names} />
+              {groupRuns(items).map((run) => (
+                <EventRun key={run[0]!.id} run={run} names={names} />
               ))}
             </ol>
             {cursor && (
@@ -208,7 +215,62 @@ function AuditLog() {
   );
 }
 
-function EventRow({ event, names }: { event: AuditEvent; names: Map<string, string> }) {
+/** Same actor, same action, same case: a citizen answering 30 questions reads as one line. */
+function sameRun(a: AuditEvent, b: AuditEvent) {
+  return (
+    a.action === b.action &&
+    a.label === b.label &&
+    a.actor.type === b.actor.type &&
+    a.actor.id === b.actor.id &&
+    a.case?.id === b.case?.id &&
+    a.subjectOperatorId === b.subjectOperatorId
+  );
+}
+
+function groupRuns(events: AuditEvent[]) {
+  const runs: AuditEvent[][] = [];
+  for (const event of events) {
+    const last = runs.at(-1);
+    if (last && sameRun(last[0]!, event)) last.push(event);
+    else runs.push([event]);
+  }
+  return runs;
+}
+
+/** A run of identical events, folded to its newest one; every event stays one click away. */
+function EventRun({ run, names }: { run: AuditEvent[]; names: Map<string, string> }) {
+  const [open, setOpen] = useState(false);
+  const first = run[0]!;
+  if (run.length === 1) return <EventRow event={first} names={names} />;
+  if (open) return run.map((event) => <EventRow key={event.id} event={event} names={names} />);
+  return (
+    <EventRow
+      event={first}
+      names={names}
+      repeat={
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={`Mostra tutte le ${run.length} attività uguali, dalle ${formatDateTime(run.at(-1)!.at)}`}
+          className="ms-2 inline-flex h-6 items-center gap-0.5 rounded-full bg-sunk px-2 align-[1px] text-xs font-semibold text-ink-2 tabular-nums hover:bg-line hover:text-ink"
+        >
+          ×{run.length}
+          <ChevronDown className="size-3" aria-hidden />
+        </button>
+      }
+    />
+  );
+}
+
+function EventRow({
+  event,
+  names,
+  repeat,
+}: {
+  event: AuditEvent;
+  names: Map<string, string>;
+  repeat?: ReactNode;
+}) {
   const failed = event.action === "auth.login_failed";
   const actor =
     event.actor.type === "citizen"
@@ -239,6 +301,7 @@ function EventRow({ event, names }: { event: AuditEvent; names: Map<string, stri
           {event.label}
         </span>
         {subject && <span className="text-ink-2"> · {subject}</span>}
+        {repeat}
       </p>
       <p className="text-sm md:text-end">
         {event.case ? (

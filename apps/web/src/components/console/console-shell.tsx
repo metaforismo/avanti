@@ -139,12 +139,6 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Scope for the console's dark theme (see globals.css): citizen pages stay light.
-  useEffect(() => {
-    document.documentElement.classList.add("console");
-    return () => document.documentElement.classList.remove("console");
-  }, []);
-
   // Close the mobile menu whenever navigation happens.
   useEffect(() => {
     const timer = window.setTimeout(() => setMenuOpen(false), 0);

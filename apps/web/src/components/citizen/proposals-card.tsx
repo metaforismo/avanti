@@ -49,8 +49,9 @@ export function ProposalsCard({
             <li key={proposal.id} className="flex items-start gap-3 py-2.5">
               <div className={isDropped ? "min-w-0 flex-1 opacity-50" : "min-w-0 flex-1"}>
                 <p className="text-sm text-ink-3">{proposal.questionText}</p>
-                <p dir="auto" className="font-semibold break-words">
-                  {isDropped ? <s>{proposal.display}</s> : proposal.display}
+                {/* bdi, not dir=auto on the line: a bare number would align it to the left in RTL. */}
+                <p className="font-semibold break-words">
+                  <bdi>{isDropped ? <s>{proposal.display}</s> : proposal.display}</bdi>
                 </p>
                 {showEvidence(proposal) && (
                   <p className="mt-0.5 text-sm text-ink-2">
@@ -61,11 +62,11 @@ export function ProposalsCard({
                   </p>
                 )}
               </div>
-              <div className="flex shrink-0 gap-1">
+              <div className="-me-2 -mt-1.5 flex shrink-0 gap-1">
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-sm"
+                  size="icon-lg"
                   aria-pressed={isDropped}
                   onClick={() =>
                     setDropped((current) =>

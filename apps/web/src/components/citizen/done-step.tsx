@@ -55,6 +55,18 @@ export function DoneStep({ api, data, m, token }: StepProps) {
         {statusLine && <Notice tone="info" size="md" title={statusLine} className="mt-3" />}
       </div>
 
+      <dl className="rounded-lg bg-surface p-5 ring-1 ring-line">
+        <dt className="text-sm text-ink-3">{m.done.reference}</dt>
+        <dd
+          className="mt-1 font-mono text-2xl font-semibold tracking-wide"
+          dir="ltr"
+          translate="no"
+        >
+          {data.reference}
+        </dd>
+        {data.practice && <dd className="mt-1 text-ink-2">{data.practice.name}</dd>}
+      </dl>
+
       {data.office?.bookingUrl && (
         <div className="grid gap-2">
           <Button asChild size="lg">
@@ -94,27 +106,6 @@ export function DoneStep({ api, data, m, token }: StepProps) {
         </section>
       )}
 
-      {data.practice?.id === "isee_ordinario" && data.renewalContactConsent !== undefined && (
-        <RenewalConsent
-          token={token}
-          consented={data.renewalContactConsent}
-          m={m}
-          onSaved={() => void api.reload()}
-        />
-      )}
-
-      <dl className="rounded-lg bg-surface p-5 ring-1 ring-line">
-        <dt className="text-sm text-ink-3">{m.done.reference}</dt>
-        <dd
-          className="mt-1 font-mono text-2xl font-semibold tracking-wide"
-          dir="ltr"
-          translate="no"
-        >
-          {data.reference}
-        </dd>
-        {data.practice && <dd className="mt-1 text-ink-2">{data.practice.name}</dd>}
-      </dl>
-
       <ul className="grid gap-4">
         <li className="flex gap-3">
           <IdCard className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
@@ -141,6 +132,15 @@ export function DoneStep({ api, data, m, token }: StepProps) {
           </div>
         </li>
       </ul>
+
+      {data.practice?.id === "isee_ordinario" && data.renewalContactConsent !== undefined && (
+        <RenewalConsent
+          token={token}
+          consented={data.renewalContactConsent}
+          m={m}
+          onSaved={() => void api.reload()}
+        />
+      )}
 
       {data.office && (
         <address className="grid gap-2 border-t border-line pt-6 text-ink-2 not-italic">

@@ -11,7 +11,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/console/ac
   const one = (value: string | string[] | undefined) => (typeof value === "string" ? value : null);
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,32rem)]">
-      <section className="hidden flex-col justify-between bg-contrast p-12 text-on-contrast lg:flex">
+      <section className="panel-night hidden flex-col justify-between p-12 text-on-contrast lg:flex">
         <Link href="/" className="w-fit rounded-sm [&_span]:text-on-contrast">
           <Logo />
         </Link>

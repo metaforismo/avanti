@@ -140,7 +140,7 @@ export function OperatorsSection() {
         title="Operatori"
         lead="Chi può accedere alla console di questo CAF."
         actions={
-          <Button onClick={() => setAdding(true)}>
+          <Button variant="secondary" onClick={() => setAdding(true)}>
             <UserPlus className="size-4" aria-hidden />
             Aggiungi operatore
           </Button>

@@ -187,7 +187,7 @@ function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
         action={
           <Button
             variant="secondary"
-            size="sm"
+            size="touch"
             onClick={() => {
               setPractices(null);
               setAttempt((n) => n + 1);
