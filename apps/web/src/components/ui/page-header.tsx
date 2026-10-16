@@ -1,13 +1,18 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-/** Width and padding of every console page, so pages line up when switching between them. */
+/**
+ * Width and padding of every console page. Pages start at the same left edge whatever their
+ * width, so the title doesn't jump when switching pages; only short notices are centered.
+ */
 export function PageContainer({
   width = "5xl",
+  centered = false,
   className,
   children,
 }: {
   width?: "3xl" | "4xl" | "5xl" | "6xl" | "7xl";
+  centered?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -18,7 +23,13 @@ export function PageContainer({
     "6xl": "max-w-6xl",
     "7xl": "max-w-7xl",
   }[width];
-  return <div className={cn("mx-auto px-4 py-6 sm:px-6 lg:py-8", max, className)}>{children}</div>;
+  return (
+    <div
+      className={cn("px-4 py-6 sm:px-6 lg:px-10 lg:py-8", centered && "mx-auto", max, className)}
+    >
+      {children}
+    </div>
+  );
 }
 
 /** The h1 of a console page, its one-line purpose and the page's own actions. */

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertOctagon,
   AlertTriangle,
   CheckCheck,
   Inbox,
@@ -427,7 +428,7 @@ function QueueRow({ item }: { item: CaseListItem }) {
               }
             >
               <Pill tone="danger" size="sm" className="py-0.5">
-                <AlertTriangle aria-hidden />
+                <AlertOctagon aria-hidden />
                 {item.blockers}
                 <span className="sr-only">bloccanti</span>
               </Pill>
@@ -436,6 +437,7 @@ function QueueRow({ item }: { item: CaseListItem }) {
           {item.warnings > 0 && (
             <span title={item.warnings === 1 ? "1 avviso" : `${item.warnings} avvisi`}>
               <Pill tone="warn" size="sm" className="py-0.5">
+                <AlertTriangle aria-hidden />
                 {item.warnings}
                 <span className="sr-only">avvisi</span>
               </Pill>

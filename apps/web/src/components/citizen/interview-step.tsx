@@ -147,6 +147,8 @@ function FreeText({ api, m }: Pick<StepProps, "api" | "m">) {
 /** Everything answered so far, each editable: the citizen's own check before the documents. */
 export function AnsweredList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
   const answered = data.answered ?? [];
+  // Nothing to review yet: an empty «Your answers (0)» only adds noise to the first screen.
+  if (answered.length === 0) return null;
   return (
     <details className="group rounded-lg ring-1 ring-line">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-4 py-3.5 font-semibold [&::-webkit-details-marker]:hidden">
@@ -159,54 +161,48 @@ export function AnsweredList({ api, data, m }: Pick<StepProps, "api" | "data" | 
           aria-hidden
         />
       </summary>
-      {answered.length === 0 ? (
-        <p className="px-4 pb-4 text-ink-3">{m.interview.noAnswers}</p>
-      ) : (
-        <>
-          {answered.some((item) => !item.editable) && (
-            <p className="flex items-start gap-2 border-t border-line px-4 py-3 text-sm text-ink-2">
-              <span aria-hidden className="marker mt-0.5 shrink-0 font-semibold">
-                Aa
-              </span>
-              {m.interview.inferred}
-            </p>
-          )}
-          <ul className="divide-y divide-line border-t border-line">
-            {answered.map((item) => (
-              <li key={item.questionId} className="flex items-start gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-ink-3">{item.question}</p>
-                  <p dir="auto" className="mt-0.5 font-semibold break-words">
-                    <span className={item.editable ? undefined : "marker"}>{item.answer}</span>
-                    {!item.editable && <span className="sr-only"> ({m.interview.inferred})</span>}
-                  </p>
-                </div>
-                {
-                  <button
-                    type="button"
-                    disabled={api.pending !== null}
-                    onClick={() =>
-                      void api.turn(
-                        { type: "edit", questionId: item.questionId },
-                        `edit:${item.questionId}`,
-                      )
-                    }
-                    className="-me-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-sm px-3 text-sm font-semibold text-stamp hover:bg-stamp-wash disabled:opacity-50"
-                    aria-label={`${m.common.edit}: ${item.question}`}
-                  >
-                    {api.pending === `edit:${item.questionId}` ? (
-                      <Spinner className="size-4" />
-                    ) : (
-                      <Pencil className="size-3.5" aria-hidden />
-                    )}
-                    {m.common.edit}
-                  </button>
-                }
-              </li>
-            ))}
-          </ul>
-        </>
+      {answered.some((item) => !item.editable) && (
+        <p className="flex items-start gap-2 border-t border-line px-4 py-3 text-sm text-ink-2">
+          <span aria-hidden className="marker mt-0.5 shrink-0 font-semibold">
+            Aa
+          </span>
+          {m.interview.inferred}
+        </p>
       )}
+      <ul className="divide-y divide-line border-t border-line">
+        {answered.map((item) => (
+          <li key={item.questionId} className="flex items-start gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-ink-3">{item.question}</p>
+              <p dir="auto" className="mt-0.5 font-semibold break-words">
+                <span className={item.editable ? undefined : "marker"}>{item.answer}</span>
+                {!item.editable && <span className="sr-only"> ({m.interview.inferred})</span>}
+              </p>
+            </div>
+            {
+              <button
+                type="button"
+                disabled={api.pending !== null}
+                onClick={() =>
+                  void api.turn(
+                    { type: "edit", questionId: item.questionId },
+                    `edit:${item.questionId}`,
+                  )
+                }
+                className="-me-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-sm px-3 text-sm font-semibold text-stamp hover:bg-stamp-wash disabled:opacity-50"
+                aria-label={`${m.common.edit}: ${item.question}`}
+              >
+                {api.pending === `edit:${item.questionId}` ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <Pencil className="size-3.5" aria-hidden />
+                )}
+                {m.common.edit}
+              </button>
+            }
+          </li>
+        ))}
+      </ul>
     </details>
   );
 }

@@ -115,7 +115,7 @@ export default function PilotReportPage() {
   const operator = useOperator();
   if (operator.role !== "admin") {
     return (
-      <PageContainer width="3xl" className="py-16 text-center lg:py-16">
+      <PageContainer width="3xl" centered className="py-16 text-center lg:py-16">
         <h1 className="font-display text-2xl font-semibold">Rapporto riservato</h1>
         <p className="mt-2 text-ink-2">Il rapporto del pilota lo prepara un amministratore.</p>
       </PageContainer>
