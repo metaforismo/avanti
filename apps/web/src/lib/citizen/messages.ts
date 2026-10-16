@@ -96,8 +96,8 @@ const it = {
     resume: "Riprendi la pratica iniziata",
     resumeHint: "Hai già iniziato una pratica su questo telefono.",
     startNew: "Inizia una nuova pratica",
-    officeNotFound: "Questo sportello non esiste o il link non è corretto.",
-    officeNotFoundHint: "Controlla il QR code o chiedi allo sportello un nuovo link.",
+    officeNotFound: "Sportello non trovato",
+    officeNotFoundHint: "Il link potrebbe essere incompleto: inquadra di nuovo il QR code o chiedi allo sportello un nuovo link.",
     noAccount: "Non serve registrarsi.",
     time: "Circa 10 minuti, puoi interrompere e riprendere quando vuoi.",
     aiNotice:
@@ -403,8 +403,8 @@ const en: Widen<CitizenMessages> = {
     resume: "Continue where you left off",
     resumeHint: "You already started an application on this phone.",
     startNew: "Start a new application",
-    officeNotFound: "This desk doesn't exist or the link is wrong.",
-    officeNotFoundHint: "Check the QR code or ask the desk for a new link.",
+    officeNotFound: "Desk not found",
+    officeNotFoundHint: "The link may be incomplete: scan the QR code again or ask the desk for a new link.",
     noAccount: "No sign-up needed.",
     time: "About 10 minutes. You can stop and come back whenever you like.",
     aiNotice:

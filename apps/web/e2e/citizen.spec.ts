@@ -140,9 +140,7 @@ test("an invalid link explains what to do", async ({ page }) => {
 
 test("an unknown office says the QR is wrong", async ({ page }) => {
   await page.goto("/s/sportello-inesistente");
-  await expect(
-    page.getByText("Questo sportello non esiste o il link non è corretto."),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sportello non trovato" })).toBeVisible();
 });
 
 test("the documents step fits a 320px phone", async ({ page }) => {
