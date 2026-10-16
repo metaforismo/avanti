@@ -155,6 +155,9 @@ if (process.argv.includes("--cold")) {
       metrics90: () => request("/api/metrics?from=2026-10-18&to=2027-01-15"),
       pilotReport: () => request("/api/reports/pilot?from=2026-10-18&to=2027-01-15"),
       systemStatus: () => request("/api/status"),
+      nearReadyReport: () => request("/api/reports/near-ready"),
+      renewals: () => request("/api/renewals?year=2028&status=all&limit=50"),
+      renewalsToInvite: () => request("/api/renewals?year=2028&limit=50"),
       audit: () => request("/api/audit?limit=50"),
       auditFiltered: () =>
         request(

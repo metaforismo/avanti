@@ -1,7 +1,7 @@
 import { nearReadyProfile, currentNearReadyProfile } from "./near-ready-profile";
 import { evaluateCaseNearReady, nearReadyEvent, recordNearReadyFinal } from "./near-ready";
 import { latestNearReady } from "./near-ready-view";
-import { queuePrioritySql } from "./copilot-queue";
+import { nearReadyPrioritySql, queuePrioritySql } from "./copilot-queue";
 import { and, eq, desc, lt, or, ilike, sql, count, gte, inArray } from "drizzle-orm";
 import { enqueueCitizen, scheduleNotificationDelivery } from "./notifications";
 import { observeAi } from "./operational-telemetry";
@@ -86,7 +86,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     }
     const nearReadyFilter = and(
       query.status ? eq(cases.status, query.status) : undefined,
-      eq(queuePrioritySql(profile, s.clock()), "near_ready"),
+      nearReadyPrioritySql(profile, s.clock()),
     );
     const totals = await s.db
       .select({

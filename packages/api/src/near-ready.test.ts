@@ -14,6 +14,7 @@ import {
   nearReadyBlindReviews,
   events,
   copilotCache,
+  messages,
   rateLimits,
   type Database,
 } from "@avanti/db";
@@ -273,6 +274,20 @@ it("suggerisce solo con due compiti AI riusciti; espone badge, filtro e conteggi
   expect(list.items).toHaveLength(1);
   expect(list.items[0]).toMatchObject({ aiPriority: "near_ready", nearReadyBadge: true });
   expect(list.priorityCounts.near_ready).toBe(1);
+  // An unread citizen question outranks the suggestion in the badge, the filter and the count.
+  await db.insert(messages).values({
+    id: "question",
+    caseId: "case",
+    role: "citizen",
+    text: "Quando devo portare i documenti?",
+    createdAt: now.toISOString(),
+  });
+  const asked = CaseListResponse.parse(await (await request("/cases?ai=near_ready")).json());
+  expect(asked.items).toHaveLength(0);
+  expect(asked.priorityCounts.near_ready).toBe(0);
+  const all = CaseListResponse.parse(await (await request("/cases")).json());
+  expect(all.items.find((item) => item.id === "case")?.aiPriority).toBe("citizen_question");
+  await db.delete(messages).where(eq(messages.id, "question"));
   const [entry] = await db.select().from(nearReadyEvaluations);
   expect(entry?.snapshot.tasks.map((t) => t.task)).toEqual([
     "near_ready.read",
