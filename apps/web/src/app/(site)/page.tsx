@@ -86,7 +86,7 @@ const AI_OPERATOR = [
 const AI_LIMITS = [
   "Non decide se un cittadino ha diritto a qualcosa e non manda nulla al suo posto: decide l'operatore.",
   "Non inventa documenti, anni o regole: quelle stanno nel motore di Avanti, con le fonti ufficiali.",
-  "Se il fornitore AI non risponde o il budget del mese finisce, Avanti continua con le regole.",
+  "Se l'AI non risponde, Avanti continua con le regole: le pratiche non si fermano.",
   "Usa solo fornitori che non conservano i dati e non li usano per addestrare, e solo ciò che serve a ogni compito.",
 ] as const;
 
@@ -161,7 +161,7 @@ const FAQ = [
   },
   {
     q: "Quanto costa?",
-    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027. Dopo, un canone per sportello che definiamo insieme ai piloti sulla base del tempo risparmiato misurato.",
+    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027. Dopo, un canone per sportello che definiamo insieme ai piloti sulla base del tempo risparmiato misurato. L'intelligenza artificiale è inclusa: nessuna chiave da configurare, nessun contratto con fornitori, nessun costo a consumo.",
   },
 ] as const;
 
@@ -283,7 +283,8 @@ export default function HomePage() {
             </h2>
             <p className="mt-5 text-lg text-ink-2">
               Non un chatbot appoggiato sopra: l&apos;AI lavora dentro il percorso, accanto a regole
-              scritte con le fonti ufficiali che decidono cosa chiedere e cosa serve.
+              scritte con le fonti ufficiali che decidono cosa chiedere e cosa serve. È inclusa nel
+              servizio: niente chiavi da configurare né costi a consumo.
             </p>
           </div>
           <div className="mt-14 grid gap-12 lg:grid-cols-2">

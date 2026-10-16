@@ -470,6 +470,7 @@ it("preserves omitted AI preferences on settings PATCH and disables the citizen 
       await request("/settings", "PATCH", {
         aiCopilot: false,
         aiCitizenAssistant: false,
+        // Ignored: the AI budget is set by Avanti, not by the CAF.
         aiMonthlyBudgetEur: 7,
       })
     ).status,
@@ -478,7 +479,7 @@ it("preserves omitted AI preferences on settings PATCH and disables the citizen 
   expect(await (await request("/settings")).json()).toMatchObject({
     aiCopilot: false,
     aiCitizenAssistant: false,
-    aiMonthlyBudgetEur: 7,
+    aiMonthlyBudgetEur: null,
     linkDays: 40,
   });
   await db.update(cases).set({ status: "intake" });

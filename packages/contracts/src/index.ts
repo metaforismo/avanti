@@ -1266,13 +1266,17 @@ export type OrganizationSettings = z.infer<typeof OrganizationSettings>;
 
 // PATCH must preserve omitted preferences: Zod defaults would otherwise reset them
 // (an unrelated PATCH would turn off required MFA or the email notices).
-export const UpdateSettingsRequest = OrganizationSettings.omit({ nearReadySuspendedAt: true })
+// The AI budget protects the platform's own provider bill: AI is included in the plan, so a CAF
+// cannot raise it. Avanti sets it per organization; unknown keys are stripped, not rejected.
+export const UpdateSettingsRequest = OrganizationSettings.omit({
+  nearReadySuspendedAt: true,
+  aiMonthlyBudgetEur: true,
+})
   .partial()
   .extend({
     nearReadyMode: z.enum(["off", "shadow", "visible"]).optional(),
     nearReadyCriticalThreshold: z.number().min(0).max(1).optional(),
     nearReadyOtherThreshold: z.number().min(0).max(1).optional(),
-    aiMonthlyBudgetEur: OrganizationSettings.shape.aiMonthlyBudgetEur.removeDefault().optional(),
     aiCopilot: z.boolean().optional(),
     aiCitizenAssistant: z.boolean().optional(),
     mfaRequired: z.boolean().optional(),

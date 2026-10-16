@@ -176,7 +176,7 @@ it("11,27: answer rendering keeps names, roles and choices human-readable", asyn
       question,
       "it",
     ),
-  ).toBe("Anna (coniuge), Luca (figlio)");
+  ).toBe("Anna (coniuge), Luca (figlio/a)");
   expect(readableAnswer(true, question, "it")).toBe("Sì");
   expect(readableAnswer(3, question, "it")).toBe("3");
 });

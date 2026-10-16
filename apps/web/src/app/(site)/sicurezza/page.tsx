@@ -44,14 +44,14 @@ const CONTROLS = [
   },
   {
     title: "AI con il minimo indispensabile",
-    body: "A ogni compito arriva solo ciò che serve: il messaggio del cittadino con le domande aperte, il singolo documento da leggere, il fascicolo senza contatti, note interne né nomi dei file per il riepilogo dell'operatore. Solo fornitori a conservazione zero, che non addestrano modelli; le registrazioni vocali non vengono salvate. Il testo dei cittadini è trattato come dato, mai come istruzione. Il CAF può spegnere l'AI per i cittadini o per gli operatori e fissare un budget mensile: senza AI Avanti funziona con le regole. Nulla di ciò che propone l'AI diventa una risposta o un valore senza la conferma di una persona.",
+    body: "A ogni compito arriva solo ciò che serve: il messaggio del cittadino con le domande aperte, il singolo documento da leggere, il fascicolo senza contatti, note interne né nomi dei file per il riepilogo dell'operatore. Solo fornitori a conservazione zero, che non addestrano modelli; le registrazioni vocali non vengono salvate. Il testo dei cittadini è trattato come dato, mai come istruzione. Il CAF può spegnere l'AI per i cittadini o per gli operatori: senza AI Avanti funziona con le regole. Nulla di ciò che propone l'AI diventa una risposta o un valore senza la conferma di una persona.",
   },
 ] as const;
 
 const BEFORE_REAL_DATA = [
   "Accordo di nomina a responsabile del trattamento (art. 28 GDPR)",
   "Valutazione d'impatto (DPIA) per dati economici, minori e salute",
-  "Scelta dei fornitori AI e di hosting: regione, conservazione, subresponsabili",
+  "Elenco dei fornitori di AI e di hosting che usiamo (subresponsabili): regione e conservazione",
   "Durate di conservazione e procedura per le richieste degli interessati",
   "Informativa per i cittadini nelle lingue usate allo sportello",
 ] as const;

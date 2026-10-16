@@ -480,7 +480,11 @@ const PRIORITY: Record<Priority, { filter: string; badge: string; tone: Tone }> 
 function PriorityBadge({ item }: { item: CaseListItem }) {
   const key = item.aiPriority!;
   const Icon =
-    key === "citizen_question" ? MessageCircleQuestion : key === "near_ready" ? CheckCheck : Sparkles;
+    key === "citizen_question"
+      ? MessageCircleQuestion
+      : key === "near_ready"
+        ? CheckCheck
+        : Sparkles;
   return (
     <Pill tone={PRIORITY[key].tone} className="mt-1 w-fit whitespace-normal">
       <Icon aria-hidden />

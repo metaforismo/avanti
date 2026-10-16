@@ -16,6 +16,7 @@ import { formatDateTime, formatMinutes, LANGUAGE_IT, PRACTICE_SHORT } from "@/li
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
+import { NearReadyPilot } from "@/components/console/near-ready-pilot";
 
 // Calendar days in Italian time, as the report counts them.
 const romeDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" });
@@ -365,6 +366,9 @@ function ReportView() {
           </p>
         </div>
       )}
+      <div className="mt-12 border-t border-line pt-10">
+        <NearReadyPilot />
+      </div>
     </PageContainer>
   );
 }
