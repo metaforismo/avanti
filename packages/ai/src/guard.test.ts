@@ -22,3 +22,16 @@ describe("latin-script language check", () => {
     ).toBe(false);
   });
 });
+describe("names quoted from the dossier", () => {
+  it("accepts a non-Latin name present in the context, not a reply in another script", async () => {
+    const { outputViolations } = await import("./guard");
+    const context = JSON.stringify({ members: [{ firstName: "Олена", role: "figlio" }] });
+    expect(outputViolations("Il documento di Олена risulta mancante.", context, "it")).toEqual([]);
+    expect(
+      outputViolations("Документ Олена відсутній, завантажте його ще раз.", context, "it"),
+    ).toContain("language");
+    expect(outputViolations("Il documento di Олена risulta mancante.", "{}", "it")).toContain(
+      "language",
+    );
+  });
+});
