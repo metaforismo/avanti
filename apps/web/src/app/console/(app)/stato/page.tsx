@@ -42,12 +42,13 @@ const CODES: Record<SystemStatusCode, string> = {
   unavailable: "Non raggiungibile. Se dura più di qualche minuto, contatta il supporto di Avanti.",
   probe_unavailable: "Il controllo non è disponibile in questo ambiente.",
   not_configured:
-    "Non configurata: si usano le regole. Il servizio funziona, ma i documenti vanno controllati a vista.",
+    "Non attiva in questo ambiente: si usano le regole e i documenti vanno controllati a vista. Se succede nel vostro servizio, contatta il supporto di Avanti.",
   no_observations: "Nessuna attività nelle ultime 24 ore.",
   ai_fallback:
     "L'AI non risponde e si usano le regole: le pratiche procedono, i documenti vanno controllati a vista.",
   ai_errors: "Errori recenti dell'AI: alcune analisi sono passate alle regole.",
-  never_run: "Mai eseguita. Va configurata la pianificazione (vedi la guida al rilascio).",
+  never_run:
+    "Mai eseguita. La pianifica Avanti: se resta così per più di un giorno, contatta il supporto.",
   running: "In corso adesso.",
   stale: "Non eseguita da troppo tempo: documenti bloccati e pulizie possono accumularsi.",
   failed: "L'ultima esecuzione non è riuscita; riproverà da sola.",
@@ -55,11 +56,11 @@ const CODES: Record<SystemStatusCode, string> = {
   recent_errors: "Ci sono stati errori nelle ultime 24 ore.",
   not_supported: "Non disponibile.",
   email_simulated:
-    "Nessun servizio di invio configurato: gli avvisi restano nel registro tecnico e non arrivano a nessuno.",
+    "Nessun servizio di invio attivo: gli avvisi via email non arrivano a nessuno. Per attivarli contatta il supporto di Avanti.",
   email_backlog:
     "Alcuni avvisi aspettano da più di un'ora: il servizio di invio potrebbe essere lento.",
   email_failed:
-    "Alcuni avvisi non sono partiti dopo 5 tentativi. Controlla la configurazione del servizio di invio.",
+    "Alcuni avvisi non sono partiti dopo 5 tentativi. Se continua, contatta il supporto di Avanti.",
 };
 
 const emailSummary = (email: SystemStatus["components"]["email"]) =>
@@ -73,7 +74,7 @@ export default function SystemStatusPage() {
   const operator = useOperator();
   if (operator.role !== "admin") {
     return (
-      <PageContainer width="3xl" className="py-16 text-center lg:py-16">
+      <PageContainer width="3xl" centered className="py-16 text-center lg:py-16">
         <h1 className="font-display text-2xl font-semibold">Stato riservato</h1>
         <p className="mt-2 text-ink-2">Lo stato del sistema lo consulta un amministratore.</p>
       </PageContainer>
@@ -336,7 +337,7 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
         <Legend swatch="bg-[var(--chart-fallback)] hatch">con le regole {total.fallbacks}</Legend>
         <Legend swatch="rounded-full bg-danger">errori {total.errors}</Legend>
       </figcaption>
-      <div className="flex h-20 items-end gap-0.5" aria-hidden>
+      <div className="flex h-20 items-end gap-0.5 border-b border-line" aria-hidden>
         {hourly.map((h) => {
           const ai = (h.successes / max) * 100;
           const rules = (h.fallbacks / max) * 100;
@@ -365,6 +366,13 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
           );
         })}
       </div>
+      {hourly.length > 1 && (
+        <div className="tabular flex justify-between text-xs text-ink-3" aria-hidden>
+          <span>{hour(hourly[0]!.hour)}</span>
+          <span>{hour(hourly[Math.floor(hourly.length / 2)]!.hour)}</span>
+          <span>adesso</span>
+        </div>
+      )}
       <table className="sr-only">
         <caption>Chiamate all&apos;AI per ora nelle ultime 24 ore</caption>
         <thead>

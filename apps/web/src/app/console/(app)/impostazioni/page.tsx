@@ -13,7 +13,7 @@ export default function SettingsPage() {
 
   if (operator.role !== "admin") {
     return (
-      <PageContainer width="3xl" className="py-16 text-center lg:py-16">
+      <PageContainer width="3xl" centered className="py-16 text-center lg:py-16">
         <h1 className="font-display text-2xl font-semibold">Impostazioni riservate</h1>
         <p className="mt-2 text-ink-2">
           Operatori, sportelli e parametri li gestisce un amministratore del tuo CAF.

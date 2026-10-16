@@ -106,7 +106,11 @@ function ChecklistRow({
       f.code !== "checklist.missing" &&
       (f.severity === "blocker" || f.severity === "warning"),
   );
-  const status = CHECKLIST_STATUS[item.status];
+  // A missing optional document doesn't block the case: it shouldn't look like an error.
+  const status =
+    item.status === "missing" && !item.required
+      ? { label: "Non caricato", tone: "muted" as const }
+      : CHECKLIST_STATUS[item.status];
   const busy = actions.pending === `review:${item.id}`;
   const decided =
     item.status === "verified" || item.status === "rejected" || item.status === "waived";

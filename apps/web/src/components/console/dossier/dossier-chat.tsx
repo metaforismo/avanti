@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowUp, ArrowUpRight, BookOpen, CornerDownRight, Sparkles, X } from "lucide-react";
+import { BookOpen, X } from "lucide-react";
 import { Dialog as Primitive } from "radix-ui";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type {
   CaseDossier,
   DossierAskResponse,
@@ -14,6 +14,14 @@ import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import {
+  ChatInput,
+  CopilotAvatar,
+  FollowUps,
+  QuestionBubble,
+  Starters,
+  ThinkingRow,
+} from "../chat-parts";
 import { EvidenceChips, openEvidence } from "./copilot-panel";
 import type { DossierActions } from "./dossier-view";
 
@@ -64,13 +72,6 @@ export function DossierChat({
     end.current?.scrollIntoView({ block: "end" });
   }, [turns?.length, pending]);
 
-  useEffect(() => {
-    const el = field.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
-  }, [text]);
-
   async function ask(question: string) {
     const value = question.trim();
     if (value.length < 3 || pending) return;
@@ -103,11 +104,6 @@ export function DossierChat({
     }
   }
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    void ask(text);
-  }
-
   const list = turns ?? [];
   const last = list[list.length - 1];
   const suggestions = !pending && last?.response.suggestions ? last.response.suggestions : [];
@@ -123,7 +119,7 @@ export function DossierChat({
           )}
         >
           <header className="flex items-center gap-3 px-5 pt-4 pb-2">
-            <Avatar size="lg" />
+            <CopilotAvatar size="lg" />
             <div className="min-w-0 flex-1">
               <Primitive.Title className="font-semibold">Chiedi al fascicolo</Primitive.Title>
               <Primitive.Description className="truncate text-sm text-ink-3">
@@ -170,13 +166,8 @@ export function DossierChat({
                 ))}
                 {pending && (
                   <>
-                    <Question text={pending.question} />
-                    <li className="flex gap-3" aria-label="Sto leggendo il fascicolo">
-                      <Avatar />
-                      <p aria-hidden className="text-shimmer pt-0.5">
-                        Sto leggendo il fascicolo…
-                      </p>
-                    </li>
+                    <QuestionBubble text={pending.question} />
+                    <ThinkingRow text="Sto leggendo il fascicolo…" />
                   </>
                 )}
               </ol>
@@ -187,82 +178,24 @@ export function DossierChat({
             <div ref={end} />
           </div>
 
-          <form
-            onSubmit={submit}
-            className="grid gap-2 px-5 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-          >
+          <div className="grid gap-2 px-5 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {error && <Notice tone="danger">{error}</Notice>}
-            <label htmlFor={fieldId} className="sr-only">
-              Domanda sul fascicolo
-            </label>
-            <div className="flex items-end gap-2 rounded-2xl bg-surface p-1.5 ps-3 ring-1 ring-line focus-within:ring-line-strong">
-              <textarea
-                ref={field}
-                id={fieldId}
-                rows={1}
-                value={text}
-                maxLength={1000}
-                placeholder="Chiedi qualcosa su questa pratica"
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                    e.preventDefault();
-                    void ask(text);
-                  }
-                }}
-                className="min-h-10 flex-1 resize-none bg-transparent py-2 outline-none placeholder:text-ink-3"
-              />
-              <button
-                type="submit"
-                disabled={pending !== null}
-                aria-label="Invia la domanda"
-                className={cn(
-                  "grid size-10 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none",
-                  text.trim().length >= 3
-                    ? "bg-contrast text-on-contrast hover:opacity-90"
-                    : "bg-sunk text-ink-3",
-                )}
-              >
-                {pending ? (
-                  <Spinner className="size-5" />
-                ) : (
-                  <ArrowUp className="size-5" aria-hidden />
-                )}
-              </button>
-            </div>
-            <p className="text-center text-xs text-ink-3">
-              Le risposte dell&apos;AI possono sbagliare: controlla le fonti prima di decidere.
-            </p>
-          </form>
+            <ChatInput
+              id={fieldId}
+              label="Domanda sul fascicolo"
+              value={text}
+              onChange={setText}
+              onSend={(value) => void ask(value)}
+              pending={pending !== null}
+              placeholder="Chiedi qualcosa su questa pratica"
+              maxLength={1000}
+              inputRef={field}
+              footer="Le risposte dell'AI possono sbagliare: controlla le fonti prima di decidere."
+            />
+          </div>
         </Primitive.Content>
       </Primitive.Portal>
     </Primitive.Root>
-  );
-}
-
-/** The copilot's mark: every automated reply starts with it. */
-function Avatar({ size = "md" }: { size?: "md" | "lg" }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "grid shrink-0 place-items-center rounded-full bg-stamp-wash text-stamp ring-1 ring-stamp/20",
-        size === "lg" ? "size-9" : "size-7",
-      )}
-    >
-      <Sparkles className={size === "lg" ? "size-4.5" : "size-3.5"} />
-    </span>
-  );
-}
-
-function Question({ text }: { text: string }) {
-  return (
-    <li className="flex justify-end">
-      <p className="max-w-[85%] rounded-3xl bg-sunk px-4 py-2.5 whitespace-pre-line">
-        <span className="sr-only">Tu: </span>
-        {text}
-      </p>
-    </li>
   );
 }
 
@@ -278,9 +211,9 @@ function Turn({
   const { response } = turn;
   return (
     <>
-      <Question text={turn.question} />
+      <QuestionBubble text={turn.question} />
       <li className="flex gap-3">
-        <Avatar />
+        <CopilotAvatar />
         <div className="min-w-0 flex-1 pt-0.5">
           <span className="sr-only">Copilota: </span>
           <AnswerText response={response} onEvidence={onEvidence} />
@@ -327,60 +260,12 @@ function Turn({
   );
 }
 
-/** Next questions, as in the chat apps: plain rows under the answer, each a click away. */
-function FollowUps({ items, onPick }: { items: string[]; onPick: (question: string) => void }) {
-  return (
-    <ul className="ms-10 mt-3 divide-y divide-line">
-      {items.map((item) => (
-        <li key={item}>
-          <button
-            type="button"
-            onClick={() => onPick(item)}
-            className="group flex w-full items-start gap-3 py-2.5 text-start text-body-sm text-ink-2 transition-colors hover:text-ink focus-visible:text-ink focus-visible:outline-none"
-          >
-            <CornerDownRight
-              className="rtl-flip mt-0.5 size-4 shrink-0 text-ink-3 group-hover:text-stamp"
-              aria-hidden
-            />
-            <span className="min-w-0 flex-1">{item}</span>
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /** The answer without its reference marks, for pasting into a note or a message. */
 const plainAnswer = (answer: string) =>
   answer
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.replace(MARKER, ""))
     .join("\n\n");
-
-function Starters({
-  items,
-  onPick,
-}: {
-  items: readonly string[];
-  onPick: (question: string) => void;
-}) {
-  return (
-    <ul className="divide-y divide-line overflow-hidden rounded-xl bg-surface ring-1 ring-line">
-      {items.map((item) => (
-        <li key={item}>
-          <button
-            type="button"
-            onClick={() => onPick(item)}
-            className="group flex w-full items-center gap-3 px-4 py-3 text-start text-body-sm transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none"
-          >
-            <span className="min-w-0 flex-1">{item}</span>
-            <ArrowUpRight className="size-4 shrink-0 text-ink-3 group-hover:text-ink" aria-hidden />
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 const MARKER = /\s*\[((?:\d+|fonte \d+)(?:, (?:\d+|fonte \d+))*)\]\s*$/;
 

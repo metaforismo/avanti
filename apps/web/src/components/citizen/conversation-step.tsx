@@ -35,9 +35,20 @@ export function ConversationStep(props: StepProps) {
   }, [load, questionsAnswered]);
 
   const turns = state?.turns ?? [];
+  const list = useRef<HTMLOListElement>(null);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [turns.length, state?.proposals.length]);
+    // Like chat apps: after a reply the citizen's last message goes to the top, so the answer
+    // and the card below it are read from their start, not from the button at the bottom.
+    const mine = list.current?.querySelectorAll<HTMLElement>('[data-from="citizen"]');
+    const last = mine?.[mine.length - 1];
+    if (last) last.scrollIntoView({ block: "start", behavior: "smooth" });
+    else bottom.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [turns.length]);
+  useEffect(() => {
+    // A confirmed card makes room for the next question, which comes after everything else.
+    if (state?.proposals.length === 0)
+      bottom.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [state?.proposals.length]);
 
   if (!state && conversation.error?.status === 404) return <InterviewStep {...props} />;
 
@@ -63,6 +74,7 @@ export function ConversationStep(props: StepProps) {
       <AnsweredList api={api} data={data} m={m} />
 
       <ol
+        ref={list}
         aria-live="polite"
         aria-relevant="additions"
         className="grid grid-cols-[minmax(0,1fr)] gap-6"

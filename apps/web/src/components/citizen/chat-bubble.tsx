@@ -25,7 +25,7 @@ export function ChatBubble({
 }) {
   if (from === "citizen") {
     return (
-      <li className="flex animate-fade-in justify-end">
+      <li data-from="citizen" className="flex animate-fade-in scroll-mt-40 justify-end">
         <div className="max-w-[85%] rounded-3xl bg-sunk px-4 py-2.5 text-ink">
           {label && <span className="sr-only">{label}: </span>}
           <p dir="auto" className="break-words whitespace-pre-line">

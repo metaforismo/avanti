@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AlertOctagon, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Logo } from "@/components/brand/logo";
@@ -18,6 +19,26 @@ export default function LoginPage() {
             Prima i problemi bloccanti, poi gli avvisi, poi tutto il resto.
           </p>
           <footer className="mt-4 text-on-contrast/60">Come è ordinato ogni fascicolo</footer>
+          {/* The same order drawn as the top of a dossier, with invented content. */}
+          <ul aria-hidden className="mt-10 grid gap-2 text-sm">
+            {(
+              [
+                [AlertOctagon, "bg-danger", "Mancano 2 documenti obbligatori"],
+                [AlertTriangle, "bg-warn", "Carta d'identità in scadenza a gennaio"],
+                [CheckCircle2, "bg-ok", "9 documenti verificati"],
+              ] as const
+            ).map(([Icon, tone, text]) => (
+              <li
+                key={text}
+                className="flex items-center gap-3 rounded-lg bg-on-contrast/5 px-3 py-2.5 ring-1 ring-on-contrast/10"
+              >
+                <span className={`grid size-6 shrink-0 place-items-center rounded-full ${tone}`}>
+                  <Icon className="size-3.5 text-white" />
+                </span>
+                <span className="text-on-contrast/85">{text}</span>
+              </li>
+            ))}
+          </ul>
         </blockquote>
         <p className="text-sm text-on-contrast/50">
           Accesso riservato agli operatori di CAF e patronati.

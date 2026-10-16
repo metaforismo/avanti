@@ -267,7 +267,8 @@ export function DossierView({ caseId }: { caseId: string }) {
   const setStatus = (next: CaseStatus) => actions.update({ status: next });
 
   return (
-    <PageContainer width="7xl">
+    // Bottom room for the floating «Chiedi al fascicolo», so it never hides the last row.
+    <PageContainer width="7xl" className="pb-24 lg:pb-24">
       <Link
         href="/console"
         className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"

@@ -183,7 +183,7 @@ export default function HomePage() {
             prepara la checklist, ordina i documenti e segnala cosa va verificato. L&apos;operatore
             controlla il fascicolo e prosegue nel gestionale.
           </p>
-          <div className="mt-9 flex flex-wrap gap-3">
+          <div className="mt-9 grid gap-3 sm:flex sm:flex-wrap">
             <Button asChild size="lg">
               <a href="#pilota">Diventa CAF pilota</a>
             </Button>
