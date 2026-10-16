@@ -11,7 +11,8 @@ it.each([false, true])(
   "pilot: shutdown drains a paused transaction and preserves atomicity (rollback=%s)",
   async (rollback) => {
     const dir = await mkdtemp(join(tmpdir(), "avanti-drain-test-"));
-    let resource = await createDatabase({ dataDir: dir });
+    // Exercise on-disk PGlite even when the suite has DATABASE_URL set.
+    let resource = await createDatabase({ dataDir: dir, url: "" });
     try {
       const gate = activityGate();
       const finish = gate.begin();
@@ -54,7 +55,7 @@ it.each([false, true])(
       release();
       await write;
       await closing;
-      resource = await createDatabase({ dataDir: dir });
+      resource = await createDatabase({ dataDir: dir, url: "" });
       expect(await resource.db.select().from(organizations)).toHaveLength(rollback ? 0 : 1);
       expect(await resource.db.select().from(settings)).toHaveLength(rollback ? 0 : 1);
     } finally {

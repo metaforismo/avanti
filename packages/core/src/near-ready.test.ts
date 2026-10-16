@@ -404,6 +404,8 @@ it("metriche separano esiti, errori critici e tempi misurati", () => {
   ]);
   expect(result).toMatchObject({
     evaluated: 4,
+    unjudged: 1,
+    disagreements: 0,
     selected: 3,
     precision: 0.5,
     falseNearReady: 1,

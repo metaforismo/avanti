@@ -90,11 +90,34 @@ const baselineReply: Transport = async (r) => {
     return { output: { consistent: true, securityWarning: false } };
   return { output: { issues: [] } };
 };
+let postgresAdmin: Awaited<ReturnType<typeof createDatabase>> | undefined;
+let postgresName: string | undefined;
 beforeAll(async () => {
-  ({ db, close } = await createDatabase({ memory: true }));
+  const postgresUrl = process.env.AVANTI_TEST_DATABASE_URL;
+  if (!postgresUrl) {
+    ({ db, close } = await createDatabase({ memory: true }));
+    return;
+  }
+  const url = new URL(postgresUrl);
+  if (
+    !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) ||
+    !url.pathname.endsWith("_test")
+  )
+    throw new Error("Near-ready parity requires a disposable local *_test Postgres database");
+  postgresAdmin = await createDatabase({ url: postgresUrl, migrate: false });
+  postgresName = `avanti_near_ready_${process.pid}_test`;
+  await postgresAdmin.db.execute(sql`create database ${sql.identifier(postgresName)}`);
+  url.pathname = `/${postgresName}`;
+  ({ db, close } = await createDatabase({ url: url.href, migrate: true }));
 });
 afterAll(async () => {
-  await close();
+  await close?.();
+  try {
+    if (postgresName)
+      await postgresAdmin?.db.execute(sql`drop database ${sql.identifier(postgresName)}`);
+  } finally {
+    await postgresAdmin?.close();
+  }
 });
 beforeEach(async () => {
   await db.execute(sql`truncate organizations, rate_limits cascade`);
@@ -282,7 +305,15 @@ it("condivide il lavoro AI della prima valutazione tra letture concorrenti", asy
   await new Promise((resolve) => setTimeout(resolve, 40));
   release();
   const responses = await Promise.all([first, ...others]);
-  expect(responses.map((r) => r.status)).toEqual([200, 200, 200]);
+  expect(
+    responses.map((r) => r.status),
+    JSON.stringify(logs),
+  ).toEqual([200, 200, 200]);
+  const repeated = await Promise.all(Array.from({ length: 12 }, () => request("/cases/case")));
+  expect(
+    repeated.map((r) => r.status),
+    JSON.stringify(logs),
+  ).toEqual(Array(12).fill(200));
   expect(calls).toHaveBeenCalledTimes(3);
   expect(await db.select().from(nearReadyEvaluations)).toHaveLength(1);
 });
@@ -624,43 +655,157 @@ it("riapre la verifica quando cambia profilo AI e rifiuta il suggerimento preced
   expect(report.total.evaluated).toBe(1);
   expect(report.calibration.evaluated).toBe(0);
 });
-it("decisione pronta esistente registra l'esito anche dopo verifiche che ritirano il segnale", async () => {
-  await evaluate();
-  let row = await current();
+it.each([false, true])(
+  "correzioni dopo il suggerimento non riscrivono la verità originaria (cieco negativo: %s)",
+  async (blind) => {
+    if (blind)
+      await db
+        .update(settings)
+        .set({ nearReadyMode: "shadow" })
+        .where(eq(settings.organizationId, "org"));
+    await evaluate();
+    if (blind) {
+      expect(
+        (
+          await request("/cases/case/near-ready/blind-review", "POST", {
+            expectedUpdatedAt: (await current()).updatedAt,
+            ready: false,
+            reason: "identity",
+          })
+        ).status,
+      ).toBe(200);
+    }
+    const original = (await db.select().from(nearReadyEvaluations))[0]!;
+    let row = await current();
+    expect(
+      (
+        await request("/cases/case", "PATCH", {
+          expectedUpdatedAt: row.updatedAt,
+          status: "in_review",
+        })
+      ).status,
+    ).toBe(200);
+    row = await current();
+    const checklist = buildChecklist(
+      "isee_ordinario",
+      row.answers,
+      buildHousehold(row.answers),
+      "it",
+    );
+    for (const item of checklist) {
+      const r = await request(
+        `/cases/case/checklist/${encodeURIComponent(item.id)}/review`,
+        "POST",
+        {
+          expectedUpdatedAt: (await current()).updatedAt,
+          decision: "verified",
+        },
+      );
+      expect(r.status).toBe(200);
+    }
+    now = new Date(now.getTime() + 3 * 60000);
+    const response = await request("/cases/case", "PATCH", {
+      expectedUpdatedAt: (await current()).updatedAt,
+      status: "ready",
+    });
+    expect(response.status).toBe(200);
+    const report = NearReadyPilotResponse.parse(
+      await (await request("/reports/near-ready")).json(),
+    );
+    expect(report.total).toMatchObject({
+      precision: blind ? 0 : null,
+      reviewedSelected: blind ? 1 : 0,
+      falseNearReady: blind ? 1 : 0,
+      unjudged: blind ? 0 : 1,
+      disagreements: 0,
+      suggestedReview: { count: 0, medianMinutes: null },
+    });
+    expect(
+      await db
+        .select()
+        .from(nearReadyEvents)
+        .where(
+          and(
+            eq(nearReadyEvents.evaluationId, original.id),
+            eq(nearReadyEvents.action, "final_decision"),
+          ),
+        ),
+    ).toEqual([]);
+  },
+);
+it("la conferma pronta giudica la versione corrente prima di avanzarla", async () => {
+  const { checklistReviews } = await import("@avanti/db");
+  const row = await current();
+  const items = buildChecklist("isee_ordinario", row.answers, buildHousehold(row.answers), "it");
+  await db.insert(checklistReviews).values(
+    items.map((item) => ({
+      caseId: row.id,
+      itemId: item.id,
+      decision: "verified" as const,
+      operatorId: "operator",
+      reviewedAt: now.toISOString(),
+    })),
+  );
+  await db
+    .update(cases)
+    .set({ status: "in_review", reviewStartedAt: now.toISOString() })
+    .where(eq(cases.id, row.id));
+  const screened = NearReady.parse(await (await evaluate()).json());
+  now = new Date(now.getTime() + 3 * 60000);
   expect(
     (
       await request("/cases/case", "PATCH", {
-        expectedUpdatedAt: row.updatedAt,
-        status: "in_review",
+        expectedUpdatedAt: (await current()).updatedAt,
+        status: "ready",
       })
     ).status,
   ).toBe(200);
-  row = await current();
-  const checklist = buildChecklist(
-    "isee_ordinario",
-    row.answers,
-    buildHousehold(row.answers),
-    "it",
-  );
-  for (const item of checklist) {
-    const r = await request(`/cases/case/checklist/${encodeURIComponent(item.id)}/review`, "POST", {
-      expectedUpdatedAt: (await current()).updatedAt,
-      decision: "verified",
-    });
-    expect(r.status).toBe(200);
-  }
-  now = new Date(now.getTime() + 3 * 60000);
-  const response = await request("/cases/case", "PATCH", {
-    expectedUpdatedAt: (await current()).updatedAt,
-    status: "ready",
-  });
-  expect(response.status).toBe(200);
   const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
   expect(report.total).toMatchObject({
+    unjudged: 0,
+    disagreements: 0,
     precision: 1,
     reviewedSelected: 1,
     suggestedReview: { medianMinutes: 3 },
   });
+  const [final] = await db
+    .select()
+    .from(nearReadyEvents)
+    .where(eq(nearReadyEvents.action, "final_decision"));
+  expect(new Date(final!.caseVersion).toISOString()).toBe(screened.evaluatedVersion);
+  expect((await current()).updatedAt).not.toBe(screened.evaluatedVersion);
+});
+it("un critico tardivo resta un errore della valutazione senza attribuirle un esito di altra versione", async () => {
+  await evaluate();
+  expect(
+    (
+      await request("/cases/case", "PATCH", {
+        expectedUpdatedAt: (await current()).updatedAt,
+        internalNotes: "ESEMPIO correzione",
+      })
+    ).status,
+  ).toBe(200);
+  expect(
+    (
+      await request("/cases/case/near-ready/final-decision", "POST", {
+        expectedUpdatedAt: (await current()).updatedAt,
+        ready: false,
+        reason: "identity",
+        criticalError: "identity",
+      })
+    ).status,
+  ).toBe(200);
+  const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
+  expect(report.total).toMatchObject({
+    unjudged: 0,
+    disagreements: 0,
+    precision: 0,
+    falseNearReady: 1,
+    criticalErrors: 1,
+  });
+  expect(
+    await db.select().from(nearReadyEvents).where(eq(nearReadyEvents.action, "final_decision")),
+  ).toEqual([]);
 });
 it("cambiare una preferenza estranea non resetta modalità e soglie", async () => {
   await db

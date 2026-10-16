@@ -48,6 +48,7 @@ export type PilotObservation = {
   reading: NearReadyPilotGroup["reading"];
   selected: boolean;
   ready: boolean | null;
+  disagreement?: boolean;
   criticalError: boolean;
   durationMinutes: number | null;
 };
@@ -80,13 +81,16 @@ export function nearReadyPilotGroup(
     language,
     reading,
     evaluated: rows.length,
+    unjudged: rows.filter((r) => r.ready === null).length,
+    disagreements: rows.filter((r) => r.disagreement).length,
     selected: selected.length,
     selectionRate: rows.length ? selected.length / rows.length : null,
     reviewedSelected: reviewed.length,
     correctSelected: correct,
     falseNearReady: reviewed.length - correct,
     criticalErrors: rows.filter((r) => r.criticalError).length,
-    missedOpportunities: rows.filter((r) => !r.selected && r.ready === true).length,
+    missedOpportunities: rows.filter((r) => !r.selected && r.ready === true && !r.criticalError)
+      .length,
     precision: reviewed.length ? correct / reviewed.length : null,
     precisionInterval: clopperPearson(correct, reviewed.length),
     suggestedReview: distribution(times(true)),

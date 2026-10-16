@@ -404,7 +404,12 @@ export async function recordNearReadyFinal(
   const evaluations = await db
     .select()
     .from(nearReadyEvaluations)
-    .where(eq(nearReadyEvaluations.caseId, row.id));
+    .where(
+      and(
+        eq(nearReadyEvaluations.caseId, row.id),
+        eq(nearReadyEvaluations.caseVersion, row.updatedAt),
+      ),
+    );
   for (const evaluation of evaluations) {
     const [final] = await db
       .select({ id: nearReadyEvents.id })
@@ -432,7 +437,13 @@ export async function recordNearReadyFinal(
         },
         row.updatedAt,
       );
-    if (criticalError) {
+  }
+  if (criticalError) {
+    const historical = await db
+      .select()
+      .from(nearReadyEvaluations)
+      .where(eq(nearReadyEvaluations.caseId, row.id));
+    for (const evaluation of historical) {
       const [known] = await db
         .select({ id: nearReadyEvents.id })
         .from(nearReadyEvents)
@@ -454,8 +465,6 @@ export async function recordNearReadyFinal(
           row.updatedAt,
         );
     }
-  }
-  if (criticalError)
     await db
       .insert(settings)
       .values({
@@ -467,6 +476,7 @@ export async function recordNearReadyFinal(
         target: settings.organizationId,
         set: { nearReadySuspendedAt: now.toISOString(), nearReadyMode: "shadow" },
       });
+  }
 }
 export function mountNearReady(app: App, s: Services) {
   app.post("/cases/:id/near-ready/evaluate", async (c) => {

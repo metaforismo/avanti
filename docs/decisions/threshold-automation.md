@@ -137,11 +137,29 @@ inutilizzabile il vecchio suggerimento; serve una nuova valutazione.
 
 `GET /api/reports/near-ready`, solo admin del CAF, conta la prima valutazione attiva
 per caso, escludendo `off`: un ricalcolo dopo correzioni non migliora il risultato
-originario. Il numeratore usa la decisione finale, non l’accettazione del percorso.
-`PATCH /cases/:id` con `status: ready` registra automaticamente l’esito finale; il
-rifiuto finale e gli errori critici passano dall’endpoint dedicato. Tempi nulli restano
+originario. Dal 16 ottobre 2026 la verità è riferita esclusivamente alla versione
+valutata: prima il giudizio cieco di quella versione; in sua assenza, la prima decisione
+finale registrata mentre quella versione era ancora corrente. Esiti di versioni successive,
+anche già presenti nello storico, non etichettano la valutazione originaria. In assenza di
+entrambi il caso è «non giudicabile»: `unjudged` lo conta, escluso dalla precisione e dalle
+opportunità mancate (e quindi dal richiamo). Resta nel totale valutato e nella quota selezionata.
+
+Se i giudizi ciechi della stessa versione o il giudizio cieco e l’esito finale discordano,
+prevale «non pronta»; `disagreements` conta una sola discordanza per valutazione. Un errore
+critico confermato resta sempre un fallimento di quella valutazione, anche se segnalato
+su una versione successiva o dopo un giudizio positivo; non diventa «non giudicabile».
+La semplice accettazione del percorso non è un’etichetta di verità.
+
+`PATCH /cases/:id` con `status: ready` registra automaticamente l’esito finale sulla
+versione appena verificata, prima di avanzarla nella stessa transazione. Non assegna
+l’esito alle versioni precedenti; il rifiuto finale e gli errori critici passano
+dall’endpoint dedicato. Soltanto i tempi della decisione finale sulla versione valutata
+sono ammessi; un giudizio cieco senza quel tempo resta non misurato. Tempi nulli restano
 non misurati. Il report espone precisione, falsi suggerimenti, errori critici, quota,
-opportunità mancate, mediana/p95 e gruppi lingua/lettura; intervallo bilaterale esatto al
+opportunità mancate, `unjudged`, `disagreements`, mediana/p95 e gruppi lingua/lettura;
+i due nuovi contatori sono additivi in `NearReadyPilotGroup` (`total`, `groups`, `calibration`)
+per rendere visibili alla UI esclusioni e conflitti, mantenendo tutti i campi precedenti.
+Intervallo bilaterale esatto al
 95% e limite inferiore unilaterale al 95%. `calibration` isola il profilo e le soglie correnti; il demo non passa la calibrazione.
 `calibrationPassed` richiede 300 revisioni,
 precisione ≥99%, limite inferiore ≥98%, zero errori critici. Un errore critico confermato

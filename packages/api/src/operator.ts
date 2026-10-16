@@ -180,19 +180,6 @@ export function mountOperatorRoutes(app: App, s: Services) {
       view = await dossierView(s.db, row, s.clock(), operator.id, profile);
     }
     await s.db.transaction(async (tx) => {
-      await tx.insert(events).values(
-        ["case.viewed", ...(view.dsuSheet ? ["dsu_sheet.viewed"] : [])].map((type) => ({
-          id: crypto.randomUUID(),
-          caseId: row.id,
-          caseReference: row.reference,
-          organizationId: row.organizationId,
-          actor: "operator" as const,
-          actorId: operator.id,
-          type,
-          at: s.clock().toISOString(),
-          metadata: {},
-        })),
-      );
       if (view.nearReady?.evaluationId && !view.nearReady.blindReviewRequired) {
         const current = await caseById(tx, row.id, row.organizationId, true);
         assertCaseVersion(current, row.updatedAt);
@@ -211,6 +198,21 @@ export function mountOperatorRoutes(app: App, s: Services) {
           await nearReadyEvent(tx, evaluation, "viewed", s.clock(), operator.id);
         }
       }
+      // Insert the audit after taking the case lock: its FK otherwise holds KEY
+      // SHARE, and concurrent readers deadlock while upgrading to FOR UPDATE.
+      await tx.insert(events).values(
+        ["case.viewed", ...(view.dsuSheet ? ["dsu_sheet.viewed"] : [])].map((type) => ({
+          id: crypto.randomUUID(),
+          caseId: row.id,
+          caseReference: row.reference,
+          organizationId: row.organizationId,
+          actor: "operator" as const,
+          actorId: operator.id,
+          type,
+          at: s.clock().toISOString(),
+          metadata: {},
+        })),
+      );
     });
     const seen = view.messages.filter((m) => m.role === "citizen").map((m) => m.id);
     if (seen.length)
@@ -325,6 +327,10 @@ export function mountOperatorRoutes(app: App, s: Services) {
           );
       }
       const now = s.clock();
+      // The ready transition itself advances the version. Judge the dossier that
+      // was checked above, while it is still current under the case lock.
+      if (input.status === "ready" && current.status !== "ready")
+        await recordNearReadyFinal(tx, current, now, operator.id, true);
       const [updated] = await tx
         .update(cases)
         .set({
@@ -346,7 +352,6 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .returning();
       if (!updated) throw notFound();
       if (input.status === "ready" && current.status !== "ready") {
-        await recordNearReadyFinal(tx, updated, now, operator.id, true);
         notificationId = await enqueueCitizen(tx, s, updated, "citizen_ready");
         await audit(tx, updated, "operator", "review.completed", now, operator.id, {
           durationMinutes: minutes(updated.reviewStartedAt, updated.reviewCompletedAt),

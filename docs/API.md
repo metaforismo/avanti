@@ -1059,8 +1059,12 @@ Content-Type: application/json
 
 `criticalError`: `identity | household | year | missing_document`; richiede admin.
 L’endpoint non cambia lo stato ufficiale. `ready: true` è ammesso solo se lo stato
-è già ready. La prima decisione finale di ogni valutazione resta immutabile; gli errori
-critici successivi sono eventi separati e peggiorano il conteggio anche dopo un esito positivo.
+è già ready. La decisione finale etichetta soltanto una valutazione della versione
+corrente della pratica; la prima decisione di quella valutazione resta immutabile.
+Il passaggio `PATCH status: ready` registra la conferma sulla versione appena verificata,
+prima di avanzarla nella stessa transazione. Le versioni precedenti non ereditano l’esito.
+Gli errori critici successivi sono eventi separati: restano fallimenti delle valutazioni
+della pratica anche dopo correzioni o esiti positivi e sospendono il suggerimento per il CAF.
 
 La coda restituisce `aiPriority: near_ready` e `nearReadyBadge: true` soltanto per segnali
 correnti in visible, senza sospensione. Domande cittadino e attenzione hanno precedenza.
@@ -1072,10 +1076,27 @@ Il report admin include `total` e `groups` per lingua/modalità di lettura
 (`ai | manual | mixed | heuristic | unavailable`): `precision`, `falseNearReady`,
 `criticalErrors`, `selectionRate`, `missedOpportunities`, `suggestedReview` e
 `ordinaryReview` con `medianMinutes`/`p95Minutes` e conteggio dei tempi disponibili.
+Campi additivi in ogni `NearReadyPilotGroup`, inclusa `calibration`:
+
+- `unjudged`: numero di valutazioni senza verità sulla propria versione, selezionate e non.
+- `disagreements`: numero di valutazioni con giudizi discordanti sulla stessa versione,
+  contato una volta anche con più revisori.
+
+La verità è il giudizio cieco sulla versione valutata; se assente, la prima decisione
+finale registrata mentre quella versione era ancora corrente. Un esito di una versione
+successiva, incluso lo storico scritto prima di questa correzione, viene ignorato.
+Senza giudizio valido la valutazione è non giudicabile: resta in `evaluated`, `selected`
+e `selectionRate`, esclusa da `reviewedSelected`, `falseNearReady`, precisione e opportunità mancate/richiamo.
+In caso di conflitto fra cieco e finale, o fra revisori ciechi della stessa versione,
+prevale «non pronta» e aumenta `disagreements`. Un errore critico attribuito alla valutazione
+è sempre un fallimento, anche senza altri giudizi o se segnalato su una versione successiva.
+`missedOpportunities` conta solo non selezionati giudicati pronti senza errore critico.
 `precisionInterval` è null senza revisioni, altrimenti contiene `lower`, `upper`
 (intervallo esatto bilaterale 95%) e `oneSidedLower95` per il criterio di attivazione.
-Il denominatore è la prima valutazione attiva per caso; non si eliminano i ritiri.
-Le durate non misurate restano null, non zero. `synthetic: true` identifica il CAF demo.
+La coorte mantiene la prima valutazione attiva per caso; non si eliminano i ritiri.
+Il denominatore della precisione comprende solo i selezionati giudicabili.
+Le durate provengono solo dalla decisione finale sulla versione valutata; un cieco senza
+quel tempo rimane non misurato. Le durate non misurate restano null, non zero. `synthetic: true` identifica il CAF demo.
 `calibration` e `calibrationProfile` separano il campione del profilo AI, regole e soglie correnti: cambiare versione riapre la calibrazione, senza sommare i risultati precedenti. Il CAF demo non supera mai la calibrazione.
 `calibrationPassed` è una misura del protocollo, non un’autorizzazione automatica al rilascio.
 
