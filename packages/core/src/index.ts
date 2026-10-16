@@ -1,6 +1,7 @@
 export {
   CATALOG_VERSION,
   practiceYear,
+  DEFAULT_PRACTICE_YEAR,
   referenceYearFor,
   catalog,
   getPractice,

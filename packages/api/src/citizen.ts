@@ -1,5 +1,5 @@
 import { enqueueUsageAlerts, logUsageAlerts } from "./commercial-usage";
-import { lockRenewalConsent, setRenewalConsent, renewalConsentEvidence } from "./renewal-consent";
+import { lockRenewalConsent, setRenewalConsent } from "./renewal-consent";
 import { turnAcknowledgement } from "./turn-acknowledgement";
 import { appendConversationTurns } from "./conversation-messages";
 import { readConversationText } from "./conversation-routes";
@@ -32,7 +32,13 @@ import {
   MemberInput,
   type PracticeId,
 } from "@avanti/contracts";
-import { renewalPending, calendarYear, getQuestions, t } from "@avanti/core";
+import {
+  renewalPending,
+  renewalConsentEvidence,
+  calendarYear,
+  getQuestions,
+  t,
+} from "@avanti/core";
 import { applyTurn, assertProposalCurrent, assertStartable, assistantReply } from "./citizen-turn";
 import { detachRemovedMembers } from "./household-cleanup";
 import { AiIntelligence, heuristicAnalysis } from "./ai";
