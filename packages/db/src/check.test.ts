@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { createDatabase, type Database } from "./client";
 import { checkDatabase } from "./check";
-import { cases, offices, organizations, rateLimits } from "./schema";
+import { cases, commercialUsage, offices, organizations, rateLimits } from "./schema";
 import { consumeRateLimit } from "./rate-limit";
 
 const postgresUrl = process.env.AVANTI_TEST_DATABASE_URL;
@@ -40,7 +40,7 @@ for (const engine of ["pglite", "postgres"] as const) {
         await close?.();
       });
       it("accepts every migration hash and index definition, including pg_trgm", async () => {
-        expect(await checkDatabase(db)).toEqual({ migrations: 24, indexes: 42 });
+        expect(await checkDatabase(db)).toEqual({ migrations: 25, indexes: 42 });
         const [result] = await db
           .select({ similarity: sql<number>`similarity('Avanti', 'Avanti')` })
           .from(sql`(select 1) as trgm_check`);
@@ -71,6 +71,41 @@ for (const engine of ["pglite", "postgres"] as const) {
           );
         expect(byReference).toEqual([{ id }]);
         expect(byContact).toEqual([{ id }]);
+      });
+      it("commercial counters serialize two deliveries and duplicate concurrent updates, surviving deletion", async () => {
+        const caseIds = [0, 1].map((n) => `${id}-meter-${n}`);
+        for (const caseId of caseIds)
+          await db.insert(cases).values({
+            id: caseId,
+            organizationId: id,
+            officeId: id,
+            tokenHash: caseId,
+            reference: caseId,
+            language: "it",
+            createdAt: "2027-06-30T21:59:59Z",
+            updatedAt: "2027-06-30T21:59:59Z",
+            expiresAt: "2027-12-01T00:00:00Z",
+          });
+        await Promise.all(
+          [caseIds[0]!, caseIds[0]!, caseIds[1]!].map((caseId) =>
+            db.transaction(async (tx) => {
+              await tx
+                .update(cases)
+                .set({ submittedAt: "2027-06-30T22:00:00Z" })
+                .where(eq(cases.id, caseId));
+            }),
+          ),
+        );
+        const totals = () =>
+          db
+            .select()
+            .from(commercialUsage)
+            .where(
+              sql`${commercialUsage.organizationId} = ${id} and ${commercialUsage.officeId} = '' and ${commercialUsage.month} = '2027-07'`,
+            );
+        expect((await totals())[0]?.delivered).toBe(2);
+        for (const caseId of caseIds) await db.delete(cases).where(eq(cases.id, caseId));
+        expect((await totals())[0]?.delivered).toBe(2);
       });
       it("rolls back errors without retaining partially updated state", async () => {
         await expect(

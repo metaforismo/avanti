@@ -1,3 +1,4 @@
+import { usageDay, usageMonth, usageMonthRange as monthRange } from "@avanti/core";
 import { aiUsage, organizations, settings } from "@avanti/db";
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { AiUsageQuery, AiUsageResponse } from "@avanti/contracts";
@@ -6,17 +7,7 @@ import { loadAiConfig } from "@avanti/ai/config";
 import { parse, type App, type Services } from "./context";
 import { ApiFailure } from "./security";
 
-function monthRange(month: string) {
-  return {
-    from: `${month}-01`,
-    until: `${Number(month.slice(0, 4)) + (month.endsWith("-12") ? 1 : 0)}-${String((Number(month.slice(5)) % 12) + 1).padStart(2, "0")}-01`,
-  };
-}
-export async function aiBudget(
-  s: Services,
-  organizationId: string,
-  month = s.clock().toISOString().slice(0, 7),
-) {
+export async function aiBudget(s: Services, organizationId: string, month = usageMonth(s.clock())) {
   const { from, until } = monthRange(month);
   const [row] = await s.db
     .select()
@@ -43,8 +34,8 @@ export async function aiBudget(
     reservedEur = Number(usage?.reserved ?? 0);
   return { month, budgetEur, usedEur, reservedEur, exhausted: usedEur + reservedEur >= budgetEur };
 }
-export function cafAiContext(s: Services, organizationId: string): TaskContext {
-  const day = s.clock().toISOString().slice(0, 10);
+export function cafAiContext(s: Services, organizationId: string, officeId?: string): TaskContext {
+  const day = usageDay(s.clock());
   return {
     organizationId,
     reserve: async (ceiling, task) => {
@@ -64,6 +55,7 @@ export function cafAiContext(s: Services, organizationId: string): TaskContext {
           await tx.insert(aiUsage).values({
             id,
             organizationId,
+            officeId,
             task: task.id,
             version: task.version,
             model: task.model,
@@ -106,7 +98,7 @@ export function cafAiContext(s: Services, organizationId: string): TaskContext {
         else
           await s.db
             .insert(aiUsage)
-            .values({ id: crypto.randomUUID(), organizationId, day, ...values });
+            .values({ id: crypto.randomUUID(), organizationId, officeId, day, ...values });
       } catch {
         // Keep a failed reconciliation reserved: spend must never silently disappear.
         s.errorLogger?.({
@@ -125,7 +117,7 @@ export function mountAiUsage(app: App, s: Services) {
     if (actor.role !== "admin")
       throw new ApiFailure("forbidden", 403, "Operazione riservata agli amministratori.");
     const query = parse(AiUsageQuery, c.req.query());
-    const month = query.month ?? s.clock().toISOString().slice(0, 7);
+    const month = query.month ?? usageMonth(s.clock());
     const { from, until } = monthRange(month);
     const groups = await s.db
       .select({

@@ -113,7 +113,7 @@ export function mountDossierAsk(app: App, s: Services) {
     });
     const result =
       allow && s.ai.runTask
-        ? await observeAi(s, row.organizationId, () => s.ai.runTask!(dossierAskTask, taskInput))
+        ? await observeAi(s, row, () => s.ai.runTask!(dossierAskTask, taskInput))
         : { output: dossierAskTask.heuristic(taskInput), engine: "heuristic" as const };
     const output = dossierAskTask.output.parse(result.output);
     const allEvidence = evidenceFor(dossier);

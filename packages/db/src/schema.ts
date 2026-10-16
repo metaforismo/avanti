@@ -34,6 +34,7 @@ export const organizations = pgTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
+    meteringExcluded: boolean("metering_excluded").notNull().default(false),
     kind: text("kind").$type<"caf" | "patronato" | "studio">().notNull(),
   },
   (t) => [check("organizations_kind_check", sql`${t.kind} in ('caf', 'patronato', 'studio')`)],
@@ -317,6 +318,7 @@ export const events = pgTable(
     caseId: text("case_id").references(() => cases.id, { onDelete: "restrict" }),
     // No FK: the erasure audit survives the removal of the case and its personal data.
     deletedCaseId: text("deleted_case_id"),
+    officeId: text("office_id"),
     caseReference: text("case_reference"),
     subjectOperatorId: text("subject_operator_id"),
     organizationId: text("organization_id").references(() => organizations.id, {
@@ -387,6 +389,7 @@ export const settings = pgTable(
     aiCopilot: boolean("ai_copilot").notNull().default(true),
     aiCitizenAssistant: boolean("ai_citizen_assistant").notNull().default(true),
     aiMonthlyBudgetEur: doublePrecision("ai_monthly_budget_eur"),
+    monthlyDeliveryCap: integer("monthly_delivery_cap"),
     retentionDays: integer("retention_days").notNull().default(180),
     linkDays: integer("link_days").notNull().default(60),
     notifyCitizenReady: boolean("notify_citizen_ready").notNull().default(false),
@@ -406,6 +409,10 @@ export const settings = pgTable(
       sql`jsonb_typeof(${t.citizenReminderDays}) = 'array'
       and jsonb_array_length(${t.citizenReminderDays}) between 1 and 2
       and not jsonb_path_exists(${t.citizenReminderDays}, '$[*] ? (@.type() != "number" || @ < 1 || @ > 30 || @ != @.floor())')`,
+    ),
+    check(
+      "settings_delivery_cap_check",
+      sql`${t.monthlyDeliveryCap} is null or ${t.monthlyDeliveryCap} > 0`,
     ),
     check(
       "settings_ai_budget_check",
@@ -468,7 +475,8 @@ export type NotificationKind =
   | "citizen_submission"
   | "citizen_renewal"
   | "citizen_reminder"
-  | "operator_digest";
+  | "operator_digest"
+  | "usage_quota";
 export const notifications = pgTable(
   "notifications",
   {
@@ -507,7 +515,7 @@ export const notifications = pgTable(
     index("notifications_completed_idx").on(t.completedAt),
     check(
       "notifications_kind_check",
-      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'citizen_submission', 'citizen_reminder', 'citizen_renewal', 'operator_digest')`,
+      sql`${t.kind} in ('pilot_lead', 'citizen_request', 'citizen_ready', 'citizen_submission', 'citizen_reminder', 'citizen_renewal', 'operator_digest', 'usage_quota')`,
     ),
     check(
       "notifications_renewal_check",
@@ -607,6 +615,7 @@ export const aiUsage = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
+    officeId: text("office_id"),
     task: text("task").notNull(),
     version: text("version").notNull(),
     model: text("model"),
@@ -808,4 +817,42 @@ export const nearReadyBlindReviews = pgTable(
     at: instant("at").notNull(),
   },
   (t) => [primaryKey({ columns: [t.caseId, t.caseVersion, t.operatorId] })],
+);
+
+// Empty officeId is the organization total; no case FK or citizen identifier survives here.
+export const commercialUsage = pgTable(
+  "commercial_usage",
+  {
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    officeId: text("office_id").notNull(),
+    month: text("month").notNull(),
+    started: integer("started").notNull().default(0),
+    delivered: integer("delivered").notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.organizationId, t.month, t.officeId] }),
+    check("commercial_usage_counts_check", sql`${t.started} >= 0 and ${t.delivered} >= 0`),
+    check("commercial_usage_month_check", sql`${t.month} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+  ],
+);
+
+// Independent of the expiring outbox: retry/cleanup cannot emit a threshold twice.
+export const usageQuotaAlerts = pgTable(
+  "usage_quota_alerts",
+  {
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    month: text("month").notNull(),
+    threshold: integer("threshold").notNull(),
+    cap: integer("cap").notNull(),
+    delivered: integer("delivered").notNull(),
+    at: instant("at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.organizationId, t.month, t.threshold] }),
+    check("usage_quota_threshold_check", sql`${t.threshold} in (70,90,100)`),
+  ],
 );

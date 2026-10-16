@@ -51,12 +51,14 @@ export async function recordOperationalCounters(
 
 export async function observeAi<T extends { engine?: "ai" | "heuristic" }>(
   s: Services,
-  organizationId: string,
+  scope: string | { organizationId: string; officeId?: string },
   work: () => Promise<T>,
 ): Promise<T> {
+  const organizationId = typeof scope === "string" ? scope : scope.organizationId;
+  const officeId = typeof scope === "string" ? undefined : scope.officeId;
   let result: T;
   let expectedFallback = false;
-  const context = cafAiContext(s, organizationId);
+  const context = cafAiContext(s, organizationId, officeId);
   try {
     result = await aiContext.run(
       {

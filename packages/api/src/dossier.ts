@@ -81,6 +81,7 @@ export async function audit(
     id: crypto.randomUUID(),
     caseId: row.id,
     caseReference: row.reference,
+    officeId: row.officeId,
     organizationId: row.organizationId,
     actor,
     actorId,

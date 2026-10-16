@@ -1,6 +1,6 @@
 # Prezzi B2B e margini: tre modelli da testare
 
-**14 ottobre 2026. Tutti i prezzi Avanti sono proposte, non listino approvato o disponibilità a pagare dimostrata.** IVA esclusa. I prezzi dei fornitori sono consultati oggi, non garantiti per gennaio 2027. Le quantità di utilizzo sono scenari da misurare sul provider realmente approvato. Non abbiamo effettuato chiamate AI a pagamento.
+**Aggiornato il 16 ottobre 2026. Tutti i prezzi Avanti sono proposte, non listino approvato o disponibilità a pagare dimostrata.** IVA esclusa. I riferimenti ai listini hosting risalgono al 14 ottobre, non sono garantiti per gennaio 2027. I consumi del pilota vanno misurati sul provider approvato; le prove AI del 15 ottobre usano solo casi sintetici e non misurano un costo medio per fascicolo reale.
 
 **Raccomandazione:** pilota gratuito a obiettivi fino al 31 marzo 2027, con cap e supporto concordati; poi testare **129 €/sportello/mese con 150 fascicoli inclusi e 0,75 € per eccedenza**. Un'alternativa da confrontare è **1,50 € per fascicolo consegnato**, senza canone. Per le reti, lo sconto è condizionato a costi e supporto misurati: nessun illimitato.
 
@@ -10,7 +10,7 @@
 
 **Sportello** = sede fisica/operativa concordata, non utente della console né cassa individuale. Fino a cinque operatori per sportello nella proposta standard, con accessi personali. La rete deve dichiarare sedi e titolare; niente frammentazione di un solo sportello per ottenere quote extra.
 
-Le bozze non consegnate non vengono fatturate per pratica, ma consumano risorse. Quota pilota proposta: massimo **2.000 avvii** e **1.500 consegne** complessive, tre sportelli; cap ordinario 500 consegne per sede nel trimestre, riallocabile per accordo. Avvisi al 70% e 90%, revisione manuale del cap; non bloccare silenziosamente chi sta finendo. Contatori commerciali, alert spesa e billing **non sono funzioni implementate** in questa sessione. [API e stati](../API.md), [limiti tecnici](../../README.md).
+Le bozze non consegnate non vengono fatturate per pratica, ma consumano risorse. Quota pilota proposta: massimo **2.000 avvii** e **1.500 consegne** complessive, tre sportelli; cap ordinario 500 consegne per sede nel trimestre, riallocabile per accordo. Avvisi al 70% e 90%, revisione manuale del cap; non bloccare silenziosamente chi sta finendo. Sono implementati contatori mensili per CAF/sportello, report di piattaforma e avvisi di quota consegne al 70%, 90% e 100%; gli invii continuano oltre il cap e il contatore registra l’eccedenza. Il budget AI è una protezione interna di Avanti. Fatturazione, rettifiche dei duplicati e quote trimestrali/cumulative del pilota restano gestioni manuali: il cap software è mensile, condiviso tra gli sportelli del CAF. [Operare la piattaforma](../DEPLOY.md#operare-la-piattaforma). [API e stati](../API.md), [limiti tecnici](../../README.md).
 
 ## Tre offerte comparabili
 
@@ -22,41 +22,46 @@ Le bozze non consegnate non vengono fatturate per pratica, ma consumano risorse.
 
 Il canone B è mensile, disdicibile per il mese successivo nella proposta. Archivio, export e cancellazione a fine servizio secondo accordo; niente quota trasferita automaticamente al mese seguente. L'eventuale piano «sola campagna» si valuta dopo il pilota: non vendere dodici mesi sulla promessa di un 730 ancora in beta. Referenza: [CAFhub 59/129/249 €/mese](https://cafhub.it/), [730App 5 € + IVA/completamento 730](https://730.info/), [Flisco 79/179/349 €/mese per clienti](https://www.flisco.it/). Sono benchmark con unità e servizi diversi, non validazione del nostro prezzo.
 
-## Costo variabile: formula prima del numero
+## Costo variabile: misurarlo con la telemetria
 
-Il codice utilizza `anthropic/claude-sonnet-5.5` per testo e documenti, salvo configurazione diversa; l'intervista a regole non richiede una chiamata AI per ogni risposta. Ci sono chiamate per racconto, documento e traduzioni; retry/fallimenti possono costare, e non è implementata una rendicontazione commerciale dei token per fascicolo. [Adattatore AI](../../packages/api/src/ai.ts), [architettura](../ARCHITECTURE.md).
+L’AI è inclusa nel piano: il CAF non compra token né sceglie fornitori. La piattaforma usa
+il runtime [`@avanti/ai`](../../packages/ai/README.md), con modelli, tentativi e fallback
+configurabili. La configurazione **A** di [DEPLOY.md](../DEPLOY.md#runtime-ai-e-scelta-del-modello)
+usa DeepSeek per testo/ragionamento e Luna per visione e riserva. Le tariffe stimate sono
+quelle esplicite in `AI_PRICES`, in EUR per milione di token input/output; per modelli non
+elencati valgono `AI_INPUT_EUR_PER_MILLION` e `AI_OUTPUT_EUR_PER_MILLION`. Questa pagina non
+aggiunge un listino e non usa più Sonnet come assunzione per tutti i fascicoli.
 
-Il [listino Anthropic](https://platform.claude.com/docs/en/about-claude/pricing) riporta Sonnet 5.5 a **2 USD/milione token input** e **10 USD/milione output**. [AI Gateway](https://vercel.com/docs/ai-gateway/pricing) dichiara zero markup sui token; modello, endpoint e prezzo del routing effettivo vanno confermati. Il costo della regione/retention ammessa può essere diverso: questa simulazione non dimostra che abbiamo un servizio UE/ZDR a quel prezzo.
-
-Formule:
+La tabella `ai_usage` registra compito/versione, modello, motore, giorno, tentativi, token,
+costo stimato e riserve aperte, senza prompt o documenti. `pnpm platform:usage --month YYYY-MM`
+aggrega questi dati per CAF e sportello. I retry contano come chiamate; il fallback locale
+senza tentativi remoti ne conta zero. I tentativi nascosti dal router a monte non sono
+osservabili. Usage mancante, timeout e prenotazioni non riconciliate richiedono confronto
+con la fattura del provider: il report è una stima, non un addebito al CAF.
 
 ```text
-AI_USD = (token_input × 2 + token_output × 10) / 1.000.000
-AI_EUR = AI_USD × cambio_scenario × (1 + riserva_retry_endpoint)
-storage = GB_per_fascicolo × mesi_effettivi × tariffa_GB_mese
-costo_tecnico_consegna = AI + storage/operazioni + runtime/DB/traffico
-costo_allocato_per_consegna = costo_tecnico_consegna
-                           + (1 - tasso_consegna) / tasso_consegna × costo_abbandono
-margine_contributivo = ricavo - costo_allocato_per_consegna × consegne
+AI_EUR_mese = somma(ai_usage.cost_estimate_eur)
+AI_per_consegna = AI_EUR_mese / consegne_del_mese
+budget_usato_% = (AI_EUR_mese + riserve_aperte_EUR) / budget_CAF_EUR × 100
+storage = GB × mesi_effettivi × tariffa_GB_mese + operazioni/backup/traffico
+costo_tecnico_per_consegna = (AI_EUR_mese + storage + runtime/DB/traffico) / consegne
+margine_contributivo = ricavo - costi_tecnici - supporto_allocato
 ```
 
-**Cambio di scenario: 0,92 €/USD**, parametro ipotetico, non cambio corrente rilevato. IVA recuperabile esclusa dal margine. Nessun credito gratuito, caching o sconto batch necessario alla sostenibilità. I token input includono il costo immagini/pagine effettivamente fatturate: il numero di documenti da solo non determina il costo.
+Con zero consegne il rapporto è `null`, non zero. L’AI del mese include bozze e attività su
+fascicoli iniziati in altri mesi: è un costo allocato sul volume mensile, non una misura del
+singolo dossier. Non aggiungere una seconda quota per gli abbandoni se i loro consumi sono
+già inclusi nel numeratore. Le riserve sono mostrate separatamente dal costo stimato ma
+consumano budget. Il budget è del CAF; le percentuali degli sportelli ne mostrano la quota
+utilizzata, senza moltiplicare il budget disponibile per il numero delle sedi.
 
-| Ipotesi per una consegna                         |        Leggera |           Base |           Stress |
-| ------------------------------------------------ | -------------: | -------------: | ---------------: |
-| Documenti                                        |              8 |             15 |               40 |
-| Input/output totale, token incluse immagini      | 20.000 / 2.000 | 50.000 / 8.000 | 150.000 / 30.000 |
-| AI, USD prima della riserva                      |          0,060 |          0,180 |            0,600 |
-| Riserva retry/endpoint, ipotesi                  |            10% |            20% |              20% |
-| AI in euro                                       |          0,061 |          0,199 |            0,662 |
-| Storage/operazioni per il ciclo del fascicolo, € |          0,005 |          0,010 |            0,030 |
-| Runtime/DB/traffico marginale allocato, €        |          0,020 |          0,040 |            0,100 |
-| Tasso consegne/avvii, ipotesi                    |            85% |            75% |              60% |
-| Costo tecnico medio di un abbandono, €           |          0,050 |          0,080 |            0,160 |
-| Costo totale calcolato per consegna, €           |         ≈0,095 |         ≈0,275 |           ≈0,899 |
-| **Costo prudenziale usato nei conti, €**         |       **0,10** |       **0,30** |         **0,90** |
-
-Sono ordini di grandezza, non misure o limiti massimi. Il prodotto ammette fino a 60 file e 120 MiB/pratica; la coda costosa può superare lo stress. Non cambiare modello per abbassare il costo senza riesaminare qualità e trattamento dei dati.
+Il [rapporto sintetico A del 15 ottobre](../verification/ai-eval-2026-10-15-live.md) misura
+**€0,016804** sull’insieme dei compiti di valutazione: non è il prezzo per fascicolo.
+Le simulazioni economiche qui sotto conservano **0,30 €/consegna** come accantonamento base
+e **0,90 €** come scenario stress per il costo tecnico totale. Sono ipotesi di budget,
+non valori ricavati dai modelli attuali né limiti massimi. Sostituirli con telemetria e
+fatture del pilota; il costo pieno comprende anche storage, hosting, backup e supporto.
+Il prodotto ammette fino a 60 file e 120 MiB/pratica: la coda costosa va misurata.
 
 ### Storage e hosting: ipotesi ancorate ai listini
 
@@ -64,7 +69,7 @@ Sono ordini di grandezza, non misure o limiti massimi. Il prodotto ammette fino 
 
 La retention attuale decorre dalla chiusura/scadenza, non necessariamente dall'upload: sei mesi è una **assunzione economica**, non la durata reale garantita dal software. Con link di 60 giorni e poi retention 180 giorni, una bozza può occupare più di sei mesi. Ricalcolare su giorni effettivi, cancellazioni riuscite e copie di backup. [Configurazione](../../README.md), [restituzione dati](../research/data-portability.md).
 
-[Vercel Pro](https://vercel.com/pricing) parte da **20 USD/mese**, con credito incluso di utilizzo; runtime ha tariffazione per CPU attiva, memoria, invocazioni e trasferimento, distinta dal costo build. [Neon Launch](https://neon.com/pricing) indica **0,106 USD/CU-ora** e **0,35 USD/GB-mese** per storage. I 0,04 € base di runtime/DB sono un'allocazione ipotetica dei consumi aggiuntivi, da rimpiazzare con fatture: non un costo garantito per richiesta.
+[Vercel Pro](https://vercel.com/pricing) parte da **20 USD/mese**, con credito incluso di utilizzo; runtime ha tariffazione per CPU attiva, memoria, invocazioni e trasferimento, distinta dal costo build. [Neon Launch](https://neon.com/pricing) indica **0,106 USD/CU-ora** e **0,35 USD/GB-mese** per storage. I consumi aggiuntivi di runtime/DB vanno allocati usando le fatture, separandoli dal minimo fisso: nessun costo per richiesta è garantito.
 
 **Budget fisso condiviso proposto: 90 €/mese**, incluso piano hosting, riserva DB minimo, backup e monitoraggio, esclusi consumi marginali sopra. Non è un preventivo dei fornitori. Separare quota minima e consumo aggiuntivo nelle fatture ed evitare doppio conteggio dei crediti. Amortizzare su sportelli **paganti**: 90/3 = 30 €, 90/10 = 9 €, 90/30 = 3 €/sede/mese. Un ambiente dedicato di rete e SLA aggiuntivi richiedono un conto proprio.
 
@@ -110,6 +115,6 @@ A a 1,50 € richiede 3,6 minuti per pareggiare, 7,2 per valore 2×. I compensi 
 
 Cap **1.500 consegne complessive**: tecnico base 450 €, stress 1.350 €. Per tre sedi: sei ore di onboarding per sede più mezz'ora/settimana per dodici settimane = **36 ore × 35 € = 1.260 €**. Fissi condivisi tre mesi **270 €**; acquisizione ipotetica otto ore/sede **840 €**. Budget complessivo **2.820 € base / 3.720 € stress**. Proposta di accantonamento: **3.000–4.000 €**, con legale, revisione traduzioni, viaggi ed eventuali condizioni UE/ZDR **da quotare separatamente**. Il cap gratuito non copre un rollout di rete.
 
-Entro febbraio rilevare consumi reali, costo di abbandoni, supporto per sede, valore dei minuti e costo di export. Non inviare documenti reali a modelli non approvati per misurare i prezzi. La telemetria commerciale futura deve limitarsi a conteggi, token e costo, senza testo libero o contenuto documentale.
+Entro febbraio rilevare consumi reali, costo di abbandoni, supporto per sede, valore dei minuti e costo di export. Non inviare documenti reali a modelli non approvati per misurare i prezzi. La telemetria commerciale implementata conserva solo conteggi aggregati, token e stime di costo; non conserva testo libero o contenuto documentale. Le organizzazioni sintetiche vanno escluse prima di creare pratiche (`organizations.metering_excluded`); il seed demo lo imposta automaticamente.
 
 Entro **15 marzo** offrire A e B al decisore e registrare scelta, ragione e ordine/contratto separatamente dall'interesse verbale. **Raccomandazione condizionata:** adottare B per sedi continuative se costo tecnico ≤0,30 €, supporto ≤30 minuti/mese e beneficio almeno 2× prezzo; A per stagionali o dove il canone non è accettato. Non introdurre tre listini permanenti prima di tre veri confronti di acquisto. Per la rete, prima un rollout pagato di cinque sedi; connettore, onboarding e SLA come voci esplicite. [Protocollo pilota](pilota.md).

@@ -353,9 +353,18 @@ async function stillRelevant(db: Database, row: Row, envelope: Envelope, now: Da
   }
   if (row.operatorId) {
     const [operator] = await db.select().from(operators).where(eq(operators.id, row.operatorId));
-    if (!operator?.active || operator.email !== envelope.to) return false;
+    if (
+      !operator?.active ||
+      operator.organizationId !== row.organizationId ||
+      operator.email !== envelope.to
+    )
+      return false;
+    if (row.kind === "usage_quota" && operator.role !== "admin") return false;
     // Do not send yesterday's count after an outage; today's digest is queued separately.
-    if (new Date(row.createdAt).toISOString().slice(0, 10) !== now.toISOString().slice(0, 10))
+    if (
+      row.kind === "operator_digest" &&
+      new Date(row.createdAt).toISOString().slice(0, 10) !== now.toISOString().slice(0, 10)
+    )
       return false;
   }
   return true;

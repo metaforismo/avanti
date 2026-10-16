@@ -169,6 +169,13 @@
       "when": 1792153198770,
       "tag": "0023_isee_renewals",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792164645137,
+      "tag": "0024_commercial_metering",
+      "breakpoints": true
     }
   ]
 }

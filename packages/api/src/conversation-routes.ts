@@ -104,7 +104,7 @@ export function mountConversationRoutes(app: App, s: Services) {
       .where(eq(settings.organizationId, initial.organizationId));
     const result =
       s.ai.converse && policy?.enabled !== false
-        ? await observeAi(s, initial.organizationId, () => s.ai.converse!(input))
+        ? await observeAi(s, initial, () => s.ai.converse!(input))
         : { ...converseTask.heuristic(input), engine: "heuristic" as const };
     const row = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, initial, s.clock());

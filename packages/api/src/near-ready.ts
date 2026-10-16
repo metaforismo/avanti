@@ -165,7 +165,7 @@ async function screenNearReady(s: Services, row: CaseRow) {
   async function run<I, O>(task: Task<I, O>, input: I) {
     let result: TaskResult<O>;
     try {
-      result = await observeAi(s, row.organizationId, () => s.ai.runTask!(task, input));
+      result = await observeAi(s, row, () => s.ai.runTask!(task, input));
     } catch {
       result = {
         output: task.heuristic(input),

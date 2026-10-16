@@ -91,7 +91,7 @@ export async function seedDemoOrganization(db: Database, now: Date): Promise<voi
   }
   await db
     .insert(organizations)
-    .values({ id: organizationId, name: "CAF Demo Milano", kind: "caf" })
+    .values({ id: organizationId, name: "CAF Demo Milano", kind: "caf", meteringExcluded: true })
     .onConflictDoNothing();
   await db
     .insert(settings)

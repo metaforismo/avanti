@@ -28,7 +28,9 @@
     "bench:api": "pnpm --filter @avanti/api bench",
     "bench:load": "pnpm --filter @avanti/api bench:load",
     "ai:eval": "pnpm --filter @avanti/ai eval",
-    "ai:stress": "pnpm --filter @avanti/ai stress"
+    "ai:stress": "pnpm --filter @avanti/ai stress",
+    "platform:usage": "pnpm --silent --filter @avanti/api platform:usage",
+    "platform:org": "pnpm --silent --filter @avanti/api platform:org"
   },
   "devDependencies": {
     "prettier": "^3.6.0",
