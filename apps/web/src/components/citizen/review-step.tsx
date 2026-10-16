@@ -44,6 +44,8 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
       setDraft({ ...draft, [name]: event.target.value }),
   });
 
+  const isee = data.practice?.id === "isee_ordinario";
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (api.pending === "submit") return;
@@ -69,7 +71,13 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
       (event.currentTarget.elements.namedItem(target) as HTMLElement | null)?.focus();
       return;
     }
-    await api.submit({ contact: raw, confirmed: true, note: values.note.trim() || undefined });
+    await api.submit({
+      contact: raw,
+      confirmed: true,
+      note: values.note.trim() || undefined,
+      // Only ISEE is renewed every year; elsewhere the preference is left untouched.
+      ...(isee ? { renewalContactConsent: form.get("renewalConsent") === "on" } : {}),
+    });
   }
 
   return (
@@ -185,6 +193,16 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
             {(p) => <Textarea {...p} {...field("note")} rows={3} maxLength={1000} />}
           </Field>
         </fieldset>
+
+        {isee && (
+          <Checkbox
+            look="card"
+            name="renewalConsent"
+            defaultChecked={data.renewalContactConsent ?? false}
+            label={m.review.renewalConsent}
+            hint={m.review.renewalConsentHint}
+          />
+        )}
 
         <div className="grid gap-1.5">
           <Checkbox

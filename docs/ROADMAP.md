@@ -55,6 +55,18 @@ nelle PR.
 - Decisioni commerciali del fondatore in `docs/gtm/README.md` (sedi, budget pilota, soglie,
   prezzo da testare, promesse in landing).
 
+## Fatto di recente (16 ottobre)
+
+- L'AI è inclusa nel piano: la console del CAF non mostra fornitori, chiavi, budget o costi.
+- Rinnovi ISEE: le famiglie dell'anno prima ricevono un fascicolo già impostato, confermano il
+  nucleo e aggiornano solo i documenti scaduti; inviti email solo con consenso
+  (`docs/decisions/renewals.md`).
+- «Quasi pronta»: ogni suggerimento si giudica sulla sua versione del fascicolo; parità su
+  Postgres reale verificata (corretto un deadlock tra letture concorrenti).
+- Revisione di sicurezza delle PR #78–#86: interruttore AI rispettato nella chat del cittadino,
+  emergenze gestite in locale, limiti anche per le richieste HEAD.
+- Dettagli di interfaccia su tutte le pagine; scorciatoie da tastiera con «?».
+
 ## Fatto di recente (15 ottobre, sera): l'AI dentro il flusso
 
 - Runtime AI unico per OpenRouter, OpenAI, Anthropic e AI Gateway: solo fornitori a

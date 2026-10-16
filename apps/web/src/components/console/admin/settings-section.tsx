@@ -83,6 +83,7 @@ function SettingsForm({
     values.notifyCitizenSubmission = data.get("notifyCitizenSubmission") === "on";
     values.notifyOperatorDigest = data.get("notifyOperatorDigest") === "on";
     values.notifyCitizenReminders = data.get("notifyCitizenReminders") === "on";
+    values.notifyCitizenRenewals = data.get("notifyCitizenRenewals") === "on";
     values.aiCopilot = data.get("aiCopilot") === "on";
     values.aiCitizenAssistant = data.get("aiCitizenAssistant") === "on";
     values.nearReadyMode = data.get("nearReadyMode") as OrganizationSettings["nearReadyMode"];
@@ -182,6 +183,13 @@ function SettingsForm({
           defaultChecked={initial.notifyCitizenReady}
           label="Avvisa il cittadino quando la pratica è pronta"
           hint="Solo se ha lasciato l'email, nella sua lingua: gli dice di prendere appuntamento allo sportello. Le richieste di integrazione gli arrivano sempre."
+        />
+        <Checkbox
+          look="card"
+          name="notifyCitizenRenewals"
+          defaultChecked={initial.notifyCitizenRenewals}
+          label="Invita al rinnovo ISEE chi l'ha chiesto"
+          hint="Quando preparate i rinnovi, il link arriva per email nella sua lingua, solo ai cittadini che hanno dato il consenso all'invio della pratica dell'anno prima."
         />
         <Checkbox
           look="card"

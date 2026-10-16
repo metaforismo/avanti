@@ -6,6 +6,7 @@ import { logIn, openFirstReadyCase } from "./helpers";
 const ADMIN = { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" };
 
 const PAGES = [
+  { path: "/console/rinnovi", heading: "Rinnovi ISEE" },
   { path: "/console/metriche", heading: "Metriche" },
   { path: "/console/stato", heading: "Stato del sistema" },
   { path: "/console/rapporto", heading: "Rapporto del pilota" },

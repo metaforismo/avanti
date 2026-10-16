@@ -160,6 +160,10 @@ const FAQ = [
     a: "Avanti non lo sostituisce: esporta un fascicolo leggibile e un file strutturato da cui copiare i dati. Le integrazioni dirette le costruiamo con i CAF pilota.",
   },
   {
+    q: "E l'anno dopo, quando l'ISEE scade?",
+    a: "L'ISEE vale fino al 31 dicembre. Per il rinnovo l'operatore sceglie le famiglie dell'anno prima e Avanti prepara il nuovo fascicolo con nucleo e documenti ancora validi: il cittadino riceve il link, conferma chi vive con lui e carica solo quello che va aggiornato. L'invito via email parte solo a chi ha dato il consenso.",
+  },
+  {
     q: "Quanto costa?",
     a: "Per i CAF pilota è gratuito fino al 31 marzo 2027. Dopo, un canone per sportello che definiamo insieme ai piloti sulla base del tempo risparmiato misurato. L'intelligenza artificiale è inclusa: nessuna chiave da configurare, nessun contratto con fornitori, nessun costo a consumo.",
   },

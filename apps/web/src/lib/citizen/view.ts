@@ -59,3 +59,26 @@ export function interviewEstimate(progress: CitizenCase["progress"]): InterviewE
   const middle = (range.min + range.max) / 2;
   return { remaining: range, percent: (answered / (answered + middle)) * 100 };
 }
+
+/**
+ * What a question starts from. A renewal asks to confirm last year's household: the people
+ * are already in `household` (with their ids, so documents stay with the right person)
+ * before any answer exists.
+ */
+export function initialAnswer(data: CitizenCase, questionId: string) {
+  const answer = data.answers[questionId];
+  if (answer !== undefined) return answer;
+  if (questionId === "members" && data.renewal?.householdConfirmationRequired)
+    return data.household.map(
+      ({ id, role, firstName, lastName, birthYear, birthDate, taxCode }) => ({
+        id,
+        role,
+        firstName,
+        ...(lastName ? { lastName } : {}),
+        ...(birthYear ? { birthYear } : {}),
+        ...(birthDate ? { birthDate } : {}),
+        ...(taxCode ? { taxCode } : {}),
+      }),
+    );
+  return undefined;
+}

@@ -10,6 +10,7 @@ import {
   Menu,
   Plus,
   QrCode,
+  RefreshCw,
   Search,
   ScrollText,
   Settings,
@@ -51,6 +52,12 @@ const NAV: NavItem[] = [
     label: "Pratiche",
     icon: Inbox,
     match: (p) => p === "/console" || p.startsWith("/console/pratiche"),
+  },
+  {
+    href: "/console/rinnovi",
+    label: "Rinnovi ISEE",
+    icon: RefreshCw,
+    match: (p) => p.startsWith("/console/rinnovi"),
   },
   {
     href: "/console/metriche",
