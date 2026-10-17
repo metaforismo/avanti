@@ -467,7 +467,7 @@ function Totals({ group, report }: { group: PilotReportGroup; report: PilotRepor
         <Tile
           label="Richieste di integrazione"
           value={count(group.integrations.requests)}
-          note={`Su ${count(group.integrations.cases)} pratiche`}
+          note={`Su ${count(group.integrations.cases)} ${group.integrations.cases === 1 ? "pratica" : "pratiche"}`}
         />
       </dl>
       <div className="mt-4 grid gap-4 rounded-lg bg-surface p-5 ring-1 ring-line sm:grid-cols-3">

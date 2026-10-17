@@ -38,7 +38,8 @@ export function ChecklistSection({
         title="Documenti"
         actions={
           <p className="tabular text-sm text-ink-3">
-            {verified} di {dossier.checklist.length} verificati
+            {verified} di {dossier.checklist.length}{" "}
+            {dossier.checklist.length === 1 ? "verificato" : "verificati"}
           </p>
         }
       />

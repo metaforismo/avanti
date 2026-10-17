@@ -407,7 +407,7 @@ function Queue() {
 
       <p role="status" className="sr-only">
         {list.status === "ready"
-          ? `${items.length} pratiche: ${CASE_STATUS[status].label.toLowerCase()}`
+          ? `${casesLabel(items.length)}: ${CASE_STATUS[status].label.toLowerCase()}`
           : ""}
       </p>
       <section aria-busy={list.status === "loading" || list.refreshing} className="mt-5">
@@ -549,8 +549,12 @@ function SelectAll({
         onChange={onChange}
         aria-label={
           checked
-            ? "Deseleziona tutte le pratiche"
-            : `Seleziona tutte le ${count} pratiche visibili`
+            ? count === 1
+              ? "Deseleziona la pratica"
+              : "Deseleziona tutte le pratiche"
+            : count === 1
+              ? "Seleziona l'unica pratica visibile"
+              : `Seleziona tutte le ${count} pratiche visibili`
         }
         className="size-4.5 accent-stamp"
       />

@@ -110,7 +110,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
         )}
         <SummaryRow
           label={m.review.documents}
-          value={format(m.docs.progress, {
+          value={plural(data.language, data.progress.documentsRequired, m.docs.progress, {
             done: data.progress.documentsDone,
             total: data.progress.documentsRequired,
           })}

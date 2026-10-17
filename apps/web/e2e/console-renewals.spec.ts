@@ -31,7 +31,9 @@ test("a new link for an invited family asks first", async ({ page }) => {
   await page.goto("/console/rinnovi");
   await page.getByRole("button", { name: /^Invitati/ }).click();
   // The list is rendered once the screen-reader count names the tab.
-  await expect(page.getByRole("status").filter({ hasText: /famiglie: Invitati/ })).toBeAttached();
+  await expect(
+    page.getByRole("status").filter({ hasText: /famigli(?:a|e): Invitati/ }),
+  ).toBeAttached();
   const invited = page.getByRole("checkbox", { name: /^Seleziona Persona/ });
   test.skip((await invited.count()) === 0, "Needs the previous test's renewal.");
   await invited.first().check();

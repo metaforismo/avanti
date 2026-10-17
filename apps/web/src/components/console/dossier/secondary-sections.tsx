@@ -54,7 +54,7 @@ export function ConversationSection({ dossier }: { dossier: CaseDossier }) {
             Conversazione
           </h2>
           <span className="text-sm font-normal text-ink-3 group-open:hidden">
-            {messages.length} messaggi, mostra
+            {messages.length === 1 ? "1 messaggio" : `${messages.length} messaggi`}, mostra
           </span>
         </summary>
         <ol className="mt-4 grid gap-3">

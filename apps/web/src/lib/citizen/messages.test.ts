@@ -116,3 +116,17 @@ describe("citizen messages", () => {
     expect(range("ar", 9, 12)).toBe("يبقى 9–12 سؤالًا");
   });
 });
+
+describe("documents counter", () => {
+  it.each([
+    ["it", 0, 1, "0 di 1 pronto"],
+    ["it", 1, 3, "1 di 3 pronti"],
+    ["fr", 1, 1, "1 sur 1 prêt"],
+    ["es", 2, 4, "2 de 4 listos"],
+    ["uk", 2, 5, "Готово 2 з 5"],
+  ] as const)("%s: %i of %i", (language, done, total, expected) => {
+    expect(plural(language, total, MESSAGES[language].docs.progress, { done, total })).toBe(
+      expected,
+    );
+  });
+});

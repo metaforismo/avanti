@@ -138,7 +138,7 @@ test("an upload that stalls on a dead Wi-Fi can be retried", async ({ page }) =>
   await expect(page.getByText("Caricamento in corso…")).toBeVisible();
   await page.clock.runFor(130_000);
   await page.getByRole("button", { name: "Riprova" }).click();
-  await expect(page.getByText(/1 di \d+ pronti/)).toBeVisible();
+  await expect(page.getByText(/1 di \d+ pront[oi]/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Vai al riepilogo" })).toBeEnabled();
 });
 

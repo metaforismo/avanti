@@ -11,7 +11,7 @@ async function showQueue(page: Page, assignee: string) {
   await page.getByLabel("Filtra per operatore").selectOption(assignee);
   await loaded;
   await expect(
-    page.getByRole("status").filter({ hasText: /pratiche: da revisionare/ }),
+    page.getByRole("status").filter({ hasText: /pratic(?:a|he): da revisionare/ }),
   ).toBeAttached();
 }
 

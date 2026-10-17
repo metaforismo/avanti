@@ -25,13 +25,7 @@ import { Pill } from "@/components/ui/pill";
 import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { useChanged } from "@/components/ui/use-changed";
-import {
-  errorMessage,
-  format,
-  plural,
-  type CitizenMessages,
-  type Widen,
-} from "@/lib/citizen/messages";
+import { errorMessage, plural, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
 import { DONE_STATUSES } from "@/lib/citizen/view";
@@ -72,7 +66,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
                 ? (data.progress.documentsDone / data.progress.documentsRequired) * 100
                 : 100
             }
-            label={format(m.docs.progress, {
+            label={plural(data.language, data.progress.documentsRequired, m.docs.progress, {
               done: data.progress.documentsDone,
               total: data.progress.documentsRequired,
             })}
@@ -80,7 +74,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
             className="flex-1"
           />
           <span className="tabular shrink-0 text-sm font-semibold text-ink-2">
-            {format(m.docs.progress, {
+            {plural(data.language, data.progress.documentsRequired, m.docs.progress, {
               done: data.progress.documentsDone,
               total: data.progress.documentsRequired,
             })}
