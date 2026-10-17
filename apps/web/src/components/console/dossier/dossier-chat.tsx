@@ -6,10 +6,12 @@ import { useEffect, useId, useRef, useState } from "react";
 import type {
   CaseDossier,
   DossierAskResponse,
+  DossierAskResult,
   DossierChatResponse,
   DossierChatTurn,
 } from "@avanti/contracts";
 import { CopyButton } from "@/components/ui/copy-button";
+import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, ApiRequestError } from "@/lib/api";
@@ -50,6 +52,9 @@ export function DossierChat({
 }) {
   const base = `/api/cases/${encodeURIComponent(dossier.id)}/ai/ask`;
   const [turns, setTurns] = useState<DossierChatTurn[] | null>(null);
+  const [olderBefore, setOlderBefore] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -58,19 +63,43 @@ export function DossierChat({
   const fieldId = useId();
 
   useEffect(() => {
-    if (!open || turns !== null) return;
+    if (!open || turns !== null || loadFailed) return;
     let cancelled = false;
     apiFetch<DossierChatResponse>(base)
-      .then((page) => !cancelled && setTurns(page.turns))
-      .catch(() => !cancelled && setTurns([]));
+      .then((page) => {
+        if (cancelled) return;
+        setTurns(page.turns);
+        setOlderBefore(page.nextBeforeId);
+      })
+      .catch(() => !cancelled && setLoadFailed(true));
     return () => {
       cancelled = true;
     };
-  }, [open, turns, base]);
+  }, [open, turns, loadFailed, base]);
 
+  async function loadOlder() {
+    if (!olderBefore || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const page = await apiFetch<DossierChatResponse>(
+        `${base}?beforeId=${encodeURIComponent(olderBefore)}`,
+      );
+      setTurns((current) => [...page.turns, ...(current ?? [])]);
+      setOlderBefore(page.nextBeforeId);
+    } catch (err) {
+      setError(
+        err instanceof ApiRequestError ? err.message : "Domande precedenti non disponibili.",
+      );
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
+
+  const lastId = turns?.at(-1)?.id;
+  // Follows the newest turn only: loading older turns must not jump to the bottom.
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
-  }, [turns?.length, pending]);
+  }, [lastId, pending]);
 
   async function ask(question: string) {
     const value = question.trim();
@@ -81,20 +110,11 @@ export function DossierChat({
     try {
       // No history from the client: the server rebuilds it from saved answers about this
       // dossier version only, so an answer about an older version never becomes a fact.
-      const response = await apiFetch<DossierAskResponse>(base, {
+      const { turn, ...response } = await apiFetch<DossierAskResult>(base, {
         method: "POST",
         body: { question: value },
       });
-      setTurns((current) => [
-        ...(current ?? []),
-        {
-          id: crypto.randomUUID(),
-          question: value,
-          response,
-          createdAt: new Date().toISOString(),
-          caseVersion: dossier.updatedAt,
-        },
-      ]);
+      setTurns((current) => [...(current ?? []), { ...turn, question: value, response }]);
     } catch (err) {
       setText(value);
       setError(err instanceof ApiRequestError ? err.message : "Risposta non disponibile. Riprova.");
@@ -135,7 +155,19 @@ export function DossierChat({
           </header>
 
           <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
-            {turns === null ? (
+            {loadFailed ? (
+              <Notice
+                tone="danger"
+                title="Impossibile caricare la chat."
+                action={
+                  <Button variant="secondary" onClick={() => setLoadFailed(false)}>
+                    Riprova
+                  </Button>
+                }
+              >
+                Le domande già fatte su questa pratica non sono state caricate.
+              </Notice>
+            ) : turns === null ? (
               <div className="grid place-items-center py-10 text-ink-3">
                 <Spinner label="Caricamento della chat" />
               </div>
@@ -147,30 +179,44 @@ export function DossierChat({
                 <Starters items={STARTERS} onPick={(q) => void ask(q)} />
               </div>
             ) : (
-              <ol
-                aria-live="polite"
-                aria-relevant="additions"
-                className="grid grid-cols-[minmax(0,1fr)] gap-6"
-              >
-                {list.map((turn) => (
-                  <Turn
-                    key={turn.id}
-                    turn={turn}
-                    stale={turn.caseVersion !== dossier.updatedAt}
-                    onEvidence={(evidence) => {
-                      openEvidence(evidence, dossier, actions);
-                      if (evidence.kind !== "document" && window.innerWidth < 1024)
-                        onOpenChange(false);
-                    }}
-                  />
-                ))}
-                {pending && (
-                  <>
-                    <QuestionBubble text={pending.question} />
-                    <ThinkingRow text="Sto leggendo il fascicolo…" />
-                  </>
+              <>
+                {olderBefore && (
+                  <div className="mb-4 grid justify-items-center">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={loadingOlder}
+                      onClick={() => void loadOlder()}
+                    >
+                      Mostra i precedenti
+                    </Button>
+                  </div>
                 )}
-              </ol>
+                <ol
+                  aria-live="polite"
+                  aria-relevant="additions"
+                  className="grid grid-cols-[minmax(0,1fr)] gap-6"
+                >
+                  {list.map((turn) => (
+                    <Turn
+                      key={turn.id}
+                      turn={turn}
+                      stale={turn.caseVersion !== dossier.updatedAt}
+                      onEvidence={(evidence) => {
+                        openEvidence(evidence, dossier, actions);
+                        if (evidence.kind !== "document" && window.innerWidth < 1024)
+                          onOpenChange(false);
+                      }}
+                    />
+                  ))}
+                  {pending && (
+                    <>
+                      <QuestionBubble text={pending.question} />
+                      <ThinkingRow text="Sto leggendo il fascicolo…" />
+                    </>
+                  )}
+                </ol>
+              </>
             )}
             {suggestions.length > 0 && (
               <FollowUps items={suggestions} onPick={(q) => void ask(q)} />

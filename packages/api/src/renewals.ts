@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
 import { unionAll } from "drizzle-orm/pg-core";
 import { alias } from "drizzle-orm/pg-core";
 import {
@@ -21,7 +21,14 @@ import {
   ReuseCaseRequest,
   type RenewalStatus,
 } from "@avanti/contracts";
-import { assessDocumentReuse, buildChecklist, buildHousehold, practiceYear } from "@avanti/core";
+import {
+  assessDocumentReuse,
+  buildChecklist,
+  buildHousehold,
+  practiceYear,
+  renewalConsentEvidence,
+  DEFAULT_PRACTICE_YEAR,
+} from "@avanti/core";
 import { body, parse, type App, type Services } from "./context";
 import { audit, iso, type CaseRow } from "./dossier";
 import { currentCitizenLink } from "./citizen-link";
@@ -31,15 +38,14 @@ import { lockOperatorAccess } from "./operator-access";
 import { ApiFailure, hashToken, newToken, notFound } from "./security";
 import { nextCaseUpdate } from "./case-version";
 import { enqueueRenewalInvitation, scheduleNotificationDelivery } from "./notifications";
-import {
-  lockRenewalConsent,
-  setRenewalConsent,
-  withdrawRenewalConsent,
-  renewalConsentEvidence,
-} from "./renewal-consent";
+import { lockRenewalConsent, setRenewalConsent, withdrawRenewalConsent } from "./renewal-consent";
 import { createCase } from "./citizen";
 import { activeReminder, reminderOwner } from "./renewal-reminders";
 import { recordActivity } from "./audit-log";
+
+/** SQL twin of `practiceYear()`, so the campaign and the core never disagree on the default. */
+const practiceYearSql = (answers: SQL | AnyColumn) =>
+  sql`coalesce((${answers}->>'practice_year')::int, ${DEFAULT_PRACTICE_YEAR})`;
 
 export function renewalStatus(
   row: Pick<CaseRow, "submittedAt" | "renewalSourceId" | "renewalHouseholdConfirmedAt"> | null,
@@ -119,7 +125,7 @@ export function mountRenewalRoutes(app: App, s: Services) {
             eq(cases.organizationId, actor.organizationId),
             eq(cases.practiceId, "isee_ordinario"),
             inArray(cases.status, ["ready", "submitted"]),
-            sql`coalesce((${cases.answers}->>'practice_year')::int, 2027) = ${q.year - 1}`,
+            sql`${practiceYearSql(cases.answers)} = ${q.year - 1}`,
             sql`not (${pastRetention(now)})`,
           ),
         ),
@@ -148,7 +154,7 @@ export function mountRenewalRoutes(app: App, s: Services) {
     const target = alias(cases, "renewal_target");
     const targetJoin = sql`${target.id} = (select r.id from cases r
       where r.organization_id = ${actor.organizationId} and r.practice_id = 'isee_ordinario'
-      and coalesce((r.answers->>'practice_year')::int, 2027) = ${q.year}
+      and ${practiceYearSql(sql.raw("r.answers"))} = ${q.year}
       and (r.renewal_source_id = ${source.id} or (${source.familyId} is not null and r.family_id = ${source.familyId}))
       order by r.created_at, r.id limit 1)`;
     const state = sql<RenewalStatus>`case when ${target.id} is null then 'not_invited'
@@ -336,7 +342,7 @@ export function mountRenewalRoutes(app: App, s: Services) {
             and(
               eq(cases.organizationId, tenant),
               eq(cases.practiceId, "isee_ordinario"),
-              sql`coalesce((${cases.answers}->>'practice_year')::int, 2027) = ${input.year}`,
+              sql`${practiceYearSql(cases.answers)} = ${input.year}`,
               or(
                 eq(cases.renewalSourceId, source.id),
                 source.familyId ? eq(cases.familyId, source.familyId) : undefined,

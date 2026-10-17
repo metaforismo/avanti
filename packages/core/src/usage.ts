@@ -1,14 +1,7 @@
+import { calendarDate } from "./calendar";
+
 /** Commercial months and new AI telemetry use the platform's Italian business calendar. */
-export function usageDay(now: Date): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Rome",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const part = (name: string) => parts.find((p) => p.type === name)!.value;
-  return `${part("year")}-${part("month")}-${part("day")}`;
-}
+export const usageDay = calendarDate;
 export function usageMonth(now: Date): string {
   return usageDay(now).slice(0, 7);
 }

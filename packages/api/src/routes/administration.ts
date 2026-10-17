@@ -76,7 +76,6 @@ function settingsView(row?: typeof settings.$inferSelect): OrganizationSettings 
     nearReadyOtherThreshold: row?.nearReadyOtherThreshold ?? 0.95,
     nearReadySuspendedAt: row?.nearReadySuspendedAt ? iso(row.nearReadySuspendedAt) : null,
     mfaRequired: row?.mfaRequired ?? false,
-    aiMonthlyBudgetEur: row?.aiMonthlyBudgetEur ?? null,
     aiCopilot: row?.aiCopilot ?? true,
     aiCitizenAssistant: row?.aiCitizenAssistant ?? true,
     baselineMinutesPerCase: row?.baselineMinutesPerCase ?? null,

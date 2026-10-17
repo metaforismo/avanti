@@ -119,8 +119,10 @@ export const catalog: Record<PracticeId, PracticeDefinition> = {
   },
 };
 
+/** Year assumed when the answers carry no `practice_year`. */
+export const DEFAULT_PRACTICE_YEAR = 2027;
 export function practiceYear(answers: Answers): number {
-  return typeof answers.practice_year === "number" ? answers.practice_year : 2027;
+  return typeof answers.practice_year === "number" ? answers.practice_year : DEFAULT_PRACTICE_YEAR;
 }
 
 export function referenceYearFor(id: PracticeId, answers: Answers): number | null {

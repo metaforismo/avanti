@@ -661,11 +661,11 @@ come JSON testuale sullo stesso modello, con motivo `empty_structured_output` in
 
 Applicare la migrazione `0015_ai_runtime` prima del rilascio. `AI_MONTHLY_BUDGET_EUR=50` è il
 tetto mensile per CAF, deciso dalla piattaforma: l'AI è inclusa nel piano e l'admin del CAF non
-può modificarlo (`/api/settings` ignora `aiMonthlyBudgetEur`; la migrazione
+può né vederlo né modificarlo (`/api/settings` non lo espone e ignora `aiMonthlyBudgetEur`; la migrazione
 `0021_ai_budget_platform` azzera i valori impostati prima). Un tetto diverso per un singolo
 CAF si imposta con `pnpm platform:org --org <id> --budget <EUR>` (0 disattiva AI,
 `--budget reset` ripristina il default). Vedi [Operare la piattaforma](#operare-la-piattaforma).
-`/api/ai/usage?month=YYYY-MM` offre aggregati mensili del CAF,
+L'uso mensile per CAF si legge con le CLI di piattaforma (nessuna API per i CAF);
 `/api/status` mostra budget, provider, livelli, policy e presenza chiave. Le tariffe
 `AI_PRICES` può specificare una coppia input/output EUR per milione per ciascun ID modello.
 `AI_INPUT_EUR_PER_MILLION` e `AI_OUTPUT_EUR_PER_MILLION` coprono i modelli non elencati e
@@ -762,15 +762,15 @@ il cap software è mensile per CAF e si rinnova ogni mese, senza riporto.
 **Quota e console.** Il primo invio verifica il cap nella stessa transazione. Al 70%, 90% e
 100% crea una riga in `usage_quota_alerts` e una notifica `usage_quota` nell’outbox per ogni
 admin attivo del CAF, all’email esistente; nessun invio a cittadini. Il registro persistente
-impedisce ripetizioni nello stesso mese anche dopo la pulizia dell’outbox o modifiche del cap.
-Un salto di soglia genera tutte le soglie raggiunte. A commit avvenuto si scrive nei log operativi
+impedisce ripetizioni nello stesso mese anche dopo la pulizia dell’outbox. Un salto di soglia
+registra tutte le soglie raggiunte ma manda una sola email, per la più alta. Un cambio di cap
+con `platform:org` azzera le soglie del mese corrente: si ripartono dal nuovo cap. A commit avvenuto si scrive nei log operativi
 `usage.quota` con ID CAF, mese, soglia, cap e consegne, senza indirizzi o contenuti personali;
 il registro DB resta la prova se un arresto impedisce la riga di log. Senza admin attivi resta
 il registro ma non ci sono destinatari. Controllare sempre almeno un admin attivo del CAF.
 Il 100% non blocca l’invio: il contatore e la percentuale possono superare il cap.
 
-Il cap aggiornato viene valutato al successivo primo invio, senza avvisi retroattivi dal
-comando CLI. Le notifiche usano cifratura, retry e cron dell’outbox esistente, indipendentemente
+Il cap aggiornato viene valutato al successivo primo invio: il comando CLI non manda email. Le notifiche usano cifratura, retry e cron dell’outbox esistente, indipendentemente
 dalle preferenze dei digest; in locale `console` simula e non consegna email. A consegna si
 ricontrollano ruolo admin, attività, organizzazione ed email del destinatario. Le scadenze e
 la cancellazione dei payload dell’outbox restano quelle del [runbook email](#notifiche-email-e-outbox).

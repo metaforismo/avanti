@@ -74,6 +74,8 @@ export function CommandPalette({
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      // An abandoned search (shorter query, palette closed) must not leave the spinner on.
+      setSearching(false);
     };
   }, [term]);
 

@@ -176,7 +176,6 @@ export function AssistantSheet({
               <DeskForm
                 m={m}
                 initial={desk}
-                sent={assistant.deskSent}
                 busy={assistant.pending === "desk"}
                 onSend={(text) => assistant.askDesk(text)}
                 onCancel={() => setDesk(null)}
@@ -189,7 +188,7 @@ export function AssistantSheet({
                 label={m.assistant.placeholder}
                 placeholder={m.assistant.placeholder}
                 maxLength={600}
-                busy={assistant.pending === "ask"}
+                busy={assistant.pending !== null}
                 voiceEnabled={data.aiCitizenAssistant !== false}
                 onSend={(text) => assistant.ask(text, focus)}
                 leading={
@@ -233,7 +232,7 @@ function Bubble({
   return (
     <ChatBubble
       from={mine ? "citizen" : "assistant"}
-      label={mine ? undefined : m.assistant.assistant}
+      label={mine ? m.assistant.you : m.assistant.assistant}
       text={turn.text}
       before={
         turn.intent === "emergency" && (
@@ -293,22 +292,29 @@ function Bubble({
 function DeskForm({
   m,
   initial,
-  sent,
   busy,
   onSend,
   onCancel,
 }: {
   m: Widen<CitizenMessages>;
   initial: string;
-  sent: boolean;
   busy: boolean;
   onSend: (text: string) => Promise<boolean>;
   onCancel: () => void;
 }) {
   const [text, setText] = useState(initial);
+  const [sent, setSent] = useState(false);
   if (sent)
     return (
-      <Notice tone="ok" size="md">
+      <Notice
+        tone="ok"
+        size="md"
+        action={
+          <Button variant="secondary" size="sm" onClick={onCancel}>
+            {m.common.back}
+          </Button>
+        }
+      >
         {m.assistant.askDeskSent}
       </Notice>
     );
@@ -317,7 +323,7 @@ function DeskForm({
       className="grid gap-2 rounded-lg bg-paper p-3"
       onSubmit={(event) => {
         event.preventDefault();
-        if (text.trim()) void onSend(text.trim());
+        if (text.trim()) void onSend(text.trim()).then((ok) => ok && setSent(true));
       }}
     >
       <label htmlFor="desk-message" className="font-semibold">

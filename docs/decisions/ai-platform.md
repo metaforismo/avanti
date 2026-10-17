@@ -152,9 +152,8 @@ al provider il precedente output potenzialmente ostile.
 
 Migrazione unica `0015_ai_runtime`: tabella `ai_usage` e `settings.ai_monthly_budget_eur`.
 `PATCH /api/settings` accettava `aiMonthlyBudgetEur`; dal 16 ottobre 2026 lo ignora (vedi sotto).
-`GET /api/ai/usage?month=YYYY-MM` è autenticato e riservato agli admin; usa sempre il CAF
-della sessione, aggrega per compito/versione/modello/motore/esito/giorno UTC. Espone token,
-costo EUR stimato, latenza media per gruppo, tentativi e conteggio manipolazioni, nessun contenuto.
+`GET /api/ai/usage` è stato rimosso il 17 ottobre 2026: con l'AI inclusa nel piano modello,
+costi e budget non si mostrano ai CAF. L'uso per CAF si consulta con le CLI di piattaforma.
 Lo stato `/api/status` aggiunge configurazione pubblica (chiave presente, mai valore) e budget;
 se esaurito mostra attention/fallback.
 

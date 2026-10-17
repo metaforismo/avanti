@@ -2,7 +2,7 @@
 
 import { ArrowUpRight, Link2, RefreshCw, Users } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Route } from "next";
 import type {
   CreateRenewalsResponse,
@@ -22,6 +22,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { formatDateTime, type Tone } from "@/lib/console/labels";
 
+import { useResource } from "@/lib/console/use-resource";
+import { cn } from "@/lib/cn";
+
 const formatDate = (iso: string) =>
   new Intl.DateTimeFormat("it-IT", {
     day: "numeric",
@@ -29,8 +32,6 @@ const formatDate = (iso: string) =>
     year: "numeric",
     timeZone: "Europe/Rome",
   }).format(new Date(iso));
-import { useResource } from "@/lib/console/use-resource";
-import { cn } from "@/lib/cn";
 
 const STATUSES: { key: RenewalStatus; label: string; hint: string }[] = [
   { key: "not_invited", label: "Da invitare", hint: "Nessun rinnovo ancora preparato" },
@@ -80,6 +81,8 @@ export default function RenewalsPage() {
   const [status, setStatus] = useState<RenewalStatus>("not_invited");
   const [more, setMore] = useState<{ items: RenewalItem[]; next: string | null } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Bumped whenever the list starts over, so a late "Mostra altre famiglie" page is dropped.
+  const generation = useRef(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +102,7 @@ export default function RenewalsPage() {
         method: "PUT",
         body: { consented: false },
       });
+      generation.current++;
       setMore(null);
       void list.reload();
     } catch (err) {
@@ -115,17 +119,27 @@ export default function RenewalsPage() {
     chosenYear === null ? `/api/renewals?year=${suggested}&status=all&limit=1` : null,
   );
   const probeTotal = probe.data ? countAll(probe.data.counts) : null;
+  // A failed probe falls back to the suggested year: the list then shows its own error.
   const year =
-    chosenYear ?? (probeTotal === null ? null : probeTotal === 0 ? suggested + 1 : suggested);
+    chosenYear ??
+    (probe.status === "error"
+      ? suggested
+      : probeTotal === null
+        ? null
+        : probeTotal === 0
+          ? suggested + 1
+          : suggested);
   const shownYear = year ?? suggested;
 
   const list = useResource<RenewalsResponse>(
     year === null ? null : `/api/renewals?year=${year}&status=${status}&limit=${BATCH}`,
   );
-  const data = list.data?.year === year ? list.data : null;
+  // Only an answer for the year and status on screen: the previous one may linger while loading.
+  const data = list.status === "ready" && !list.refreshing ? list.data : null;
   const total = data ? countAll(data.counts) : null;
 
   function reset() {
+    generation.current++;
     setMore(null);
     setSelected(new Set());
   }
@@ -137,11 +151,13 @@ export default function RenewalsPage() {
 
   async function loadMore() {
     if (!next || loadingMore || year === null) return;
+    const requested = generation.current;
     setLoadingMore(true);
     try {
       const page = await apiFetch<RenewalsResponse>(
         `/api/renewals?year=${year}&status=${status}&limit=${BATCH}&after=${encodeURIComponent(next)}`,
       );
+      if (generation.current !== requested) return;
       setMore((current) => ({
         items: [...(current?.items ?? []), ...page.items],
         next: page.nextAfter,
@@ -168,6 +184,7 @@ export default function RenewalsPage() {
       const names = new Map(items.map((item) => [item.sourceCaseId, item.citizenName]));
       setResult({ response, names });
       setSelected(new Set());
+      generation.current++;
       setMore(null);
       void list.reload();
     } catch (err) {
@@ -258,7 +275,7 @@ export default function RenewalsPage() {
         {data ? `${items.length} famiglie: ${STATUSES.find((s) => s.key === status)?.label}` : ""}
       </p>
       <section aria-busy={list.status === "loading" || list.refreshing} className="mt-5">
-        {list.status === "error" && !list.data ? (
+        {list.status === "error" ? (
           <Notice
             tone="danger"
             size="page"

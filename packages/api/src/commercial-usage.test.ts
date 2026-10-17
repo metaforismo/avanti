@@ -252,6 +252,35 @@ it("emits 70/90/100 once per CAF/month across two concurrent office submissions 
   }
 });
 
+it("emails only the highest threshold crossed and starts over when the cap changes in the month", async () => {
+  const quotaMail = async () =>
+    (await db.select().from(notifications).where(eq(notifications.kind, "usage_quota"))).map(
+      (mail) =>
+        unseal(s.notifications, `${mail.id}:${mail.kind}:${mail.language}`, mail.envelope!)
+          .subject,
+    );
+  const thresholds = async () =>
+    (await db.select().from(usageQuotaAlerts).orderBy(usageQuotaAlerts.threshold)).map(
+      (r) => r.threshold,
+    );
+  vi.spyOn(console, "info").mockImplementation(() => {});
+  await platformOrg(db, { org: "caf-a", cap: 1 }, now);
+  await deliver();
+  expect(await thresholds()).toEqual([70, 90, 100]);
+  expect(await quotaMail()).toEqual(["Avanti: quota consegne al 100%"]);
+  await platformOrg(db, { org: "caf-a", cap: 1 }, now);
+  expect(await thresholds()).toEqual([70, 90, 100]);
+  await platformOrg(db, { org: "caf-a", cap: 2 }, now);
+  expect(await thresholds()).toEqual([]);
+  await deliver();
+  expect(await thresholds()).toEqual([70, 90, 100]);
+  expect(await quotaMail()).toEqual([
+    "Avanti: quota consegne al 100%",
+    "Avanti: quota consegne al 100%",
+  ]);
+  vi.restoreAllMocks();
+});
+
 it("retention never decrements month totals; status is admin-only, scoped and contains only quota data", async () => {
   now = new Date("2027-01-31T22:59:59Z");
   const intake = await start();
@@ -456,7 +485,7 @@ it("keeps quota mail relevant across days but cancels it for a demoted admin", a
   try {
     await deliver();
     now = new Date("2027-01-16T10:00:00Z");
-    expect(await sendNotifications(s, now)).toBe(3);
+    expect(await sendNotifications(s, now)).toBe(1);
     expect((await db.select().from(notifications)).every((row) => row.state === "simulated")).toBe(
       true,
     );

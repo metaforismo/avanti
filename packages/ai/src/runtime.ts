@@ -265,16 +265,15 @@ export class AiRuntime {
           throw new TaskFailure("invalid_output");
         }
         if (task.validate && !task.validate(output, input)) throw new TaskFailure("invalid_output");
-        const violations = outputViolations(
-          task.guardText(output),
-          JSON.stringify(data.context) + data.untrusted.map((b) => b.text).join("\n"),
-          undefined,
-        );
+        const context =
+          JSON.stringify(data.context) + data.untrusted.map((b) => b.text).join("\n");
+        const violations = outputViolations(task.guardText(output), context, undefined);
         if (
           task.language &&
           languageViolation(
             task.languageText?.(output) ?? task.guardText(output),
             task.language(input),
+            context,
           )
         )
           violations.push("language");

@@ -242,9 +242,15 @@ function Accepted({
   const [notReady, setNotReady] = useState(false);
   const [reason, setReason] = useState<Reason>("other");
   const [critical, setCritical] = useState("");
-  const order = near.reviewOrder
-    .map((id) => dossier.checklist.find((item) => item.id === id))
-    .filter((item): item is CaseDossier["checklist"][number] => Boolean(item));
+  // reviewOrder lists document IDs: show each checklist item once, at its first document.
+  const order = [
+    ...new Set(
+      near.reviewOrder.flatMap((id) => {
+        const item = dossier.checklist.find((entry) => entry.documentIds.includes(id));
+        return item ? [item] : [];
+      }),
+    ),
+  ];
   return (
     <Shell title="Revisione rapida in corso" meta={`Controllata ${formatDateTime(near.checkedAt)}`}>
       {order.length > 0 && (

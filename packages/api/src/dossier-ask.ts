@@ -3,6 +3,7 @@ import { dossierChatTurns, settings } from "@avanti/db";
 import {
   DossierAskRequest,
   DossierAskResponse,
+  DossierAskResult,
   DossierChatQuery,
   DossierChatResponse,
   Id,
@@ -142,6 +143,11 @@ export function mountDossierAsk(app: App, s: Services) {
       engine: result.engine,
       suggestions: output.suggestions,
     });
+    const turn = {
+      id: crypto.randomUUID(),
+      createdAt: s.clock().toISOString(),
+      caseVersion: iso(row.updatedAt),
+    };
     await s.db.transaction(async (tx) => {
       await lockOperatorAccess(tx, c, s);
       const current = await caseById(tx, row.id, actor.organizationId, true);
@@ -152,17 +158,15 @@ export function mountDossierAsk(app: App, s: Services) {
           "Il fascicolo è cambiato. Ripeti la domanda sui dati aggiornati.",
         );
       await tx.insert(dossierChatTurns).values({
-        id: crypto.randomUUID(),
+        ...turn,
         caseId: row.id,
         operatorId: actor.id,
         question: input.question,
         response,
-        createdAt: s.clock().toISOString(),
-        caseVersion: iso(row.updatedAt),
       });
       await audit(tx, current, "operator", "copilot.asked", s.clock(), actor.id);
     });
     c.header("Cache-Control", "private, no-store");
-    return c.json(response);
+    return c.json(DossierAskResult.parse({ ...response, turn }));
   });
 }

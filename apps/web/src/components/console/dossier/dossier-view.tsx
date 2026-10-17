@@ -369,7 +369,12 @@ export function DossierView({ caseId }: { caseId: string }) {
                   Nuova pratica per questa famiglia…
                 </MenuItem>
                 {data.practice?.id === "isee_ordinario" && (
-                  <MenuItem onSelect={() => setWithdraw("ask")}>
+                  <MenuItem
+                    onSelect={() => {
+                      setWithdrawError(null);
+                      setWithdraw("ask");
+                    }}
+                  >
                     Revoca l&apos;avviso di rinnovo…
                   </MenuItem>
                 )}
@@ -457,7 +462,11 @@ export function DossierView({ caseId }: { caseId: string }) {
       />
       <Dialog
         open={withdraw === "ask" || withdraw === "saving"}
-        onOpenChange={(open) => !open && setWithdraw(null)}
+        onOpenChange={(open) => {
+          if (open || withdraw === "saving") return;
+          setWithdraw(null);
+          setWithdrawError(null);
+        }}
         returnFocusTo={moreButton}
         title="Revocare l'avviso di rinnovo?"
         description="Usalo quando il cittadino chiede allo sportello di non ricevere più l'email per il rinnovo dell'ISEE. Vale per tutta la famiglia in questo CAF e cancella subito l'eventuale promemoria conservato."
@@ -468,7 +477,14 @@ export function DossierView({ caseId }: { caseId: string }) {
           </Notice>
         )}
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="secondary" onClick={() => setWithdraw(null)}>
+          <Button
+            variant="secondary"
+            disabled={withdraw === "saving"}
+            onClick={() => {
+              setWithdraw(null);
+              setWithdrawError(null);
+            }}
+          >
             Annulla
           </Button>
           <Button

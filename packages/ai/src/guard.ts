@@ -23,7 +23,28 @@ const contacts =
 const secrets =
   /\b(?:spid|otp|password|cvv|cvc|puk|pin)\b|one[- ]time (?:code|password)|mot de passe|contrase[nñ]a|parol[ăa]|(?:carta|card)\s+(?:di credito|number|numero|details)|numero.{0,12}carta|numéro.{0,12}carte|дані картки|номер картки|парол[ьяю]|كلمة المرور|رمز التحقق|رقم البطاقة|পাসওয়ার্ড|পিন|কার্ড নম্বর/iu;
 // A conservative script check can prove a mismatch, but cannot prove the language of a short Latin sentence.
-export function languageViolation(text: string, language?: Language) {
+const WORD = /[\p{L}\p{M}]+/gu;
+const NON_LATIN = /(?!\p{Script=Latin})\p{L}/u;
+// The context holds untrusted text too: only a few whole words, a small share of the reply,
+// count as quoted names, so a pasted paragraph never exempts a reply in another language.
+const MAX_QUOTED_WORDS = 6;
+const MAX_QUOTED_SHARE = 0.3;
+const letters = (text: string) => text.match(/\p{L}/gu)?.length ?? 0;
+function withoutQuotedNames(text: string, context: string) {
+  const known = new Set(context.match(WORD));
+  const quoted = (word: string) => NON_LATIN.test(word) && known.has(word);
+  const words = (text.match(WORD) ?? []).filter(quoted);
+  if (
+    !words.length ||
+    words.length > MAX_QUOTED_WORDS ||
+    letters(words.join("")) > letters(text) * MAX_QUOTED_SHARE
+  )
+    return text;
+  return text.replace(WORD, (word) => (quoted(word) ? "" : word));
+}
+export function languageViolation(text: string, language?: Language, context = "") {
+  if (context && language && !["ar", "bn", "uk"].includes(language))
+    text = withoutQuotedNames(text, context);
   if (!language || text.replace(/\s/g, "").length < 12) return false;
   const script = {
     ar: /\p{Script=Arabic}/u,
@@ -70,6 +91,6 @@ export function outputViolations(text: string, context: string, language?: Langu
   if (secrets.test(text) || /\b(?:\d[ -]?){13,19}\b/.test(text)) violations.push("credentials");
   if (controls.test(text)) violations.push("controls");
   controls.lastIndex = 0;
-  if (languageViolation(text, language)) violations.push("language");
+  if (languageViolation(text, language, context)) violations.push("language");
   return violations;
 }

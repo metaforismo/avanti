@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { cases, organizations, type Database } from "@avanti/db";
-import { RENEWAL_CONSENT_VERSIONS, renewalConsentEvidence } from "@avanti/core";
+import { RENEWAL_CONSENT_VERSIONS } from "@avanti/core";
 import type { CaseRow } from "./dossier";
 import { eraseRenewalReminders, type RenewalOwner } from "./renewal-reminders";
 
@@ -39,4 +39,3 @@ export async function setRenewalConsent(db: Database, row: CaseRow, consented: b
     })
     .where(and(eq(cases.organizationId, row.organizationId), eq(cases.id, row.id)));
 }
-export { renewalConsentEvidence };

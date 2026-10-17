@@ -29,7 +29,6 @@ import { mountPilotReportRoutes } from "./routes/pilot-report";
 import { mountAuditRoutes } from "./audit-log";
 import { mountNearReady } from "./near-ready";
 import { mountCopilot } from "./copilot";
-import { mountAiUsage } from "./ai-usage";
 import { mountRenewalRoutes } from "./renewals";
 import { mountFamilyReuseRoutes } from "./family-reuse";
 import { mountSystemStatus } from "./system-status";
@@ -123,7 +122,6 @@ export function createApp(options: ApiOptions) {
   mountAuditRoutes(app, services);
   mountPilotReportRoutes(app, services);
   mountSystemStatus(app, services);
-  mountAiUsage(app, services);
   mountCopilot(app, services);
   mountNearReady(app, services);
   mountDossierAsk(app, services);
