@@ -48,7 +48,7 @@ export function ChecklistSection({
         </p>
       )}
 
-      <div className="mt-4 grid gap-6">
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-6">
         {[...groups.entries()].map(([key, group]) => (
           <div key={key}>
             <h3 className="mb-2 text-sm font-semibold text-ink-2">{group.title}</h3>
@@ -71,7 +71,7 @@ export function ChecklistSection({
             <h3 className="mb-2 text-sm font-semibold text-ink-2">Documenti non abbinati</h3>
             <ul className="flex flex-wrap gap-2 rounded-lg bg-surface p-3 ring-1 ring-line">
               {unmatched.map((doc) => (
-                <li key={doc.id}>
+                <li key={doc.id} className="max-w-full min-w-0">
                   <DocChip
                     name={doc.analysis?.detectedLabel ?? doc.fileName}
                     mime={doc.mimeType}

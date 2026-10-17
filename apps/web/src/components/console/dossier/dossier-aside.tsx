@@ -20,11 +20,11 @@ export function DossierAside({
 }) {
   const { citizen } = dossier;
   return (
-    <aside className="grid content-start gap-5">
+    <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5">
       <Card title="Cittadino">
         <div className="grid gap-3 text-body-sm">
           <div>
-            <p className="font-semibold break-words">
+            <p className="font-semibold">
               {[citizen.firstName, citizen.lastName].filter(Boolean).join(" ") || "Non indicato"}
             </p>
             <p className="text-sm text-ink-3">Lingua: {LANGUAGE_IT[dossier.language]}</p>
@@ -63,7 +63,7 @@ export function DossierAside({
         {dossier.citizenNote && (
           <div className="mt-4 rounded-sm bg-marker-soft px-3 py-2.5 text-body-sm">
             <p className="text-xs font-semibold text-ink-2">Nota del cittadino</p>
-            <p dir="auto" className="mt-1 break-words whitespace-pre-line">
+            <p dir="auto" className="mt-1 whitespace-pre-line">
               {dossier.citizenNote}
             </p>
           </div>

@@ -23,7 +23,7 @@ export function AnswersSection({ dossier }: { dossier: CaseDossier }) {
                   className="grid gap-1 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-4"
                 >
                   <dt className="text-ink-2">{answer.question}</dt>
-                  <dd dir="auto" className="font-semibold break-words">
+                  <dd dir="auto" className="font-semibold">
                     {answer.answer}
                   </dd>
                 </div>

@@ -44,6 +44,12 @@ export function rememberCase(entry: RecentCase) {
   write([entry, ...mine].slice(0, MAX));
 }
 
+/** A case that no longer exists (deleted, erased with its family) leaves the list. */
+export function forgetCase(id: string) {
+  const all = read();
+  if (all.some((c) => c.id === id)) write(all.filter((c) => c.id !== id));
+}
+
 export function forgetRecentCases() {
   write([]);
 }
