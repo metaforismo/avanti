@@ -7,9 +7,10 @@ import { CommercialUsage } from "./platform";
 import { z } from "zod";
 import { NearReady } from "./near-ready";
 export * from "./near-ready";
-import { LANGUAGES, PASSWORD_MIN_LENGTH, PRACTICE_IDS } from "./constants";
+import { ASSIGN_CASES_MAX, LANGUAGES, PASSWORD_MIN_LENGTH, PRACTICE_IDS } from "./constants";
 
 export {
+  ASSIGN_CASES_MAX,
   LANGUAGES,
   PASSWORD_MIN_LENGTH,
   PRACTICE_IDS,
@@ -666,6 +667,18 @@ export const CaseListItem = z.object({
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
   submittedAt: IsoDateTime.nullable(),
+  /**
+   * Queue only: set while the case is submitted and nobody has taken it. `since` is the first
+   * submission, `days` Italian calendar days since then, `overdue` past the working-day threshold.
+   */
+  waiting: z
+    .object({
+      since: IsoDateTime,
+      days: z.number().int().nonnegative(),
+      overdue: z.boolean(),
+    })
+    .nullable()
+    .optional(),
 });
 export type CaseListItem = z.infer<typeof CaseListItem>;
 
@@ -676,6 +689,8 @@ export const CaseListQuery = z.object({
   officeId: Id.optional(),
   assignee: z.union([Id, z.literal("me"), z.literal("none")]).optional(),
   q: SafeText.trim().max(100).optional(),
+  /** `waiting`: first submission oldest first, the cases that have waited longest on top. */
+  sort: z.enum(["updated", "waiting"]).default("updated"),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
@@ -688,8 +703,40 @@ export const CaseListResponse = z.object({
   priorityCounts: z
     .object({ near_ready: z.number().int().nonnegative() })
     .default({ near_ready: 0 }),
+  /** Submitted, unassigned and past the waiting threshold, with the list filters except status. */
+  waitingOverdue: z.number().int().nonnegative().default(0),
 });
 export type CaseListResponse = z.infer<typeof CaseListResponse>;
+
+/**
+ * Admin only. Each case carries the `updatedAt` read in the queue: a case changed since then is
+ * reported as `conflict` and left untouched, while the others are assigned in the same
+ * transaction. `assigneeId: null` removes the assignment.
+ */
+export const AssignCasesRequest = z
+  .object({
+    assigneeId: Id.nullable(),
+    cases: z
+      .array(z.object({ id: Id, expectedUpdatedAt: IsoDateTime }).strict())
+      .min(1)
+      .max(ASSIGN_CASES_MAX)
+      .refine((items) => new Set(items.map((item) => item.id)).size === items.length, {
+        message: "Ogni pratica può comparire una sola volta.",
+      }),
+  })
+  .strict();
+export type AssignCasesRequest = z.infer<typeof AssignCasesRequest>;
+
+export const AssignCaseOutcome = z.enum(["assigned", "unchanged", "conflict", "not_found"]);
+export type AssignCaseOutcome = z.infer<typeof AssignCaseOutcome>;
+/** Results in request order; `updatedAt` is the current version, null when not found. */
+export const AssignCasesResponse = z.object({
+  assignee: z.object({ id: Id, name: z.string() }).nullable(),
+  results: z.array(
+    z.object({ id: Id, outcome: AssignCaseOutcome, updatedAt: IsoDateTime.nullable() }),
+  ),
+});
+export type AssignCasesResponse = z.infer<typeof AssignCasesResponse>;
 
 export const TimelineEvent = z.object({
   id: Id,
