@@ -248,9 +248,8 @@ export function mountSystemStatus(app: App, s: Services) {
       database: { status: data ? "ok" : "problem", code: data ? "available" : "unavailable" },
       storage,
       ai: {
+        // AI is included in the plan: provider, models and spend stay platform-side (CLI).
         ...aiStatus(s.ai.configured, hourly),
-        configuration: s.ai.configuration,
-        budget,
         ...(budget?.exhausted
           ? {
               status: "attention" as const,

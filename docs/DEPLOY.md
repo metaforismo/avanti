@@ -666,7 +666,7 @@ può né vederlo né modificarlo (`/api/settings` non lo espone e ignora `aiMont
 CAF si imposta con `pnpm platform:org --org <id> --budget <EUR>` (0 disattiva AI,
 `--budget reset` ripristina il default). Vedi [Operare la piattaforma](#operare-la-piattaforma).
 L'uso mensile per CAF si legge con le CLI di piattaforma (nessuna API per i CAF);
-`/api/status` mostra budget, provider, livelli, policy e presenza chiave. Le tariffe
+`/api/status` mostra al CAF solo se l'AI risponde o se si lavora con le regole (anche a budget esaurito), senza fornitore, modelli né spesa. Le tariffe
 `AI_PRICES` può specificare una coppia input/output EUR per milione per ciascun ID modello.
 `AI_INPUT_EUR_PER_MILLION` e `AI_OUTPUT_EUR_PER_MILLION` coprono i modelli non elencati e
 restano conservative. Il costo usa il modello restituito per ogni tentativo; le prenotazioni

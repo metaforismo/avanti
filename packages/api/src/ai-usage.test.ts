@@ -91,11 +91,10 @@ it("keeps model, spend and budget away from the CAF: AI is included in the plan"
     .values({ organizationId: "a", aiMonthlyBudgetEur: 0 })
     .onConflictDoUpdate({ target: settings.organizationId, set: { aiMonthlyBudgetEur: 0 } });
   const status = await (await app.request("/api/status", { headers: { cookie } })).json();
-  expect(status.components.ai).toMatchObject({
-    mode: "fallback",
-    budget: { exhausted: true, budgetEur: 0 },
-    configuration: { provider: "openai", keyPresent: true, dataPolicy: "strict" },
-  });
+  // An exhausted budget shows as AI paused, without exposing spend, provider or models.
+  expect(status.components.ai).toMatchObject({ mode: "fallback", code: "ai_fallback" });
+  expect(status.components.ai).not.toHaveProperty("budget");
+  expect(status.components.ai).not.toHaveProperty("configuration");
   expect((await aiBudget(s, "b")).budgetEur).toBe(1);
 });
 it("honors organization overrides and admits only the reserved amount under concurrency", async () => {
