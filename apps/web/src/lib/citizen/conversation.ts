@@ -58,15 +58,7 @@ export function useConversation(
     [base, onConflict],
   );
 
-  const load = useCallback(
-    () =>
-      run("load", async () => {
-        const next = await apiFetch<ConversationState>(base);
-        keys.current.clear();
-        return next;
-      }),
-    [base, run],
-  );
+  const load = useCallback(() => run("load", () => apiFetch<ConversationState>(base)), [base, run]);
 
   const send = useCallback(
     (text: string) =>

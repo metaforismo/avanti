@@ -123,8 +123,6 @@ export function useCitizenCase(token: string) {
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<CitizenCase>(base);
-      // The case on screen now shows whether an earlier attempt went through.
-      keys.current.clear();
       loadedAt.current = Date.now();
       setState({ kind: "ready", data });
     } catch (error) {

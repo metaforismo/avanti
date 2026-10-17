@@ -12,9 +12,9 @@ export function newIdempotencyKey(): string {
 /**
  * Keys for actions the person may retry after a lost response. The same action with the same
  * payload reuses its key, so the server answers the retry with the first result instead of
- * doing it twice. Any success or fresh load of the state forgets every pending key: the
- * person now sees what happened, and the same words sent later (another «sì») are a new action
- * that a stale key would silently swallow.
+ * doing it twice. Any confirmed success forgets every pending key, so the same words sent later
+ * (another «sì») are a new action. A background refresh does not: it can be answered before the
+ * lost request commits, and forgetting the key then would store the retry twice.
  */
 export function createRetryKeys() {
   const pending = new Map<string, string>();

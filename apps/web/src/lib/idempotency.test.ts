@@ -19,7 +19,7 @@ describe("retry keys", () => {
     expect(seen[3]).not.toBe(seen[0]);
   });
 
-  it("forget a failed action once another one succeeds or the state is reloaded", async () => {
+  it("forget a failed action once another one succeeds or the server refuses it", async () => {
     const keys = createRetryKeys();
     const lost = keys.key("send", { text: "sì" });
     await withRetryKey(keys, "send", { text: "no" }, async () => null);

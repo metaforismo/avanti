@@ -71,9 +71,11 @@ la prima richiederebbe di conservare il token in chiaro, che oggi esiste solo co
 trascrizione vocale (nessun effetto salvato, solo un secondo costo AI).
 
 Frontend: `apps/web/src/lib/idempotency.ts` dà una chiave per azione e contenuto; la stessa
-azione ripetuta con lo stesso contenuto riusa la chiave. Ogni successo o ricarica dello stato
-le dimentica tutte: il cittadino vede che cosa è successo, e lo stesso «sì» detto più tardi a
-un'altra domanda è un'azione nuova che una chiave vecchia avrebbe ingoiato. Il caricamento
+azione ripetuta con lo stesso contenuto riusa la chiave. Ogni successo confermato le dimentica
+tutte: lo stesso «sì» detto più tardi a un'altra domanda è un'azione nuova che una chiave
+vecchia avrebbe ingoiato. Una ricarica in background invece no: può arrivare prima che la
+richiesta persa sia salvata, e dimenticare la chiave in quel momento salverebbe il reinvio due
+volte (l'e2e `citizen-retry` lo riproduceva con la lettura della conversazione all'apertura). Il caricamento
 porta la chiave con il file in attesa, così «Riprova» non crea un secondo documento. La chiave
 usa `crypto.randomUUID` o, sui telefoni che non lo hanno (Safari prima della 15.4),
 `getRandomValues`.
