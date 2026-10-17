@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiFetch, ApiRequestError } from "@/lib/api";
+import { apiFetch, ApiRequestError, authFailureHandled } from "@/lib/api";
 import { forgetRecentCases } from "./recent-cases";
 
 type Flags = {
@@ -78,7 +78,9 @@ export function useResource<T>(path: string | null) {
             ? error
             : new ApiRequestError(0, "internal", "Errore imprevisto.");
         if (err.status === 404) cache.delete(path);
-        if (err.status === 401 && shown.current !== path) {
+        // With a console on screen the shell shows «sessione scaduta» and keeps what is typed;
+        // only a first load with nothing shown yet goes straight to sign in.
+        if (err.status === 401 && shown.current !== path && !authFailureHandled()) {
           clearResourceCache();
           const next = encodeURIComponent(window.location.pathname + window.location.search);
           router.replace(`/console/accedi?motivo=sessione&next=${next}` as never);

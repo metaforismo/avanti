@@ -121,16 +121,17 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
   // reset by an admin) or because a permission changed (role, MFA now required). Ending: keep
   // the page and what is typed on it, and offer the way back. Narrowing: refetch the profile,
   // so menus and gates follow the new role at once.
+  // Listening starts once the console is on screen; before that, a 401 goes to sign in.
   const { reload: reloadMe } = me;
-  useEffect(
-    () =>
-      onAuthFailure(({ status }) => {
-        if (status === 403) return reloadMe();
-        clearResourceCache();
-        setExpired(true);
-      }),
-    [reloadMe],
-  );
+  const shown = me.data !== null;
+  useEffect(() => {
+    if (!shown) return;
+    return onAuthFailure(({ status }) => {
+      if (status === 403) return reloadMe();
+      clearResourceCache();
+      setExpired(true);
+    });
+  }, [reloadMe, shown]);
 
   // «?» lists the shortcuts, as in most work tools; never while typing a question mark.
   useEffect(() => {

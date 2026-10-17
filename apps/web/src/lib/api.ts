@@ -32,6 +32,9 @@ export function onAuthFailure(listener: (failure: AuthFailure) => void) {
   };
 }
 
+/** True once a console is on screen and handles an ended session itself (notice, way back). */
+export const authFailureHandled = () => authListener !== null;
+
 // On these endpoints 401 means wrong credentials or code, not a session that ended.
 function isCredentialCheck(path: string) {
   return path.startsWith("/api/auth/") && path !== "/api/auth/me";

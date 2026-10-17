@@ -37,7 +37,8 @@ export async function logIn(page: Page, account: { email: string; password: stri
   if (!new URL(page.url()).pathname.startsWith("/console/accedi")) {
     await page.goto("/console/accedi");
   }
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Two workers share the demo accounts: keep waiting out the per-email window a few times.
+  for (let attempt = 0; attempt < 6; attempt++) {
     await page.getByLabel("Email").fill(account.email);
     await page.getByLabel("Password", { exact: true }).fill(account.password);
     const response = page.waitForResponse((r) => r.url().endsWith("/api/auth/login"));
