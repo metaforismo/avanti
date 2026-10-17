@@ -184,7 +184,7 @@ export function OfficeStart({
                   lang={code}
                   dir={RTL_LANGUAGES.includes(code) ? "rtl" : "ltr"}
                   className={cn(
-                    "flex min-h-14 cursor-pointer items-center gap-3 rounded-md bg-surface px-4 text-lg ring-1 ring-line-strong transition-shadow duration-150 ring-inset",
+                    "flex min-h-14 cursor-pointer items-center gap-3 rounded-md bg-surface px-4 text-lg ring-1 ring-line-strong transition-[background-color,box-shadow] duration-150 select-none ring-inset active:bg-stamp-wash",
                     "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
                     language === code && "font-semibold ring-2 ring-stamp",
                   )}

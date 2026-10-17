@@ -91,7 +91,7 @@ export function QueueAssign({
       <div
         role="region"
         aria-label="Pratiche selezionate"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur lg:start-60"
+        className="fixed inset-x-0 bottom-0 z-30 animate-dock-in border-t border-line bg-surface/95 shadow-dock backdrop-blur lg:start-60"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
           <p className="text-sm" aria-live="polite">
@@ -164,7 +164,7 @@ export function QueueAssign({
                       <span className="text-sm text-ink-3">Tornano tra le non assegnate</span>
                     </span>
                   ) : (
-                    <span className="font-semibold">{option.label}</span>
+                    <span className="min-w-0 font-semibold break-words">{option.label}</span>
                   )}
                 </label>
               ))}
@@ -213,7 +213,13 @@ export function QueueAssign({
           <Button variant="ghost" disabled={pending} onClick={() => setOpen(false)}>
             Annulla
           </Button>
-          <Button loading={pending} disabled={targetId === undefined} onClick={() => void submit()}>
+          {/* Grows to two lines for a long colleague name instead of overflowing the dialog. */}
+          <Button
+            loading={pending}
+            disabled={targetId === undefined}
+            onClick={() => void submit()}
+            className="h-auto min-h-10 py-2 text-balance whitespace-normal"
+          >
             {confirmLabel}
           </Button>
         </div>

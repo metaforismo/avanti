@@ -350,7 +350,7 @@ export function DossierView({ caseId }: { caseId: string }) {
               <DropdownMenu.Content
                 align="end"
                 sideOffset={6}
-                className="z-50 min-w-56 animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line"
+                className="z-50 min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
               >
                 <MenuLink href={`${base}/export?format=pdf`} icon={Download}>
                   Scarica fascicolo PDF
@@ -607,7 +607,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           <button
             type="button"
             onClick={() => setChatOpen(true)}
-            className="fixed end-5 bottom-5 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-contrast px-5 font-semibold text-on-contrast shadow-float transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="fixed end-5 bottom-5 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-contrast px-5 font-semibold text-on-contrast shadow-float transition-transform duration-150 ease-(--ease-out) hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:outline-none active:translate-y-0 active:scale-[0.97]"
           >
             <Sparkles className="size-4.5" aria-hidden />
             Chiedi al fascicolo

@@ -19,10 +19,12 @@ import type { ChecklistItem, CitizenCase, DocumentSummary, Finding } from "@avan
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/field";
+import { FileName } from "@/components/ui/file-name";
 import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
 import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
+import { useChanged } from "@/components/ui/use-changed";
 import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
@@ -45,7 +47,9 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
   const sections = groupByMember(data.checklist, m);
 
   return (
-    <div className="grid gap-6">
+    // minmax(0, 1fr) on every grid down to the files: a long unbroken file name must truncate,
+    // not widen the column past a 320px screen.
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <div>
         <h1
           id={STEP_TITLE_ID}
@@ -110,7 +114,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
         <section
           key={section.key}
           aria-labelledby={`section-${section.key}`}
-          className="grid gap-3"
+          className="grid grid-cols-[minmax(0,1fr)] gap-3"
         >
           <h2
             id={`section-${section.key}`}
@@ -118,7 +122,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
           >
             {section.title}
           </h2>
-          <ul className="grid gap-3">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-3">
             {section.items.map((item) => (
               <ChecklistCard key={item.id} item={item} data={data} api={api} m={m} token={token} />
             ))}
@@ -127,12 +131,12 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
       ))}
 
       {unmatched.length > 0 && (
-        <section className="grid gap-3 rounded-lg bg-sunk p-4">
+        <section className="grid grid-cols-[minmax(0,1fr)] gap-3 rounded-lg bg-sunk p-4">
           <div>
             <h2 className="font-display text-xl font-semibold">{m.docs.unmatched}</h2>
             <p className="mt-1 text-ink-2">{m.docs.unmatchedHint}</p>
           </div>
-          <ul className="grid gap-2">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
             {unmatched.map((doc) => (
               <DocumentRow
                 key={doc.id}
@@ -224,6 +228,8 @@ function groupByMember(items: ChecklistItem[], m: M) {
 }
 
 function StatusBadge({ item, m }: { item: ChecklistItem; m: M }) {
+  // Pops when an upload or the operator changes it, not on every badge when the page opens.
+  const changed = useChanged(item.status);
   const tone = DONE_STATUSES.has(item.status)
     ? "ok"
     : item.status === "issue" || item.status === "rejected"
@@ -235,7 +241,7 @@ function StatusBadge({ item, m }: { item: ChecklistItem; m: M }) {
       ? AlertTriangle
       : CircleDashed;
   return (
-    <Pill tone={tone} size="sm">
+    <Pill key={item.status} tone={tone} size="sm" className={changed ? "animate-pop" : undefined}>
       <Icon aria-hidden />
       {m.docs.status[item.status]}
     </Pill>
@@ -324,7 +330,7 @@ function ChecklistCard({
       )}
 
       {documents.length > 0 && (
-        <ul className="mt-4 grid gap-2">
+        <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-2">
           {documents.map((doc) => (
             <DocumentRow key={doc.id} doc={doc} data={data} api={api} m={m} token={token} />
           ))}
@@ -451,7 +457,7 @@ function PendingUploads({
 }) {
   // The live region is always mounted: one that appears with its first item is not announced.
   return (
-    <ul className="grid gap-2 not-empty:mt-3" aria-live="polite">
+    <ul className="grid grid-cols-[minmax(0,1fr)] gap-2 not-empty:mt-3" aria-live="polite">
       {uploads.map((upload) => {
         const message = upload.error
           ? upload.error === "compress"
@@ -477,9 +483,7 @@ function PendingUploads({
               <Spinner className="size-5 shrink-0 text-stamp" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold" dir="auto">
-                {upload.fileName}
-              </p>
+              <FileName name={upload.fileName} className="text-sm font-semibold" />
               <p className={cn("text-sm", upload.error ? "text-danger" : "text-ink-3")}>
                 {message}
               </p>
@@ -575,9 +579,13 @@ function DocumentRow({
           </a>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold" dir="auto">
-            {doc.analysis?.detectedLabel ?? doc.fileName}
-          </p>
+          {doc.analysis?.detectedLabel ? (
+            <p className="truncate text-sm font-semibold" dir="auto" title={doc.fileName}>
+              {doc.analysis.detectedLabel}
+            </p>
+          ) : (
+            <FileName name={doc.fileName} className="text-sm font-semibold" />
+          )}
           <p className="truncate text-sm text-ink-3">
             {doc.status === "processing" ? (
               <span className="inline-flex items-center gap-1.5">
@@ -598,12 +606,26 @@ function DocumentRow({
             )}
           </p>
         </div>
-        {confirming ? (
-          <div
-            role="group"
-            aria-describedby={confirmId}
-            className="flex shrink-0 items-center gap-1"
+        {!confirming && (
+          <button
+            ref={trashRef}
+            type="button"
+            onClick={openConfirm}
+            className="grid size-11 shrink-0 place-items-center rounded-sm text-ink-3 hover:bg-danger-wash hover:text-danger active:bg-danger-wash active:text-danger"
+            aria-label={`${m.common.remove}: ${doc.fileName}`}
           >
+            <Trash2 className="size-4" aria-hidden />
+          </button>
+        )}
+      </div>
+      {/* Below the file, not beside it: two buttons in a long language would squeeze the name
+          to nothing on a narrow phone. */}
+      {confirming && (
+        <div className="mt-2 flex animate-fade-in flex-wrap items-center gap-x-3 gap-y-1">
+          <p id={confirmId} role="status" className="min-w-0 flex-1 basis-40 text-sm text-ink-2">
+            {m.docs.removeConfirm}
+          </p>
+          <div role="group" aria-describedby={confirmId} className="flex shrink-0 gap-1">
             <Button
               size="touch"
               variant="danger"
@@ -616,22 +638,7 @@ function DocumentRow({
               {m.common.cancel}
             </Button>
           </div>
-        ) : (
-          <button
-            ref={trashRef}
-            type="button"
-            onClick={openConfirm}
-            className="grid size-11 shrink-0 place-items-center rounded-sm text-ink-3 hover:bg-danger-wash hover:text-danger"
-            aria-label={`${m.common.remove}: ${doc.fileName}`}
-          >
-            <Trash2 className="size-4" aria-hidden />
-          </button>
-        )}
-      </div>
-      {confirming && (
-        <p id={confirmId} role="status" className="mt-2 text-sm text-ink-2">
-          {m.docs.removeConfirm}
-        </p>
+        </div>
       )}
       <DocumentCheck doc={doc} api={api} m={m} />
       {showAssign && (

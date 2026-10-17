@@ -73,12 +73,13 @@ export function AssistantSheet({
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
       <Primitive.Portal>
-        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim backdrop-blur-[2px]" />
+        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim data-[state=closed]:animate-fade-out" />
         <Primitive.Content
           className={cn(
-            "fixed inset-0 z-50 flex animate-rise flex-col bg-paper outline-none",
-            // A side panel next to the practice on larger screens, the whole screen on a phone.
-            "sm:inset-y-0 sm:start-auto sm:end-0 sm:w-[28rem] sm:border-s sm:border-line sm:shadow-float",
+            "fixed inset-0 z-50 flex animate-sheet-in flex-col bg-paper outline-none data-[state=closed]:animate-sheet-out",
+            // A side panel next to the practice on larger screens, the whole screen on a phone;
+            // each slides from the edge it belongs to.
+            "sm:inset-y-0 sm:start-auto sm:end-0 sm:w-[28rem] sm:animate-panel-in sm:border-s sm:border-line sm:shadow-float sm:data-[state=closed]:animate-panel-out",
           )}
         >
           <header className="flex items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
@@ -90,7 +91,7 @@ export function AssistantSheet({
               </Primitive.Description>
             </div>
             <Primitive.Close
-              className="grid size-11 shrink-0 place-items-center rounded-md bg-surface text-ink-3 ring-1 ring-line hover:text-ink"
+              className="grid size-11 shrink-0 place-items-center rounded-md bg-surface text-ink-3 ring-1 ring-line transition-[color,transform] duration-150 ease-(--ease-out) hover:text-ink active:scale-[0.94]"
               aria-label={m.common.close}
             >
               <X className="size-5" aria-hidden />
@@ -118,7 +119,7 @@ export function AssistantSheet({
                         type="button"
                         disabled={assistant.pending !== null}
                         onClick={() => void assistant.ask(text, focus)}
-                        className="group flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none disabled:opacity-50"
+                        className="group flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none active:bg-sunk disabled:opacity-50"
                       >
                         <span className="min-w-0 flex-1">{text}</span>
                         <ArrowUpRight

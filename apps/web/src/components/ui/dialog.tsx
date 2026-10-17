@@ -32,7 +32,7 @@ export function Dialog({
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
       <Primitive.Portal>
-        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim backdrop-blur-[2px]" />
+        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim data-[state=closed]:animate-fade-out" />
         <Primitive.Content
           onEscapeKeyDown={(event) => !dismissible && event.preventDefault()}
           onInteractOutside={(event) => !dismissible && event.preventDefault()}
@@ -42,8 +42,9 @@ export function Dialog({
             returnFocusTo.current.focus();
           }}
           className={cn(
-            "fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] animate-rise overflow-y-auto overscroll-contain rounded-t-xl bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-float outline-none",
-            "sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl",
+            // On a phone a sheet that slides from the bottom edge; from sm up a centred card.
+            "fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] animate-sheet-in overflow-y-auto overscroll-contain rounded-t-xl bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-float outline-none data-[state=closed]:animate-sheet-out",
+            "sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:animate-pop sm:rounded-xl sm:data-[state=closed]:animate-sink",
             className,
           )}
         >
@@ -62,7 +63,7 @@ export function Dialog({
             </div>
             {dismissible && (
               <Primitive.Close
-                className="-m-1 rounded-sm p-2 text-ink-3 hover:bg-sunk hover:text-ink"
+                className="-m-1 rounded-sm p-2 text-ink-3 transition-[background-color,color,transform] duration-150 ease-(--ease-out) hover:bg-sunk hover:text-ink active:scale-[0.94]"
                 aria-label={closeLabel}
               >
                 <X className="size-5" aria-hidden />

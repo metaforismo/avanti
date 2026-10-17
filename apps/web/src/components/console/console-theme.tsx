@@ -11,5 +11,6 @@ export function ConsoleTheme() {
     document.documentElement.classList.add("console");
     return () => document.documentElement.classList.remove("console");
   }, []);
-  return null;
+  // Server-rendered marker: globals.css switches theme on it with :has() before hydration.
+  return <span data-console-theme hidden />;
 }

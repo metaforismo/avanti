@@ -3,6 +3,7 @@
 import { Check, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 import type { CitizenMessages, Widen } from "@/lib/citizen/messages";
 import type { Proposal } from "@/lib/citizen/conversation";
 
@@ -47,7 +48,12 @@ export function ProposalsCard({
           const isDropped = dropped.includes(proposal.id);
           return (
             <li key={proposal.id} className="flex items-start gap-3 py-2.5">
-              <div className={isDropped ? "min-w-0 flex-1 opacity-50" : "min-w-0 flex-1"}>
+              <div
+                className={cn(
+                  "min-w-0 flex-1 transition-opacity duration-150",
+                  isDropped && "opacity-50",
+                )}
+              >
                 <p className="text-sm text-ink-3">{proposal.questionText}</p>
                 {/* bdi, not dir=auto on the line: a bare number would align it to the left in RTL. */}
                 <p className="font-semibold break-words">
@@ -87,6 +93,7 @@ export function ProposalsCard({
       </ul>
       <Button
         type="button"
+        size="lg"
         className="mt-3 w-full"
         loading={busy}
         onClick={() =>

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { ConsoleShell } from "@/components/console/console-shell";
 import { EditorialType } from "@/components/brand/editorial-type";
 import { ConsoleTheme } from "@/components/console/console-theme";
+import { consoleViewport } from "@/components/console/console-viewport";
+
+export const viewport = consoleViewport;
 
 export const metadata: Metadata = {
   title: { default: "Console", template: "%s · Console Avanti" },

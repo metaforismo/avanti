@@ -35,7 +35,10 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
           <li key={office.id} className="flex items-center gap-4 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{office.name}</p>
-              <p className="truncate text-sm text-ink-3">
+              <p
+                className="truncate text-sm text-ink-3"
+                title={`${office.address}, ${office.city}${office.phone ? `, ${office.phone}` : ""}`}
+              >
                 {office.address}, {office.city}
                 {office.phone ? `, ${office.phone}` : ""}
               </p>

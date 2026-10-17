@@ -44,7 +44,9 @@
   --chart-fallback: #9a5500;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Sheets and panels that slide in from an edge: the iOS drawer curve. */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /*
@@ -52,7 +54,10 @@
  * the landing stay light: documents, forms and photos read best on paper.
  */
 @media (prefers-color-scheme: dark) {
-  :root.console {
+  /* :has() applies the theme from the server HTML, before ConsoleTheme adds the class: without
+     it a dark-mode operator sees the console flash white on every full load. */
+  :root.console,
+  :root:has([data-console-theme]) {
     color-scheme: dark;
     --paper: #0e131d;
     --surface: #151b27;
@@ -136,10 +141,21 @@
 
   --ease-out: var(--ease-out);
   --ease-in-out: var(--ease-in-out);
+  --ease-drawer: var(--ease-drawer);
 
   --animate-fade-in: fade-in 180ms var(--ease-out);
   --animate-rise: rise 260ms var(--ease-out) both;
   --animate-pop: pop 200ms var(--ease-out) both;
+  /* Exits are quicker than entrances: the system answers, the user has moved on. */
+  --animate-fade-out: fade-out 140ms var(--ease-out) both;
+  --animate-sink: sink 140ms var(--ease-out) both;
+  /* Bottom sheets and bars come from the edge they are attached to (percent: their own height). */
+  --animate-sheet-in: sheet-in 340ms var(--ease-drawer) both;
+  --animate-sheet-out: sheet-out 200ms var(--ease-out) both;
+  --animate-dock-in: sheet-in 220ms var(--ease-out) both;
+  /* Side panels, from the inline end (mirrored in RTL). */
+  --animate-panel-in: panel-in 300ms var(--ease-drawer) both;
+  --animate-panel-out: panel-out 180ms var(--ease-out) both;
 
   @keyframes fade-in {
     from {
@@ -156,6 +172,37 @@
     from {
       opacity: 0;
       transform: scale(0.96);
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes sink {
+    to {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes sheet-out {
+    to {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes panel-in {
+    from {
+      transform: translateX(calc(100% * var(--inline-sign, 1)));
+    }
+  }
+  @keyframes panel-out {
+    to {
+      transform: translateX(calc(100% * var(--inline-sign, 1)));
     }
   }
 }
@@ -210,6 +257,10 @@
     text-wrap: pretty;
   }
 
+  [dir="rtl"] {
+    --inline-sign: -1;
+  }
+
   button,
   a,
   input,
@@ -217,6 +268,31 @@
   select,
   textarea {
     touch-action: manipulation;
+  }
+
+  /* A long press on a control selects its label on phones; text that is content stays
+     selectable. */
+  button,
+  [role="button"],
+  summary {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* iOS zooms into any field under 16px and never zooms back out. Only on touch screens: the
+     console keeps its compact fields on a desktop. */
+  @media (pointer: coarse) {
+    input:not([type="checkbox"], [type="radio"], [type="range"]),
+    select,
+    textarea {
+      font-size: max(1rem, 1em);
+    }
+  }
+
+  /* An opened section fades its content in instead of snapping: the chevron alone turns too. */
+  details[open] > :not(summary) {
+    animation: fade-in 180ms var(--ease-out);
   }
 
   button:not(:disabled),
@@ -267,14 +343,37 @@
   }
 }
 
+/* Reduced motion means no movement, not no feedback: entrances keep a short fade (which tells
+   what changed) and drop every slide, scale and rise. Loops stop. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Attribute selectors: the classes also come with variants (sm:, data-[state=closed]:). */
+  [class*="animate-rise"],
+  [class*="animate-pop"],
+  [class*="animate-sheet-in"],
+  [class*="animate-dock-in"],
+  [class*="animate-panel-in"] {
+    animation-name: fade-in !important;
+    animation-duration: 150ms !important;
+  }
+
+  [data-state="closed"][class*="animate-sink"],
+  [data-state="closed"][class*="animate-sheet-out"],
+  [data-state="closed"][class*="animate-panel-out"] {
+    animation-name: fade-out !important;
+    animation-duration: 120ms !important;
+  }
+
+  .animate-pulse,
+  .text-shimmer {
+    animation: none !important;
   }
 
   /* A spinner is a status, not decoration: keep it turning (slowly) or loading looks frozen. */

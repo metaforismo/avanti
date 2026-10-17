@@ -570,14 +570,18 @@ function QueueRow({
   return (
     // Rows off screen skip layout and paint: long queues scroll as lightly as short ones.
     <li
+      // Hover and selection colour the whole row, checkbox cell included.
       className={cn(
-        "flex [contain-intrinsic-size:auto_4.5rem] [content-visibility:auto]",
-        selection?.checked && "bg-stamp-wash",
+        "flex transition-colors [contain-intrinsic-size:auto_4.5rem] [content-visibility:auto]",
+        selection?.checked
+          ? "bg-stamp-wash"
+          : "has-[a:focus-visible]:bg-paper [@media(hover:hover)]:has-[a:hover]:bg-paper",
       )}
     >
       {selection && (
         // Outside the link: a checkbox inside an anchor would open the case on every tick.
-        <label className="grid w-11 shrink-0 cursor-pointer place-items-center self-stretch has-[:disabled]:cursor-not-allowed">
+        // On phones the row is tall: the checkbox sits by the name, not adrift in the middle.
+        <label className="grid w-11 shrink-0 cursor-pointer justify-items-center self-stretch pt-4 has-[:disabled]:cursor-not-allowed md:place-items-center md:pt-0">
           <input
             type="checkbox"
             checked={selection.checked}
@@ -594,12 +598,12 @@ function QueueRow({
         onPointerEnter={prefetch}
         onFocus={prefetch}
         className={cn(
-          "grid min-w-0 flex-1 gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-paper focus-visible:bg-paper md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] md:items-center xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]",
+          "grid min-w-0 flex-1 gap-x-4 gap-y-2 px-4 py-3.5 focus-visible:outline-offset-[-2px] md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] md:items-center xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]",
           selection && "ps-1",
         )}
       >
         <span className="min-w-0">
-          <span className="block truncate font-semibold">
+          <span className="block truncate font-semibold" title={item.citizenName ?? undefined}>
             {item.citizenName ?? "Cittadino senza nome"}
           </span>
           <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-3">
@@ -611,11 +615,9 @@ function QueueRow({
                 {LANGUAGE_IT[item.language]}
               </span>
             )}
+            {/* No "·" separator: when the line wraps it would start the next one. */}
             {item.waiting && !item.waiting.overdue && (
-              <span className="whitespace-nowrap">
-                <span aria-hidden>· </span>
-                in attesa {waitingSince(item.waiting.days)}
-              </span>
+              <span className="whitespace-nowrap">in attesa {waitingSince(item.waiting.days)}</span>
             )}
           </span>
           {item.waiting?.overdue && (
@@ -630,10 +632,14 @@ function QueueRow({
         </span>
         <span className="min-w-0 text-body-sm">
           <span className="sr-only">Pratica: </span>
-          <span className="block truncate">
+          {/* Two lines, not one: at 13" the column is narrow and the end tells practices apart. */}
+          <span className="line-clamp-2">
             {item.practice ? PRACTICE_SHORT[item.practice.id] : "Da capire"}
           </span>
-          <span className="block truncate text-sm text-ink-3">
+          <span
+            className="block truncate text-sm text-ink-3"
+            title={item.assignee ? item.assignee.name : item.office?.name}
+          >
             {item.assignee ? item.assignee.name : item.office?.name}
           </span>
         </span>
@@ -644,7 +650,7 @@ function QueueRow({
               style={{ width: `${Math.min(100, docPercent)}%` }}
             />
           </span>
-          <span className="tabular text-sm text-ink-2">
+          <span className="tabular text-sm whitespace-nowrap text-ink-2">
             <span className="sr-only">Documenti pronti: </span>
             {documentsDone}/{documentsRequired}
           </span>
