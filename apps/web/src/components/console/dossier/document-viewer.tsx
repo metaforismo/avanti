@@ -2,13 +2,14 @@
 
 import { Check, ChevronLeft, ChevronRight, Download, RotateCcw, X } from "lucide-react";
 import { Dialog as Primitive } from "radix-ui";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CaseDossier, ChecklistItem, DocumentSummary } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
 import { PdfPreview } from "./pdf-preview";
 import { CHECKLIST_STATUS, formatDateTime } from "@/lib/console/labels";
+import { useDownload } from "@/lib/console/use-download";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
 
@@ -31,6 +32,18 @@ export function DocumentViewer({
   const index = doc ? docs.findIndex((d) => d.id === doc.id) : -1;
   const prev = index > 0 ? docs[index - 1] : undefined;
   const next = index >= 0 && index < docs.length - 1 ? docs[index + 1] : undefined;
+  // The open document changes through the URL, a render later: quick arrow presses count from
+  // where the previous press went, not from the document still on screen.
+  const position = useRef(index);
+  useEffect(() => {
+    position.current = index;
+  }, [index]);
+  const step = (delta: number) => {
+    const target = docs[position.current + delta];
+    if (position.current < 0 || !target) return;
+    position.current += delta;
+    onNavigate(target);
+  };
 
   const url = doc ? `/api/cases/${encodeURIComponent(caseId)}/documents/${doc.id}/file` : "";
   const item = doc?.checklistItemId
@@ -40,11 +53,22 @@ export function DocumentViewer({
   const canDecide = dossier.status !== "closed" && dossier.status !== "intake";
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  // The page's error notice sits under this panel: a failed decision is reported here too.
+  const [failedOn, setFailedOn] = useState<string | null>(null);
+  const files = useDownload();
+  const [downloadError, setDownloadError] = useState<{ doc: string; message: string } | null>(null);
+  const failure =
+    doc && failedOn === doc.id
+      ? actions.error
+      : doc && downloadError?.doc === doc.id
+        ? `Download non riuscito. ${downloadError.message}`
+        : null;
 
   // After a decision, go straight to the next document whose item is still open: checking a
   // dossier becomes one pass through the files instead of back-and-forth with the list.
   const decide = async (target: ChecklistItem, decision: "verified" | "reset", note?: string) => {
     const done = await actions.review(target.id, { decision, note });
+    setFailedOn(done ? null : (doc?.id ?? null));
     if (done)
       setAnnouncement(
         decision === "verified" ? `${target.title}: verificato.` : "Decisione annullata.",
@@ -70,6 +94,7 @@ export function DocumentViewer({
   };
   const reject = async (target: ChecklistItem, note: string) => {
     const done = await actions.review(target.id, { decision: "rejected", note: note || undefined });
+    setFailedOn(done ? null : (doc?.id ?? null));
     if (done) setRejecting(null);
   };
 
@@ -81,8 +106,8 @@ export function DocumentViewer({
         return;
       // Holding V must not verify file after file as the viewer advances.
       if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
-      if (event.key === "ArrowLeft" && prev) onNavigate(prev);
-      if (event.key === "ArrowRight" && next) onNavigate(next);
+      if (event.key === "ArrowLeft") step(-1);
+      if (event.key === "ArrowRight") step(1);
       if (!item || !canDecide || DECIDED.has(item.status) || actions.pending) return;
       if (event.key === "v" || event.key === "V") {
         event.preventDefault();
@@ -130,14 +155,18 @@ export function DocumentViewer({
                 >
                   <ChevronRight className="size-5" />
                 </NavButton>
-                <a
-                  href={url}
-                  download={doc.fileName}
-                  className="rounded-sm p-2 text-ink-2 hover:bg-sunk hover:text-ink"
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const problem = await files.download(url, doc.fileName);
+                    setDownloadError(problem ? { doc: doc.id, message: problem } : null);
+                  }}
+                  disabled={files.pending === url}
+                  className="rounded-sm p-2 text-ink-2 hover:bg-sunk hover:text-ink disabled:opacity-50"
                   aria-label="Scarica il file"
                 >
                   <Download className="size-5" />
-                </a>
+                </button>
                 <Primitive.Close
                   className="rounded-sm p-2 text-ink-2 hover:bg-sunk hover:text-ink"
                   aria-label="Chiudi"
@@ -155,12 +184,10 @@ export function DocumentViewer({
                       Anteprima HEIC non supportata da questo browser. Scarica il file per aprirlo.
                     </p>
                   ) : (
-                    // eslint-disable-next-line @next/next/no-img-element -- authenticated private file
-                    <img
+                    <ImagePreview
                       key={doc.id}
-                      src={url}
+                      url={url}
                       alt={analysis?.detectedLabel ?? doc.fileName}
-                      className="mx-auto max-h-full object-contain p-4"
                     />
                   )}
                 </div>
@@ -169,6 +196,11 @@ export function DocumentViewer({
                   <p role="status" className="sr-only">
                     {announcement}
                   </p>
+                  {failure && (
+                    <Notice tone="danger" className="mb-4">
+                      {failure}
+                    </Notice>
+                  )}
                   {item && canDecide && (
                     <Decision
                       key={item.id}
@@ -273,6 +305,26 @@ export function DocumentViewer({
 }
 
 const DECIDED = new Set(["verified", "rejected", "waived"]);
+
+function ImagePreview({ url, alt }: { url: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed)
+    return (
+      <p role="alert" className="p-8 text-center text-ink-2">
+        Anteprima non disponibile. Prova a scaricare il file; se la sessione è scaduta, accedi di
+        nuovo.
+      </p>
+    );
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- authenticated private file
+    <img
+      src={url}
+      alt={alt}
+      onError={() => setFailed(true)}
+      className="mx-auto max-h-full object-contain p-4"
+    />
+  );
+}
 
 /** The decision on the item this file belongs to, without leaving the document. */
 function Decision({

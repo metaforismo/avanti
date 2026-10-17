@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, onAuthFailure } from "@/lib/api";
 import { OperatorProvider } from "@/lib/console/operator-context";
 import { clearResourceCache, useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
@@ -114,7 +114,24 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
   const [creating, setCreating] = useState(false);
   const [searching, setSearching] = useState(false);
   const [shortcuts, setShortcuts] = useState(false);
+  const [expired, setExpired] = useState(false);
   const pathname = usePathname();
+
+  // A write can fail because the session ended (idle timeout, operator deactivated, password
+  // reset by an admin) or because a permission changed (role, MFA now required). Ending: keep
+  // the page and what is typed on it, and offer the way back. Narrowing: refetch the profile,
+  // so menus and gates follow the new role at once.
+  // Listening starts once the console is on screen; before that, a 401 goes to sign in.
+  const { reload: reloadMe } = me;
+  const shown = me.data !== null;
+  useEffect(() => {
+    if (!shown) return;
+    return onAuthFailure(({ status }) => {
+      if (status === 403) return reloadMe();
+      clearResourceCache();
+      setExpired(true);
+    });
+  }, [reloadMe, shown]);
 
   // «?» lists the shortcuts, as in most work tools; never while typing a question mark.
   useEffect(() => {
@@ -240,7 +257,8 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
       >
         Vai al contenuto
       </a>
-      <div className="min-h-dvh bg-paper lg:grid lg:grid-cols-[15rem_1fr]">
+      {/* Citizens' names and file names can be one long unbroken word: wrap rather than overflow. */}
+      <div className="min-h-dvh bg-paper wrap-break-word lg:grid lg:grid-cols-[15rem_1fr]">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
           <Link href="/console" className="rounded-sm">
             <Logo />
@@ -330,6 +348,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         </aside>
 
         <main id="contenuto" tabIndex={-1} className="min-w-0 outline-none">
+          {expired && <SessionExpired />}
           {children}
         </main>
       </div>
@@ -346,6 +365,36 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         )}
       />
     </OperatorProvider>
+  );
+}
+
+/**
+ * A full page load, not a client navigation: unsaved notes still get the browser's
+ * "leave the page?" question before the operator goes to sign in again.
+ */
+function SessionExpired() {
+  const login = () => {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- see above
+    window.location.assign(`/console/accedi?motivo=sessione&next=${next}`);
+  };
+  return (
+    <div className="sticky top-14 z-20 px-4 pt-4 lg:top-0 lg:px-8">
+      <Notice
+        tone="danger"
+        size="md"
+        className="shadow-float"
+        title="La sessione è scaduta"
+        action={
+          <Button size="sm" onClick={login}>
+            Accedi di nuovo
+          </Button>
+        }
+      >
+        Finché non accedi di nuovo, Avanti non può salvare. Se hai scritto qualcosa che non risulta
+        salvato, copialo; dopo l&apos;accesso tornerai su questa pagina.
+      </Notice>
+    </div>
   );
 }
 

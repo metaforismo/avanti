@@ -231,14 +231,22 @@ it("persists brief per version, coalesces concurrency and regenerates only on PO
   expect((await request("/cases/case/ai/brief")).status).toBe(200);
   expect(transport).toHaveBeenCalledTimes(3);
 });
+it("keeps reading cached copilot results when the quota for explicit AI actions is spent", async () => {
+  await db.insert(rateLimits).values({
+    key: rateKey(rateLimitSecret(undefined), "copilot:3600", "operator:op"),
+    count: 60,
+    resetAt: new Date(now.getTime() + 3600000).toISOString(),
+  });
+  expect((await request("/cases/case/ai/brief")).status).toBe(200);
+});
 it.each(
   ["GET", "HEAD"].flatMap((method) =>
     ["brief", "consistency", "dsu-prefill"].map((task) => [method, task] as const),
   ),
 )("limits AI %s %s before cache misses reach the provider", async (method, task) => {
   await db.insert(rateLimits).values({
-    key: rateKey(rateLimitSecret(undefined), "copilot:3600", "operator:op"),
-    count: 60,
+    key: rateKey(rateLimitSecret(undefined), "copilotRead:3600", "operator:op"),
+    count: 600,
     resetAt: new Date(now.getTime() + 3600000).toISOString(),
   });
   const response = await request(`/cases/case/ai/${task}`, method);

@@ -81,7 +81,9 @@ export function QueueAssign({
 
   const confirmLabel =
     targetId === undefined
-      ? "Scegli a chi assegnarle"
+      ? count === 1
+        ? "Scegli a chi assegnarla"
+        : "Scegli a chi assegnarle"
       : targetId === null
         ? `Togli l'assegnazione a ${casesLabel(count)}`
         : `Assegna ${casesLabel(count)} a ${chosen!.name}`;
@@ -117,7 +119,7 @@ export function QueueAssign({
         open={open}
         onOpenChange={(next) => !pending && setOpen(next)}
         title={`Assegna ${casesLabel(count)}`}
-        description="Chi le riceve le trova subito tra «Assegnate a me». Puoi cambiare in ogni momento."
+        description={`${count === 1 ? "Chi la riceve la trova" : "Chi le riceve le trova"} subito tra «Assegnate a me». Puoi cambiare in ogni momento.`}
       >
         {team.status === "error" && !team.data ? (
           <Notice

@@ -34,8 +34,9 @@ import { Pill } from "@/components/ui/pill";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { CASE_STATUS, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
-import { rememberCase } from "@/lib/console/recent-cases";
+import { forgetCase, rememberCase } from "@/lib/console/recent-cases";
 import { useOperator } from "@/lib/console/operator-context";
+import { useDownload } from "@/lib/console/use-download";
 import { useResource } from "@/lib/console/use-resource";
 import { ChecklistSection } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
@@ -69,13 +70,18 @@ export type DossierActions = {
     input: Record<string, unknown>,
   ) => Promise<boolean>;
   pending: string | null;
+  /** Why the last action failed, for surfaces that cover the page (the document viewer). */
+  error: string | null;
 };
 
 export function DossierView({ caseId }: { caseId: string }) {
   const operator = useOperator();
   const dossier = useResource<CaseDossier>(`/api/cases/${encodeURIComponent(caseId)}`);
   const [pending, setPending] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ message: string; status: number } | null>(null);
+  const error = failure?.message ?? null;
+  const setError = (message: string | null) =>
+    setFailure(message === null ? null : { message, status: 0 });
   const [confirmClose, setConfirmClose] = useState(false);
   const [withdraw, setWithdraw] = useState<"ask" | "saving" | "done" | null>(null);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
@@ -104,25 +110,59 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [requesting, setRequesting] = useState(false);
   const [reply, setReply] = useState<ReplyContext | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const files = useDownload();
 
-  async function mutate(key: string, run: () => Promise<CaseDossier | unknown>) {
+  // The version every write must carry. A ref, not the render's copy: writes queue up behind
+  // each other (a note saved on blur while «Verifica» is clicked), and each one must carry
+  // the version the previous one returned, or the operator's own note looks like a colleague's
+  // change and the click is rejected as a conflict.
+  const latest = useRef<CaseDossier | null>(null);
+  useEffect(() => {
+    const seen = dossier.data;
+    // A slow background refresh can land after a write: never step back to an older version.
+    if (seen && !(latest.current?.id === seen.id && latest.current.updatedAt > seen.updatedAt))
+      latest.current = seen;
+  }, [dossier.data]);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const { setData, reload } = dossier;
+  const refresh = async () => {
+    try {
+      const next = await apiFetch<CaseDossier>(`/api/cases/${encodeURIComponent(caseId)}`);
+      latest.current = next;
+      setData(next);
+    } catch {
+      reload();
+    }
+  };
+
+  function mutate(key: string, run: () => Promise<CaseDossier | unknown>) {
+    const task = queue.current.then(() => perform(key, run));
+    queue.current = task;
+    return task;
+  }
+
+  async function perform(key: string, run: () => Promise<CaseDossier | unknown>) {
     setPending(key);
     setError(null);
     try {
       const result = await run();
-      if (result && typeof result === "object" && "checklist" in result)
-        dossier.setData(result as CaseDossier);
-      else await dossier.reload();
+      if (result && typeof result === "object" && "checklist" in result) {
+        latest.current = result as CaseDossier;
+        setData(result as CaseDossier);
+      } else await refresh();
       return true;
     } catch (err) {
       if (err instanceof ApiRequestError && err.code === "conflict") {
         // Someone else (a colleague, the citizen, a finished analysis) changed the case since it
         // was read: show the current state and let the operator decide again. Never retry blindly.
-        await dossier.reload();
+        await refresh();
         setError(CONFLICT_MESSAGE);
         return false;
       }
-      setError(err instanceof ApiRequestError ? err.message : "Operazione non riuscita. Riprova.");
+      // Deleted meanwhile: the reload turns the page into «Pratica non trovata».
+      if (err instanceof ApiRequestError && err.status === 404) reload();
+      if (err instanceof ApiRequestError) setFailure({ message: err.message, status: err.status });
+      else setError("Operazione non riuscita. Riprova.");
       return false;
     } finally {
       setPending(null);
@@ -142,9 +182,13 @@ export function DossierView({ caseId }: { caseId: string }) {
     });
   }, [loaded, operator.id]);
 
+  const notFound = dossier.error?.status === 404;
+  useEffect(() => {
+    if (notFound) forgetCase(caseId);
+  }, [notFound, caseId]);
+
   // Uploads are analysed in the background: refresh until every document has its result.
   const analysing = dossier.data?.documents.some((doc) => doc.status === "processing") ?? false;
-  const { reload } = dossier;
   useEffect(() => {
     if (!analysing) return;
     const id = window.setInterval(() => {
@@ -160,8 +204,9 @@ export function DossierView({ caseId }: { caseId: string }) {
       </div>
     );
   }
-  if (dossier.status === "error" && !dossier.data) {
-    const missing = dossier.error.status === 404;
+  const gone = dossier.status === "error" && dossier.error.status === 404;
+  if ((dossier.status === "error" && !dossier.data) || gone) {
+    const missing = gone;
     return (
       <PageContainer width="3xl" centered className="py-16 lg:py-24">
         <EmptyState
@@ -206,23 +251,27 @@ export function DossierView({ caseId }: { caseId: string }) {
   // Opening a case is read-only. Review starts with the first real action, so the measured
   // review time counts work, not glances at the queue. Every write carries the version the
   // operator saw; a chained write uses the version the previous one returned.
+  const current = () => latest.current ?? data;
   const startReview = async () => {
-    if (data.status !== "submitted") return data.updatedAt;
+    const seen = current();
+    if (seen.status !== "submitted") return seen.updatedAt;
     const started = await apiFetch<CaseDossier>(base, {
       method: "PATCH",
-      body: { status: "in_review", expectedUpdatedAt: data.updatedAt },
+      body: { status: "in_review", expectedUpdatedAt: seen.updatedAt },
     });
+    latest.current = started;
     return started.updatedAt;
   };
 
   const actions: DossierActions = {
     pending,
+    error,
     openDocument: setViewing,
     nearReady: (action, input) =>
       mutate(`near:${action}`, () =>
         apiFetch(`${base}/near-ready/${action}`, {
           method: "POST",
-          body: { ...input, expectedUpdatedAt: data.updatedAt },
+          body: { ...input, expectedUpdatedAt: current().updatedAt },
         }),
       ),
     decidePrefill: (fieldId, decision) =>
@@ -244,7 +293,7 @@ export function DossierView({ caseId }: { caseId: string }) {
       mutate(key, async () => {
         const needsReview =
           input.status === "ready" || input.status === "needs_citizen" || input.assigneeId;
-        const expectedUpdatedAt = needsReview ? await startReview() : data.updatedAt;
+        const expectedUpdatedAt = needsReview ? await startReview() : current().updatedAt;
         return apiFetch(base, { method: "PATCH", body: { ...input, expectedUpdatedAt } });
       }),
   };
@@ -262,26 +311,39 @@ export function DossierView({ caseId }: { caseId: string }) {
     setPending(`reply:${question.id}`);
     setError(null);
     try {
-      if (data.status === "submitted") await startReview();
+      await startReview();
       const draft = await apiFetch<ReplyDraftResponse>(`${base}/ai/reply-draft`, {
         method: "POST",
         body: { messageId: question.id },
       });
-      await dossier.reload();
+      await refresh();
       setReply({ question, draft });
       setRequesting(true);
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Bozza non disponibile. Riprova.");
+      setFailure(
+        err instanceof ApiRequestError
+          ? { message: err.message, status: err.status }
+          : { message: "Bozza non disponibile. Riprova.", status: 0 },
+      );
     } finally {
       setPending(null);
     }
   };
 
   const setStatus = (next: CaseStatus) => actions.update({ status: next });
+  const exportAs = async (format: "pdf" | "json") => {
+    setError(null);
+    const problem = await files.download(
+      `${base}/export?format=${format}`,
+      `${data.reference}.${format}`,
+    );
+    if (problem) setFailure({ message: `Download non riuscito. ${problem}`, status: 0 });
+  };
 
   return (
     // Bottom room for the floating «Chiedi al fascicolo», so it never hides the last row.
-    <PageContainer width="7xl" className="pb-24 lg:pb-24">
+    // Names and file names come from citizens and can be one unbroken word in any script.
+    <PageContainer width="7xl" className="pb-24 wrap-anywhere lg:pb-24">
       <Link
         href="/console"
         className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
@@ -352,12 +414,14 @@ export function DossierView({ caseId }: { caseId: string }) {
                 sideOffset={6}
                 className="z-50 min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
               >
-                <MenuLink href={`${base}/export?format=pdf`} icon={Download}>
+                <MenuItem onSelect={() => void exportAs("pdf")}>
+                  <Download className="me-2.5 size-4 text-ink-3" aria-hidden />
                   Scarica fascicolo PDF
-                </MenuLink>
-                <MenuLink href={`${base}/export?format=json`} icon={FileJson}>
+                </MenuItem>
+                <MenuItem onSelect={() => void exportAs("json")}>
+                  <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
                   Scarica dati JSON
-                </MenuLink>
+                </MenuItem>
                 <DropdownMenu.Separator className="my-1 h-px bg-line" />
                 {data.status === "closed" ? (
                   <MenuItem onSelect={() => void setStatus("in_review")}>
@@ -421,14 +485,22 @@ export function DossierView({ caseId }: { caseId: string }) {
         </Notice>
       )}
 
-      {error && (
-        <Notice tone="danger" size="md" className="mt-4">
+      {/* Sticky: an action far down the dossier must not fail out of sight. A session that
+          ended has its own notice from the console shell, with the way back to sign in. */}
+      {error && failure?.status !== 401 && (
+        <Notice
+          tone="danger"
+          size="md"
+          className="sticky top-16 z-20 mt-4 shadow-float lg:top-4"
+          onDismiss={() => setFailure(null)}
+          dismissLabel="Chiudi avviso"
+        >
           {error}
         </Notice>
       )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-8">
-        <div className="grid min-w-0 content-start gap-8">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8">
           <CitizenQuestions
             dossier={data}
             pending={pending}
@@ -645,29 +717,6 @@ function MenuItem({ children, onSelect }: { children: React.ReactNode; onSelect:
       className="flex h-10 cursor-pointer items-center rounded-sm px-3 text-body-sm outline-none data-[highlighted]:bg-sunk"
     >
       {children}
-    </DropdownMenu.Item>
-  );
-}
-
-function MenuLink({
-  href,
-  icon: Icon,
-  children,
-}: {
-  href: string;
-  icon: typeof Download;
-  children: React.ReactNode;
-}) {
-  return (
-    <DropdownMenu.Item asChild>
-      <a
-        href={href}
-        download
-        className="flex h-10 cursor-pointer items-center gap-2.5 rounded-sm px-3 text-body-sm outline-none data-[highlighted]:bg-sunk"
-      >
-        <Icon className="size-4 text-ink-3" aria-hidden />
-        {children}
-      </a>
     </DropdownMenu.Item>
   );
 }

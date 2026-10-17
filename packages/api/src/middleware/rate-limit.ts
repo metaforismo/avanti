@@ -37,6 +37,10 @@ export const RATE_POLICIES = {
   },
   transcribe: { category: "transcribe", primary: [hour(20)], ip: [minute(1500), hour(15000)] },
   copilot: { category: "copilot", primary: [hour(60)], ip: [hour(6000)] },
+  // Opening a dossier reads three copilot results, nearly always cached for that content
+  // version: AI only runs when the content changes, within the monthly budget. 600 an hour
+  // covers ~200 dossiers, far above a person's pace, and still stops a runaway loop.
+  copilotRead: { category: "copilotRead", primary: [hour(600)], ip: [hour(6000)] },
   mfa: { category: "mfa", primary: [minute(10)], ip: [minute(100)] },
   login: { category: "login", primary: [minute(10)], ip: [minute(100)] },
   intake: { category: "intake", primary: [], ip: [minute(40), hour(60)] },
@@ -62,10 +66,9 @@ function policy(path: string, method: string): Policy | null {
     return RATE_POLICIES.link;
   if (method === "PUT" && /^\/api\/c\/[^/]+\/renewal-consent$/.test(path))
     return RATE_POLICIES.turn;
-  if (
-    (method === "GET" && /^\/api\/cases\/[^/]+\/ai\/(brief|consistency|dsu-prefill)$/.test(path)) ||
-    (method === "POST" && /^\/api\/cases\/[^/]+\/near-ready\/evaluate$/.test(path))
-  )
+  if (method === "GET" && /^\/api\/cases\/[^/]+\/ai\/(brief|consistency|dsu-prefill)$/.test(path))
+    return RATE_POLICIES.copilotRead;
+  if (method === "POST" && /^\/api\/cases\/[^/]+\/near-ready\/evaluate$/.test(path))
     return RATE_POLICIES.copilot;
   if ((path === "/api/ai/ask" || /^\/api\/cases\/[^/]+\/ai\/ask$/.test(path)) && method === "POST")
     return RATE_POLICIES.copilot;

@@ -12,9 +12,10 @@ import { Notice } from "@/components/ui/notice";
 import { PageContainer, PageHeader } from "@/components/ui/page-header";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiRequestError } from "@/lib/api";
 import { formatDateTime } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
+import { useDownload } from "@/lib/console/use-download";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 
@@ -84,6 +85,8 @@ function AuditLog() {
   const page = useResource<AuditPage>(`/api/audit?${query}`);
   const [more, setMore] = useState<{ query: string; items: AuditEvent[]; cursor: string | null }>();
   const [loadingMore, setLoadingMore] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const files = useDownload();
   const extra = more?.query === query ? more : undefined;
   const items = [...(page.data?.items ?? []), ...(extra?.items ?? [])];
   const cursor = extra ? extra.cursor : (page.data?.nextCursor ?? null);
@@ -92,11 +95,16 @@ function AuditLog() {
   async function loadMore() {
     if (!cursor) return;
     setLoadingMore(true);
+    setProblem(null);
     try {
       const next = await apiFetch<AuditPage>(
         `/api/audit?${query}&cursor=${encodeURIComponent(cursor)}`,
       );
       setMore({ query, items: [...(extra?.items ?? []), ...next.items], cursor: next.nextCursor });
+    } catch (err) {
+      setProblem(
+        `Altre attività non caricate. ${err instanceof ApiRequestError ? err.message : "Riprova."}`,
+      );
     } finally {
       setLoadingMore(false);
     }
@@ -108,11 +116,20 @@ function AuditLog() {
         title="Registro attività"
         lead="Chi ha fatto cosa, e quando: per rispondere a un interessato o a un controllo. Il registro non contiene dati personali dei cittadini."
         actions={
-          <Button variant="secondary" asChild>
-            <a href={`/api/audit/export.csv?${query}`} download>
-              <Download className="size-4" aria-hidden />
-              Esporta CSV
-            </a>
+          <Button
+            variant="secondary"
+            loading={files.pending !== null}
+            onClick={async () => {
+              setProblem(null);
+              const failed = await files.download(
+                `/api/audit/export.csv?${query}`,
+                "registro-attivita.csv",
+              );
+              if (failed) setProblem(`Esportazione non riuscita. ${failed}`);
+            }}
+          >
+            <Download className="size-4" aria-hidden />
+            Esporta CSV
           </Button>
         }
       />
@@ -170,11 +187,23 @@ function AuditLog() {
             value={reference}
             onChange={(e) => setReference(e.target.value)}
             onBlur={() => setAppliedReference(reference.trim().toUpperCase())}
+            maxLength={64}
             className="h-10 w-48 ps-9 font-mono text-sm placeholder:font-sans"
             spellCheck={false}
           />
         </form>
       </div>
+
+      {problem && (
+        <Notice
+          tone="danger"
+          className="mt-4"
+          onDismiss={() => setProblem(null)}
+          dismissLabel="Chiudi avviso"
+        >
+          {problem}
+        </Notice>
+      )}
 
       <section aria-busy={page.status === "loading"} className="mt-5">
         {page.status === "error" && !page.data ? (

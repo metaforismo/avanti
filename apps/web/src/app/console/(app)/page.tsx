@@ -42,6 +42,7 @@ import {
   type Tone,
 } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
+import { QUEUE_SEARCH_MAX, readQueueParams, uniqueById } from "@/lib/console/queue-params";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 
@@ -56,17 +57,20 @@ export default function QueuePage() {
 function Queue() {
   const router = useRouter();
   const params = useSearchParams();
-  const status = (params.get("stato") as CaseStatus | null) ?? "submitted";
-  const practice = params.get("pratica") ?? "";
-  const assignee = params.get("assegnatario") ?? "";
-  const priority = params.get("priorita") ?? "";
-  const longestWaiting = params.get("ordina") === "attesa";
+  const {
+    status,
+    practice,
+    assignee,
+    priority,
+    longestWaiting,
+    q: initialSearch,
+  } = readQueueParams(params);
   const operator = useOperator();
   const admin = operator.role === "admin";
   // Set by the dossier after a permanent deletion, which leaves nothing else to show.
   const deleted = params.get("eliminata");
   const familyErased = params.get("famiglia");
-  const [search, setSearch] = useState(params.get("q") ?? "");
+  const [search, setSearch] = useState(initialSearch);
   const searchRef = useRef<HTMLInputElement>(null);
   // "/" jumps to the search, as in most work tools, unless the operator is typing elsewhere.
   useEffect(() => {
@@ -101,7 +105,7 @@ function Queue() {
     const q = new URLSearchParams({ status, limit: "50" });
     if (practice) q.set("practiceId", practice);
     if (assignee) q.set("assignee", assignee);
-    if (priority in PRIORITY) q.set("ai", priority);
+    if (priority) q.set("ai", priority);
     if (deferredSearch) q.set("q", deferredSearch);
     if (longestWaiting) q.set("sort", "waiting");
     return `/api/cases?${q.toString()}`;
@@ -140,7 +144,7 @@ function Queue() {
   }, [waiting]);
 
   const appended = extra?.query === query ? extra : null;
-  const items = [...(list.data?.items ?? []), ...(appended?.items ?? [])];
+  const items = uniqueById([...(list.data?.items ?? []), ...(appended?.items ?? [])]);
   const nextCursor = appended ? appended.cursor : (list.data?.nextCursor ?? null);
   const counts = list.data?.counts;
   const filtered = Boolean(practice || assignee || priority || deferredSearch);
@@ -305,6 +309,7 @@ function Queue() {
             }}
             autoComplete="off"
             spellCheck={false}
+            maxLength={QUEUE_SEARCH_MAX}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onBlur={() => setParam("q", search.trim())}

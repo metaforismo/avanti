@@ -36,7 +36,7 @@ export function MessageBubble({
       )}
     >
       <p className="text-xs font-semibold text-ink-3">{meta}</p>
-      <p dir="auto" lang={textLang} className="mt-1 break-words whitespace-pre-line">
+      <p dir="auto" lang={textLang} className="mt-1 whitespace-pre-line">
         {text}
       </p>
       {originalText && originalText !== text && (

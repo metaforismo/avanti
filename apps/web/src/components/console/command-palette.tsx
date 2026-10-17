@@ -17,6 +17,7 @@ import type { CaseListResponse } from "@avanti/contracts";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { CASE_STATUS, PRACTICE_SHORT } from "@/lib/console/labels";
+import { QUEUE_SEARCH_MAX } from "@/lib/console/queue-params";
 import { useRecentCases } from "@/lib/console/recent-cases";
 import { cn } from "@/lib/cn";
 
@@ -55,6 +56,8 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [cases, setCases] = useState<CaseListResponse["items"] | null>(null);
   const [searching, setSearching] = useState(false);
+  // An unreachable server is not "no results": the operator would conclude the case is gone.
+  const [failed, setFailed] = useState(false);
   const [active, setActive] = useState(0);
   const listId = useId();
   const listRef = useRef<HTMLUListElement>(null);
@@ -66,9 +69,19 @@ export function CommandPalette({
     let cancelled = false;
     const timer = window.setTimeout(() => {
       setSearching(true);
-      apiFetch<CaseListResponse>(`/api/cases?q=${encodeURIComponent(term)}&limit=6`)
-        .then((page) => !cancelled && setCases(page.items))
-        .catch(() => !cancelled && setCases([]))
+      apiFetch<CaseListResponse>(
+        `/api/cases?q=${encodeURIComponent(term.slice(0, QUEUE_SEARCH_MAX))}&limit=6`,
+      )
+        .then((page) => {
+          if (cancelled) return;
+          setFailed(false);
+          setCases(page.items);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setFailed(true);
+          setCases([]);
+        })
         .finally(() => !cancelled && setSearching(false));
     }, 200);
     return () => {
@@ -83,6 +96,7 @@ export function CommandPalette({
     onOpenChange(false);
     setQuery("");
     setCases(null);
+    setFailed(false);
     setActive(0);
   };
   const go = (href: Route) => {
@@ -193,7 +207,10 @@ export function CommandPalette({
               onChange={(e) => {
                 setQuery(e.target.value);
                 setActive(0);
-                if (e.target.value.trim().length < 2) setCases(null);
+                if (e.target.value.trim().length < 2) {
+                  setCases(null);
+                  setFailed(false);
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {
@@ -220,7 +237,14 @@ export function CommandPalette({
             aria-label="Risultati"
             className="max-h-[60dvh] overflow-y-auto p-2"
           >
-            {items.length === 0 && (
+            {failed && !searching && (
+              <li role="presentation" className="px-3 pt-3 pb-1 text-sm text-danger">
+                <span role="alert">
+                  Ricerca delle pratiche non riuscita. Controlla la connessione e riprova.
+                </span>
+              </li>
+            )}
+            {items.length === 0 && !failed && (
               <li role="presentation" className="px-3 py-8 text-center text-ink-3">
                 {searching ? "Cerco…" : "Nessun risultato. Prova con il cognome o il codice AV-…"}
               </li>

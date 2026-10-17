@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { apiFetch, ApiRequestError } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { apiFetch, ApiRequestError, authFailureHandled } from "@/lib/api";
 import { forgetRecentCases } from "./recent-cases";
 
 type Flags = {
@@ -45,7 +45,9 @@ export function clearResourceCache() {
 
 /**
  * GET a JSON resource. Previous data stays visible while a new path loads (`refreshing`),
- * so filters don't flash an empty screen. A 401 sends the operator back to login.
+ * so filters don't flash an empty screen. A 401 on a new screen sends the operator back to
+ * login; on a background refresh of what is already shown it does not, because the page may
+ * hold unsaved work: the console shell offers the way back to login instead.
  */
 export function useResource<T>(path: string | null) {
   const router = useRouter();
@@ -56,6 +58,8 @@ export function useResource<T>(path: string | null) {
     error: null,
   });
   const [version, setVersion] = useState(0);
+  /** The path whose data was last loaded successfully, i.e. what the page shows. */
+  const shown = useRef<string | null>(null);
 
   useEffect(() => {
     if (!path) return;
@@ -64,6 +68,7 @@ export function useResource<T>(path: string | null) {
       .then((data) => {
         if (cancelled) return;
         remember(path, data);
+        shown.current = path;
         setLoaded({ path, version, data, error: null });
       })
       .catch((error: unknown) => {
@@ -72,7 +77,10 @@ export function useResource<T>(path: string | null) {
           error instanceof ApiRequestError
             ? error
             : new ApiRequestError(0, "internal", "Errore imprevisto.");
-        if (err.status === 401) {
+        if (err.status === 404) cache.delete(path);
+        // With a console on screen the shell shows «sessione scaduta» and keeps what is typed;
+        // only a first load with nothing shown yet goes straight to sign in.
+        if (err.status === 401 && shown.current !== path && !authFailureHandled()) {
           clearResourceCache();
           const next = encodeURIComponent(window.location.pathname + window.location.search);
           router.replace(`/console/accedi?motivo=sessione&next=${next}` as never);

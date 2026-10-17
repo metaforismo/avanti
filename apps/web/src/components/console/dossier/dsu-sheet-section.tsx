@@ -238,7 +238,7 @@ function SheetRow({
       <dd className="flex min-w-0 items-center gap-2">
         {row.value !== null ? (
           <>
-            <span className="min-w-0 flex-1 font-semibold break-words text-ink tabular-nums">
+            <span className="min-w-0 flex-1 font-semibold text-ink tabular-nums">
               {row.value}
               {row.source.kind === "document" && (
                 <span className="mt-0.5 block text-xs font-normal text-ink-3">
