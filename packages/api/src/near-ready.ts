@@ -62,7 +62,7 @@ export async function nearReadyEvent(
   now: Date,
   actorId: string | null = null,
   detail: Partial<
-    Pick<typeof nearReadyEvents.$inferInsert, "reason" | "ready" | "durationMinutes">
+    Pick<typeof nearReadyEvents.$inferInsert, "reason" | "ready" | "durationMinutes" | "actor">
   > = {},
   version = evaluation.currentVersion,
 ) {
@@ -434,6 +434,9 @@ export async function recordNearReadyFinal(
     );
   const final = known.find((event) => event.action === "final_decision");
   const detail = {
+    // The automatic label keeps the operator whose request triggered it, but it is not their
+    // judgement: reports can tell it apart from an outcome the operator chose.
+    actor: reason === INTEGRATION_REQUESTED ? ("system" as const) : ("operator" as const),
     ready,
     reason: reason ?? null,
     durationMinutes: row.reviewStartedAt
