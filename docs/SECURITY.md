@@ -601,4 +601,8 @@ pratica può confermarla, durante le fasi modificabili. Nessuna nuova trasmissio
   (renderebbe dinamiche tutte le pagine; oggi gli script inline sono solo quelli di Next);
   email unica tra CAF (un admin può scoprire che un'email è già usata altrove: accettato, perché
   l'email è l'identità di accesso); GET dell'AI richiamabili da un link esterno (cookie Lax,
-  limite di 60 all'ora e id della pratica necessario).
+  limite per operatore e id della pratica necessario; i risultati sono in cache per versione).
+- Copilota: le letture del fascicolo (riepilogo, controlli, prospetto DSU) hanno un limite di
+  600 all'ora per operatore, perché sono quasi sempre in cache e l'AI riparte solo quando
+  cambia il contenuto, dentro il budget mensile; le azioni esplicite (ricontrollo, domande,
+  rigenera) restano a 60 all'ora. Con 60 per tutto, un operatore si fermava a ~20 fascicoli.
