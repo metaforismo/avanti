@@ -34,12 +34,25 @@ Alternative valutate:
 Adottata: header facoltativo `Idempotency-Key` (`IDEMPOTENCY_HEADER` e `IdempotencyKey` in
 `@avanti/contracts`, 16–128 caratteri `[A-Za-z0-9_-]`). Tabella `idempotency_keys`
 (migrazione `0028`): chiave primaria (pratica, attore, chiave), dove l'attore è `citizen` o
-l'id dell'operatore; rotta; impronta SHA-256 dell'input validato; `result` con soli
-riferimenti (id della risposta dell'assistente, id del turno, motore usato); data. Nessun
-testo del cittadino e nessun corpo di risposta: al ritentativo la risposta si ricostruisce
-dallo stato attuale (conversazione, pratica, fascicolo) o dalla riga già salvata (risposta
-dell'assistente, turno della chat del fascicolo). Le righe seguono la pratica alla
-cancellazione (`ON DELETE CASCADE`) e la manutenzione toglie quelle più vecchie di 24 ore.
+l'id dell'operatore; rotta; impronta dell'input validato; `result` con soli riferimenti (id
+della risposta dell'assistente, id del turno, motore usato, istante della richiesta di
+integrazione); data. Nessun corpo di risposta e nessun testo in chiaro: al ritentativo la
+risposta si ricostruisce dallo stato attuale (conversazione, pratica, fascicolo) o dalla riga
+già salvata (risposta dell'assistente, turno della chat del fascicolo). Le righe seguono la
+pratica alla cancellazione (`ON DELETE CASCADE`) e la manutenzione toglie quelle più vecchie
+di 24 ore.
+
+L'impronta però deriva da ciò che il cittadino ha scritto (messaggi, contatti dell'invio, nota):
+con un SHA-256 semplice chi ha una copia della tabella potrebbe confermare un'ipotesi per
+tentativi («sì», un numero di telefono, un cognome). È quindi un HMAC-SHA256 con
+`RATE_LIMIT_SECRET` (separato dagli altri usi dal prefisso `idempotency`), il segreto già
+obbligatorio in produzione e già usato per i bucket del limite di frequenza; senza
+configurazione vale lo stesso fallback locale casuale per processo, quindi tutto funziona senza
+chiavi esterne. Conseguenze accettate: ruotare il segreto, o riavviare in sviluppo senza
+segreto, fa riconoscere come «altra azione» (409, il client ricarica) le chiavi delle ultime 24
+ore; lo stesso vale una volta per le chiavi scritte prima di questo cambio. Un segreto dedicato
+avrebbe aggiunto una variabile obbligatoria al deploy senza ridurre un rischio reale: chi legge
+il segreto del limite di frequenza legge anche il database.
 
 Funzionamento:
 
@@ -59,6 +72,63 @@ Funzionamento:
 - Lo stato viene controllato dopo la chiave: il ritentativo dell'invio di una pratica appena
   inviata risponde con la pratica inviata invece di «Il fascicolo è in revisione», e quello
   della richiesta di integrazione risponde con il fascicolo invece del conflitto di versione.
+- La versione attesa della richiesta di integrazione (`expectedUpdatedAt`) è una precondizione
+  e resta fuori dall'impronta: con il fascicolo che si aggiorna da solo (polling mentre un
+  documento è in analisi) il ritentativo porta una versione più nuova ed è la stessa richiesta,
+  non «un'altra azione».
+- Caricamento: se la chiave esiste già, il server legge il file e confronta voce e SHA-256
+  prima di rispondere, senza riservare lo storage (così il ritentativo funziona anche a pratica
+  inviata); un file diverso con la stessa chiave dà 409 invece di un 201 che non salva nulla.
+  Senza chiave salvata, il confronto completo avviene subito dopo l'hash, prima di analisi AI
+  e storage.
+
+### Chiave superata
+
+Problema osservato in revisione: una chiave rimasta in attesa sul telefono può arrivare quando
+l'azione di cui era il ritentativo è già stata superata. Invio perso, l'operatore chiede
+un'integrazione, il cittadino carica il documento e preme di nuovo «Invia» con gli stessi
+contatti: il client riusava la chiave e il server rispondeva con la pratica senza inviarla, per
+24 ore. Allo stesso modo un vecchio «sì» perso ingoiava un nuovo «sì» detto a un'altra domanda
+dopo una risposta toccata (che passa da un altro hook e non svuota quelle chiavi).
+
+Principio adottato: **un ritentativo vale finché l'effetto ricordato è ancora l'ultimo per
+quell'azione**. La riga salva in `result` che cosa ha prodotto l'effetto e `replayOf` controlla,
+sotto il lock della pratica, che sia ancora vero; altrimenti la chiave è superata, l'azione
+avviene come nuova e la riga viene sostituita (solo se ha la stessa rotta e la stessa impronta).
+
+- Conversazione (`/conversation`, `/turn` con testo o risposta toccata): id del turno scritto.
+  Superata se dopo c'è un altro turno del cittadino nella conversazione guidata (messaggio o
+  conferma). I messaggi dell'operatore e la chat dell'assistente non contano: non sono il
+  cittadino che risponde di nuovo, e contarli salverebbe due volte un messaggio perso.
+- Invio: superato se la pratica è di nuovo modificabile dal cittadino (`intake`,
+  `needs_citizen`); l'invio la porta sempre fuori da quegli stati.
+- Richiesta di integrazione: istante della richiesta. Superata se la pratica non attende più il
+  cittadino per quella richiesta; a quel punto vale di nuovo la versione attesa, quindi un
+  ritentativo vecchio riceve il conflitto di versione e non un secondo messaggio.
+- Restano senza controllo, perché l'input non può ripetersi come azione nuova: conferma delle
+  proposte (id univoci), eliminazione di un documento, caricamento (la chiave viaggia con il
+  file). Assistente, «Chiedi allo sportello» e chat del fascicolo hanno una sola fonte di chiavi
+  che ogni successo svuota.
+- Le righe scritte prima di questo cambio non hanno riferimenti e valgono come prima.
+
+Alternative valutate:
+
+- **Solo nel client** (un'unica mappa di chiavi per pratica, svuotata da ogni successo di
+  qualsiasi hook): copre il caso dei due hook ma non un altro telefono o una scheda vecchia, e
+  ogni client futuro dovrebbe rifarlo. Svuotare le chiavi a ogni ricarica in background
+  reintroduce il doppione che l'e2e `citizen-retry` riproduce (lettura servita prima del commit
+  della richiesta persa).
+- **Versione della pratica** (`updatedAt` ricordato, ritentativo solo se invariato): semplice,
+  ma l'analisi dei documenti e l'operatore cambiano la versione da soli e il
+  ritentativo di un messaggio perso tornerebbe a salvarlo due volte.
+- **Retention più corta** (minuti invece di 24 ore): riduce la finestra ma non la chiude, e
+  perde i ritentativi di un Wi-Fi lento.
+- **Riferimento all'effetto, controllato sotto lock** — adottata: protegge ogni client, non
+  dipende da letture concorrenti e non crea chiavi nuove.
+
+Limite noto: due messaggi persi di fila e il ritentativo del più vecchio dopo il più recente
+salvano il più vecchio una seconda volta (era già superato). È il comportamento senza chiave, ed
+è visibile; il contrario sarebbe perdere in silenzio una risposta nuova.
 
 Rotte coperte: cittadino `POST /turn`, `/conversation`, `/conversation/confirm`,
 `/assistant`, `/assistant/ask-desk`, `/documents` (prima di leggere il corpo; l'impronta usa
@@ -73,7 +143,7 @@ trascrizione vocale (nessun effetto salvato, solo un secondo costo AI).
 Frontend: `apps/web/src/lib/idempotency.ts` dà una chiave per azione e contenuto; la stessa
 azione ripetuta con lo stesso contenuto riusa la chiave. Ogni successo confermato le dimentica
 tutte: lo stesso «sì» detto più tardi a un'altra domanda è un'azione nuova che una chiave
-vecchia avrebbe ingoiato. Una ricarica in background invece no: può arrivare prima che la
+vecchia avrebbe ingoiato (il server lo riconosce comunque, vedi «Chiave superata»). Una ricarica in background invece no: può arrivare prima che la
 richiesta persa sia salvata, e dimenticare la chiave in quel momento salverebbe il reinvio due
 volte (l'e2e `citizen-retry` lo riproduceva con la lettura della conversazione all'apertura). Il caricamento
 porta la chiave con il file in attesa, così «Riprova» non crea un secondo documento. La chiave
@@ -125,6 +195,10 @@ Casi limite:
   già giudicati sbagliati.
 - Valutazione non idonea: nessun esito; non c'è precisione da difendere.
 - Richiesta fallita (409, lingua cambiata): stessa transazione, nessun esito.
+- Attore: l'esito automatico ha `actor = system` e l'`actor_id` dell'operatore che ha chiesto
+  l'integrazione; quando un esito esplicito lo sostituisce torna `operator`. Così report e
+  verifiche distinguono l'etichetta automatica dal giudizio dell'operatore anche oltre il
+  motivo `integration_requested`, senza migrazione (la colonna esiste già e non ha vincoli).
 
 ## 3. Limiti del fascicolo con un codice proprio
 
