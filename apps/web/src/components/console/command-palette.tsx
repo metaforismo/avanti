@@ -15,6 +15,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Route } from "next";
 import type { CaseListResponse } from "@avanti/contracts";
 import { Spinner } from "@/components/ui/spinner";
+import { Kbd } from "@/components/ui/kbd";
 import { apiFetch } from "@/lib/api";
 import { CASE_STATUS, PRACTICE_SHORT } from "@/lib/console/labels";
 import { QUEUE_SEARCH_MAX } from "@/lib/console/queue-params";
@@ -226,9 +227,7 @@ export function CommandPalette({
               }}
               className="h-14 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink-3"
             />
-            <kbd className="hidden rounded-xs px-1.5 font-mono text-xs text-ink-3 ring-1 ring-line-strong sm:block">
-              Esc
-            </kbd>
+            <Kbd className="hidden sm:block">Esc</Kbd>
           </div>
           <ul
             id={listId}

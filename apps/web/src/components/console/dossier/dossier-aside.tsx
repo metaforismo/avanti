@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
-import { formatDateTime, formatMinutes, LANGUAGE_IT, timeAgo } from "@/lib/console/labels";
+import {
+  formatDateTime,
+  formatMinutes,
+  fullName,
+  LANGUAGE_IT,
+  timeAgo,
+} from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
 
@@ -24,9 +30,7 @@ export function DossierAside({
       <Card title="Cittadino">
         <div className="grid gap-3 text-body-sm">
           <div>
-            <p className="font-semibold">
-              {[citizen.firstName, citizen.lastName].filter(Boolean).join(" ") || "Non indicato"}
-            </p>
+            <p className="font-semibold">{fullName(citizen) ?? "Non indicato"}</p>
             <p className="text-sm text-ink-3">Lingua: {LANGUAGE_IT[dossier.language]}</p>
           </div>
           {citizen.phone && (
@@ -104,7 +108,9 @@ const TIMELINE_SHOWN = 6;
 function Timeline({ timeline }: { timeline: CaseDossier["timeline"] }) {
   const [all, setAll] = useState(false);
   const rows = collapseTimeline(timeline);
-  const shown = all ? rows : rows.slice(0, TIMELINE_SHOWN);
+  // Never a button that hides a single event: it would take the same room as the event.
+  const hidden = rows.length > TIMELINE_SHOWN + 1 ? rows.length - TIMELINE_SHOWN : 0;
+  const shown = all || hidden === 0 ? rows : rows.slice(0, TIMELINE_SHOWN);
   return (
     <Card title="Cronologia">
       <ol id="dossier-timeline" className="relative grid gap-4 border-s border-line ps-4">
@@ -134,7 +140,7 @@ function Timeline({ timeline }: { timeline: CaseDossier["timeline"] }) {
           </li>
         ))}
       </ol>
-      {rows.length > TIMELINE_SHOWN && (
+      {hidden > 0 && (
         <Button
           variant="ghost"
           size="sm"
@@ -143,7 +149,7 @@ function Timeline({ timeline }: { timeline: CaseDossier["timeline"] }) {
           aria-controls="dossier-timeline"
           onClick={() => setAll((v) => !v)}
         >
-          {all ? "Mostra solo gli ultimi" : "Mostra tutti gli eventi"}
+          {all ? "Mostra solo gli ultimi" : `Mostra altri ${hidden} eventi`}
         </Button>
       )}
     </Card>

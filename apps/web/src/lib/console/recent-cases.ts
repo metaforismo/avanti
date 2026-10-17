@@ -75,19 +75,21 @@ export function rememberQueue(params: URLSearchParams) {
   }
 }
 
-const noQueue = () => () => {};
-const readQueue = () => {
+/** Where «← Pratiche» leads: the queue as the operator left it, or the default one. */
+export function rememberedQueueHref() {
+  let search = "";
   try {
-    return sessionStorage.getItem(QUEUE_KEY) ?? "";
+    search = sessionStorage.getItem(QUEUE_KEY) ?? "";
   } catch {
-    return "";
+    // Storage blocked: the default queue.
   }
-};
-
-/** Where «← Pratiche» leads: the queue as the operator left it. */
-export function useQueueHref() {
-  const search = useSyncExternalStore(noQueue, readQueue, () => "");
   return search ? `/console?${search}` : "/console";
+}
+
+const noQueue = () => () => {};
+
+export function useQueueHref() {
+  return useSyncExternalStore(noQueue, rememberedQueueHref, () => "/console");
 }
 
 const subscribe = (listener: () => void) => {

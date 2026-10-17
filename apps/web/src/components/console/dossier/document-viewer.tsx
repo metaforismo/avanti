@@ -5,10 +5,11 @@ import { Dialog as Primitive } from "radix-ui";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CaseDossier, ChecklistItem, DocumentSummary } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
 import { PdfPreview } from "./pdf-preview";
-import { CHECKLIST_STATUS, formatDateTime } from "@/lib/console/labels";
+import { CHECKLIST_STATUS, DECIDED, formatDateTime } from "@/lib/console/labels";
 import { useDownload } from "@/lib/console/use-download";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
@@ -53,8 +54,17 @@ export function DocumentViewer({
   const canDecide = dossier.status !== "closed" && dossier.status !== "intake";
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
-  // The pass through the files ended on this document: say so and offer the way back.
+  // The pass through the files ended on this document: say so and offer the way back. Only
+  // until the viewer shows another document or closes: reopened later, it would be stale.
   const [finishedOn, setFinishedOn] = useState<string | null>(null);
+  const [shown, setShown] = useState(doc?.id ?? null);
+  if (shown !== (doc?.id ?? null)) {
+    setShown(doc?.id ?? null);
+    setFinishedOn(null);
+  }
+  // Where the keyboard goes back on close: the chip or button that opened the viewer, unless the
+  // pass removed it («Controlla uno per uno» goes once nothing is left to check).
+  const opener = useRef<HTMLElement | null>(null);
   // The page's error notice sits under this panel: a failed decision is reported here too.
   const [failedOn, setFailedOn] = useState<string | null>(null);
   const files = useDownload();
@@ -69,36 +79,36 @@ export function DocumentViewer({
   // After a decision, go straight to the next document whose item is still open: checking a
   // dossier becomes one pass through the files instead of back-and-forth with the list.
   const decide = async (target: ChecklistItem, decision: "verified" | "reset", note?: string) => {
-    const done = await actions.review(target.id, { decision, note });
-    setFailedOn(done ? null : (doc?.id ?? null));
-    if (done)
+    const after = await actions.review(target.id, { decision, note });
+    setFailedOn(after ? null : (doc?.id ?? null));
+    if (after)
       setAnnouncement(
         decision === "verified" ? `${target.title}: verificato.` : "Decisione annullata.",
       );
-    if (!done || decision !== "verified") return done;
+    if (!after || decision !== "verified") return;
+    // From the dossier the decision returned: meanwhile a colleague or an analysis may have
+    // changed other items, and the render's copy predates the wait.
+    const list = after.documents;
+    const here = list.findIndex((d) => d.id === doc?.id);
     const open = (d: DocumentSummary) => {
-      const it = dossier.checklist.find((i) => i.id === d.checklistItemId);
+      const it = after.checklist.find((i) => i.id === d.checklistItemId);
       return it && it.id !== target.id && !DECIDED.has(it.status);
     };
-    const following = [...docs.slice(index + 1), ...docs.slice(0, Math.max(index, 0))].find(open);
+    const following = [...list.slice(here + 1), ...list.slice(0, Math.max(here, 0))].find(open);
     if (!following) {
       setFinishedOn(doc?.id ?? null);
       setAnnouncement(`${target.title}: verificato. Nessun altro documento da controllare.`);
-      requestAnimationFrame(() =>
-        document.querySelector<HTMLButtonElement>('[data-viewer-done="true"]')?.focus(),
-      );
     } else {
       onNavigate(following);
-      const position = docs.indexOf(following) + 1;
+      const position = list.indexOf(following) + 1;
       setAnnouncement(
-        `${target.title}: verificato. Documento ${position} di ${docs.length}: ${following.analysis?.detectedLabel ?? following.fileName}.`,
+        `${target.title}: verificato. Documento ${position} di ${list.length}: ${following.analysis?.detectedLabel ?? following.fileName}.`,
       );
       // The panel is rebuilt for the next item: put the keyboard on its main action again.
       requestAnimationFrame(() =>
         document.querySelector<HTMLButtonElement>('[data-viewer-primary="true"]')?.focus(),
       );
     }
-    return done;
   };
   const reject = async (target: ChecklistItem, note: string) => {
     const done = await actions.review(target.id, { decision: "rejected", note: note || undefined });
@@ -134,7 +144,17 @@ export function DocumentViewer({
     <Primitive.Root open={Boolean(doc)} onOpenChange={(open) => !open && onClose()}>
       <Primitive.Portal>
         <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim" />
-        <Primitive.Content className="fixed inset-0 z-50 flex animate-fade-in flex-col bg-surface outline-none lg:inset-y-3 lg:right-3 lg:left-auto lg:w-[min(64rem,calc(100vw-1.5rem))] lg:rounded-xl lg:shadow-float">
+        <Primitive.Content
+          onOpenAutoFocus={() => {
+            opener.current = document.activeElement as HTMLElement | null;
+          }}
+          onCloseAutoFocus={(event) => {
+            if (opener.current?.isConnected) return;
+            event.preventDefault();
+            document.getElementById("checklist-section")?.focus();
+          }}
+          className="fixed inset-0 z-50 flex animate-fade-in flex-col bg-surface outline-none lg:inset-y-3 lg:right-3 lg:left-auto lg:w-[min(64rem,calc(100vw-1.5rem))] lg:rounded-xl lg:shadow-float"
+        >
           {doc && (
             <>
               <div className="flex items-center gap-3 border-b border-line px-4 py-3">
@@ -217,7 +237,7 @@ export function DocumentViewer({
                       title="Nessun altro documento da controllare."
                       action={
                         <Primitive.Close asChild>
-                          <Button size="sm" data-viewer-done="true">
+                          <Button size="sm" autoFocus>
                             Torna al fascicolo
                           </Button>
                         </Primitive.Close>
@@ -326,8 +346,6 @@ export function DocumentViewer({
     </Primitive.Root>
   );
 }
-
-const DECIDED = new Set(["verified", "rejected", "waived"]);
 
 function ImagePreview({ url, alt }: { url: string; alt: string }) {
   const [failed, setFailed] = useState(false);
@@ -439,15 +457,6 @@ function Decision({
         </>
       )}
     </section>
-  );
-}
-
-/** Same look as the ⌘K hint in the sidebar: one key, one chip. */
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="rounded-xs px-1 font-mono text-[0.6875rem] font-semibold text-ink-2 ring-1 ring-line-strong">
-      {children}
-    </kbd>
   );
 }
 

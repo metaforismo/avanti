@@ -64,6 +64,30 @@ test("the person is the title and the actions stay in reach down the dossier", a
   await expect(page.getByRole("button", { name: "Segna come pronta" })).toBeInViewport();
 });
 
+test("at 1024px the action bar stays on one row and in reach", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await logIn(page, DEMO);
+  await caseWithTwoFiles(page, "Stretto");
+
+  const take = page.getByRole("button", { name: "Prendi in carico" });
+  const ready = page.getByRole("button", { name: "Segna come pronta" });
+  const back = backToQueue(page);
+  const [takeBox, readyBox, backBox] = await Promise.all([
+    take.boundingBox(),
+    ready.boundingBox(),
+    back.boundingBox(),
+  ]);
+  // One row: the back link and every action share the same vertical band.
+  for (const box of [takeBox!, readyBox!]) {
+    expect(Math.abs(box.y + box.height / 2 - (backBox!.y + backBox!.height / 2))).toBeLessThan(4);
+  }
+
+  await page.getByRole("heading", { name: "Documenti", exact: true }).scrollIntoViewIfNeeded();
+  await expect(ready).toBeInViewport();
+  const after = (await ready.boundingBox())!;
+  expect(after.y).toBeLessThan(40);
+});
+
 test("checking the files one by one ends back on the dossier, from the keyboard", async ({
   page,
 }) => {
@@ -85,6 +109,8 @@ test("checking the files one by one ends back on the dossier, from the keyboard"
   await page.keyboard.press("Enter");
   await expect(viewer).toBeHidden();
   await expect(page).not.toHaveURL(/documento=/);
+  // The button that opened the viewer is gone: the keyboard lands on the documents, not <body>.
+  await expect(page.locator("#checklist-section")).toBeFocused();
   await expect(page.getByText("Verificato", { exact: true })).toHaveCount(2);
   // Nothing left to check: the shortcut into the viewer goes away.
   await expect(page.getByRole("button", { name: "Controlla uno per uno" })).toHaveCount(0);

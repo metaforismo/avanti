@@ -42,6 +42,14 @@ export const CHECKLIST_STATUS: Record<ChecklistStatus, { label: string; tone: To
   waived: { label: "Non necessario", tone: "muted" },
 };
 
+/** Items the operator has already decided on: nothing left to check there. */
+export const DECIDED: ReadonlySet<ChecklistStatus> = new Set(["verified", "rejected", "waived"]);
+
+/** «Nome Cognome», or null when the citizen gave neither. */
+export function fullName(person: { firstName?: string | null; lastName?: string | null }) {
+  return [person.firstName, person.lastName].filter(Boolean).join(" ") || null;
+}
+
 export const SEVERITY: Record<Severity, { label: string; tone: Tone }> = {
   blocker: { label: "Bloccante", tone: "danger" },
   warning: { label: "Avviso", tone: "warn" },

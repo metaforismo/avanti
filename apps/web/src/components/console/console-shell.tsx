@@ -24,6 +24,7 @@ import type { Route } from "next";
 import type { LoginResponse, Operator } from "@avanti/contracts";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
@@ -313,9 +314,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
             >
               <Search className="size-4.5" aria-hidden />
               <span className="flex-1 text-start">Cerca</span>
-              <kbd className="hidden rounded-xs px-1.5 font-mono text-xs text-ink-3 ring-1 ring-line-strong lg:block">
-                ⌘K
-              </kbd>
+              <Kbd className="hidden lg:block">⌘K</Kbd>
             </button>
           </div>
           <nav aria-label="Console" className="mt-4 flex-1 px-3">
@@ -381,7 +380,7 @@ function SessionExpired() {
   };
   // A bar attached to the top edge of the page, not a card floating over it: it takes its own
   // room above the content and, sticky, stays in sight wherever the failed action was. Above
-  // the page's own sticky bars (z-30): while the session is over, their actions can't work.
+  // the page's own sticky bars (z-20): while the session is over, their actions can't work.
   return (
     <div
       role="alert"

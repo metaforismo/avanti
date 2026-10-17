@@ -6,7 +6,7 @@ import type { CaseDossier, ChecklistItem, DocumentReuseAssessment } from "@avant
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
-import { CHECKLIST_STATUS } from "@/lib/console/labels";
+import { CHECKLIST_STATUS, DECIDED } from "@/lib/console/labels";
 import { useChanged } from "@/components/ui/use-changed";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
@@ -39,7 +39,13 @@ export function ChecklistSection({
       });
 
   return (
-    <section aria-labelledby="checklist-title">
+    // Focusable: the document viewer returns the keyboard here when its opener is gone.
+    <section
+      id="checklist-section"
+      aria-labelledby="checklist-title"
+      tabIndex={-1}
+      className="outline-none"
+    >
       <SectionHeader
         id="checklist-title"
         title="Documenti"
@@ -183,7 +189,7 @@ function ChecklistRow({
         <div
           className={cn(
             "flex items-center gap-1.5",
-            !readOnly && "sm:grid sm:grid-cols-[7rem_10.5rem] sm:gap-2",
+            !readOnly && "sm:grid sm:grid-cols-[7rem_minmax(10.5rem,auto)] sm:gap-2",
           )}
         >
           <Pill
@@ -283,8 +289,6 @@ function ChecklistRow({
     </li>
   );
 }
-
-const DECIDED = new Set<ChecklistItem["status"]>(["verified", "rejected", "waived"]);
 
 const REUSE = {
   valido: { label: "riusato", tone: "text-ok" },
