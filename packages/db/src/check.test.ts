@@ -40,7 +40,7 @@ for (const engine of ["pglite", "postgres"] as const) {
         await close?.();
       });
       it("accepts every migration hash and index definition, including pg_trgm", async () => {
-        expect(await checkDatabase(db)).toEqual({ migrations: 26, indexes: 45 });
+        expect(await checkDatabase(db)).toEqual({ migrations: 27, indexes: 45 });
         const [result] = await db
           .select({ similarity: sql<number>`similarity('Avanti', 'Avanti')` })
           .from(sql`(select 1) as trgm_check`);
@@ -106,6 +106,57 @@ for (const engine of ["pglite", "postgres"] as const) {
         expect((await totals())[0]?.delivered).toBe(2);
         for (const caseId of caseIds) await db.delete(cases).where(eq(cases.id, caseId));
         expect((await totals())[0]?.delivered).toBe(2);
+      });
+      it("content_version follows content, not declared operator work, and is trigger-owned", async () => {
+        const caseId = `${id}-content`;
+        await db.insert(cases).values({
+          id: caseId,
+          organizationId: id,
+          officeId: id,
+          tokenHash: caseId,
+          reference: caseId,
+          language: "it",
+          createdAt: "2027-01-01T00:00:00Z",
+          updatedAt: "2027-01-01T00:00:00Z",
+          contentVersion: "2030-01-01T00:00:00Z",
+          expiresAt: "2027-03-01T00:00:00Z",
+        });
+        const read = async () =>
+          (await db.select().from(cases).where(eq(cases.id, caseId))).map((r) => ({
+            updated: new Date(r.updatedAt).toISOString(),
+            content: new Date(r.contentVersion).toISOString(),
+          }))[0];
+        expect(await read()).toEqual({
+          updated: "2027-01-01T00:00:00.000Z",
+          content: "2027-01-01T00:00:00.000Z",
+        });
+        await db.transaction(async (tx) => {
+          await tx.execute(sql`select set_config('avanti.operator_work', 'on', true)`);
+          await tx
+            .update(cases)
+            .set({ updatedAt: "2027-01-01T00:01:00Z", contentVersion: "2030-01-01T00:00:00Z" })
+            .where(eq(cases.id, caseId));
+        });
+        expect(await read()).toEqual({
+          updated: "2027-01-01T00:01:00.000Z",
+          content: "2027-01-01T00:00:00.000Z",
+        });
+        // The flag is transaction-local: the next plain write is content again.
+        await db
+          .update(cases)
+          .set({ updatedAt: "2027-01-01T00:02:00Z" })
+          .where(eq(cases.id, caseId));
+        expect(await read()).toEqual({
+          updated: "2027-01-01T00:02:00.000Z",
+          content: "2027-01-01T00:02:00.000Z",
+        });
+        // AI attention is content without a new updated_at; the sequence stays monotonic.
+        await db.update(cases).set({ aiAttention: 1 }).where(eq(cases.id, caseId));
+        expect(await read()).toEqual({
+          updated: "2027-01-01T00:02:00.000Z",
+          content: "2027-01-01T00:02:00.001Z",
+        });
+        await db.delete(cases).where(eq(cases.id, caseId));
       });
       it("rolls back errors without retaining partially updated state", async () => {
         await expect(

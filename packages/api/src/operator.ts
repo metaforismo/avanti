@@ -45,7 +45,7 @@ import { ApiFailure, hashToken, newToken, notFound } from "./security";
 import { scheduleDocumentRecovery } from "./document-analysis";
 import { calculateMetrics, metricsRange } from "./operator-metrics";
 
-import { assertCaseVersion, nextCaseUpdate } from "./case-version";
+import { assertCaseVersion, markOperatorWork, nextCaseUpdate } from "./case-version";
 import { lockOperatorAccess } from "./operator-access";
 
 const transitions: Record<CaseRow["status"], CaseRow["status"][]> = {
@@ -191,7 +191,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
           ) {
             await tx
               .update(nearReadyEvaluations)
-              .set({ state: "withdrawn", currentVersion: current.updatedAt })
+              .set({ state: "withdrawn", currentVersion: current.contentVersion })
               .where(eq(nearReadyEvaluations.id, evaluation.id));
             await nearReadyEvent(tx, evaluation, "withdrawn", s.clock());
           }
@@ -257,6 +257,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         .from(settings)
         .where(eq(settings.organizationId, operator.organizationId));
       const now = s.clock();
+      await markOperatorWork(tx);
       const [updated] = await tx
         .update(cases)
         .set({
@@ -331,6 +332,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
       // was checked above, while it is still current under the case lock.
       if (input.status === "ready" && current.status !== "ready")
         await recordNearReadyFinal(tx, current, now, operator.id, true);
+      await markOperatorWork(tx);
       const [updated] = await tx
         .update(cases)
         .set({
@@ -435,6 +437,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
               reviewedAt: s.clock().toISOString(),
             },
           });
+      await markOperatorWork(tx);
       const [updated] = await tx
         .update(cases)
         .set({ updatedAt: nextCaseUpdate(current, s.clock()) })
@@ -516,6 +519,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         originalText: [input.message, italianLabels].filter(Boolean).join("\n"),
         createdAt: s.clock().toISOString(),
       });
+      await markOperatorWork(tx);
       const [updated] = await tx
         .update(cases)
         .set({

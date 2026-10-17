@@ -189,10 +189,15 @@ it("citizen and operator reads return processing then recover only the opened ca
     (await db.select().from(documents).where(eq(documents.id, "operator-doc")))[0]?.status,
   ).toBe("analyzed");
   const after = (await db.select().from(cases).where(eq(cases.id, "case")))[0]!;
-  expect({ ...after, updatedAt: before!.updatedAt, aiAttention: before!.aiAttention }).toEqual(
-    before,
-  );
+  expect({
+    ...after,
+    updatedAt: before!.updatedAt,
+    aiAttention: before!.aiAttention,
+    contentVersion: before!.contentVersion,
+  }).toEqual(before);
   expect(after.aiAttention).toBeTypeOf("number");
+  // A finished analysis is new content for near-ready, unlike operator work.
+  expect(Date.parse(after.contentVersion)).toBeGreaterThan(Date.parse(before!.contentVersion));
   expect(Date.parse(after.updatedAt)).toBeGreaterThan(Date.parse(before!.updatedAt));
   expect((await app.request("/api/cases/other")).status).toBe(401);
   expect(jobs).toHaveLength(0);

@@ -42,6 +42,7 @@ const exampleCase: CaseRow = {
   assigneeId: null,
   createdAt: "2027-01-01T10:00:00.000Z",
   updatedAt: "2027-01-08T12:00:00.000Z",
+  contentVersion: "2027-01-08T12:00:00.000Z",
   submittedAt: "2027-01-05T10:10:00.000Z",
   reviewStartedAt: "2027-01-05T10:10:00.000Z",
   reviewCompletedAt: "2027-01-08T12:00:00.000Z",

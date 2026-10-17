@@ -38,13 +38,14 @@ export type NearReadyViewData = {
 };
 export async function nearReadyView(
   db: Database,
-  row: { id: string; organizationId: string; updatedAt: string },
+  row: { id: string; organizationId: string; contentVersion: string },
   operatorId?: string,
   profile?: string,
   now?: Date,
   preloaded?: NearReadyViewData | null,
 ): Promise<NearReady | null> {
-  const version = new Date(row.updatedAt).toISOString();
+  // Evaluations judge the content; operator work on the case does not make them stale.
+  const version = new Date(row.contentVersion).toISOString();
   const entry =
     preloaded !== undefined
       ? preloaded
@@ -73,11 +74,14 @@ export async function nearReadyView(
   const { evaluation, blind } = entry;
   const policy = policyView(entry.policy);
   const hidden = policy.mode === "shadow" && !blind && !policy.suspendedAt;
-  // A withdrawal can happen at the same version (AI attention changed): it is stale too.
+  // A withdrawal can happen at the same version (AI profile changed): it is stale too.
   const stale =
     evaluation.state === "withdrawn" ||
     new Date(evaluation.caseVersion).toISOString() !== version ||
     !currentNearReadyProfile(evaluation.snapshot, profile, now);
+  // A blind review of a superseded evaluation would be refused: offer a recheck instead,
+  // still without revealing the old result.
+  const blindReviewRequired = hidden && !stale;
   const reasons =
     policy.mode === "off"
       ? ["mode_off" as const]
@@ -89,7 +93,9 @@ export async function nearReadyView(
   return {
     evaluationId: hidden ? null : evaluation.id,
     state: hidden
-      ? "shadow"
+      ? blindReviewRequired
+        ? "shadow"
+        : "withdrawn"
       : policy.mode === "off" || policy.suspendedAt
         ? "not_eligible"
         : stale
@@ -124,7 +130,12 @@ export async function nearReadyView(
             ),
           ]
         : [],
-    exclusions: hidden ? [] : reasons.map((code) => ({ code, text: nearReadyReasonText[code] })),
-    blindReviewRequired: hidden,
+    exclusions: blindReviewRequired
+      ? []
+      : (hidden ? (["stale_version"] as const) : reasons).map((code) => ({
+          code,
+          text: nearReadyReasonText[code],
+        })),
+    blindReviewRequired,
   };
 }

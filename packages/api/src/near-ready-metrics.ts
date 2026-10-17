@@ -1,4 +1,4 @@
-import { and, asc, eq, ne, or } from "drizzle-orm";
+import { and, asc, eq, or, sql } from "drizzle-orm";
 import {
   cases,
   nearReadyBlindReviews,
@@ -25,11 +25,13 @@ export async function nearReadyPilot(db: Database, org: string, profile: string)
         .innerJoin(cases, eq(cases.id, nearReadyEvaluations.caseId))
         // Compare versions in SQL, preserving PostgreSQL's microsecond precision
         // for historical rows as well as the current millisecond API versions.
+        // Outcomes count only on the content they judged: older writers also stamped
+        // critical errors on every historical evaluation of the case.
         .where(
           and(
             eq(cases.organizationId, org),
             or(
-              ne(nearReadyEvents.action, "final_decision"),
+              sql`${nearReadyEvents.action} not in ('final_decision', 'critical_error')`,
               eq(nearReadyEvents.caseVersion, nearReadyEvaluations.caseVersion),
             ),
           ),
@@ -77,7 +79,7 @@ export async function nearReadyPilot(db: Database, org: string, profile: string)
     const final = events.find((h) => h.action === "final_decision" && h.ready !== null);
     const labels = [...(blindByEvaluation.get(e.id) ?? [])];
     if (final?.ready !== null && final?.ready !== undefined) labels.push(final.ready);
-    const criticalError = events.some((h) => h.action === "critical_error");
+    const criticalError = e.eligible && events.some((h) => h.action === "critical_error");
     const observation: PilotObservation = {
       caseId: e.caseId,
       language: e.language,

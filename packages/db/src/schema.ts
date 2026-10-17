@@ -198,6 +198,9 @@ export const cases = pgTable(
     assigneeId: text("assignee_id"),
     createdAt: instant("created_at").notNull(),
     updatedAt: instant("updated_at").notNull(),
+    // Version of what the citizen delivered, maintained by the cases_content_version trigger:
+    // near-ready evaluations judge this, while updated_at stays the concurrency version.
+    contentVersion: instant("content_version").notNull().defaultNow(),
     submittedAt: instant("submitted_at"),
     reviewStartedAt: instant("review_started_at"),
     reviewCompletedAt: instant("review_completed_at"),

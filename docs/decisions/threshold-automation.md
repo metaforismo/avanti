@@ -55,6 +55,8 @@ con un clic; stesso comando di revisione ordinaria sempre disponibile.
 L'operatore controlla identità/nucleo, abbinamenti e annualità e può accettare il percorso
 rapido o rifiutare il suggerimento con un motivo codificato. Il sistema non preseleziona
 «pronta». Una nuova risposta, documento, rifiuto o segnalazione ritira subito il suggerimento.
+(Precisato il 17 ottobre 2026: contano i cambiamenti del contenuto consegnato dal cittadino,
+non il lavoro dell'operatore; vedi «Versione del contenuto».)
 Il cittadino non riceve una promessa di approvazione o di diritto alla prestazione.
 
 ## Registrazione e controllo
@@ -117,7 +119,7 @@ indicate in `docs/research/isee-2027.md`.
 La migrazione unica `0020_near_ready`, generata con drizzle-kit, aggiunge impostazioni,
 valutazioni, giudizi ciechi e audit. Nello stesso file sono aggiunti trigger PostgreSQL:
 qualsiasi modifica di `cases.updated_at`, anche da worker, ritira atomicamente i segnali
-attivi; cambiare modalità, soglie, budget o interruttore AI invalida le pratiche aperte.
+attivi (dal 17 ottobre 2026 solo le modifiche del contenuto, vedi sotto); cambiare modalità, soglie, budget o interruttore AI invalida le pratiche aperte.
 Le azioni condividono il lock di autorizzazione e il lock della pratica; una sola decisione
 accetta/scarta ciascun suggerimento. La rete si svolge fuori dalle transazioni e un
 risultato di una versione superata non viene pubblicato.
@@ -146,8 +148,9 @@ opportunità mancate (e quindi dal richiamo). Resta nel totale valutato e nella 
 
 Se i giudizi ciechi della stessa versione o il giudizio cieco e l’esito finale discordano,
 prevale «non pronta»; `disagreements` conta una sola discordanza per valutazione. Un errore
-critico confermato resta sempre un fallimento di quella valutazione, anche se segnalato
-su una versione successiva o dopo un giudizio positivo; non diventa «non giudicabile».
+critico confermato resta sempre un fallimento di quella valutazione, anche dopo un giudizio
+positivo; non diventa «non giudicabile». Dal 17 ottobre 2026 è attribuito solo alla
+valutazione selezionata del contenuto giudicato (vedi sotto).
 La semplice accettazione del percorso non è un’etichetta di verità.
 
 `PATCH /cases/:id` con `status: ready` registra automaticamente l’esito finale sulla
@@ -173,6 +176,61 @@ senza AI è `not_eligible`, con `ai_unavailable` («Lettura AI non disponibile»
 Il risultato di un fornitore reale non viene fabbricato dal seed. Solo il CAF demo,
 fuori produzione, riceve un contesto sintetico fidato per confrontare i file ESEMPIO;
 negli altri CAF quei file non possono soddisfare un documento reale.
+
+### Versione del contenuto (17 ottobre 2026)
+
+Problema osservato: `updated_at` è la versione di concorrenza e avanza anche con presa in
+carico, inizio revisione e verifica delle voci. Il trigger di `0022` ritirava quindi anche i
+suggerimenti accettati mentre l'operatore li stava controllando; `PATCH status: ready` non
+trovava più una valutazione della versione corrente, `final_decision` non veniva mai scritto
+e la precisione non si accumulava. In ombra, qualunque scrittura rendeva il giudizio cieco
+impossibile (409) senza un modo di ricontrollare. `final-decision` rispondeva 200 senza
+registrare nulla e l'errore critico veniva copiato su tutte le valutazioni storiche.
+
+Decisione: la valutazione giudica il fascicolo **come l'ha consegnato il cittadino**.
+La invalidano solo risposte, nucleo, documenti caricati/rimossi/riassegnati o rianalizzati,
+reinvio del cittadino, nuove incongruenze AI (`ai_attention`), il ricontrollo esplicito e le
+modifiche della politica del CAF. Non la invalidano presa in carico, inizio revisione,
+verifica/rifiuto/«non serve» delle voci, note, assegnatario, richiesta di integrazione,
+rigenerazione del link, decisioni sul precompilato e apertura del fascicolo. La richiesta di
+integrazione è lavoro: lascia all'operatore la possibilità di registrare «non era pronta»
+sulla valutazione giudicata, invece di renderla non giudicabile; la risposta del cittadino,
+che cambia il contenuto, ritira poi il suggerimento.
+
+Alternative considerate:
+
+- Escludere dal trigger le sole colonne di lavoro: non basta, perché la verifica delle voci
+  e i documenti vivono in altre tabelle e l'unico segnale sulla pratica è `updated_at`.
+- Non avanzare `updated_at` per il lavoro dell'operatore: romperebbe la concorrenza
+  ottimistica (`expectedUpdatedAt`) e la cache del copilota, che ne dipendono.
+- Far avanzare la versione del contenuto esplicitamente da ogni writer di contenuto:
+  un writer dimenticato (o un worker futuro) lascerebbe valido un suggerimento superato.
+
+Adottata: colonna `cases.content_version` (migrazione `0026`, backfill = `updated_at`, così
+valutazioni, giudizi ciechi ed eventi esistenti restano legati alla versione corrente)
+gestita da un trigger con classificazione prudente: ogni avanzamento di `updated_at` è
+contenuto, salvo che la transazione dichiari lavoro dell'operatore (`markOperatorWork`,
+impostazione locale alla transazione). Dimenticare la dichiarazione costa al più un ritiro
+in più, mai un suggerimento su contenuto non valutato. `updated_at` resta la versione di
+concorrenza. Valutazioni, giudizi ciechi, ritiri, coda `near_ready` e verità per versione
+usano `content_version`; il lease condiviso della valutazione è legato a entrambe le versioni, perché
+`ai_attention` cambia il contenuto senza nuovo `updated_at`. Una pubblicazione AI resta valida
+se nel frattempo c'è stato solo lavoro dell'operatore.
+
+Conseguenze:
+
+- `PATCH status: ready` registra l'esito sulla valutazione accettata anche dopo revisione e
+  verifiche; `final-decision` registra o risponde 409 con messaggio italiano (contenuto
+  cambiato, esito già registrato, errore critico su un controllo che non suggeriva nulla).
+- In ombra, dopo un cambio di contenuto il fascicolo mostra la valutazione come superata
+  (senza rivelarne l'esito) e «Ricontrolla» chiama la rivalutazione esistente, con gli stessi
+  limiti di frequenza e budget AI; nessuna rivalutazione automatica a ogni lettura.
+- L'errore critico marca solo la valutazione selezionata del contenuto giudicato e sospende
+  il CAF come prima. La metrica conta `critical_error` con la stessa regola di provenienza di
+  `final_decision`: gli eventi storici copiati su altre versioni non etichettano più la prima
+  valutazione. La sospensione già applicata resta e richiede comunque riesame amministrativo.
+- Le verifiche manuali dell'operatore non rinnovano da sole la valutazione: per sfruttarle
+  in un controllo successivo serve «Ricontrolla».
 
 ### Cosa resta prima dell’uso reale
 

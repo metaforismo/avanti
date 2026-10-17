@@ -43,15 +43,15 @@ export function NearReadyPanel({
     return <Suggestion near={near} dossier={dossier} actions={actions} />;
   if (near.state === "accepted")
     return <Accepted near={near} dossier={dossier} actions={actions} />;
+  // Also in shadow: a superseded check can no longer take a blind review until rechecked.
+  if (near.state === "withdrawn") return <Superseded near={near} actions={actions} />;
   if (near.mode !== "visible") return null;
   if (near.state === "not_eligible" && near.exclusions.length > 0)
     return <NotEligible near={near} actions={actions} />;
-  if (near.state === "dismissed" || near.state === "withdrawn")
+  if (near.state === "dismissed")
     return (
       <p className="rounded-lg bg-sunk px-4 py-2.5 text-sm text-ink-2">
-        {near.state === "dismissed"
-          ? "Suggerimento di revisione rapida scartato."
-          : "La pratica è cambiata: il suggerimento di revisione rapida è stato ritirato."}
+        Suggerimento di revisione rapida scartato.
       </p>
     );
   return null;
@@ -341,6 +341,33 @@ function Accepted({
   );
 }
 
+function Superseded({ near, actions }: { near: NearReady; actions: DossierActions }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-sunk px-4 py-2.5 text-sm text-ink-2">
+      <p className="min-w-0 flex-1 basis-64">
+        {near.mode === "visible"
+          ? "La pratica è cambiata: il suggerimento di revisione rapida è stato ritirato."
+          : "La pratica è cambiata dopo l'ultimo controllo di revisione rapida."}
+      </p>
+      <Recheck actions={actions} />
+    </div>
+  );
+}
+
+function Recheck({ actions }: { actions: DossierActions }) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      loading={actions.pending === "near:evaluate"}
+      onClick={() => void actions.nearReady("evaluate", {})}
+    >
+      <RefreshCw className="size-3.5" aria-hidden />
+      Ricontrolla
+    </Button>
+  );
+}
+
 function NotEligible({ near, actions }: { near: NearReady; actions: DossierActions }) {
   return (
     <details className="group rounded-lg bg-surface ring-1 ring-line">
@@ -362,15 +389,7 @@ function NotEligible({ near, actions }: { near: NearReady; actions: DossierActio
           ))}
         </ul>
         <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={actions.pending === "near:evaluate"}
-            onClick={() => void actions.nearReady("evaluate", {})}
-          >
-            <RefreshCw className="size-3.5" aria-hidden />
-            Ricontrolla
-          </Button>
+          <Recheck actions={actions} />
         </div>
       </div>
     </details>

@@ -12,6 +12,7 @@ import {
 // Drizzle unqualifies selected Column objects; preserve the outer scope inside subqueries.
 const caseId = sql.raw('"cases"."id"');
 const caseVersion = sql.raw('"cases"."updated_at"');
+const contentVersion = sql.raw('"cases"."content_version"');
 
 const unreadCitizenQuestion = sql`exists (select 1 from ${messages} where ${messages.caseId} = ${caseId}
       and ${messages.role} = 'citizen' and ${messages.operatorReadAt} is null
@@ -20,7 +21,7 @@ const unreadCitizenQuestion = sql`exists (select 1 from ${messages} where ${mess
 function visibleNearReady(profile?: string, now?: Date) {
   return sql`${cases.status} in ('submitted','in_review') and exists (
       select 1 from ${nearReadyEvaluations} nr join ${settings} ns on ns.organization_id = "cases"."organization_id"
-      where nr.case_id = ${caseId} and nr.case_version = ${caseVersion}
+      where nr.case_id = ${caseId} and nr.case_version = ${contentVersion}
       and nr.snapshot->>'rulesVersion' = ${NEAR_READY_RULES_VERSION}
       and nr.snapshot->>'catalogVersion' = ${CATALOG_VERSION}
       and nr.snapshot->>'schemaVersion' = ${NEAR_READY_SCHEMA_VERSION}

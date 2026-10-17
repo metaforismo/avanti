@@ -38,7 +38,7 @@ const data = (state: NearReadyViewData["evaluation"]["state"]): NearReadyViewDat
 const view = (state: NearReadyViewData["evaluation"]["state"]) =>
   nearReadyView(
     undefined as unknown as Database,
-    { id: "case", organizationId: "org", updatedAt: version },
+    { id: "case", organizationId: "org", contentVersion: version },
     "op",
     undefined,
     undefined,
@@ -46,7 +46,7 @@ const view = (state: NearReadyViewData["evaluation"]["state"]) =>
   );
 
 it("never shows a suggestion withdrawn at the same version as eligible", async () => {
-  // AI attention can change without a new case version (forced consistency run).
+  // The AI profile can change without a new content version.
   expect(await view("withdrawn")).toMatchObject({
     state: "withdrawn",
     result: "not_eligible",
