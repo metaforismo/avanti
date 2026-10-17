@@ -39,18 +39,33 @@ Prima: HTML → script (263 KB) → idratazione → `GET /api/c/:token` → sche
 della pratica partiva solo dopo tutto il JavaScript. Ora la pagina server emette
 `preload(casePath(token), { as: "fetch", crossOrigin: "anonymous" })`: il browser scarica la
 pratica mentre arrivano gli script e il primo `apiFetch` del client riusa la risposta (stesso
-URL, modalità `cors`, credenziali `same-origin`), quindi l'API vede una sola lettura. Vale
-anche per la navigazione dallo sportello: React applica il preload appena arriva l'RSC.
+URL, modalità `cors`, credenziali `same-origin`). Vale anche per la navigazione dallo
+sportello: React applica il preload appena arriva l'RSC.
 
-Il token era già nell'URL e nell'HTML; `Referrer-Policy: no-referrer` resta. Un preload
-fallito per la rete viene consegnato al client come errore, come prima (schermata «Riprova»).
-`e2e/citizen-loading.spec.ts` controlla che il preload venga usato (Chrome lo segnala in
-console quando non lo è): se `apiFetch` cambia credenziali o URL, il browser scaricherebbe la
-pratica due volte senza errori visibili.
+Dove vale la lettura unica: nei browser Chromium (Chrome, Samsung Internet, Edge su Android e
+desktop) con la build di produzione. In sviluppo StrictMode esegue due volte l'effetto e la
+seconda esecuzione legge di nuovo. WebKit, cioè Safari e ogni browser su iOS, non passa
+ancora un preload `as=fetch` a `fetch()`, e la pratica è `no-store`: lì il preload
+scaricherebbe la pratica due volte proprio sulle reti più lente. Per questo
+`reusesFetchPreload` lo emette solo quando lo user agent è Chromium e non iOS; Firefox resta
+fuori finché non è misurato. Uno user agent indovinato male costa solo il vantaggio del
+preload: il client legge la pratica come prima. Scartato il passaggio con uno script inline
+che avvia la `fetch` e lascia la promessa all'app: funzionerebbe ovunque, ma non parte nella
+navigazione dallo sportello (gli script inline dell'RSC non vengono eseguiti) e legherebbe la
+pagina a `'unsafe-inline'` negli script, che la CSP oggi ha solo perché Next lo richiede.
 
-Scartato: leggere la pratica nel server component. L'API in-process è ammessa solo per le
-GET pubbliche (vedi ARCHITECTURE.md): la lettura del cittadino è limitata e registrata per IP,
-che una chiamata in-process non ha.
+Il token era già nell'URL e nell'HTML; `Referrer-Policy: no-referrer` resta. Il preload parte
+quando la rete è più occupata: se la prima lettura si perde per la rete, il client la riprova
+una volta dopo 1,5 s prima di mostrare «Riprova». `e2e/citizen-loading.spec.ts` controlla che
+il preload venga usato (Chrome lo segnala in console quando non lo è), che dallo sportello a
+«Inizia» la pratica sia letta una volta (due in sviluppo) e il nuovo tentativo silenzioso: se
+`apiFetch` cambia credenziali o URL, il browser scaricherebbe la pratica due volte senza
+errori visibili.
+
+Scartato: leggere la pratica nel server component. L'HTML aspetterebbe una query sul DB prima
+di partire e i dati della pratica finirebbero nel payload RSC, oltre che nella risposta
+dell'API; inoltre ARCHITECTURE.md ammette le chiamate in-process solo per le GET pubbliche, e
+la lettura del cittadino non lo è (serve il token).
 
 ## 2. Font: si precarica solo il latino
 
@@ -58,7 +73,10 @@ che una chiamata in-process non ha.
 con il loro `unicode-range`. Con `["latin", "latin-ext"]` ogni pagina del cittadino
 precaricava 38 KB di latin-ext (Atkinson e Bricolage) anche in italiano, e la landing 72 KB.
 Ora si precarica `latin`; latin-ext si scarica solo dove compaiono ă, ș, ț (rumeno, o il nome
-«Română» nella scelta della lingua dello sportello).
+«Română» nella scelta della lingua dello sportello). Il prezzo: una pratica in rumeno aperta a
+freddo da un link (SMS, WhatsApp) mostra per un attimo quelle lettere nel font di riserva,
+finché latin-ext non arriva (`display: swap`). Dallo sportello di solito è già in cache,
+perché la scelta della lingua mostra «Română».
 
 Non toccati: Noto Sans Bengali (106 KB + 26 KB di latino) e Noto Sans Arabic (163 KB + 31 KB)
 si scaricano solo nelle pagine in quelle lingue; il loro latino serve perché `:lang(bn)` e
@@ -71,6 +89,13 @@ conversazione, lettura della pratica. Ora `OfficeStart`, dopo l'evento `load` de
 importa `citizen-app`: Turbopack riusa gli stessi chunk per `/pratica`, e dopo «Inizia»
 resta solo un chunk condiviso da 10 KB. Partire dopo `load` evita di rubare banda ai font e
 alle icone dello sportello. Chi apre lo sportello e non prosegue scarica ~78 KB in più.
+
+Si scarica solo per uno sportello esistente, con il browser in linea e senza Risparmio dati
+(`navigator.connection.saveData`); su 2G sì, perché è lì che il tempo dopo «Inizia» pesa di
+più. Se il download fallisce, il bundler conserva l'errore per tutta la vita della pagina e
+una navigazione client fallirebbe a pratica già creata: in quel caso «Inizia» apre la pratica
+con un caricamento completo. Un download ancora in corso viene atteso, perché è lo stesso che
+servirebbe alla navigazione.
 
 ## 4. Messaggi: le otto lingue restano in un solo chunk
 
