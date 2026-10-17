@@ -113,11 +113,10 @@ export function OfficeStart({
         body: { officeSlug, language, privacyAccepted: true },
       });
       rememberCase(officeSlug, result.token);
-      const path = `/pratica/${result.token}`;
+      const path = `/pratica/${result.token}` as const;
       // The bundler keeps a failed chunk load for the page's life: a client navigation would
       // fail the same way, after the case was created. A full load fetches it afresh. A prefetch
       // still under way is the download the navigation needs anyway.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- see above
       if ((await prefetched.current) === false) window.location.assign(path);
       else router.push(path);
     } catch (error) {
