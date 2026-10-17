@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
-import { formatDateTime, formatMinutes, LANGUAGE_IT, timeAgo } from "@/lib/console/labels";
+import {
+  formatDateTime,
+  formatMinutes,
+  fullName,
+  LANGUAGE_IT,
+  timeAgo,
+} from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
 
@@ -24,9 +30,7 @@ export function DossierAside({
       <Card title="Cittadino">
         <div className="grid gap-3 text-body-sm">
           <div>
-            <p className="font-semibold">
-              {[citizen.firstName, citizen.lastName].filter(Boolean).join(" ") || "Non indicato"}
-            </p>
+            <p className="font-semibold">{fullName(citizen) ?? "Non indicato"}</p>
             <p className="text-sm text-ink-3">Lingua: {LANGUAGE_IT[dossier.language]}</p>
           </div>
           {citizen.phone && (
@@ -92,36 +96,63 @@ export function DossierAside({
 
       <InternalNotes dossier={dossier} actions={actions} />
 
-      <Card title="Cronologia">
-        <ol className="relative grid gap-4 border-s border-line ps-4">
-          {collapseTimeline(dossier.timeline).map(({ event, count }) => (
-            <li key={event.id} className="relative">
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute -start-[1.3rem] top-1.5 size-2 rounded-full ring-2 ring-surface",
-                  event.actor === "operator"
-                    ? "bg-stamp"
-                    : event.actor === "citizen"
-                      ? "bg-ok"
-                      : "bg-line-strong",
-                )}
-              />
-              <p className="text-body-sm">
-                {event.label}
-                {count > 1 && <span className="text-ink-3"> ({count} volte)</span>}
-              </p>
-              <p className="text-xs text-ink-3">
-                {event.actorName ? `${event.actorName}, ` : ""}
-                <time dateTime={event.at} title={formatDateTime(event.at)}>
-                  {timeAgo(event.at)}
-                </time>
-              </p>
-            </li>
-          ))}
-        </ol>
-      </Card>
+      <Timeline timeline={dossier.timeline} />
     </aside>
+  );
+}
+
+// Every opening of the dossier is an event: after a few days of work the full history would
+// push the side column far below the checklist. The latest events first, the rest on request.
+const TIMELINE_SHOWN = 6;
+
+function Timeline({ timeline }: { timeline: CaseDossier["timeline"] }) {
+  const [all, setAll] = useState(false);
+  const rows = collapseTimeline(timeline);
+  // Never a button that hides a single event: it would take the same room as the event.
+  const hidden = rows.length > TIMELINE_SHOWN + 1 ? rows.length - TIMELINE_SHOWN : 0;
+  const shown = all || hidden === 0 ? rows : rows.slice(0, TIMELINE_SHOWN);
+  return (
+    <Card title="Cronologia">
+      <ol id="dossier-timeline" className="relative grid gap-4 border-s border-line ps-4">
+        {shown.map(({ event, count }) => (
+          <li key={event.id} className="relative">
+            <span
+              aria-hidden
+              className={cn(
+                "absolute -start-[1.3rem] top-1.5 size-2 rounded-full ring-2 ring-surface",
+                event.actor === "operator"
+                  ? "bg-stamp"
+                  : event.actor === "citizen"
+                    ? "bg-ok"
+                    : "bg-line-strong",
+              )}
+            />
+            <p className="text-body-sm">
+              {event.label}
+              {count > 1 && <span className="text-ink-3"> ({count} volte)</span>}
+            </p>
+            <p className="text-xs text-ink-3">
+              {event.actorName ? `${event.actorName}, ` : ""}
+              <time dateTime={event.at} title={formatDateTime(event.at)}>
+                {timeAgo(event.at)}
+              </time>
+            </p>
+          </li>
+        ))}
+      </ol>
+      {hidden > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ms-3 mt-3"
+          aria-expanded={all}
+          aria-controls="dossier-timeline"
+          onClick={() => setAll((v) => !v)}
+        >
+          {all ? "Mostra solo gli ultimi" : `Mostra altri ${hidden} eventi`}
+        </Button>
+      )}
+    </Card>
   );
 }
 

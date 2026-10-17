@@ -52,6 +52,44 @@ export function forgetCase(id: string) {
 
 export function forgetRecentCases() {
   write([]);
+  try {
+    sessionStorage.removeItem(QUEUE_KEY);
+  } catch {
+    // Nothing stored.
+  }
+}
+
+// The queue the operator last looked at (tab, filters, search), so «← Pratiche» on a dossier
+// goes back to it instead of the default tab. Same storage and lifetime as the list above.
+const QUEUE_KEY = "avanti:queue";
+// One-off notices the queue shows after a deletion: never worth showing again.
+const TRANSIENT = ["eliminata", "famiglia"];
+
+export function rememberQueue(params: URLSearchParams) {
+  const next = new URLSearchParams(params);
+  for (const key of TRANSIENT) next.delete(key);
+  try {
+    sessionStorage.setItem(QUEUE_KEY, next.toString());
+  } catch {
+    // Without storage the link goes to the default queue, as before.
+  }
+}
+
+/** Where «← Pratiche» leads: the queue as the operator left it, or the default one. */
+export function rememberedQueueHref() {
+  let search = "";
+  try {
+    search = sessionStorage.getItem(QUEUE_KEY) ?? "";
+  } catch {
+    // Storage blocked: the default queue.
+  }
+  return search ? `/console?${search}` : "/console";
+}
+
+const noQueue = () => () => {};
+
+export function useQueueHref() {
+  return useSyncExternalStore(noQueue, rememberedQueueHref, () => "/console");
 }
 
 const subscribe = (listener: () => void) => {

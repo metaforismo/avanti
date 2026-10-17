@@ -1,12 +1,12 @@
 "use client";
 
-import { Check, FileText, Image as ImageIcon, RotateCcw, X } from "lucide-react";
+import { ArrowRight, Check, FileText, Image as ImageIcon, RotateCcw, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { CaseDossier, ChecklistItem, DocumentReuseAssessment } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
-import { CHECKLIST_STATUS } from "@/lib/console/labels";
+import { CHECKLIST_STATUS, DECIDED } from "@/lib/console/labels";
 import { useChanged } from "@/components/ui/use-changed";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
@@ -30,17 +30,42 @@ export function ChecklistSection({
   ).length;
   const unmatched = dossier.documents.filter((d) => !d.checklistItemId);
   const readOnly = dossier.status === "closed" || dossier.status === "intake";
+  // The first file still waiting for a decision: the viewer then walks through the others.
+  const firstToCheck = readOnly
+    ? undefined
+    : dossier.documents.find((doc) => {
+        const item = dossier.checklist.find((i) => i.id === doc.checklistItemId);
+        return item !== undefined && !DECIDED.has(item.status);
+      });
 
   return (
-    <section aria-labelledby="checklist-title">
+    // Focusable: the document viewer returns the keyboard here when its opener is gone.
+    <section
+      id="checklist-section"
+      aria-labelledby="checklist-title"
+      tabIndex={-1}
+      className="outline-none"
+    >
       <SectionHeader
         id="checklist-title"
         title="Documenti"
         actions={
-          <p className="tabular text-sm text-ink-3">
-            {verified} di {dossier.checklist.length}{" "}
-            {dossier.checklist.length === 1 ? "verificato" : "verificati"}
-          </p>
+          <>
+            <p className="tabular text-sm text-ink-3">
+              {verified} di {dossier.checklist.length}{" "}
+              {dossier.checklist.length === 1 ? "verificato" : "verificati"}
+            </p>
+            {firstToCheck && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => actions.openDocument(firstToCheck)}
+              >
+                Controlla uno per uno
+                <ArrowRight className="rtl-flip size-4" aria-hidden />
+              </Button>
+            )}
+          </>
         }
       />
       {readOnly && dossier.status === "intake" && (
@@ -115,8 +140,7 @@ function ChecklistRow({
       : CHECKLIST_STATUS[item.status];
   const busy = actions.pending === `review:${item.id}`;
   const statusChanged = useChanged(item.status);
-  const decided =
-    item.status === "verified" || item.status === "rejected" || item.status === "waived";
+  const decided = DECIDED.has(item.status);
 
   async function reject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -160,66 +184,76 @@ function ChecklistRow({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
+        {/* Fixed columns from sm: statuses line up down the list and read like a table column,
+            whatever actions each row offers. */}
+        <div
+          className={cn(
+            "flex items-center gap-1.5",
+            !readOnly && "sm:grid sm:grid-cols-[7rem_minmax(10.5rem,auto)] sm:gap-2",
+          )}
+        >
           <Pill
             key={item.status}
             tone={status.tone}
-            className={statusChanged ? "animate-pop" : undefined}
+            className={cn("sm:justify-self-start", statusChanged && "animate-pop")}
           >
             {status.label}
           </Pill>
-          {!readOnly &&
-            (decided ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Annulla la decisione su ${item.title}`}
-                title="Annulla decisione"
-                loading={busy}
-                onClick={() => void actions.review(item.id, { decision: "reset" })}
-              >
-                <RotateCcw className="size-4" />
-              </Button>
-            ) : (
-              <>
-                {docs.length > 0 ? (
-                  <>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      loading={busy && !rejecting}
-                      onClick={() => void actions.review(item.id, { decision: "verified" })}
-                    >
-                      <Check className="size-4 text-ok" aria-hidden />
-                      Verifica
-                    </Button>
+          {!readOnly && (
+            <div className="flex items-center gap-1.5 sm:justify-end">
+              {decided ? (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Annulla la decisione su ${item.title}`}
+                  title="Annulla decisione"
+                  loading={busy}
+                  onClick={() => void actions.review(item.id, { decision: "reset" })}
+                >
+                  <RotateCcw className="size-4" />
+                </Button>
+              ) : (
+                <>
+                  {docs.length > 0 ? (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        loading={busy && !rejecting}
+                        onClick={() => void actions.review(item.id, { decision: "verified" })}
+                      >
+                        <Check className="size-4 text-ok" aria-hidden />
+                        Verifica
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRejecting((v) => !v)}
+                        aria-expanded={rejecting}
+                      >
+                        Rifiuta
+                      </Button>
+                    </>
+                  ) : (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setRejecting((v) => !v)}
-                      aria-expanded={rejecting}
+                      loading={busy}
+                      title="Segna la voce come non necessaria per questo nucleo"
+                      onClick={() =>
+                        void actions.review(item.id, {
+                          decision: "waived",
+                          note: "Non necessario per questo nucleo",
+                        })
+                      }
                     >
-                      Rifiuta
+                      Non serve
                     </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    loading={busy}
-                    title="Segna la voce come non necessaria per questo nucleo"
-                    onClick={() =>
-                      void actions.review(item.id, {
-                        decision: "waived",
-                        note: "Non necessario per questo nucleo",
-                      })
-                    }
-                  >
-                    Non serve
-                  </Button>
-                )}
-              </>
-            ))}
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {rejecting && (

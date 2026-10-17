@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Route } from "next";
 import type {
   CaseDossier,
@@ -31,13 +31,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { PageContainer } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
-import { CASE_STATUS, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
-import { forgetCase, rememberCase } from "@/lib/console/recent-cases";
+import { CASE_STATUS, fullName, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
+import { forgetCase, rememberCase, useQueueHref } from "@/lib/console/recent-cases";
 import { useOperator } from "@/lib/console/operator-context";
 import { useDownload } from "@/lib/console/use-download";
 import { useResource } from "@/lib/console/use-resource";
+import { cn } from "@/lib/cn";
 import { ChecklistSection } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
 import { CopilotPanel } from "./copilot-panel";
@@ -58,7 +59,8 @@ const CONFLICT_MESSAGE =
   "La pratica è cambiata nel frattempo (un collega, il cittadino o un'analisi appena conclusa). Ti mostriamo la versione aggiornata: controlla e ripeti l'azione se serve.";
 
 export type DossierActions = {
-  review: (itemId: string, input: ReviewChecklistItemRequest) => Promise<boolean>;
+  /** The dossier as the decision left it, or null if it failed. */
+  review: (itemId: string, input: ReviewChecklistItemRequest) => Promise<CaseDossier | null>;
   /** `key` separates background saves (notes) from button spinners. */
   update: (input: UpdateCaseRequest, key?: string) => Promise<boolean>;
   openDocument: (doc: DocumentSummary) => void;
@@ -111,6 +113,30 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [reply, setReply] = useState<ReplyContext | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const files = useDownload();
+  const queueHref = useQueueHref();
+  // The sticky action bar's height (0 on phones, where it isn't a box): the error notice sticks
+  // just below it, and the bar names the case once the h1 has scrolled under it.
+  const [bar, setBar] = useState<HTMLDivElement | null>(null);
+  const [barHeight, setBarHeight] = useState(0);
+  useEffect(() => {
+    if (!bar) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setBarHeight(Math.round(entry?.borderBoxSize[0]?.blockSize ?? 0)),
+    );
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [bar]);
+  const [title, setTitle] = useState<HTMLHeadingElement | null>(null);
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    if (!title) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setCompact(entry ? !entry.isIntersecting : false),
+      { rootMargin: `-${barHeight}px 0px 0px 0px` },
+    );
+    observer.observe(title);
+    return () => observer.disconnect();
+  }, [title, barHeight]);
 
   // The version every write must carry. A ref, not the render's copy: writes queue up behind
   // each other (a note saved on blur while «Verifica» is clicked), and each one must carry
@@ -135,13 +161,18 @@ export function DossierView({ caseId }: { caseId: string }) {
     }
   };
 
+  const succeeded = (task: Promise<CaseDossier | null>) => task.then((done) => done !== null);
+
   function mutate(key: string, run: () => Promise<CaseDossier | unknown>) {
     const task = queue.current.then(() => perform(key, run));
     queue.current = task;
     return task;
   }
 
-  async function perform(key: string, run: () => Promise<CaseDossier | unknown>) {
+  async function perform(
+    key: string,
+    run: () => Promise<CaseDossier | unknown>,
+  ): Promise<CaseDossier | null> {
     setPending(key);
     setError(null);
     try {
@@ -150,20 +181,20 @@ export function DossierView({ caseId }: { caseId: string }) {
         latest.current = result as CaseDossier;
         setData(result as CaseDossier);
       } else await refresh();
-      return true;
+      return latest.current ?? dossier.data;
     } catch (err) {
       if (err instanceof ApiRequestError && err.code === "conflict") {
         // Someone else (a colleague, the citizen, a finished analysis) changed the case since it
         // was read: show the current state and let the operator decide again. Never retry blindly.
         await refresh();
         setError(CONFLICT_MESSAGE);
-        return false;
+        return null;
       }
       // Deleted meanwhile: the reload turns the page into «Pratica non trovata».
       if (err instanceof ApiRequestError && err.status === 404) reload();
       if (err instanceof ApiRequestError) setFailure({ message: err.message, status: err.status });
       else setError("Operazione non riuscita. Riprova.");
-      return false;
+      return null;
     } finally {
       setPending(null);
     }
@@ -177,7 +208,7 @@ export function DossierView({ caseId }: { caseId: string }) {
       operatorId: operator.id,
       id: loaded.id,
       reference: loaded.reference,
-      name: [loaded.citizen.firstName, loaded.citizen.lastName].filter(Boolean).join(" ") || null,
+      name: fullName(loaded.citizen),
       practice: loaded.practice ? PRACTICE_SHORT[loaded.practice.id] : null,
     });
   }, [loaded, operator.id]);
@@ -197,13 +228,7 @@ export function DossierView({ caseId }: { caseId: string }) {
     return () => window.clearInterval(id);
   }, [analysing, reload]);
 
-  if (dossier.status === "loading") {
-    return (
-      <div className="grid min-h-[60dvh] place-items-center text-ink-3">
-        <Spinner label="Caricamento del fascicolo" className="size-6" />
-      </div>
-    );
-  }
+  if (dossier.status === "loading") return <DossierSkeleton queueHref={queueHref} />;
   const gone = dossier.status === "error" && dossier.error.status === 404;
   if ((dossier.status === "error" && !dossier.data) || gone) {
     const missing = gone;
@@ -220,7 +245,7 @@ export function DossierView({ caseId }: { caseId: string }) {
                 </Button>
               )}
               <Button asChild>
-                <Link href="/console">Torna alle pratiche</Link>
+                <Link href={queueHref as Route}>Torna alle pratiche</Link>
               </Button>
             </div>
           }
@@ -236,6 +261,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   const data = dossier.data!;
   const viewing = viewingId ? (data.documents.find((doc) => doc.id === viewingId) ?? null) : null;
   const status = CASE_STATUS[data.status];
+  const citizenName = fullName(data.citizen);
   const base = `/api/cases/${encodeURIComponent(data.id)}`;
   const assignedToMe = data.assignee?.id === operator.id;
   // What still stands between this case and the official practice. While anything is open,
@@ -268,19 +294,23 @@ export function DossierView({ caseId }: { caseId: string }) {
     error,
     openDocument: setViewing,
     nearReady: (action, input) =>
-      mutate(`near:${action}`, () =>
-        apiFetch(`${base}/near-ready/${action}`, {
-          method: "POST",
-          body: { ...input, expectedUpdatedAt: current().updatedAt },
-        }),
+      succeeded(
+        mutate(`near:${action}`, () =>
+          apiFetch(`${base}/near-ready/${action}`, {
+            method: "POST",
+            body: { ...input, expectedUpdatedAt: current().updatedAt },
+          }),
+        ),
       ),
     decidePrefill: (fieldId, decision) =>
-      mutate(`prefill:${fieldId}`, async () => {
-        await startReview();
-        return apiFetch(`${base}/ai/dsu-prefill/${encodeURIComponent(fieldId)}/${decision}`, {
-          method: "POST",
-        });
-      }),
+      succeeded(
+        mutate(`prefill:${fieldId}`, async () => {
+          await startReview();
+          return apiFetch(`${base}/ai/dsu-prefill/${encodeURIComponent(fieldId)}/${decision}`, {
+            method: "POST",
+          });
+        }),
+      ),
     review: (itemId, input) =>
       mutate(`review:${itemId}`, async () => {
         const expectedUpdatedAt = await startReview();
@@ -290,12 +320,14 @@ export function DossierView({ caseId }: { caseId: string }) {
         });
       }),
     update: (input, key = "update") =>
-      mutate(key, async () => {
-        const needsReview =
-          input.status === "ready" || input.status === "needs_citizen" || input.assigneeId;
-        const expectedUpdatedAt = needsReview ? await startReview() : current().updatedAt;
-        return apiFetch(base, { method: "PATCH", body: { ...input, expectedUpdatedAt } });
-      }),
+      succeeded(
+        mutate(key, async () => {
+          const needsReview =
+            input.status === "ready" || input.status === "needs_citizen" || input.assigneeId;
+          const expectedUpdatedAt = needsReview ? await startReview() : current().updatedAt;
+          return apiFetch(base, { method: "PATCH", body: { ...input, expectedUpdatedAt } });
+        }),
+      ),
   };
 
   const openRequest = async () => {
@@ -343,137 +375,174 @@ export function DossierView({ caseId }: { caseId: string }) {
   return (
     // Bottom room for the floating «Chiedi al fascicolo», so it never hides the last row.
     // Names and file names come from citizens and can be one unbroken word in any script.
-    <PageContainer width="7xl" className="pb-24 wrap-anywhere lg:pb-24">
-      <Link
-        href="/console"
-        className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
-      >
-        <ArrowLeft className="rtl-flip size-4" aria-hidden />
-        Pratiche
-      </Link>
+    <PageContainer width="7xl" className="pb-24 wrap-anywhere lg:pt-2 lg:pb-24">
+      {/* The case's actions stay in reach while the operator works far down the dossier: on a
+          desktop this bar sticks to the top, and once the title has scrolled away it names the
+          case (aria-hidden: the h1 already does). On a phone the actions follow the title.
+          `contents` keeps the bar's sticky range the whole page, not this wrapper. */}
+      <div className="flex flex-col items-start lg:contents">
+        <div
+          ref={setBar}
+          className={cn(
+            "max-lg:contents lg:sticky lg:top-0 lg:z-20 lg:-mx-10 lg:flex lg:min-h-16 lg:items-center lg:gap-4 lg:border-b lg:bg-paper lg:px-10 lg:py-3",
+            compact ? "lg:border-line" : "lg:border-transparent",
+          )}
+        >
+          <Link
+            href={queueHref as Route}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
+          >
+            <ArrowLeft className="rtl-flip size-4" aria-hidden />
+            Pratiche
+          </Link>
+          {compact && (
+            <p
+              aria-hidden
+              className="hidden min-w-0 flex-1 animate-fade-in items-baseline gap-2 border-s border-line ps-4 xl:flex"
+            >
+              <span className="min-w-0 truncate font-semibold" title={citizenName ?? data.headline}>
+                {citizenName ?? data.headline}
+              </span>
+              <span
+                // Up to 1536px the actions leave room for the name only.
+                className="hidden shrink-0 font-mono text-xs text-ink-3 2xl:inline"
+                translate="no"
+              >
+                {data.reference}
+              </span>
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap items-center gap-2 max-lg:order-2 lg:ms-auto lg:mt-0">
+            {!assignedToMe && data.status !== "closed" && (
+              <Button
+                variant="secondary"
+                loading={pending === "update"}
+                onClick={() => void actions.update({ assigneeId: operator.id })}
+                // Between 1024 and 1280px the bar has room for one row only if this one is an icon.
+                title="Prendi in carico"
+                className="lg:max-xl:px-3"
+              >
+                <UserCheck className="size-4" aria-hidden />
+                <span className="lg:max-xl:sr-only">Prendi in carico</span>
+              </Button>
+            )}
+            {data.status !== "closed" && data.status !== "intake" && (
+              <Button
+                variant={openIssues > 0 ? "primary" : "secondary"}
+                onClick={() => void openRequest()}
+              >
+                <Send className="size-4" aria-hidden />
+                Chiedi integrazione
+              </Button>
+            )}
+            {(data.status === "in_review" || data.status === "submitted") && (
+              <Button
+                ref={readyButton}
+                variant={openIssues > 0 ? "secondary" : "primary"}
+                loading={pending === "update" && !confirmReady}
+                onClick={() => (openIssues > 0 ? setConfirmReady(true) : void setStatus("ready"))}
+              >
+                <Check className="size-4" aria-hidden />
+                Segna come pronta
+              </Button>
+            )}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <Button ref={moreButton} variant="secondary">
+                  Altro
+                  <ChevronDown className="size-4" aria-hidden />
+                </Button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={6}
+                  className="z-50 min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
+                >
+                  <MenuItem onSelect={() => void exportAs("pdf")}>
+                    <Download className="me-2.5 size-4 text-ink-3" aria-hidden />
+                    Scarica fascicolo PDF
+                  </MenuItem>
+                  <MenuItem onSelect={() => void exportAs("json")}>
+                    <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
+                    Scarica dati JSON
+                  </MenuItem>
+                  <DropdownMenu.Separator className="my-1 h-px bg-line" />
+                  {data.status === "closed" ? (
+                    <MenuItem onSelect={() => void setStatus("in_review")}>
+                      Riapri la pratica
+                    </MenuItem>
+                  ) : (
+                    <>
+                      {data.status === "ready" && (
+                        <MenuItem onSelect={() => void setStatus("in_review")}>
+                          Torna in revisione
+                        </MenuItem>
+                      )}
+                      <MenuItem onSelect={() => setNewLink(true)}>
+                        Nuovo link per il cittadino…
+                      </MenuItem>
+                      <MenuItem onSelect={() => setConfirmClose(true)}>Chiudi e archivia…</MenuItem>
+                    </>
+                  )}
+                  <MenuItem onSelect={() => setReuse(true)}>
+                    Nuova pratica per questa famiglia…
+                  </MenuItem>
+                  {data.practice?.id === "isee_ordinario" && (
+                    <MenuItem
+                      onSelect={() => {
+                        setWithdrawError(null);
+                        setWithdraw("ask");
+                      }}
+                    >
+                      Revoca l&apos;avviso di rinnovo…
+                    </MenuItem>
+                  )}
+                  {assignedToMe && (
+                    <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
+                      Lascia la pratica
+                    </MenuItem>
+                  )}
+                  {operator.role === "admin" && (
+                    <>
+                      <DropdownMenu.Separator className="my-1 h-px bg-line" />
+                      <MenuItem onSelect={() => setConfirmDelete(true)}>
+                        <span className="text-danger">Elimina definitivamente…</span>
+                      </MenuItem>
+                      <MenuItem onSelect={() => setEraseFamily(true)}>
+                        <span className="text-danger">Cancella tutta la famiglia…</span>
+                      </MenuItem>
+                    </>
+                  )}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
+        </div>
 
-      <header className="mt-3 flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
+        <header className="mt-3 min-w-0 max-lg:order-1 lg:mt-2">
           <div className="flex flex-wrap items-center gap-2">
             <Pill tone={status.tone}>{status.label}</Pill>
-            <span className="font-mono text-sm text-ink-3">{data.reference}</span>
+            <span className="font-mono text-sm text-ink-3" translate="no">
+              {data.reference}
+            </span>
             {data.language !== "it" && (
               <Pill tone="neutral">Cittadino in {LANGUAGE_IT[data.language].toLowerCase()}</Pill>
             )}
           </div>
-          <h1 className="mt-2 font-display text-3xl leading-tight font-bold tracking-[-0.025em]">
-            {data.headline}
+          {/* The person, not the practice, is the title: a January desk sees forty «ISEE
+            ordinario» in a day, and the name is what tells them apart (as in the queue). */}
+          <h1
+            ref={setTitle}
+            className="mt-2 font-display text-3xl leading-tight font-bold tracking-[-0.025em]"
+          >
+            {citizenName ?? data.headline}
           </h1>
           <p className="mt-1 text-lg text-ink-2">
-            {[data.citizen.firstName, data.citizen.lastName].filter(Boolean).join(" ") ||
-              "Cittadino senza nome"}
+            {citizenName ? data.headline : "Cittadino senza nome"}
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {!assignedToMe && data.status !== "closed" && (
-            <Button
-              variant="secondary"
-              loading={pending === "update"}
-              onClick={() => void actions.update({ assigneeId: operator.id })}
-            >
-              <UserCheck className="size-4" aria-hidden />
-              Prendi in carico
-            </Button>
-          )}
-          {data.status !== "closed" && data.status !== "intake" && (
-            <Button
-              variant={openIssues > 0 ? "primary" : "secondary"}
-              onClick={() => void openRequest()}
-            >
-              <Send className="size-4" aria-hidden />
-              Chiedi integrazione
-            </Button>
-          )}
-          {(data.status === "in_review" || data.status === "submitted") && (
-            <Button
-              ref={readyButton}
-              variant={openIssues > 0 ? "secondary" : "primary"}
-              loading={pending === "update" && !confirmReady}
-              onClick={() => (openIssues > 0 ? setConfirmReady(true) : void setStatus("ready"))}
-            >
-              <Check className="size-4" aria-hidden />
-              Segna come pronta
-            </Button>
-          )}
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <Button ref={moreButton} variant="secondary">
-                Altro
-                <ChevronDown className="size-4" aria-hidden />
-              </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="end"
-                sideOffset={6}
-                className="z-50 min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
-              >
-                <MenuItem onSelect={() => void exportAs("pdf")}>
-                  <Download className="me-2.5 size-4 text-ink-3" aria-hidden />
-                  Scarica fascicolo PDF
-                </MenuItem>
-                <MenuItem onSelect={() => void exportAs("json")}>
-                  <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
-                  Scarica dati JSON
-                </MenuItem>
-                <DropdownMenu.Separator className="my-1 h-px bg-line" />
-                {data.status === "closed" ? (
-                  <MenuItem onSelect={() => void setStatus("in_review")}>
-                    Riapri la pratica
-                  </MenuItem>
-                ) : (
-                  <>
-                    {data.status === "ready" && (
-                      <MenuItem onSelect={() => void setStatus("in_review")}>
-                        Torna in revisione
-                      </MenuItem>
-                    )}
-                    <MenuItem onSelect={() => setNewLink(true)}>
-                      Nuovo link per il cittadino…
-                    </MenuItem>
-                    <MenuItem onSelect={() => setConfirmClose(true)}>Chiudi e archivia…</MenuItem>
-                  </>
-                )}
-                <MenuItem onSelect={() => setReuse(true)}>
-                  Nuova pratica per questa famiglia…
-                </MenuItem>
-                {data.practice?.id === "isee_ordinario" && (
-                  <MenuItem
-                    onSelect={() => {
-                      setWithdrawError(null);
-                      setWithdraw("ask");
-                    }}
-                  >
-                    Revoca l&apos;avviso di rinnovo…
-                  </MenuItem>
-                )}
-                {assignedToMe && (
-                  <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
-                    Lascia la pratica
-                  </MenuItem>
-                )}
-                {operator.role === "admin" && (
-                  <>
-                    <DropdownMenu.Separator className="my-1 h-px bg-line" />
-                    <MenuItem onSelect={() => setConfirmDelete(true)}>
-                      <span className="text-danger">Elimina definitivamente…</span>
-                    </MenuItem>
-                    <MenuItem onSelect={() => setEraseFamily(true)}>
-                      <span className="text-danger">Cancella tutta la famiglia…</span>
-                    </MenuItem>
-                  </>
-                )}
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-        </div>
-      </header>
+        </header>
+      </div>
       {withdraw === "done" && (
         <Notice
           tone="ok"
@@ -488,18 +557,23 @@ export function DossierView({ caseId }: { caseId: string }) {
       {/* Sticky: an action far down the dossier must not fail out of sight. A session that
           ended has its own notice from the console shell, with the way back to sign in. */}
       {error && failure?.status !== 401 && (
-        <Notice
-          tone="danger"
-          size="md"
-          className="sticky top-16 z-20 mt-4 shadow-float lg:top-4"
-          onDismiss={() => setFailure(null)}
-          dismissLabel="Chiudi avviso"
+        <div
+          className="sticky top-16 z-20 mt-4 lg:top-[calc(var(--dossier-bar)+1rem)]"
+          style={{ "--dossier-bar": `${barHeight}px` } as CSSProperties}
         >
-          {error}
-        </Notice>
+          <Notice
+            tone="danger"
+            size="md"
+            className="shadow-float"
+            onDismiss={() => setFailure(null)}
+            dismissLabel="Chiudi avviso"
+          >
+            {error}
+          </Notice>
+        </div>
       )}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-8">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8">
           <CitizenQuestions
             dossier={data}
@@ -718,5 +792,45 @@ function MenuItem({ children, onSelect }: { children: React.ReactNode; onSelect:
     >
       {children}
     </DropdownMenu.Item>
+  );
+}
+
+/**
+ * The dossier's shape while it loads: header, main column and side cards stay where they will
+ * be, so nothing jumps when the data lands. «← Pratiche» already works.
+ */
+function DossierSkeleton({ queueHref }: { queueHref: string }) {
+  return (
+    <PageContainer width="7xl" className="lg:pt-2">
+      <div className="lg:flex lg:min-h-16 lg:items-center">
+        <Link
+          href={queueHref as Route}
+          className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
+        >
+          <ArrowLeft className="rtl-flip size-4" aria-hidden />
+          Pratiche
+        </Link>
+      </div>
+      <div role="status" className="mt-3 lg:mt-2">
+        <span className="sr-only">Caricamento del fascicolo</span>
+        <Skeleton className="h-5 w-48 rounded-full" />
+        <Skeleton className="mt-3 h-9 w-full max-w-sm" />
+        <Skeleton className="mt-2.5 h-6 w-48" />
+        {/* On a phone the actions sit under the title (in the bar from lg). */}
+        <Skeleton className="mt-4 h-10 w-full max-w-md lg:hidden" />
+        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="grid content-start gap-8">
+            <Skeleton className="h-48 rounded-lg" />
+            <Skeleton className="h-32 rounded-lg" />
+            <Skeleton className="h-64 rounded-lg" />
+          </div>
+          <div className="hidden content-start gap-5 lg:grid">
+            <Skeleton className="h-40 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-36 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </PageContainer>
   );
 }
