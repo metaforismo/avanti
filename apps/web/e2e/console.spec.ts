@@ -184,10 +184,12 @@ test("the activity log shows a failed login to the administrator only", async ({
   await page.getByRole("link", { name: "Registro attività" }).click();
   await page.getByLabel("Cosa cerchi").selectOption({ label: "Accessi non riusciti" });
   await expect(page.getByText(/Tentativo di accesso operatore fallito/).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "Esporta CSV" })).toHaveAttribute(
-    "href",
-    /action=auth\.login_failed/,
-  );
+  // The export carries the filter on screen.
+  const exported = page.waitForRequest(/\/api\/audit\/export\.csv\?.*action=auth\.login_failed/);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Esporta CSV" }).click();
+  await exported;
+  expect((await download).suggestedFilename()).toMatch(/\.csv$/);
 });
 
 test("slash jumps to the queue search and Escape clears it", async ({ page }) => {
@@ -283,7 +285,7 @@ test("the pilot report is for administrators and downloads as a PDF", async ({ p
   await expect(page.getByText("Dati insufficienti")).toHaveCount(3);
 
   const download = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Scarica PDF" }).click();
+  await page.getByRole("button", { name: "Scarica PDF" }).click();
   expect((await download).suggestedFilename()).toMatch(/^rapporto-pilota-.*\.pdf$/);
 });
 
