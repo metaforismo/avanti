@@ -29,6 +29,8 @@ export function DoneStep({ api, data, m, token }: StepProps) {
     data.status === "submitted" || data.status === "in_review"
       ? data.checklist.filter((item) => item.required && !DONE_STATUSES.has(item.status))
       : [];
+  // «e altri 1» hides a line to save a line: show it instead.
+  const shown = missing.length === MAX_SHOWN + 1 ? missing.length : MAX_SHOWN;
   const statusLine =
     data.status === "in_review"
       ? m.done.inReview
@@ -88,7 +90,7 @@ export function DoneStep({ api, data, m, token }: StepProps) {
             {m.done.bringMissing}
           </h2>
           <ul className="mt-2 grid gap-1.5">
-            {missing.slice(0, MAX_SHOWN).map((item) => (
+            {missing.slice(0, shown).map((item) => (
               <li key={item.id} className="flex gap-2">
                 <span aria-hidden>•</span>
                 <span dir="auto">
@@ -98,9 +100,9 @@ export function DoneStep({ api, data, m, token }: StepProps) {
               </li>
             ))}
           </ul>
-          {missing.length > MAX_SHOWN && (
+          {missing.length > shown && (
             <p className="mt-1.5 ps-4 text-ink-2">
-              {format(m.done.bringMore, { n: missing.length - MAX_SHOWN })}
+              {format(m.done.bringMore, { n: missing.length - shown })}
             </p>
           )}
         </section>
