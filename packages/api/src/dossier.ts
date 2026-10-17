@@ -217,7 +217,7 @@ function evaluateCase(
   return { household, checklist, docViews, evaluation };
 }
 
-async function loadViewData(
+export async function loadViewData(
   db: Database,
   row: CaseRow,
   now?: Date,

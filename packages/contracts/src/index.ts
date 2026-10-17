@@ -1030,6 +1030,47 @@ export const RegenerateLinkResponse = z.object({
 });
 export type RegenerateLinkResponse = z.infer<typeof RegenerateLinkResponse>;
 
+/**
+ * GET /cases/:id/citizen-handoff: what the operator hands to a citizen without email (a
+ * WhatsApp/SMS notice) or without a smartphone (a printed list), in the citizen's language
+ * with the Italian beside it. Only documents still to bring or redo.
+ */
+export const CitizenHandoffItem = z.object({
+  id: Id,
+  /** As the citizen sees it in the link: may contain names or banks from their answers. */
+  title: z.string(),
+  titleIt: z.string(),
+  /** Catalog title without personal details, for messages sent through third-party apps. */
+  genericTitle: z.string(),
+  genericTitleIt: z.string(),
+  howToGet: z.string().nullable(),
+  memberName: z.string().nullable(),
+  required: z.boolean(),
+  status: z.enum(["missing", "rejected", "issue"]),
+  /** The desk's note on a rejected item, as written by the operator. */
+  note: z.string().nullable(),
+});
+export type CitizenHandoffItem = z.infer<typeof CitizenHandoffItem>;
+
+export const CitizenHandoff = z.object({
+  reference: z.string(),
+  language: Language,
+  status: CaseStatus,
+  organization: OrganizationPublic,
+  office: Office.nullable(),
+  practice: z.object({ name: z.string(), nameIt: z.string() }).nullable(),
+  /** False while the interview is still open: the list can still grow. */
+  interviewComplete: z.boolean(),
+  items: z.array(CitizenHandoffItem),
+});
+export type CitizenHandoff = z.infer<typeof CitizenHandoff>;
+
+/** POST /cases/:id/citizen-handoff/events: recorded in the timeline, never the message text. */
+export const CitizenHandoffChannel = z.enum(["whatsapp", "sms", "copy", "print"]);
+export type CitizenHandoffChannel = z.infer<typeof CitizenHandoffChannel>;
+export const RecordCitizenHandoffRequest = z.object({ channel: CitizenHandoffChannel }).strict();
+export type RecordCitizenHandoffRequest = z.infer<typeof RecordCitizenHandoffRequest>;
+
 export const UpdateCaseRequest = z.object({
   /** Required by the API for writes; use updatedAt from the dossier and reload on 409. */
   expectedUpdatedAt: IsoDateTime.optional(),
@@ -1268,6 +1309,7 @@ export const AuditAction = z.enum([
   "case.ready",
   "case.closed",
   "case.exported",
+  "citizen.checklist_printed",
   "dsu_sheet.viewed",
   "case.deleted",
   "case.retention_deleted",

@@ -81,6 +81,9 @@ function policy(path: string, method: string): Policy | null {
     return RATE_POLICIES.export;
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
+  // The handoff carries the checklist in two languages: an export by another name.
+  if (method === "GET" && /^\/api\/cases\/[^/]+\/citizen-handoff$/.test(path))
+    return RATE_POLICIES.export;
   if (method !== "POST") return null;
   if (path === "/api/cases/assign") return RATE_POLICIES.assign;
   if (/^\/api\/cases\/[^/]+\/(reuse|documents\/[^/]+\/reuse-check)$/.test(path))
@@ -90,6 +93,7 @@ function policy(path: string, method: string): Policy | null {
   if (/^\/api\/c\/[^/]+\/assistant\/ask-desk$/.test(path)) return RATE_POLICIES.askDesk;
   if (/^\/api\/c\/[^/]+\/transcribe$/.test(path)) return RATE_POLICIES.transcribe;
   if (/^\/api\/cases\/[^/]+\/link$/.test(path)) return RATE_POLICIES.link;
+  if (/^\/api\/cases\/[^/]+\/citizen-handoff\/events$/.test(path)) return RATE_POLICIES.link;
   if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return RATE_POLICIES.translate;
   if (path.startsWith("/api/auth/mfa/")) return RATE_POLICIES.mfa;
   if (["/api/auth/login", "/api/auth/password"].includes(path)) return RATE_POLICIES.login;

@@ -108,6 +108,10 @@ const timelineLabels: Record<string, string> = {
   "case.ready": "Fascicolo pronto per il gestionale",
   "case.closed": "Fascicolo chiuso",
   "case.exported": "Fascicolo esportato",
+  "citizen.checklist_printed": "Elenco dei documenti stampato per il cittadino",
+  "citizen.notice_whatsapp": "Avviso al cittadino preparato su WhatsApp",
+  "citizen.notice_sms": "Avviso al cittadino preparato via SMS",
+  "citizen.notice_copied": "Avviso al cittadino copiato",
   "dsu_sheet.viewed": "Prospetto DSU consultato",
 };
 export function timelineLabel(type: string): string {
