@@ -231,6 +231,10 @@ Conseguenze:
   valutazione. La sospensione già applicata resta e richiede comunque riesame amministrativo.
 - Le verifiche manuali dell'operatore non rinnovano da sole la valutazione: per sfruttarle
   in un controllo successivo serve «Ricontrolla».
+- (17 ottobre 2026) La richiesta di integrazione su una voce obbligatoria registra da sola
+  «non era pronta» (motivo `integration_requested`) sulla valutazione idonea del contenuto
+  corrente, come esito provvisorio che un esito esplicito sostituisce: vedi
+  [retry-safety.md](retry-safety.md).
 
 ### Cosa resta prima dell’uso reale
 

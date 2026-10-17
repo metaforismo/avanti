@@ -838,6 +838,7 @@ export const nearReadyEvents = pgTable(
       | "household"
       | "year"
       | "missing_document"
+      | "integration_requested"
     >(),
     ready: boolean("ready"),
     durationMinutes: doublePrecision("duration_minutes"),
@@ -850,10 +851,32 @@ export const nearReadyEvents = pgTable(
     ),
     check(
       "near_ready_reason_check",
-      sql`${t.reason} is null or ${t.reason} in ('identity','household','document_match','year','amount','other','missing_document')`,
+      sql`${t.reason} is null or ${t.reason} in ('identity','household','document_match','year','amount','other','missing_document','integration_requested')`,
     ),
   ],
 );
+// Replays a write whose response was lost. Only references to what the first attempt stored
+// (ids, flags): the request text is never copied, and rows follow the case on erasure.
+export const idempotencyKeys = pgTable(
+  "idempotency_keys",
+  {
+    caseId: text("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    /** "citizen" or the operator id: a key never replays another person's result. */
+    actor: text("actor").notNull(),
+    key: text("key").notNull(),
+    route: text("route").notNull(),
+    fingerprint: text("fingerprint").notNull(),
+    result: jsonb("result").$type<Record<string, string | null>>().notNull(),
+    createdAt: instant("created_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.caseId, t.actor, t.key] }),
+    index("idempotency_keys_created_idx").on(t.createdAt),
+  ],
+);
+
 export const nearReadyBlindReviews = pgTable(
   "near_ready_blind_reviews",
   {

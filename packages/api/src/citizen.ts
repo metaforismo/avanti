@@ -63,6 +63,7 @@ import { body, parse, mutableCitizen, type App, type Services, type ApiContext }
 
 import { visibleToCitizen } from "./document-visibility";
 import { nextCaseUpdate } from "./case-version";
+import { idempotent, remember, replayOf, type IdempotentResult } from "./idempotency";
 import { enqueueSubmissionReceipt, scheduleNotificationDelivery } from "./notifications";
 
 export { assertStartable } from "./citizen-turn";
@@ -216,11 +217,22 @@ export function mountCitizenRoutes(app: App, s: Services) {
   });
   app.post("/c/:token/turn", async (c) => {
     const initial = c.get("citizen");
-    mutableCitizen(initial);
     const raw: unknown = await c.req.json().catch(() => null);
     if (raw && typeof raw === "object" && "type" in raw && raw.type === "text")
       await readConversationText(c, initial);
     const input = await body(c, IntakeTurn);
+    const action = idempotent(c, { caseId: initial.id, actor: "citizen", route: "turn" }, input);
+    const turnResponse = async (row: CaseRow, result: IdempotentResult) =>
+      c.json(
+        IntakeTurnResponse.parse({
+          ...(await citizenView(s.db, row, s.clock())),
+          unavailablePractice: result.unavailablePractice ?? null,
+          ...(result.engine ? { engine: result.engine } : {}),
+        }),
+      );
+    const previous = await replayOf(s.db, action, s.clock());
+    if (previous) return turnResponse(await currentCitizenLink(s.db, initial, s.clock()), previous);
+    mutableCitizen(initial);
     const [aiSettings] =
       input.type === "text"
         ? await s.db
@@ -250,8 +262,15 @@ export function mountCitizenRoutes(app: App, s: Services) {
           : await observeAi(s, initial, work);
     }
     const result = await s.db.transaction(async (tx) => {
-      const current = await lockCase(tx, initial, s.clock());
+      const current = await currentCitizenLink(tx, initial, s.clock(), true);
+      const replay = await replayOf(tx, action, s.clock());
+      if (replay) return { row: current, replay };
+      mutableCitizen(current);
       const now = s.clock();
+      const outcome = (unavailablePractice: PracticeId | null): IdempotentResult => ({
+        unavailablePractice,
+        engine: proposal?.engine ?? null,
+      });
       if (proposal) assertProposalCurrent(initial, current);
       if (input.type === "text" && proposal?.intent && proposal.intent !== "need") {
         const emergency = proposal.intent === "emergency";
@@ -280,7 +299,8 @@ export function mountCitizenRoutes(app: App, s: Services) {
             questionId: null,
           },
         ]);
-        return { row: updated, unavailablePractice: null };
+        await remember(tx, action, now, outcome(null));
+        return { row: updated, replay: outcome(null) };
       }
       const { practiceId, answers, unavailablePractice } = applyTurn(current, input, proposal, now);
       const candidate = { ...current, practiceId, answers };
@@ -403,15 +423,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
           },
         ]);
       }
-      return { row: updated, unavailablePractice };
+      await remember(tx, action, now, outcome(unavailablePractice));
+      return { row: updated, replay: outcome(unavailablePractice) };
     });
-    return c.json(
-      IntakeTurnResponse.parse({
-        ...(await citizenView(s.db, result.row, s.clock())),
-        unavailablePractice: result.unavailablePractice,
-        ...(proposal ? { engine: proposal.engine } : {}),
-      }),
-    );
+    return turnResponse(result.row, result.replay);
   });
   app.put("/c/:token/language", async (c) => {
     const input = await body(c, UpdateLanguageRequest);
@@ -434,6 +449,13 @@ export function mountCitizenRoutes(app: App, s: Services) {
   });
   app.post("/c/:token/documents", async (c) => {
     const initial = c.get("citizen");
+    const scope = { caseId: initial.id, actor: "citizen", route: "documents.upload" };
+    // Before reading the body: a retry of a stored upload must not send the file to storage again.
+    if (await replayOf(s.db, idempotent(c, scope, null), s.clock(), false))
+      return c.json(
+        await citizenView(s.db, await currentCitizenLink(s.db, initial, s.clock()), s.clock()),
+        201,
+      );
     mutableCitizen(initial);
     const id = crypto.randomUUID();
     const leaseId = `upload:${id}`;
@@ -472,6 +494,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
         checklistItemId: form.get("checklistItemId") ?? undefined,
       });
       const bytes = new Uint8Array(await file.arrayBuffer());
+      const action = idempotent(c, scope, {
+        checklistItemId: fields.checklistItemId ?? null,
+        sha256: hashBytes(bytes),
+      });
       const mime = sniffMime(bytes);
       if (!mime || !UPLOAD_LIMITS.mimeTypes.some((t) => t === mime))
         throw new ApiFailure("unsupported_file", 415, "Carica un PDF o un'immagine supportata.");
@@ -497,7 +523,9 @@ export function mountCitizenRoutes(app: App, s: Services) {
       key = await s.storage.put(requestedKey, bytes, mime);
       putSucceeded = true;
       const row = await s.db.transaction(async (tx) => {
-        const current = await lockCase(tx, initial, s.clock());
+        const current = await currentCitizenLink(tx, initial, s.clock(), true);
+        if (await replayOf(tx, action, s.clock())) throw new ReplayedUpload(current);
+        mutableCitizen(current);
         const [lease] = await tx
           .select()
           .from(storageDeletions)
@@ -544,6 +572,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           bytes: bytes.length,
           heuristic: analysis.engine === "heuristic",
         });
+        await remember(tx, action, s.clock());
         return updated;
       });
       committed = true;
@@ -601,6 +630,9 @@ export function mountCitizenRoutes(app: App, s: Services) {
           errorName: safeError(cleanupError).name,
         });
       }
+      // A concurrent attempt with the same key stored the document: this copy was removed above.
+      if (error instanceof ReplayedUpload)
+        return c.json(await citizenView(s.db, error.row, s.clock()), 201);
       throw error;
     }
   });
@@ -637,8 +669,20 @@ export function mountCitizenRoutes(app: App, s: Services) {
     return c.json(await citizenView(s.db, row, s.clock()));
   });
   app.delete("/c/:token/documents/:id", async (c) => {
+    const action = idempotent(
+      c,
+      { caseId: c.get("citizen").id, actor: "citizen", route: "documents.delete" },
+      { id: c.req.param("id") },
+    );
+    let replayed = false;
     const row = await s.db.transaction(async (tx) => {
-      const current = await lockCase(tx, c.get("citizen"), s.clock());
+      const current = await currentCitizenLink(tx, c.get("citizen"), s.clock(), true);
+      // Without this the retry finds no document and the page shows "not found".
+      if (await replayOf(tx, action, s.clock())) {
+        replayed = true;
+        return current;
+      }
+      mutableCitizen(current);
       const [candidate] = await tx
         .select()
         .from(documents)
@@ -667,9 +711,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
           );
       const touched = await touchCase(tx, current, s.clock());
       await audit(tx, touched, "citizen", "document.deleted", s.clock());
+      await remember(tx, action, s.clock());
       return touched;
     });
-    await retryStorageDeletions(s, c.req.param("id"));
+    if (!replayed) await retryStorageDeletions(s, c.req.param("id"));
     return c.json(await citizenView(s.db, row, s.clock()));
   });
   app.get("/c/:token/documents/:id/file", (c) =>
@@ -677,9 +722,23 @@ export function mountCitizenRoutes(app: App, s: Services) {
   );
   app.post("/c/:token/submit", async (c) => {
     const input = await body(c, SubmitCaseRequest);
+    const action = idempotent(
+      c,
+      { caseId: c.get("citizen").id, actor: "citizen", route: "submit" },
+      input,
+    );
     const result = await s.db.transaction(async (tx) => {
       if (input.renewalContactConsent !== undefined) await lockRenewalConsent(tx, c.get("citizen"));
-      const current = await lockCase(tx, c.get("citizen"), s.clock());
+      const current = await currentCitizenLink(tx, c.get("citizen"), s.clock(), true);
+      // The first attempt already sent the case: answer with it, not "in revisione".
+      if (await replayOf(tx, action, s.clock()))
+        return {
+          row: current,
+          notificationId: undefined,
+          quota: { ids: [], alerts: [] },
+          replay: true,
+        };
+      mutableCitizen(current);
       const [upload] = await tx
         .select({ id: storageDeletions.id })
         .from(storageDeletions)
@@ -738,8 +797,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
           ? await enqueueUsageAlerts(tx, s, updated.organizationId, new Date(updated.submittedAt!))
           : { ids: [], alerts: [] };
       const [finalRow] = await tx.select().from(cases).where(eq(cases.id, updated.id));
-      return { row: finalRow!, notificationId, quota };
+      await remember(tx, action, s.clock());
+      return { row: finalRow!, notificationId, quota, replay: false };
     });
+    if (result.replay) return c.json(await citizenView(s.db, result.row, s.clock()));
     logUsageAlerts(result.row.organizationId, result.quota.alerts);
     for (const id of result.quota.ids) scheduleNotificationDelivery(s, id);
     scheduleNotificationDelivery(s, result.notificationId);
@@ -760,12 +821,17 @@ function confirmedAnswers(
   if (input.type === "choose_practice" && input.practiceId !== current.practiceId) return [];
   return confirmed;
 }
+class ReplayedUpload extends Error {
+  constructor(readonly row: CaseRow) {
+    super("ReplayedUpload");
+  }
+}
 export const MAX_CASE_BYTES = 120 * 1024 * 1024;
 export const MAX_CASE_DOCUMENTS = 60;
 function assertCaseBytes(stored: { sizeBytes: number }[], incoming: number) {
   if (stored.reduce((total, document) => total + document.sizeBytes, incoming) > MAX_CASE_BYTES)
     throw new ApiFailure(
-      "conflict",
+      "case_full",
       409,
       "Hai raggiunto il limite di 120 MB per fascicolo. Elimina i documenti non necessari.",
     );
@@ -773,7 +839,7 @@ function assertCaseBytes(stored: { sizeBytes: number }[], incoming: number) {
 function assertDocumentLimit(count: number) {
   if (count >= MAX_CASE_DOCUMENTS)
     throw new ApiFailure(
-      "conflict",
+      "case_full",
       409,
       "Hai raggiunto il limite di 60 documenti. Elimina quelli non necessari.",
     );

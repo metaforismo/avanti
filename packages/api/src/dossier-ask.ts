@@ -16,7 +16,31 @@ import { aiBudget } from "./ai-usage";
 import { observeAi } from "./operational-telemetry";
 import { lockOperatorAccess } from "./operator-access";
 import { ApiFailure, notFound } from "./security";
+import { idempotent, remember, replayOf, type IdempotentResult } from "./idempotency";
 
+/** The answer the first attempt saved, for a retry whose response was lost. */
+async function savedTurn(
+  s: Services,
+  caseId: string,
+  operatorId: string,
+  result: IdempotentResult,
+) {
+  const [turn] = await s.db
+    .select()
+    .from(dossierChatTurns)
+    .where(
+      and(
+        eq(dossierChatTurns.caseId, caseId),
+        eq(dossierChatTurns.operatorId, operatorId),
+        eq(dossierChatTurns.id, result.turnId ?? ""),
+      ),
+    );
+  if (!turn) throw notFound();
+  return DossierAskResult.parse({
+    ...turn.response,
+    turn: { id: turn.id, createdAt: iso(turn.createdAt), caseVersion: iso(turn.caseVersion) },
+  });
+}
 export function mountDossierAsk(app: App, s: Services) {
   app.get("/cases/:id/ai/ask", async (c) => {
     const actor = c.get("operator");
@@ -68,6 +92,10 @@ export function mountDossierAsk(app: App, s: Services) {
     const input = await body(c, DossierAskRequest);
     const actor = c.get("operator");
     const row = await caseById(s.db, parse(Id, c.req.param("id")), actor.organizationId);
+    const action = idempotent(c, { caseId: row.id, actor: actor.id, route: "ai.ask" }, input);
+    c.header("Cache-Control", "private, no-store");
+    const stored = await replayOf(s.db, action, s.clock());
+    if (stored) return c.json(await savedTurn(s, row.id, actor.id, stored));
     const dossier = copilotDossier(await dossierView(s.db, row, s.clock()));
     const previous =
       input.history === undefined
@@ -148,9 +176,11 @@ export function mountDossierAsk(app: App, s: Services) {
       createdAt: s.clock().toISOString(),
       caseVersion: iso(row.updatedAt),
     };
-    await s.db.transaction(async (tx) => {
+    const replay = await s.db.transaction(async (tx) => {
       await lockOperatorAccess(tx, c, s);
       const current = await caseById(tx, row.id, actor.organizationId, true);
+      const replay = await replayOf(tx, action, s.clock());
+      if (replay) return replay;
       if (iso(current.updatedAt) !== iso(row.updatedAt))
         throw new ApiFailure(
           "conflict",
@@ -165,8 +195,10 @@ export function mountDossierAsk(app: App, s: Services) {
         response,
       });
       await audit(tx, current, "operator", "copilot.asked", s.clock(), actor.id);
+      await remember(tx, action, s.clock(), { turnId: turn.id });
+      return null;
     });
-    c.header("Cache-Control", "private, no-store");
+    if (replay) return c.json(await savedTurn(s, row.id, actor.id, replay));
     return c.json(DossierAskResult.parse({ ...response, turn }));
   });
 }

@@ -11,6 +11,7 @@ import { ASSIGN_CASES_MAX, LANGUAGES, PASSWORD_MIN_LENGTH, PRACTICE_IDS } from "
 
 export {
   ASSIGN_CASES_MAX,
+  IDEMPOTENCY_HEADER,
   LANGUAGES,
   PASSWORD_MIN_LENGTH,
   PRACTICE_IDS,
@@ -1552,6 +1553,8 @@ export const ErrorCode = z.enum([
   "conflict",
   "file_too_large",
   "unsupported_file",
+  /** The case already holds the most documents or bytes allowed: delete some first. */
+  "case_full",
   "rate_limited",
   "ai_unavailable",
   "transcription_unavailable",
@@ -1570,6 +1573,9 @@ export const ApiError = z.object({
   }),
 });
 export type ApiError = z.infer<typeof ApiError>;
+
+/** Value of `IDEMPOTENCY_HEADER`: a UUID fits. */
+export const IdempotencyKey = z.string().regex(/^[A-Za-z0-9_-]{16,128}$/);
 
 export * from "./pilot-report";
 

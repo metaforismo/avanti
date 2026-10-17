@@ -200,7 +200,9 @@ it("pilot: total byte quota is checked under the case lock and storage failures 
   expect(await db.select().from(storageDeletions)).toHaveLength(0);
   await expect(storage.get(ambiguousKey)).rejects.toThrow();
   await db.update(documents).set({ sizeBytes: MAX_CASE_BYTES }).where(eq(documents.caseId, "case"));
-  expect((await upload(await (await pdf()).save())).status).toBe(409);
+  const full = await upload(await (await pdf()).save());
+  expect(full.status).toBe(409);
+  expect((await full.json()).error.code).toBe("case_full");
   await db.update(documents).set({ sizeBytes: 1024 }).where(eq(documents.caseId, "case"));
 });
 it("pilot: chunked multipart and forged Content-Length are bounded while consumed", async () => {

@@ -1,5 +1,10 @@
 import { nearReadyProfile, currentNearReadyProfile } from "./near-ready-profile";
-import { evaluateCaseNearReady, nearReadyEvent, recordNearReadyFinal } from "./near-ready";
+import {
+  evaluateCaseNearReady,
+  nearReadyEvent,
+  recordIntegrationRequested,
+  recordNearReadyFinal,
+} from "./near-ready";
 import { latestNearReady } from "./near-ready-view";
 import { nearReadyPrioritySql, queuePrioritySql } from "./copilot-queue";
 import {
@@ -62,6 +67,7 @@ import { calculateMetrics, metricsRange } from "./operator-metrics";
 
 import { assertCaseVersion, markOperatorWork, nextCaseUpdate } from "./case-version";
 import { lockOperatorAccess } from "./operator-access";
+import { idempotent, remember, replayOf } from "./idempotency";
 
 const transitions: Record<CaseRow["status"], CaseRow["status"][]> = {
   intake: ["closed"],
@@ -512,6 +518,14 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     let notificationId: string | undefined;
     const initial = await caseById(s.db, c.req.param("id"), operator.organizationId);
+    const action = idempotent(
+      c,
+      { caseId: initial.id, actor: operator.id, route: "requests" },
+      input,
+    );
+    // The retry carries the version the first attempt advanced: answer before comparing it.
+    if (await replayOf(s.db, action, s.clock()))
+      return c.json(await dossierView(s.db, initial, s.clock(), operator.id, profile));
     assertCaseVersion(initial, input.expectedUpdatedAt);
     const translated = await observeAi(s, initial, () =>
       s.ai.translate(input.message, initial.language),
@@ -519,6 +533,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const row = await s.db.transaction(async (tx) => {
       await lockOperatorAccess(tx, c, s);
       const current = await caseById(tx, initial.id, operator.organizationId, true);
+      if (await replayOf(tx, action, s.clock())) return current;
       assertCaseVersion(current, input.expectedUpdatedAt);
       if (current.language !== initial.language) {
         throw new ApiFailure(
@@ -577,6 +592,9 @@ export function mountOperatorRoutes(app: App, s: Services) {
         originalText: [input.message, italianLabels].filter(Boolean).join("\n"),
         createdAt: s.clock().toISOString(),
       });
+      // Optional items or a bare message do not make the delivered dossier incomplete.
+      if (view.checklist.some((item) => item.required && input.checklistItemIds.includes(item.id)))
+        await recordIntegrationRequested(tx, current, s.clock(), operator.id);
       await markOperatorWork(tx);
       const [updated] = await tx
         .update(cases)
@@ -596,6 +614,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         heuristic: translated.engine === "heuristic",
       });
       notificationId = await enqueueCitizen(tx, s, updated, "citizen_request", selected);
+      await remember(tx, action, s.clock());
       return updated;
     });
     scheduleNotificationDelivery(s, notificationId);

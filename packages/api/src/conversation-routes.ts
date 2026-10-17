@@ -20,7 +20,8 @@ import {
   pendingProposals,
   confirmedContext,
 } from "./conversation-state";
-import { lockCase } from "./citizen-link";
+import { currentCitizenLink } from "./citizen-link";
+import { idempotent, remember, replayOf } from "./idempotency";
 import { nextCaseUpdate } from "./case-version";
 import { detachRemovedMembers } from "./household-cleanup";
 import { observeAi } from "./operational-telemetry";
@@ -51,12 +52,22 @@ export function mountConversationRoutes(app: App, s: Services) {
   app.get("/c/:token/conversation", async (c) => c.json(await state(s, c.get("citizen"))));
   app.post("/c/:token/conversation", async (c) => {
     const initial = c.get("citizen");
-    mutableCitizen(initial);
     const { text } = await readConversationText(c, initial);
+    const action = idempotent(
+      c,
+      { caseId: initial.id, actor: "citizen", route: "conversation" },
+      { text },
+    );
+    // A retry of a delivered message shows the conversation instead of repeating the turn.
+    if (await replayOf(s.db, action, s.clock()))
+      return c.json(await state(s, await currentCitizenLink(s.db, initial, s.clock())));
+    mutableCitizen(initial);
     if (!initial.practiceId) throw new ApiFailure("bad_request", 400, "Scegli prima la pratica.");
     if (intakeEmergency(text)) {
       const updated = await s.db.transaction(async (tx) => {
-        const current = await lockCase(tx, initial, s.clock());
+        const current = await currentCitizenLink(tx, initial, s.clock(), true);
+        if (await replayOf(tx, action, s.clock())) return current;
+        mutableCitizen(current);
         const now = s.clock();
         const [updated] = await tx
           .update(cases)
@@ -82,6 +93,7 @@ export function mountConversationRoutes(app: App, s: Services) {
           },
         ]);
         await audit(tx, updated, "citizen", "citizen.safety_notice", now);
+        await remember(tx, action, now);
         return updated;
       });
       return c.json(await state(s, updated));
@@ -107,7 +119,10 @@ export function mountConversationRoutes(app: App, s: Services) {
         ? await observeAi(s, initial, () => s.ai.converse!(input))
         : { ...converseTask.heuristic(input), engine: "heuristic" as const };
     const row = await s.db.transaction(async (tx) => {
-      const current = await lockCase(tx, initial, s.clock());
+      const current = await currentCitizenLink(tx, initial, s.clock(), true);
+      // A concurrent attempt with the same key committed while this one waited for the AI.
+      if (await replayOf(tx, action, s.clock())) return current;
+      mutableCitizen(current);
       assertProposalCurrent(initial, current);
       const citizenTexts = [
         ...input.turns.filter((t) => t.role === "citizen").map((t) => t.text),
@@ -147,14 +162,22 @@ export function mountConversationRoutes(app: App, s: Services) {
         proposalsCount: proposals.length,
         heuristic: result.engine === "heuristic",
       });
+      await remember(tx, action, now);
       return updated;
     });
     return c.json(await state(s, row));
   });
   app.post("/c/:token/conversation/confirm", async (c) => {
     const input = await body(c, ConversationConfirmRequest);
+    const action = idempotent(
+      c,
+      { caseId: c.get("citizen").id, actor: "citizen", route: "conversation.confirm" },
+      input,
+    );
     const row = await s.db.transaction(async (tx) => {
-      const current = await lockCase(tx, c.get("citizen"), s.clock());
+      const current = await currentCitizenLink(tx, c.get("citizen"), s.clock(), true);
+      if (await replayOf(tx, action, s.clock())) return current;
+      mutableCitizen(current);
       const pending = pendingProposals(current, s.clock());
       const ids = [...input.accept.map((p) => p.proposalId), ...input.reject];
       if (ids.some((id) => !pending.some((p) => p.id === id)))
@@ -244,6 +267,7 @@ export function mountConversationRoutes(app: App, s: Services) {
           questionId: ask[0]?.id ?? null,
         },
       ]);
+      await remember(tx, action, s.clock());
       return updated;
     });
     return c.json(await state(s, row));

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { AnswerValue, ConversationState } from "@avanti/contracts";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { createRetryKeys, withRetryKey } from "@/lib/idempotency";
 
 export type { ConversationTurn, Proposal, ConversationState } from "@avanti/contracts";
 
@@ -19,6 +20,8 @@ export function useConversation(
   const [state, setState] = useState<ConversationState | null>(initial);
   const [pending, setPending] = useState<ConversationAction>(null);
   const [error, setError] = useState<ApiRequestError | null>(null);
+  // Sending the same words again after a lost reply must not add them twice.
+  const keys = useRef(createRetryKeys());
 
   const run = useCallback(
     async (
@@ -39,7 +42,13 @@ export function useConversation(
         // same request would be refused forever, so show what the server has now.
         if (failure.code === "conflict") {
           onConflict?.();
-          await apiFetch<ConversationState>(base).then(setState, () => {});
+          await apiFetch<ConversationState>(base).then(
+            (next) => {
+              keys.current.clear();
+              setState(next);
+            },
+            () => {},
+          );
         }
         return null;
       } finally {
@@ -53,17 +62,24 @@ export function useConversation(
 
   const send = useCallback(
     (text: string) =>
-      run("send", () => apiFetch<ConversationState>(base, { method: "POST", body: { text } })),
+      run("send", () =>
+        withRetryKey(keys.current, "send", { text }, (headers) =>
+          apiFetch<ConversationState>(base, { method: "POST", body: { text }, headers }),
+        ),
+      ),
     [base, run],
   );
 
   const confirm = useCallback(
     (accept: { proposalId: string; value?: AnswerValue }[], reject: string[]) =>
       run("confirm", () =>
-        apiFetch<ConversationState>(`${base}/confirm`, {
-          method: "POST",
-          body: { accept, reject },
-        }),
+        withRetryKey(keys.current, "confirm", { accept, reject }, (headers) =>
+          apiFetch<ConversationState>(`${base}/confirm`, {
+            method: "POST",
+            body: { accept, reject },
+            headers,
+          }),
+        ),
       ),
     [base, run],
   );
