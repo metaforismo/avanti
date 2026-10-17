@@ -201,8 +201,8 @@ function ChoiceList({
           aria-pressed={selected === option.value}
           onClick={() => onChoose(option.value)}
           className={cn(
-            "flex min-h-14 w-full items-center gap-3 rounded-md px-4 py-3 text-start text-lg ring-1 ring-line-strong transition-[background-color,box-shadow] duration-150 ring-inset",
-            "hover:bg-sunk active:bg-stamp-wash disabled:cursor-wait",
+            "flex min-h-14 w-full items-center gap-3 rounded-md px-4 py-3 text-start text-lg ring-1 ring-line-strong transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) ring-inset",
+            "hover:bg-sunk active:scale-[0.99] active:bg-stamp-wash disabled:cursor-wait",
             selected === option.value && "ring-2 ring-stamp",
             pendingValue === option.value && "bg-stamp-wash ring-2 ring-stamp",
           )}

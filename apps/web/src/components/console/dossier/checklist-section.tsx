@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { CHECKLIST_STATUS } from "@/lib/console/labels";
+import { useChanged } from "@/components/ui/use-changed";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
 
@@ -112,6 +113,7 @@ function ChecklistRow({
       ? { label: "Non caricato", tone: "muted" as const }
       : CHECKLIST_STATUS[item.status];
   const busy = actions.pending === `review:${item.id}`;
+  const statusChanged = useChanged(item.status);
   const decided =
     item.status === "verified" || item.status === "rejected" || item.status === "waived";
 
@@ -158,7 +160,13 @@ function ChecklistRow({
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <Pill tone={status.tone}>{status.label}</Pill>
+          <Pill
+            key={item.status}
+            tone={status.tone}
+            className={statusChanged ? "animate-pop" : undefined}
+          >
+            {status.label}
+          </Pill>
           {!readOnly &&
             (decided ? (
               <Button
@@ -275,7 +283,9 @@ function DocChip({
       className="inline-flex max-w-full items-center gap-1.5 rounded-sm bg-paper px-2 py-1 text-sm text-ink-2 ring-1 ring-line ring-inset hover:bg-sunk hover:text-ink"
     >
       <Icon className="size-3.5 shrink-0" aria-hidden />
-      <span className="truncate">{name}</span>
+      <span className="truncate" title={name}>
+        {name}
+      </span>
       {confidence !== undefined && confidence < 0.6 && (
         <span className="shrink-0 text-xs text-warn" title="Riconoscimento incerto">
           <span aria-hidden>?</span>

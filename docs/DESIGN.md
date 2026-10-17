@@ -33,8 +33,8 @@ servono (`unicode-range`).
 5. **Trasparenza AI.** Il cittadino lo sa dall'inizio (art. 50 AI Act) e ogni risposta
    automatica è etichettata. L'operatore vede motore (AI/euristico) e certezza di ogni analisi.
 6. **Movimento solo come risposta.** Un unico momento orchestrato (la demo della landing),
-   per il resto solo transizioni che spiegano un cambiamento. `prefers-reduced-motion` mostra
-   subito lo stato finale.
+   per il resto solo transizioni che spiegano un cambiamento. Con `prefers-reduced-motion`
+   restano solo dissolvenze brevi: niente scorrimenti, scale o cicli.
 
 ## Dettagli che contano
 
@@ -68,6 +68,19 @@ sfondo chiaro e per quello scuro.
 - Font di scrittura non latina scaricati solo se la pagina li usa (`unicode-range`).
 - Niente `backdrop-filter` sulle barre fisse del flusso cittadino: costa sui telefoni economici.
 - Le barre di avanzamento animano `transform`, non la larghezza.
+
+## Movimento
+
+- Curve in `globals.css`: `--ease-out` per entrate e uscite, `--ease-drawer` per pannelli e
+  fogli che scorrono da un bordo, `--ease-in-out` per ciò che si sposta sullo schermo. Solo
+  `transform` e `opacity`; sotto i 300 ms, le uscite più rapide delle entrate.
+- Dialoghi: sul telefono un foglio che sale dal basso, da `sm` una scheda che compare al
+  centro. I pannelli laterali (aiuto del cittadino, «Chiedi al fascicolo») scorrono dal bordo
+  in cui stanno, specchiati in RTL. I menu crescono dal pulsante che li apre.
+- Non animiamo ciò che l'operatore ripete decine di volte al giorno da tastiera: la ricerca
+  ⌘K si apre di colpo, il visore cambia documento con le frecce senza transizioni.
+- Un badge di stato si anima solo quando cambia (documento caricato, voce verificata), non
+  all'apertura della pagina (`components/ui/use-changed.ts`).
 
 ## Cosa non diciamo
 

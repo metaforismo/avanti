@@ -176,7 +176,7 @@ export function OperatorsSection() {
                     {!operator.active && <Pill tone="muted">Disattivato</Pill>}
                     {operator.mfaEnabled && <Pill tone="ok">Verifica in due passaggi</Pill>}
                   </p>
-                  <p className="truncate text-sm text-ink-3">
+                  <p className="truncate text-sm text-ink-3" title={operator.email}>
                     {operator.email},{" "}
                     {operator.lastLoginAt
                       ? `ultimo accesso ${timeAgo(operator.lastLoginAt)}`

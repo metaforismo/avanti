@@ -119,7 +119,7 @@ export function NeedStep({ api, data, m, token }: StepProps) {
                   type="button"
                   disabled={sending}
                   onClick={() => void send(example)}
-                  className="group flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none disabled:opacity-50"
+                  className="group flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none active:bg-sunk disabled:opacity-50"
                 >
                   <span className="grid size-9 shrink-0 place-items-center rounded-md bg-stamp-wash text-stamp">
                     <Icon className="size-4.5" aria-hidden />
@@ -141,7 +141,7 @@ export function NeedStep({ api, data, m, token }: StepProps) {
           type="button"
           aria-expanded={showList}
           onClick={() => setShowList((v) => !v)}
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-start font-semibold text-stamp ring-1 ring-line transition-colors hover:bg-surface"
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-start font-semibold text-stamp ring-1 ring-line transition-colors hover:bg-surface active:bg-stamp-wash"
         >
           <ListChecks className="size-5 shrink-0" aria-hidden />
           <span className="flex-1">{m.need.pick}</span>
@@ -225,7 +225,7 @@ function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
               }
               className={cn(
                 "flex w-full items-start gap-3 rounded-md bg-surface p-4 text-start ring-1 ring-line-strong transition-colors ring-inset",
-                disabled ? "cursor-not-allowed opacity-60" : "hover:bg-sunk",
+                disabled ? "cursor-not-allowed opacity-60" : "hover:bg-sunk active:bg-stamp-wash",
               )}
             >
               <span className="min-w-0 flex-1">

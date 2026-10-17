@@ -357,7 +357,8 @@ function RecentCases({ operatorId }: { operatorId: string }) {
   return (
     <div className="mt-6">
       <p className="px-3 pb-1.5 text-xs font-semibold text-ink-3">Aperte di recente</p>
-      <ul className="grid gap-0.5">
+      {/* minmax(0, 1fr): a long name truncates instead of widening the column past the sidebar. */}
+      <ul className="grid grid-cols-[minmax(0,1fr)] gap-0.5">
         {recent.slice(0, 5).map((item) => {
           const href = `/console/pratiche/${item.id}` as Route;
           const active = pathname === href;
@@ -366,6 +367,7 @@ function RecentCases({ operatorId }: { operatorId: string }) {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
+                title={item.name ?? undefined}
                 className={cn(
                   "block truncate rounded-sm px-3 py-1.5 text-sm transition-colors",
                   active ? "bg-sunk text-ink" : "text-ink-2 hover:bg-sunk hover:text-ink",
@@ -404,7 +406,9 @@ function OperatorCard({ operator }: { operator: Operator }) {
       >
         {operator.name
           .split(/\s+/)
-          .map((part) => part[0])
+          .filter(Boolean)
+          // Array.from: whole code points, so a name starting with an accent or emoji survives.
+          .map((part) => Array.from(part)[0])
           .slice(0, 2)
           .join("")
           .toUpperCase()}
@@ -412,11 +416,14 @@ function OperatorCard({ operator }: { operator: Operator }) {
       <div className="min-w-0 flex-1">
         <Link
           href="/console/account"
+          title={operator.name}
           className="block truncate text-sm font-semibold hover:underline"
         >
           {operator.name}
         </Link>
-        <p className="truncate text-xs text-ink-3">{operator.organization.name}</p>
+        <p className="truncate text-xs text-ink-3" title={operator.organization.name}>
+          {operator.organization.name}
+        </p>
       </div>
       <Button
         variant="ghost"

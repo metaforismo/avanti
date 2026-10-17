@@ -469,7 +469,9 @@ function RenewalRow({
         <span className="hidden md:block" />
       )}
       <span className="min-w-0">
-        <span className="block truncate font-semibold">{name}</span>
+        <span className="block truncate font-semibold" title={name}>
+          {name}
+        </span>
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="font-mono text-xs whitespace-nowrap text-ink-3" translate="no">
             {item.reference}
@@ -577,7 +579,10 @@ function ResultDialog({
           {response.items.map((item) => (
             <li key={item.caseId} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">
+                <span
+                  className="block truncate font-semibold"
+                  title={names.get(item.sourceCaseId) ?? undefined}
+                >
                   {names.get(item.sourceCaseId) ?? "Cittadino senza nome"}
                 </span>
                 <span className="font-mono text-xs text-ink-3" translate="no">

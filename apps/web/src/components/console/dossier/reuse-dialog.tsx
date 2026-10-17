@@ -350,7 +350,10 @@ function ReuseForm({
                     )
                   }
                   label={
-                    <span className="block truncate">
+                    <span
+                      className="block truncate"
+                      title={doc.ownerName ? `${doc.label} · ${doc.ownerName}` : doc.label}
+                    >
                       {doc.label}
                       {doc.ownerName && (
                         <span className="text-sm text-ink-3"> · {doc.ownerName}</span>

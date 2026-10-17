@@ -37,7 +37,7 @@ export function ChatBubble({
     );
   }
   return (
-    <li className="flex animate-fade-in gap-3">
+    <li className="flex animate-rise gap-3">
       <AssistantAvatar />
       <div className="min-w-0 flex-1 pt-0.5">
         {label && <span className="sr-only">{label}: </span>}

@@ -57,10 +57,17 @@ export function CitizenHeader({
     <header className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex max-w-xl items-center gap-3 px-4 pt-3 pb-2.5">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-base leading-tight font-semibold">
+          <p
+            className="truncate font-display text-base leading-tight font-semibold"
+            title={data.organization.name}
+          >
             {data.organization.name}
           </p>
-          {data.office && <p className="truncate text-sm text-ink-3">{data.office.name}</p>}
+          {data.office && (
+            <p className="truncate text-sm text-ink-3" title={data.office.name}>
+              {data.office.name}
+            </p>
+          )}
         </div>
         <AssistantButton label={m.assistant.open} />
         <DropdownMenu.Root>
@@ -76,7 +83,7 @@ export function CitizenHeader({
             <DropdownMenu.Content
               align="end"
               sideOffset={6}
-              className="z-50 min-w-48 animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line"
+              className="z-50 min-w-48 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
             >
               <DropdownMenu.RadioGroup
                 value={data.language}

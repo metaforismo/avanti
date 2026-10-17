@@ -20,6 +20,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   // Lets env(safe-area-inset-*) work for the fixed bars on notched phones.
   viewportFit: "cover",
+  // On Android the keyboard shrinks the layout like on iOS: the sticky composer and the fixed
+  // documents bar stay above it.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

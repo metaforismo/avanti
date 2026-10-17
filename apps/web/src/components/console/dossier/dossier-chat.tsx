@@ -131,11 +131,12 @@ export function DossierChat({
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
       <Primitive.Portal>
-        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim backdrop-blur-[2px] lg:bg-transparent lg:backdrop-blur-none" />
+        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim data-[state=closed]:animate-fade-out lg:bg-transparent" />
         <Primitive.Content
           className={cn(
-            "fixed inset-0 z-50 flex animate-rise flex-col bg-paper outline-none",
-            "sm:inset-y-0 sm:start-auto sm:end-0 sm:w-[30rem] sm:border-s sm:border-line sm:shadow-float",
+            "fixed inset-0 z-50 flex animate-sheet-in flex-col bg-paper outline-none data-[state=closed]:animate-sheet-out",
+            // A side panel slides in from the edge it is docked to.
+            "sm:inset-y-0 sm:start-auto sm:end-0 sm:w-[30rem] sm:animate-panel-in sm:border-s sm:border-line sm:shadow-float sm:data-[state=closed]:animate-panel-out",
           )}
         >
           <header className="flex items-center gap-3 px-5 pt-4 pb-2">

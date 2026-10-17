@@ -168,10 +168,11 @@ export function CommandPalette({
   return (
     <Primitive.Root open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
       <Primitive.Portal>
-        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim backdrop-blur-[2px]" />
+        {/* No entrance: ⌘K is pressed dozens of times a day and must feel instant. */}
+        <Primitive.Overlay className="fixed inset-0 z-50 bg-scrim" />
         <Primitive.Content
           aria-describedby={undefined}
-          className="fixed inset-x-3 top-[12dvh] z-50 mx-auto max-w-xl animate-pop overflow-hidden rounded-xl bg-surface shadow-float ring-1 ring-line outline-none"
+          className="fixed inset-x-3 top-[12dvh] z-50 mx-auto max-w-xl overflow-hidden rounded-xl bg-surface shadow-float ring-1 ring-line outline-none"
         >
           <Primitive.Title className="sr-only">Cerca nella console</Primitive.Title>
           <div className="flex items-center gap-3 border-b border-line px-4">

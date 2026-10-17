@@ -23,7 +23,7 @@ export function ProgressBar({
     >
       <div
         className={cn(
-          "h-full origin-left rounded-full transition-transform duration-500 ease-(--ease-out) rtl:origin-right",
+          "h-full origin-left rounded-full transition-transform duration-300 ease-(--ease-out) rtl:origin-right",
           tone === "ok" ? "bg-ok" : "bg-stamp",
         )}
         style={{ transform: `scaleX(${clamped / 100})` }}
