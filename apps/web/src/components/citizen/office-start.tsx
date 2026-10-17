@@ -3,7 +3,7 @@
 import { History, MapPin, Phone, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Language, Office, OrganizationPublic, StartIntakeResponse } from "@avanti/contracts";
 import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { LogoMark } from "@/components/brand/logo";
@@ -19,6 +19,12 @@ import { browserLanguage, directionOf, useDocumentLanguage } from "@/lib/citizen
 import { ErrorScreen } from "./error-screen";
 
 const NON_LATIN = new Set<Language>(["ar", "bn"]);
+
+/** Data Saver (Chromium only): the citizen asked for nothing beyond what the page needs. */
+function saveData() {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  return connection?.saveData === true;
+}
 
 export type OfficeInfo = { office: Office; organization: OrganizationPublic };
 
@@ -65,11 +71,20 @@ export function OfficeStart({
   }, [officeSlug]);
 
   // The next screen's code downloads while the citizen reads and chooses: on a slow connection
-  // it was most of the wait after «Inizia». It starts after this page's own fonts and icons.
+  // it was most of the wait after «Inizia». It starts after this page's own fonts and icons,
+  // only for an office that exists and never when the citizen asked to save data.
+  const officeReady = info !== null && typeof info === "object";
+  const prefetched = useRef<Promise<boolean> | null>(null);
   useEffect(() => {
+    if (!officeReady || !navigator.onLine || saveData()) return;
     let timer = 0;
     const prefetch = () => {
-      timer = window.setTimeout(() => void import("./citizen-app").catch(() => {}), 300);
+      timer = window.setTimeout(() => {
+        prefetched.current = import("./citizen-app").then(
+          () => true,
+          () => false,
+        );
+      }, 300);
     };
     if (document.readyState === "complete") prefetch();
     else window.addEventListener("load", prefetch, { once: true });
@@ -77,7 +92,7 @@ export function OfficeStart({
       window.removeEventListener("load", prefetch);
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [officeReady]);
 
   const m = messagesFor(language);
   const dir = directionOf(language);
@@ -98,7 +113,13 @@ export function OfficeStart({
         body: { officeSlug, language, privacyAccepted: true },
       });
       rememberCase(officeSlug, result.token);
-      router.push(`/pratica/${result.token}`);
+      const path = `/pratica/${result.token}`;
+      // The bundler keeps a failed chunk load for the page's life: a client navigation would
+      // fail the same way, after the case was created. A full load fetches it afresh. A prefetch
+      // still under way is the download the navigation needs anyway.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- see above
+      if ((await prefetched.current) === false) window.location.assign(path);
+      else router.push(path);
     } catch (error) {
       setStarting(false);
       setStartError(
