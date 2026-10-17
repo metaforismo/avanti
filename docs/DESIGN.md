@@ -46,6 +46,10 @@ servono (`unicode-range`).
 - Lingua cambiabile in ogni momento; arabo in RTL con icone direzionali specchiate.
 - Console: filtri nell'URL (condivisibili), coda che si aggiorna da sola, note interne salvate
   all'uscita dal campo, visore documenti navigabile con le frecce.
+- Fascicolo: il titolo è la persona (quaranta «ISEE ordinario» al giorno si distinguono dal
+  nome), le azioni restano in una barra in alto mentre si scorre, «← Pratiche» torna alla coda
+  con gli stessi filtri, gli stati della checklist stanno in colonna. La sessione scaduta è una
+  barra attaccata al bordo superiore, mai una scheda sopra il contenuto.
 - Cartello A4 stampabile per la sala d'attesa, con QR e titolo in otto lingue; QR a schermo
   intero per chi è seduto allo sportello.
 - I fatti dedotti dal testo libero sono evidenziati e sempre modificabili.

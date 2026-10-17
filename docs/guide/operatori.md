@@ -99,6 +99,12 @@ intestatario, anno, scadenza, pagine, leggibilità e con quanta certezza. Un **?
 nome indica un riconoscimento incerto. Il controllo automatico può sbagliare: la decisione
 finale è tua. Con le frecce ← → passi al documento precedente o successivo.
 
+Per controllare tutto in una passata usa **Controlla uno per uno** accanto a _Documenti_: si apre
+il primo documento ancora da verificare, **V** lo verifica e passa al successivo, **R** apre il
+motivo del rifiuto. Quando non resta altro, _Torna al fascicolo_ (o Invio) ti riporta alla
+pratica. Le azioni della pratica restano in alto mentre scorri, e _← Pratiche_ torna alla coda
+con gli stessi filtri.
+
 ### Chiedere un'integrazione
 
 _Chiedi integrazione_: seleziona le voci, controlla il messaggio proposto (puoi riscriverlo) e
