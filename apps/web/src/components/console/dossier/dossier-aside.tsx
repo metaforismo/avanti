@@ -143,7 +143,7 @@ function Timeline({ timeline }: { timeline: CaseDossier["timeline"] }) {
           aria-controls="dossier-timeline"
           onClick={() => setAll((v) => !v)}
         >
-          {all ? "Mostra solo le ultime" : "Mostra tutta la cronologia"}
+          {all ? "Mostra solo gli ultimi" : "Mostra tutti gli eventi"}
         </Button>
       )}
     </Card>
