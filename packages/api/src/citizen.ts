@@ -1,7 +1,7 @@
 import { enqueueUsageAlerts, logUsageAlerts } from "./commercial-usage";
 import { lockRenewalConsent, setRenewalConsent } from "./renewal-consent";
 import { turnAcknowledgement } from "./turn-acknowledgement";
-import { appendConversationTurns } from "./conversation-messages";
+import { appendConversationTurns, turnStillLatest } from "./conversation-messages";
 import { readConversationText } from "./conversation-routes";
 import { validateProposals, mergeProposals, pendingProposals } from "./conversation-state";
 import { intakeEmergency, localIntakeIntent, readableAnswer } from "@avanti/core";
@@ -59,7 +59,15 @@ import {
 import { citizenView, audit, type CaseRow } from "./dossier";
 import { automaticAssistanceNotice } from "./disclosure";
 import { currentCitizenLink, lockCase } from "./citizen-link";
-import { body, parse, mutableCitizen, type App, type Services, type ApiContext } from "./context";
+import {
+  body,
+  citizenEditable,
+  parse,
+  mutableCitizen,
+  type App,
+  type Services,
+  type ApiContext,
+} from "./context";
 
 import { visibleToCitizen } from "./document-visibility";
 import { nextCaseUpdate } from "./case-version";
@@ -221,7 +229,12 @@ export function mountCitizenRoutes(app: App, s: Services) {
     if (raw && typeof raw === "object" && "type" in raw && raw.type === "text")
       await readConversationText(c, initial);
     const input = await body(c, IntakeTurn);
-    const action = idempotent(c, { caseId: initial.id, actor: "citizen", route: "turn" }, input);
+    const action = idempotent(s, c, { caseId: initial.id, actor: "citizen", route: "turn" }, input);
+    // The same words or the same tap after the citizen answered something else are a new turn.
+    const retry = (db: typeof s.db) =>
+      replayOf(db, action, s.clock(), {
+        holds: (result) => turnStillLatest(db, initial.id, result.turnId),
+      });
     const turnResponse = async (row: CaseRow, result: IdempotentResult) =>
       c.json(
         IntakeTurnResponse.parse({
@@ -230,7 +243,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           ...(result.engine ? { engine: result.engine } : {}),
         }),
       );
-    const previous = await replayOf(s.db, action, s.clock());
+    const previous = await retry(s.db);
     if (previous) return turnResponse(await currentCitizenLink(s.db, initial, s.clock()), previous);
     mutableCitizen(initial);
     const [aiSettings] =
@@ -263,13 +276,15 @@ export function mountCitizenRoutes(app: App, s: Services) {
     }
     const result = await s.db.transaction(async (tx) => {
       const current = await currentCitizenLink(tx, initial, s.clock(), true);
-      const replay = await replayOf(tx, action, s.clock());
+      const replay = await retry(tx);
       if (replay) return { row: current, replay };
       mutableCitizen(current);
       const now = s.clock();
+      let turnId: string | null = null;
       const outcome = (unavailablePractice: PracticeId | null): IdempotentResult => ({
         unavailablePractice,
         engine: proposal?.engine ?? null,
+        turnId,
       });
       if (proposal) assertProposalCurrent(initial, current);
       if (input.type === "text" && proposal?.intent && proposal.intent !== "need") {
@@ -286,7 +301,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
         if (!updated) throw notFound();
         if (emergency) await audit(tx, updated, "citizen", "citizen.safety_notice", now);
         // Keep the deterministic notice; the sensitive story is not needed in the dossier.
-        await appendConversationTurns(tx, current.id, now, [
+        [turnId = null] = await appendConversationTurns(tx, current.id, now, [
           {
             role: "assistant",
             text: assistantReply(
@@ -368,7 +383,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           (q) => q.id === input.questionId,
         );
         if (question)
-          await appendConversationTurns(tx, current.id, now, [
+          [turnId = null] = await appendConversationTurns(tx, current.id, now, [
             {
               role: "citizen",
               kind: "confirmation",
@@ -378,7 +393,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
           ]);
       }
       if (input.type === "text") {
-        await appendConversationTurns(tx, current.id, now, [
+        [turnId = null] = await appendConversationTurns(tx, current.id, now, [
           { role: "citizen", text: input.text, kind: "message", questionId: null },
         ]);
         const view = await citizenView(tx, updated, now);
@@ -450,12 +465,26 @@ export function mountCitizenRoutes(app: App, s: Services) {
   app.post("/c/:token/documents", async (c) => {
     const initial = c.get("citizen");
     const scope = { caseId: initial.id, actor: "citizen", route: "documents.upload" };
-    // Before reading the body: a retry of a stored upload must not send the file to storage again.
-    if (await replayOf(s.db, idempotent(c, scope, null), s.clock(), false))
+    const keyed = (upload: Awaited<ReturnType<typeof readUpload>> | null) =>
+      idempotent(
+        s,
+        c,
+        scope,
+        upload && {
+          checklistItemId: upload.fields.checklistItemId ?? null,
+          sha256: hashBytes(upload.bytes),
+        },
+      );
+    // A stored upload with this key: compare the file before answering, but without reserving
+    // storage, so the retry also works after the case was sent and never reaches storage again.
+    if (await replayOf(s.db, keyed(null), s.clock(), { matchInput: false })) {
+      if (!(await replayOf(s.db, keyed(await readUpload(c)), s.clock())))
+        throw new ApiFailure("conflict", 409, "Il caricamento è cambiato. Riprova il file.");
       return c.json(
         await citizenView(s.db, await currentCitizenLink(s.db, initial, s.clock()), s.clock()),
         201,
       );
+    }
     mutableCitizen(initial);
     const id = crypto.randomUUID();
     const leaseId = `upload:${id}`;
@@ -476,28 +505,12 @@ export function mountCitizenRoutes(app: App, s: Services) {
       });
     });
     try {
-      let form: FormData;
-      try {
-        form = await c.req.formData();
-      } catch {
-        throw new ApiFailure("bad_request", 400, "Caricamento non valido.");
-      }
-      const file = form.get("file");
-      if (!(file instanceof File))
-        throw new ApiFailure("bad_request", 400, "Scegli un file da caricare.");
-      if (!file.size) throw new ApiFailure("unsupported_file", 415, "Il file è vuoto.");
-      if (form.getAll("file").length !== 1)
-        throw new ApiFailure("bad_request", 400, "Carica un solo file alla volta.");
-      if (file.size > UPLOAD_LIMITS.maxBytes)
-        throw new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
-      const fields = parse(UploadDocumentFields, {
-        checklistItemId: form.get("checklistItemId") ?? undefined,
-      });
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const action = idempotent(c, scope, {
-        checklistItemId: fields.checklistItemId ?? null,
-        sha256: hashBytes(bytes),
-      });
+      const upload = await readUpload(c);
+      const { file, fields, bytes } = upload;
+      const action = keyed(upload);
+      // A concurrent attempt stored it while this one read the body: no AI, no second copy.
+      if (await replayOf(s.db, action, s.clock()))
+        throw new ReplayedUpload(await currentCitizenLink(s.db, initial, s.clock()));
       const mime = sniffMime(bytes);
       if (!mime || !UPLOAD_LIMITS.mimeTypes.some((t) => t === mime))
         throw new ApiFailure("unsupported_file", 415, "Carica un PDF o un'immagine supportata.");
@@ -596,6 +609,8 @@ export function mountCitizenRoutes(app: App, s: Services) {
       if (committed) throw error;
       if (!writeStarted) {
         await s.db.delete(storageDeletions).where(eq(storageDeletions.id, leaseId));
+        if (error instanceof ReplayedUpload)
+          return c.json(await citizenView(s.db, error.row, s.clock()), 201);
         throw error;
       }
       // A failed put can have an ambiguous remote result; retain its original cleanup deadline.
@@ -670,6 +685,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
   });
   app.delete("/c/:token/documents/:id", async (c) => {
     const action = idempotent(
+      s,
       c,
       { caseId: c.get("citizen").id, actor: "citizen", route: "documents.delete" },
       { id: c.req.param("id") },
@@ -723,6 +739,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
   app.post("/c/:token/submit", async (c) => {
     const input = await body(c, SubmitCaseRequest);
     const action = idempotent(
+      s,
       c,
       { caseId: c.get("citizen").id, actor: "citizen", route: "submit" },
       input,
@@ -730,8 +747,10 @@ export function mountCitizenRoutes(app: App, s: Services) {
     const result = await s.db.transaction(async (tx) => {
       if (input.renewalContactConsent !== undefined) await lockRenewalConsent(tx, c.get("citizen"));
       const current = await currentCitizenLink(tx, c.get("citizen"), s.clock(), true);
-      // The first attempt already sent the case: answer with it, not "in revisione".
-      if (await replayOf(tx, action, s.clock()))
+      // The first attempt already sent the case: answer with it, not "in revisione". Once the
+      // case is back with the citizen (an integration request) that submission is over, and the
+      // same contacts sent again are a new submission, not a retry to swallow.
+      if (await replayOf(tx, action, s.clock(), { holds: () => !citizenEditable(current) }))
         return {
           row: current,
           notificationId: undefined,
@@ -820,6 +839,26 @@ function confirmedAnswers(
     confirmed.push(input.questionId);
   if (input.type === "choose_practice" && input.practiceId !== current.practiceId) return [];
   return confirmed;
+}
+async function readUpload(c: ApiContext) {
+  let form: FormData;
+  try {
+    form = await c.req.formData();
+  } catch {
+    throw new ApiFailure("bad_request", 400, "Caricamento non valido.");
+  }
+  const file = form.get("file");
+  if (!(file instanceof File))
+    throw new ApiFailure("bad_request", 400, "Scegli un file da caricare.");
+  if (!file.size) throw new ApiFailure("unsupported_file", 415, "Il file è vuoto.");
+  if (form.getAll("file").length !== 1)
+    throw new ApiFailure("bad_request", 400, "Carica un solo file alla volta.");
+  if (file.size > UPLOAD_LIMITS.maxBytes)
+    throw new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
+  const fields = parse(UploadDocumentFields, {
+    checklistItemId: form.get("checklistItemId") ?? undefined,
+  });
+  return { file, fields, bytes: new Uint8Array(await file.arrayBuffer()) };
 }
 class ReplayedUpload extends Error {
   constructor(readonly row: CaseRow) {

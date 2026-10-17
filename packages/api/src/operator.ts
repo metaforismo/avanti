@@ -67,7 +67,7 @@ import { calculateMetrics, metricsRange } from "./operator-metrics";
 
 import { assertCaseVersion, markOperatorWork, nextCaseUpdate } from "./case-version";
 import { lockOperatorAccess } from "./operator-access";
-import { idempotent, remember, replayOf } from "./idempotency";
+import { idempotent, remember, replayOf, type IdempotentResult } from "./idempotency";
 
 const transitions: Record<CaseRow["status"], CaseRow["status"][]> = {
   intake: ["closed"],
@@ -518,13 +518,24 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const operator = c.get("operator");
     let notificationId: string | undefined;
     const initial = await caseById(s.db, c.req.param("id"), operator.organizationId);
+    // The version is a precondition, not what the operator asked: after the dossier refreshes
+    // (a document finishing its analysis) the retry carries a newer one and is the same request.
+    const { expectedUpdatedAt: _version, ...request } = input;
     const action = idempotent(
+      s,
       c,
       { caseId: initial.id, actor: operator.id, route: "requests" },
-      input,
+      request,
     );
+    // Replay only while that request is still the open one: once the citizen answered it, the
+    // same items and words are a new request (checked again against the version).
+    const stillOpen = (row: typeof initial) => (result: IdempotentResult) =>
+      !result.requestedAt ||
+      (row.status === "needs_citizen" &&
+        row.citizenRequestedAt !== null &&
+        iso(row.citizenRequestedAt) === result.requestedAt);
     // The retry carries the version the first attempt advanced: answer before comparing it.
-    if (await replayOf(s.db, action, s.clock()))
+    if (await replayOf(s.db, action, s.clock(), { holds: stillOpen(initial) }))
       return c.json(await dossierView(s.db, initial, s.clock(), operator.id, profile));
     assertCaseVersion(initial, input.expectedUpdatedAt);
     const translated = await observeAi(s, initial, () =>
@@ -533,7 +544,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const row = await s.db.transaction(async (tx) => {
       await lockOperatorAccess(tx, c, s);
       const current = await caseById(tx, initial.id, operator.organizationId, true);
-      if (await replayOf(tx, action, s.clock())) return current;
+      if (await replayOf(tx, action, s.clock(), { holds: stillOpen(current) })) return current;
       assertCaseVersion(current, input.expectedUpdatedAt);
       if (current.language !== initial.language) {
         throw new ApiFailure(
@@ -596,13 +607,14 @@ export function mountOperatorRoutes(app: App, s: Services) {
       if (view.checklist.some((item) => item.required && input.checklistItemIds.includes(item.id)))
         await recordIntegrationRequested(tx, current, s.clock(), operator.id);
       await markOperatorWork(tx);
+      const requestedAt = s.clock().toISOString();
       const [updated] = await tx
         .update(cases)
         .set({
           status: "needs_citizen",
           updatedAt: nextCaseUpdate(current, s.clock()),
           citizenRequestId: crypto.randomUUID(),
-          citizenRequestedAt: s.clock().toISOString(),
+          citizenRequestedAt: requestedAt,
           citizenRemindersQueued: 0,
           citizenReminderSentAt: null,
         })
@@ -614,7 +626,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
         heuristic: translated.engine === "heuristic",
       });
       notificationId = await enqueueCitizen(tx, s, updated, "citizen_request", selected);
-      await remember(tx, action, s.clock());
+      await remember(tx, action, s.clock(), { requestedAt });
       return updated;
     });
     scheduleNotificationDelivery(s, notificationId);

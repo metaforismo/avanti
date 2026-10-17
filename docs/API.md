@@ -12,8 +12,12 @@ cittadino `POST /turn`, `/conversation`, `/conversation/confirm`, `/assistant`,
 `POST /cases/:id/requests` e `/cases/:id/ai/ask`. Il client genera una chiave per azione e la
 rimanda identica a ogni ritentativo: entro 24 ore il server risponde con il risultato del primo
 tentativo (stato attuale ricostruito, o la risposta già salvata) senza ripetere effetto, AI o
-storage, anche se due tentativi arrivano insieme. La chiave vale per pratica e persona; riusata
-con un'altra rotta o un altro input dà `409 conflict`, malformata `400 bad_request`. Senza
+storage, anche se due tentativi arrivano insieme, finché quel risultato è ancora l'ultimo per
+l'azione: dopo un altro turno del cittadino, un fascicolo tornato per un'integrazione o una
+richiesta già chiusa la stessa chiave esegue l'azione di nuovo. La versione attesa
+(`expectedUpdatedAt`) è una precondizione e non fa parte dell'impronta. La chiave vale per
+pratica e persona; riusata con un'altra rotta o un altro input dà `409 conflict`, malformata
+`400 bad_request`. Senza
 header il comportamento non cambia. Scelte e limiti in
 [decisions/retry-safety.md](decisions/retry-safety.md).
 

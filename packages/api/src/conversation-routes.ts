@@ -1,5 +1,5 @@
 import { renewalPending } from "@avanti/core";
-import { appendConversationTurns } from "./conversation-messages";
+import { appendConversationTurns, turnStillLatest } from "./conversation-messages";
 import { eq } from "drizzle-orm";
 import { cases, settings } from "@avanti/db";
 import {
@@ -54,19 +54,25 @@ export function mountConversationRoutes(app: App, s: Services) {
     const initial = c.get("citizen");
     const { text } = await readConversationText(c, initial);
     const action = idempotent(
+      s,
       c,
       { caseId: initial.id, actor: "citizen", route: "conversation" },
       { text },
     );
-    // A retry of a delivered message shows the conversation instead of repeating the turn.
-    if (await replayOf(s.db, action, s.clock()))
+    // A retry of a delivered message shows the conversation instead of repeating the turn. The
+    // same words after the citizen said something else are a new message («sì» to another question).
+    const retry = (db: typeof s.db) =>
+      replayOf(db, action, s.clock(), {
+        holds: (result) => turnStillLatest(db, initial.id, result.turnId),
+      });
+    if (await retry(s.db))
       return c.json(await state(s, await currentCitizenLink(s.db, initial, s.clock())));
     mutableCitizen(initial);
     if (!initial.practiceId) throw new ApiFailure("bad_request", 400, "Scegli prima la pratica.");
     if (intakeEmergency(text)) {
       const updated = await s.db.transaction(async (tx) => {
         const current = await currentCitizenLink(tx, initial, s.clock(), true);
-        if (await replayOf(tx, action, s.clock())) return current;
+        if (await retry(tx)) return current;
         mutableCitizen(current);
         const now = s.clock();
         const [updated] = await tx
@@ -79,7 +85,7 @@ export function mountConversationRoutes(app: App, s: Services) {
           .where(eq(cases.id, current.id))
           .returning();
         if (!updated) throw notFound();
-        await appendConversationTurns(tx, current.id, now, [
+        const [turnId] = await appendConversationTurns(tx, current.id, now, [
           {
             role: "assistant",
             text: [
@@ -93,7 +99,7 @@ export function mountConversationRoutes(app: App, s: Services) {
           },
         ]);
         await audit(tx, updated, "citizen", "citizen.safety_notice", now);
-        await remember(tx, action, now);
+        await remember(tx, action, now, { turnId: turnId ?? null });
         return updated;
       });
       return c.json(await state(s, updated));
@@ -121,7 +127,7 @@ export function mountConversationRoutes(app: App, s: Services) {
     const row = await s.db.transaction(async (tx) => {
       const current = await currentCitizenLink(tx, initial, s.clock(), true);
       // A concurrent attempt with the same key committed while this one waited for the AI.
-      if (await replayOf(tx, action, s.clock())) return current;
+      if (await retry(tx)) return current;
       mutableCitizen(current);
       assertProposalCurrent(initial, current);
       const citizenTexts = [
@@ -149,7 +155,7 @@ export function mountConversationRoutes(app: App, s: Services) {
         .returning();
       if (!updated) throw notFound();
       const now = s.clock();
-      await appendConversationTurns(tx, current.id, now, [
+      const [turnId] = await appendConversationTurns(tx, current.id, now, [
         { role: "citizen", text, kind: "message", questionId: null },
         {
           role: "assistant",
@@ -162,7 +168,7 @@ export function mountConversationRoutes(app: App, s: Services) {
         proposalsCount: proposals.length,
         heuristic: result.engine === "heuristic",
       });
-      await remember(tx, action, now);
+      await remember(tx, action, now, { turnId: turnId ?? null });
       return updated;
     });
     return c.json(await state(s, row));
@@ -170,6 +176,7 @@ export function mountConversationRoutes(app: App, s: Services) {
   app.post("/c/:token/conversation/confirm", async (c) => {
     const input = await body(c, ConversationConfirmRequest);
     const action = idempotent(
+      s,
       c,
       { caseId: c.get("citizen").id, actor: "citizen", route: "conversation.confirm" },
       input,

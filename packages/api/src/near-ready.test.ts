@@ -1172,6 +1172,8 @@ it("integrazione su una voce obbligatoria: «non era pronta» sulla valutazione 
       evaluationId: view.evaluationId,
       ready: false,
       reason: "integration_requested",
+      // Automatic: not the operator's judgement, though their request triggered it.
+      actor: "system",
       actorId: "admin",
       durationMinutes: 3,
     },
@@ -1227,7 +1229,7 @@ it("richiesta ritirata e poi «pronta» sullo stesso contenuto: vale l'esito del
   await verifyAll();
   expect((await patchCase({ status: "ready" })).status).toBe(200);
   expect(await finals()).toMatchObject([
-    { evaluationId: view.evaluationId, ready: true, reason: null },
+    { evaluationId: view.evaluationId, ready: true, reason: null, actor: "operator" },
   ]);
   const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
   expect(report.total).toMatchObject({ correctSelected: 1, falseNearReady: 0 });
