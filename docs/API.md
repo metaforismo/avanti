@@ -277,8 +277,9 @@ che la console mette nei messaggi WhatsApp/SMS, come fanno già le email), «dov
 nota dello sportello. I titoli seguono l'anno della pratica (`practice_year`), come la checklist e
 le email: entrambi usano `genericChecklistTitle` di `@avanti/core`. `interviewComplete:false`
 avvisa che l'elenco può ancora crescere. In `needs_citizen`, `request` porta l'ultima richiesta
-dello sportello senza l'elenco delle voci aggiunto in coda (`text` nella lingua del cittadino se
-tradotta, altrimenti uguale a `textIt`); negli altri stati è `null`. Stesso CAF della sessione,
+dello sportello senza l'elenco delle voci aggiunto in coda: `text` è ciò che il cittadino ha
+letto (la traduzione, oppure senza AI l'avviso localizzato che rimanda all'originale) e `textIt`
+l'originale italiano; negli altri stati è `null`. Stesso CAF della sessione,
 altrimenti 404; limite degli export (20/minuto per operatore).
 
 `POST /cases/:id/citizen-handoff/events` con `{channel}` (`whatsapp`, `sms`, `copy`, `print`)

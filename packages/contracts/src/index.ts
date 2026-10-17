@@ -1063,8 +1063,9 @@ export const CitizenHandoff = z.object({
   interviewComplete: z.boolean(),
   items: z.array(CitizenHandoffItem),
   /**
-   * While the case waits for the citizen: the desk's latest request without the item list,
-   * in the citizen's language when it was translated (`text` equals `textIt` otherwise).
+   * While the case waits for the citizen: the desk's latest request without the item list.
+   * `text` is what the citizen read: the translation, or without AI a localized notice that
+   * points to the Italian original in `textIt`.
    */
   request: z.object({ text: z.string(), textIt: z.string() }).nullable(),
 });

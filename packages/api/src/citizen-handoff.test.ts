@@ -188,11 +188,11 @@ it("carries the desk's latest request once, without the item list appended to it
   });
   expect(asked.status, await asked.text()).toBe(200);
   const after = CitizenHandoff.parse(await (await get(id)).json());
-  // No AI key in tests: the Italian text is all there is, and nothing claims a translation.
-  expect(after.request).toEqual({
-    text: "Serve anche il retro.\nGrazie.",
-    textIt: "Serve anche il retro.\nGrazie.",
-  });
+  // No AI key in tests: the citizen's line is the localized "read the Italian original"
+  // notice, never the Italian passed off as a translation; the Italian follows it on paper.
+  expect(after.request?.textIt).toBe("Serve anche il retro.\nGrazie.");
+  expect(after.request?.text).toMatch(/[\u0600-\u06ff]/);
+  expect(after.request?.text).not.toContain("Serve");
   expect(after.items.filter((item) => item.status === "rejected")).toHaveLength(2);
 });
 
