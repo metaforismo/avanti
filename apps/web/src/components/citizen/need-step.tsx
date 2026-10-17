@@ -20,6 +20,7 @@ import { apiFetch } from "@/lib/api";
 import { format } from "@/lib/citizen/messages";
 import { cn } from "@/lib/cn";
 import { ActionErrorNotice } from "./action-error";
+import { WaitingStatus } from "./waiting-status";
 import { AssistantMessage, lastMessage } from "./assistant-message";
 import { Composer } from "./composer";
 import type { StepProps } from "./citizen-app";
@@ -101,6 +102,7 @@ export function NeedStep({ api, data, m, token }: StepProps) {
             {m.need.tooShort}
           </p>
         )}
+        <WaitingStatus active={sending} m={m} showReading />
         <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
       </div>
 

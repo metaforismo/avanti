@@ -35,6 +35,12 @@ function errorCode(error: unknown): ErrorCode | "network" {
   return "internal";
 }
 
+// A waiting-room Wi-Fi can stay connected while nothing goes through: the browser then waits
+// for minutes. No progress for this long means the upload is lost and can be retried.
+export const UPLOAD_STALL_MS = 45_000;
+// After the last byte the server checks the file (and may analyse it), so it gets longer.
+export const UPLOAD_RESPONSE_MS = 120_000;
+
 /** Upload with progress events, which fetch() still cannot report for request bodies. */
 function uploadWithProgress(
   url: string,
@@ -43,14 +49,28 @@ function uploadWithProgress(
 ): Promise<CitizenCase> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    let watchdog = 0;
+    const wait = (ms: number) => {
+      window.clearTimeout(watchdog);
+      watchdog = window.setTimeout(() => xhr.abort(), ms);
+    };
+    const lost = () => {
+      window.clearTimeout(watchdog);
+      reject(new ApiRequestError(0, "internal", "network"));
+    };
     xhr.open("POST", url);
     xhr.responseType = "json";
     xhr.setRequestHeader("Accept", "application/json");
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
+      wait(UPLOAD_STALL_MS);
     };
-    xhr.onerror = () => reject(new ApiRequestError(0, "internal", "network"));
+    xhr.upload.onload = () => wait(UPLOAD_RESPONSE_MS);
+    xhr.onerror = lost;
+    xhr.onabort = lost;
+    xhr.ontimeout = lost;
     xhr.onload = () => {
+      window.clearTimeout(watchdog);
       if (xhr.status >= 200 && xhr.status < 300) return resolve(xhr.response as CitizenCase);
       const payload = xhr.response as { error?: { code?: ErrorCode; message?: string } } | null;
       reject(
@@ -61,6 +81,7 @@ function uploadWithProgress(
         ),
       );
     };
+    wait(UPLOAD_STALL_MS);
     xhr.send(body);
   });
 }
@@ -102,6 +123,12 @@ export function useCitizenCase(token: string) {
     }
   }, [base]);
 
+  // From the error screen: show that something is happening, and the result of this attempt.
+  const retryLoad = useCallback(() => {
+    setState({ kind: "loading" });
+    return load();
+  }, [load]);
+
   useEffect(() => {
     // Initial fetch: setState happens after the await, not synchronously in the effect.
     void load();
@@ -142,19 +169,23 @@ export function useCitizenCase(token: string) {
       } catch (error) {
         const code = errorCode(error);
         if (code === "link_expired" || code === "not_found") setState({ kind: "error", code });
-        else
+        else {
+          // The case changed elsewhere (another phone, a sent case, the desk): retrying the same
+          // action would fail forever, so show the case as it is now.
+          if (code === "conflict") void load();
           setActionError({
             code,
             serverMessage:
               code === "bad_request" && error instanceof ApiRequestError ? error.message : null,
           });
+        }
         return undefined;
       } finally {
         inFlight.current -= 1;
         setPending((current) => (current === key ? null : current));
       }
     },
-    [],
+    [load],
   );
 
   const apply = useCallback((data: CitizenCase | undefined) => {
@@ -252,14 +283,15 @@ export function useCitizenCase(token: string) {
           apply(data);
         } catch (error) {
           const code = errorCode(error);
-          if (code === "link_expired") setState({ kind: "error", code });
+          if (code === "link_expired" || code === "not_found") setState({ kind: "error", code });
+          if (code === "conflict") void load();
           patch({ error: code });
         } finally {
           inFlight.current -= 1;
         }
       });
     },
-    [apply, base],
+    [apply, base, load],
   );
 
   const dismissUpload = useCallback((id: string) => {
@@ -285,6 +317,7 @@ export function useCitizenCase(token: string) {
     lastTurn,
     unavailablePractice,
     reload: load,
+    retryLoad,
     turn,
     setLanguage,
     reassign,

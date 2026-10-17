@@ -456,7 +456,10 @@ function PendingUploads({
         const message = upload.error
           ? upload.error === "compress"
             ? m.docs.compressFailed
-            : errorMessage(m, upload.error)
+            : // Upload conflicts are mostly the case limits, not a change made elsewhere.
+              upload.error === "conflict"
+              ? m.errors.generic
+              : errorMessage(m, upload.error)
           : upload.progress >= 1
             ? m.docs.checking
             : m.docs.uploading;

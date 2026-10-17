@@ -95,7 +95,7 @@ export function CitizenApp({ token }: { token: string }) {
           expired ? m.errors.expiredTitle : missing ? m.errors.notFoundTitle : m.errors.generic
         }
         body={expired ? m.errors.expiredBody : missing ? m.errors.notFoundBody : m.errors.network}
-        onRetry={expired || missing ? undefined : () => void api.reload()}
+        onRetry={expired || missing ? undefined : () => void api.retryLoad()}
         retryLabel={m.common.retry}
         lang={language}
         dir={directionOf(language)}
