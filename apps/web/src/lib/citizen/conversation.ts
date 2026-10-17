@@ -9,7 +9,12 @@ export type { ConversationTurn, Proposal, ConversationState } from "@avanti/cont
 export type ConversationAction = "load" | "send" | "confirm" | null;
 
 /** The guided conversation: one request per citizen message or confirmation. */
-export function useConversation(token: string, initial: ConversationState | null) {
+export function useConversation(
+  token: string,
+  initial: ConversationState | null,
+  /** The case changed elsewhere: the caller refreshes what it shows from the case. */
+  onConflict?: () => void,
+) {
   const base = `/api/c/${encodeURIComponent(token)}/conversation`;
   const [state, setState] = useState<ConversationState | null>(initial);
   const [pending, setPending] = useState<ConversationAction>(null);
@@ -27,13 +32,21 @@ export function useConversation(token: string, initial: ConversationState | null
         setState(next);
         return next;
       } catch (err) {
-        setError(err instanceof ApiRequestError ? err : new ApiRequestError(0, "internal", ""));
+        const failure =
+          err instanceof ApiRequestError ? err : new ApiRequestError(0, "internal", "");
+        setError(failure);
+        // Cards already confirmed (the reply was lost) or answers changed on another phone: the
+        // same request would be refused forever, so show what the server has now.
+        if (failure.code === "conflict") {
+          onConflict?.();
+          await apiFetch<ConversationState>(base).then(setState, () => {});
+        }
         return null;
       } finally {
         setPending(null);
       }
     },
-    [],
+    [base, onConflict],
   );
 
   const load = useCallback(() => run("load", () => apiFetch<ConversationState>(base)), [base, run]);

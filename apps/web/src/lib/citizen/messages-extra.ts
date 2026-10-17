@@ -25,6 +25,7 @@ export const fr: M = {
     placeholder: "Écrivez ici, avec vos mots",
     send: "Envoyer",
     reading: "Lecture…",
+    slow: "Cela prend un peu plus de temps que d'habitude. Restez sur cette page : inutile de renvoyer le message.",
     understoodTitle: "Voici ce que j'ai compris : vérifiez",
     understoodHint: "Cela devient une réponse seulement quand vous confirmez.",
     confirmAll: "Oui, c'est juste",
@@ -304,8 +305,10 @@ export const fr: M = {
       "Avanti ne peut pas encore préparer cette demande. Choisissez-en une autre ou renseignez-vous au guichet.",
     network: "Pas de connexion. Vérifiez le réseau et réessayez.",
     rateLimited: "Trop de tentatives. Attendez une minute et réessayez.",
+    changed:
+      "Votre demande a été mise à jour entre-temps, peut-être depuis un autre téléphone ou par le guichet. Vérifiez la page et réessayez.",
     offline:
-      "Vous êtes hors ligne. Les modifications seront enregistrées au retour de la connexion.",
+      "Vous êtes hors ligne. Ce que vous avez déjà envoyé est enregistré : attendez le retour de la connexion pour continuer.",
   },
 };
 
@@ -332,6 +335,7 @@ export const es: M = {
     placeholder: "Escribe aquí, con tus palabras",
     send: "Enviar",
     reading: "Leyendo…",
+    slow: "Está tardando un poco más de lo normal. Quédate en esta página: no hace falta enviarlo otra vez.",
     understoodTitle: "Esto es lo que he entendido: revísalo",
     understoodHint: "Se convierte en respuesta solo cuando lo confirmas.",
     confirmAll: "Sí, es correcto",
@@ -610,7 +614,10 @@ export const es: M = {
       "Avanti aún no puede preparar este trámite. Elige otro o pregunta en la ventanilla.",
     network: "Sin conexión. Revisa la red e inténtalo de nuevo.",
     rateLimited: "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
-    offline: "Estás sin conexión. Los cambios se guardarán cuando vuelva la conexión.",
+    changed:
+      "Tu trámite se actualizó mientras tanto, quizá desde otro teléfono o en la ventanilla. Revisa la página e inténtalo de nuevo.",
+    offline:
+      "Estás sin conexión. Lo que ya enviaste está guardado: espera a que vuelva la conexión para continuar.",
   },
 };
 
@@ -637,6 +644,7 @@ export const ro: M = {
     placeholder: "Scrie aici, cu cuvintele tale",
     send: "Trimite",
     reading: "Citesc…",
+    slow: "Durează puțin mai mult decât de obicei. Rămâi pe această pagină: nu trebuie să trimiți din nou.",
     understoodTitle: "Asta am înțeles: verifică",
     understoodHint: "Devine răspuns doar când confirmi.",
     confirmAll: "Da, e corect",
@@ -911,7 +919,10 @@ export const ro: M = {
       "Avanti nu poate pregăti încă această cerere. Alege alta sau întreabă la ghișeu.",
     network: "Fără conexiune. Verifică rețeaua și încearcă din nou.",
     rateLimited: "Prea multe încercări. Așteaptă un minut și încearcă din nou.",
-    offline: "Ești offline. Modificările se salvează când revine conexiunea.",
+    changed:
+      "Cererea ta a fost actualizată între timp, poate de pe alt telefon sau de la ghișeu. Verifică pagina și încearcă din nou.",
+    offline:
+      "Ești offline. Ce ai trimis deja este salvat: așteaptă să revină conexiunea ca să continui.",
   },
 };
 
@@ -938,6 +949,7 @@ export const uk: M = {
     placeholder: "Напишіть тут своїми словами",
     send: "Надіслати",
     reading: "Читаю…",
+    slow: "Це триває трохи довше, ніж зазвичай. Залишайтеся на цій сторінці: надсилати ще раз не потрібно.",
     understoodTitle: "Ось що я зрозумів: перевірте",
     understoodHint: "Це стане відповіддю лише після Вашого підтвердження.",
     confirmAll: "Так, правильно",
@@ -1213,7 +1225,10 @@ export const uk: M = {
       "Avanti ще не може підготувати цю заяву. Оберіть іншу або запитайте у вікні обслуговування.",
     network: "Немає з’єднання. Перевірте мережу й спробуйте ще раз.",
     rateLimited: "Забагато спроб. Зачекайте хвилину й спробуйте ще раз.",
-    offline: "Ви офлайн. Зміни збережуться, коли з’явиться з’єднання.",
+    changed:
+      "Вашу заяву тим часом оновлено, можливо, з іншого телефона або у вікні обслуговування. Перевірте сторінку й спробуйте ще раз.",
+    offline:
+      "Ви офлайн. Те, що Ви вже надіслали, збережено: щоб продовжити, дочекайтеся відновлення з’єднання.",
   },
 };
 
@@ -1240,6 +1255,7 @@ export const ar: M = {
     placeholder: "اكتب هنا بكلماتك",
     send: "إرسال",
     reading: "أقرأ…",
+    slow: "يستغرق الأمر وقتًا أطول قليلًا من المعتاد. ابقَ في هذه الصفحة: لا داعي للإرسال مرة أخرى.",
     understoodTitle: "هذا ما فهمته: تحقق منه",
     understoodHint: "يصبح إجابة فقط عندما تؤكده.",
     confirmAll: "نعم، صحيح",
@@ -1510,7 +1526,9 @@ export const ar: M = {
       "لا يمكن تحضير هذا الطلب مع Avanti بعد. اختر طلبًا آخر أو اسأل في شباك الخدمة.",
     network: "لا يوجد اتصال. تحقق من الشبكة وحاول مرة أخرى.",
     rateLimited: "محاولات كثيرة. انتظر دقيقة وحاول مرة أخرى.",
-    offline: "أنت غير متصل. ستُحفظ التغييرات عند عودة الاتصال.",
+    changed:
+      "تم تحديث طلبك في هذه الأثناء، ربما من هاتف آخر أو من شباك الخدمة. راجع الصفحة وحاول مرة أخرى.",
+    offline: "أنت غير متصل. ما أرسلته محفوظ: انتظر عودة الاتصال لتتابع.",
   },
 };
 
@@ -1537,6 +1555,7 @@ export const bn: M = {
     placeholder: "নিজের ভাষায় এখানে লিখুন",
     send: "পাঠান",
     reading: "পড়ছি…",
+    slow: "স্বাভাবিকের চেয়ে একটু বেশি সময় লাগছে। এই পাতায় থাকুন: আবার পাঠানোর দরকার নেই।",
     understoodTitle: "আমি যা বুঝেছি: যাচাই করুন",
     understoodHint: "আপনি নিশ্চিত করলে তবেই এটি উত্তর হবে।",
     confirmAll: "হ্যাঁ, ঠিক আছে",
@@ -1811,6 +1830,9 @@ export const bn: M = {
       "Avanti এখনও এই আবেদনটি প্রস্তুত করতে পারে না। অন্য একটি বেছে নিন বা সেবা কাউন্টারে জিজ্ঞাসা করুন।",
     network: "ইন্টারনেট সংযোগ নেই। নেটওয়ার্ক দেখে আবার চেষ্টা করুন।",
     rateLimited: "অনেকবার চেষ্টা হয়েছে। এক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।",
-    offline: "আপনি অফলাইনে আছেন। সংযোগ ফিরলে পরিবর্তনগুলো সংরক্ষিত হবে।",
+    changed:
+      "এর মধ্যে আপনার আবেদন হালনাগাদ হয়েছে, হয়তো অন্য ফোন থেকে বা সেবা কাউন্টার থেকে। পাতাটি দেখে আবার চেষ্টা করুন।",
+    offline:
+      "আপনি অফলাইনে আছেন। যা আগে পাঠিয়েছেন তা সংরক্ষিত আছে: চালিয়ে যেতে সংযোগ ফিরে আসা পর্যন্ত অপেক্ষা করুন।",
   },
 };

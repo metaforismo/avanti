@@ -12,6 +12,7 @@ import { RenewalNotice } from "./renewal-notice";
 import { ChatBubble, Thinking } from "./chat-bubble";
 import type { StepProps } from "./citizen-app";
 import { Composer } from "./composer";
+import { WaitingStatus } from "./waiting-status";
 import { AnsweredList, InterviewStep } from "./interview-step";
 import { ProposalsCard } from "./proposals-card";
 import { InterviewProgressBar, RemainingQuestions } from "./interview-progress";
@@ -25,7 +26,7 @@ import { QuestionCard } from "./question-card";
  */
 export function ConversationStep(props: StepProps) {
   const { api, data, m, token, goTo } = props;
-  const conversation = useConversation(token, null);
+  const conversation = useConversation(token, null, api.reload);
   const { load, state } = conversation;
   const { questionsAnswered } = data.progress;
   const bottom = useRef<HTMLDivElement>(null);
@@ -92,6 +93,7 @@ export function ConversationStep(props: StepProps) {
         ))}
         {thinking && <Thinking label={m.conversation.avanti} text={m.conversation.reading} />}
       </ol>
+      <WaitingStatus active={thinking} m={m} />
 
       {conversation.error && conversation.error.status !== 404 && (
         <Notice tone="danger" size="md">

@@ -29,6 +29,7 @@ const it = {
     placeholder: "Scrivi qui, con parole tue",
     send: "Invia",
     reading: "Sto leggendo…",
+    slow: "Ci vuole un po' più del solito. Resta su questa pagina: non serve inviare di nuovo.",
     understoodTitle: "Ho capito così: controlla",
     understoodHint: "Diventa una risposta solo quando confermi.",
     confirmAll: "Sì, è giusto",
@@ -306,7 +307,10 @@ const it = {
       "Questa pratica non si può ancora preparare con Avanti. Scegline un'altra o chiedi allo sportello.",
     network: "Connessione assente. Controlla la rete e riprova.",
     rateLimited: "Troppi tentativi in poco tempo. Aspetta un minuto e riprova.",
-    offline: "Sei offline. Le modifiche verranno salvate quando torna la connessione.",
+    changed:
+      "La pratica è stata aggiornata nel frattempo, forse da un altro telefono o dallo sportello. Controlla la pagina e riprova.",
+    offline:
+      "Sei offline. Quello che hai già inviato è salvato: per continuare aspetta che torni la connessione.",
   },
 };
 
@@ -341,6 +345,7 @@ const en: Widen<CitizenMessages> = {
     placeholder: "Write here, in your own words",
     send: "Send",
     reading: "Reading…",
+    slow: "This is taking a little longer than usual. Stay on this page: there's no need to send it again.",
     understoodTitle: "This is what I understood: please check",
     understoodHint: "It becomes an answer only when you confirm.",
     confirmAll: "Yes, that's right",
@@ -615,7 +620,10 @@ const en: Widen<CitizenMessages> = {
       "Avanti can't prepare this application yet. Choose another one or ask at the desk.",
     network: "No connection. Check your network and try again.",
     rateLimited: "Too many attempts. Wait a minute and try again.",
-    offline: "You're offline. Changes will be saved when the connection is back.",
+    changed:
+      "Your application was updated in the meantime, maybe from another phone or by the desk. Check the page and try again.",
+    offline:
+      "You're offline. What you've already sent is saved: wait for the connection to come back to continue.",
   },
 };
 
@@ -658,6 +666,8 @@ export function errorMessage(m: Widen<CitizenMessages>, code: ErrorCode | "netwo
       return m.errors.network;
     case "practice_unavailable":
       return m.errors.practiceUnavailable;
+    case "conflict":
+      return m.errors.changed;
     default:
       return m.errors.generic;
   }
