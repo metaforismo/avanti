@@ -249,6 +249,14 @@
     margin-inline: -0.12em;
   }
 
+  /* The sign-in brand panel stays night blue in both themes: in dark mode `contrast` turns
+     light, and a white half-page beside a dark form reads as a glitch. */
+  .panel-night {
+    --on-contrast: #ffffff;
+    background: #141b2d;
+    color: #ffffff;
+  }
+
   .tabular {
     font-variant-numeric: tabular-nums;
   }

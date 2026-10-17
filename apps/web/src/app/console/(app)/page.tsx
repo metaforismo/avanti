@@ -178,7 +178,11 @@ function Queue() {
         )}
       </div>
 
-      <div role="group" aria-label="Stato" className="-mx-1 mt-5 flex gap-1 overflow-x-auto pb-1">
+      <div
+        role="group"
+        aria-label="Stato"
+        className="-mx-1 mt-5 flex gap-1 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible"
+      >
         {STATUS_ORDER.map((key) => {
           const active = key === status;
           const count = counts?.[key];
@@ -217,7 +221,7 @@ function Queue() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-60 flex-1">
+        <div className="relative min-w-64 flex-[2_1_18rem]">
           <Search
             className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
             aria-hidden
@@ -264,42 +268,45 @@ function Queue() {
             </button>
           )}
         </div>
-        <Select
-          value={practice}
-          onChange={(e) => setParam("pratica", e.target.value)}
-          aria-label="Filtra per pratica"
-          compact
-        >
-          <option value="">Tutte le pratiche</option>
-          {PRACTICE_IDS.map((id) => (
-            <option key={id} value={id}>
-              {PRACTICE_SHORT[id]}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={assignee}
-          onChange={(e) => setParam("assegnatario", e.target.value)}
-          aria-label="Filtra per operatore"
-          compact
-        >
-          <option value="">Tutti gli operatori</option>
-          <option value="me">Assegnate a me</option>
-          <option value="none">Non assegnate</option>
-        </Select>
-        <Select
-          value={priority}
-          onChange={(e) => setParam("priorita", e.target.value)}
-          aria-label="Filtra per priorità"
-          compact
-        >
-          <option value="">Tutte le priorità</option>
-          {(Object.keys(PRIORITY) as Priority[]).map((key) => (
-            <option key={key} value={key}>
-              {PRIORITY[key].filter}
-            </option>
-          ))}
-        </Select>
+        {/* The three filters wrap together under the search, never one alone on a line. */}
+        <div className="grid flex-[3_1_32rem] gap-2 sm:grid-cols-3">
+          <Select
+            value={practice}
+            onChange={(e) => setParam("pratica", e.target.value)}
+            aria-label="Filtra per pratica"
+            compact
+          >
+            <option value="">Tutte le pratiche</option>
+            {PRACTICE_IDS.map((id) => (
+              <option key={id} value={id}>
+                {PRACTICE_SHORT[id]}
+              </option>
+            ))}
+          </Select>
+          <Select
+            value={assignee}
+            onChange={(e) => setParam("assegnatario", e.target.value)}
+            aria-label="Filtra per operatore"
+            compact
+          >
+            <option value="">Tutti gli operatori</option>
+            <option value="me">Assegnate a me</option>
+            <option value="none">Non assegnate</option>
+          </Select>
+          <Select
+            value={priority}
+            onChange={(e) => setParam("priorita", e.target.value)}
+            aria-label="Filtra per priorità"
+            compact
+          >
+            <option value="">Tutte le priorità</option>
+            {(Object.keys(PRIORITY) as Priority[]).map((key) => (
+              <option key={key} value={key}>
+                {PRIORITY[key].filter}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       <p role="status" className="sr-only">
@@ -327,7 +334,17 @@ function Queue() {
           firstDay && !filtered ? (
             <FirstSteps />
           ) : (
-            <EmptyQueue status={status} filtered={filtered} />
+            <EmptyQueue
+              status={status}
+              filtered={filtered}
+              onClearFilters={() => {
+                setSearch("");
+                router.replace(
+                  (status === "submitted" ? "/console" : `/console?stato=${status}`) as Route,
+                  { scroll: false },
+                );
+              }}
+            />
           )
         ) : (
           <>
@@ -496,7 +513,15 @@ function PriorityBadge({ item }: { item: CaseListItem }) {
   );
 }
 
-function EmptyQueue({ status, filtered }: { status: CaseStatus; filtered: boolean }) {
+function EmptyQueue({
+  status,
+  filtered,
+  onClearFilters,
+}: {
+  status: CaseStatus;
+  filtered: boolean;
+  onClearFilters: () => void;
+}) {
   return (
     <EmptyState
       icon={Inbox}
@@ -506,16 +531,22 @@ function EmptyQueue({ status, filtered }: { status: CaseStatus; filtered: boolea
           : `Nessuna pratica: ${CASE_STATUS[status].label.toLowerCase()}`
       }
       action={
-        !filtered &&
-        status === "submitted" && (
-          <Button asChild variant="secondary">
-            <Link href="/console/sportelli">Stampa il QR dello sportello</Link>
+        filtered ? (
+          <Button variant="secondary" onClick={onClearFilters}>
+            <X className="size-4" aria-hidden />
+            Togli i filtri
           </Button>
+        ) : (
+          status === "submitted" && (
+            <Button asChild variant="secondary">
+              <Link href="/console/sportelli">Stampa il QR dello sportello</Link>
+            </Button>
+          )
         )
       }
     >
       {filtered
-        ? "Prova a togliere un filtro o a cercare un altro nome."
+        ? "Nessun risultato in questa scheda: prova le altre o cerca un altro nome."
         : status === "submitted"
           ? "Quando un cittadino invia il suo fascicolo, compare qui."
           : CASE_STATUS[status].hint + "."}

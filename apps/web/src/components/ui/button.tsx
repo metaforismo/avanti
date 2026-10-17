@@ -15,6 +15,9 @@ const variants = {
 const sizes = {
   sm: "h-8 gap-1.5 rounded-sm px-3 text-sm",
   md: "h-10 gap-2 rounded-sm px-4 text-body-sm",
+  // Secondary actions on the citizen's phone: the 44px touch target, room for long translations.
+  touch:
+    "min-h-11 gap-2 rounded-sm px-4 py-2 text-body-sm leading-tight text-balance whitespace-normal",
   // Full-width calls to action: long translations wrap onto two balanced lines.
   lg: "min-h-12 gap-2.5 rounded-md px-5 py-2.5 text-base leading-tight text-balance whitespace-normal",
   icon: "size-10 rounded-sm",

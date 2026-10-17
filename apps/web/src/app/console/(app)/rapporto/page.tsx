@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, CircleDashed, Download, FileText, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, CircleDashed, Download, FileText, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
@@ -346,11 +346,15 @@ function ReportView() {
               }))}
             />
           </div>
-          <details className="group rounded-lg bg-surface p-5 ring-1 ring-line">
-            <summary className="cursor-pointer font-display text-lg font-semibold">
-              Come contiamo
+          <details className="group rounded-lg bg-surface ring-1 ring-line">
+            <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-5 py-4 font-display text-lg font-semibold [&::-webkit-details-marker]:hidden">
+              <span className="flex-1">Come contiamo</span>
+              <ChevronDown
+                className="size-5 shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180"
+                aria-hidden
+              />
             </summary>
-            <ul className="mt-4 grid list-disc gap-2 ps-5 text-sm text-ink-2">
+            <ul className="grid list-disc gap-2 px-5 ps-10 pb-5 text-sm text-ink-2">
               {data.method.map((line) => (
                 <li key={line}>{line}</li>
               ))}

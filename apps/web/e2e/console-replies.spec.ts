@@ -36,7 +36,7 @@ test("an administrator adds, reorders and removes a quick reply", async ({ page 
   await expect(items.first()).toBeVisible();
   const seeded = await items.count();
 
-  await section.getByRole("button", { name: "Aggiungi" }).click();
+  await section.getByRole("button", { name: "Aggiungi risposta" }).click();
   const form = page.getByRole("dialog", { name: "Nuova risposta rapida" });
   await form.getByLabel("Titolo").fill("Serve il codice fiscale");
   await form

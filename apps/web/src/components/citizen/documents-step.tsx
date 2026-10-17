@@ -411,6 +411,7 @@ function UploadButtons({
       />
       {/* Pointer type is decided in CSS, not after hydration: no layout shift on phones. */}
       <Button
+        size="touch"
         type="button"
         variant="secondary"
         className="hidden min-w-40 flex-1 text-stamp pointer-coarse:inline-flex"
@@ -420,6 +421,7 @@ function UploadButtons({
         {hasDocuments ? m.docs.addPage : m.docs.takePhoto}
       </Button>
       <Button
+        size="touch"
         type="button"
         variant="secondary"
         className="text-stamp pointer-coarse:min-w-40 pointer-coarse:flex-1 pointer-coarse:text-ink"
@@ -487,7 +489,7 @@ function PendingUploads({
               )}
             </div>
             {upload.error && RETRYABLE.has(upload.error) && (
-              <Button variant="secondary" size="sm" onClick={() => api.retryUpload(upload.id)}>
+              <Button variant="secondary" size="touch" onClick={() => api.retryUpload(upload.id)}>
                 {m.common.retry}
               </Button>
             )}
@@ -600,13 +602,14 @@ function DocumentRow({
             className="flex shrink-0 items-center gap-1"
           >
             <Button
+              size="touch"
               variant="danger"
               loading={removing}
               onClick={() => void api.removeDocument(doc.id)}
             >
               {m.common.remove}
             </Button>
-            <Button ref={cancelRef} variant="ghost" onClick={closeConfirm}>
+            <Button size="touch" ref={cancelRef} variant="ghost" onClick={closeConfirm}>
               {m.common.cancel}
             </Button>
           </div>
@@ -714,7 +717,7 @@ function DocumentCheck({ doc, api, m }: { doc: DocumentSummary; api: CitizenCase
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
           <Button
             variant="secondary"
-            size="sm"
+            size="touch"
             loading={api.pending === `keep:${doc.id}`}
             onClick={() => void api.keepDocument(doc.id)}
           >

@@ -120,7 +120,7 @@ export function ConversationStep(props: StepProps) {
         <section className="animate-rise rounded-lg bg-ok-wash p-5">
           <h2 className="font-semibold text-ok">{m.conversation.completeTitle}</h2>
           <p className="mt-1 text-ink-2">{m.conversation.completeBody}</p>
-          <Button className="mt-4" onClick={() => goTo("documents")}>
+          <Button size="touch" className="mt-4" onClick={() => goTo("documents")}>
             {m.conversation.toDocuments}
             <ArrowRight className="rtl-flip size-4" aria-hidden />
           </Button>

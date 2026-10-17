@@ -148,10 +148,11 @@ export function OfficeStart({
             className="mb-8 animate-rise"
             action={
               <div className="flex flex-wrap gap-2">
-                <Button asChild>
+                <Button size="touch" asChild>
                   <Link href={`/pratica/${resumeToken}`}>{m.start.resume}</Link>
                 </Button>
                 <Button
+                  size="touch"
                   variant="ghost"
                   onClick={() => {
                     forgetCase(officeSlug);

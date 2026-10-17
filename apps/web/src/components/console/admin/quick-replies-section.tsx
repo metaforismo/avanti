@@ -86,6 +86,7 @@ export function QuickRepliesSection() {
         }
         actions={
           <Button
+            variant="secondary"
             ref={addButton}
             onClick={() => {
               setDialogError(null);
@@ -94,7 +95,7 @@ export function QuickRepliesSection() {
             disabled={replies.length >= MAX_REPLIES || !list.data}
           >
             <Plus className="size-4" aria-hidden />
-            Aggiungi
+            Aggiungi risposta
           </Button>
         }
       />

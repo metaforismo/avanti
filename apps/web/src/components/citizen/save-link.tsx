@@ -32,11 +32,12 @@ export function SaveLinkActions({ m, title }: { m: Widen<CitizenMessages>; title
   return (
     <div className="flex flex-wrap items-start gap-2">
       <CopyButton
+        size="touch"
         value={link}
         labels={{ copy: m.done.copyLink, copied: m.done.copied, failed: m.done.copyFailed }}
       />
       {canShare && (
-        <Button variant="secondary" onClick={() => void share()}>
+        <Button size="touch" variant="secondary" onClick={() => void share()}>
           <Share2 className="size-4" aria-hidden />
           {m.done.share}
         </Button>

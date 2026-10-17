@@ -195,7 +195,7 @@ export function AssistantSheet({
                   <button
                     type="button"
                     onClick={() => setDesk(lastQuestion)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-stamp ring-1 ring-line-strong transition-colors hover:bg-stamp-wash focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-stamp ring-1 ring-line-strong transition-colors hover:bg-stamp-wash focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none"
                   >
                     <MessageCircleQuestion className="size-4" aria-hidden />
                     {m.assistant.askDesk}
@@ -265,12 +265,12 @@ function Bubble({
       )}
       {!mine && (turn.intent === "needs_operator" || turn.action === "ask_desk") && (
         <div className="mt-2 flex flex-wrap gap-2">
-          <Button size="sm" variant="secondary" onClick={onAskDesk}>
+          <Button size="touch" variant="secondary" onClick={onAskDesk}>
             <MessageCircleQuestion className="size-4" aria-hidden />
             {m.assistant.askDesk}
           </Button>
           {phone && (
-            <Button size="sm" variant="ghost" asChild>
+            <Button size="touch" variant="ghost" asChild>
               <a href={`tel:${phone.replace(/\s+/g, "")}`} dir="ltr">
                 <Phone className="size-4" aria-hidden />
                 {phone}
@@ -280,7 +280,7 @@ function Bubble({
         </div>
       )}
       {!mine && turn.action === "open_documents" && (
-        <Button size="sm" variant="secondary" className="mt-2" onClick={onDocuments}>
+        <Button size="touch" variant="secondary" className="mt-2" onClick={onDocuments}>
           {m.assistant.goToDocuments}
           <ArrowRight className="rtl-flip size-4" aria-hidden />
         </Button>
@@ -341,11 +341,11 @@ function DeskForm({
         className="w-full resize-y rounded-sm bg-surface p-3 text-base ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
       />
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={busy} disabled={!text.trim()}>
+        <Button size="touch" type="submit" loading={busy} disabled={!text.trim()}>
           <Send className="rtl-flip size-4" aria-hidden />
           {m.assistant.askDeskSend}
         </Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>
+        <Button size="touch" type="button" variant="ghost" onClick={onCancel}>
           {m.common.cancel}
         </Button>
       </div>

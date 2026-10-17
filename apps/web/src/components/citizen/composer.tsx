@@ -202,7 +202,7 @@ export function Composer({
               aria-pressed={recording}
               aria-label={recording ? m.conversation.stop : m.conversation.speak}
               className={cn(
-                "grid size-10 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none disabled:opacity-50",
+                "grid size-11 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none disabled:opacity-50",
                 recording
                   ? "bg-danger-wash text-danger"
                   : "text-ink-2 hover:bg-sunk hover:text-ink",
@@ -222,7 +222,7 @@ export function Composer({
             disabled={busy || recording || transcribing}
             aria-label={sendLabel ?? m.conversation.send}
             className={cn(
-              "grid size-10 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none disabled:cursor-not-allowed",
+              "grid size-11 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none disabled:cursor-not-allowed",
               empty ? "bg-sunk text-ink-3" : "bg-contrast text-on-contrast hover:opacity-90",
             )}
           >

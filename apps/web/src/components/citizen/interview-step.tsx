@@ -177,8 +177,8 @@ export function AnsweredList({ api, data, m }: Pick<StepProps, "api" | "data" | 
           <li key={item.questionId} className="flex items-start gap-3 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="text-sm text-ink-3">{item.question}</p>
-              <p dir="auto" className="mt-0.5 font-semibold break-words">
-                <span className={item.editable ? undefined : "marker"}>{item.answer}</span>
+              <p className="mt-0.5 font-semibold break-words">
+                <bdi className={item.editable ? undefined : "marker"}>{item.answer}</bdi>
                 {!item.editable && <span className="sr-only"> ({m.interview.inferred})</span>}
               </p>
             </div>
