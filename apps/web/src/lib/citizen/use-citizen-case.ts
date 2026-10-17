@@ -96,9 +96,20 @@ function uploadWithProgress(
 }
 
 const ANALYSIS_POLL_MS = 2500;
+const FIRST_LOAD_RETRY_MS = 1500;
 // Switching apps back and forth must not refetch the case every time.
 const VISIBLE_REFRESH_MS = 15_000;
 const PARALLEL_UPLOADS = 2;
+
+async function readCase(path: string, retries: number): Promise<CitizenCase> {
+  try {
+    return await apiFetch<CitizenCase>(path);
+  } catch (error) {
+    if (retries === 0 || errorCode(error) !== "network") throw error;
+    await new Promise((resolve) => window.setTimeout(resolve, FIRST_LOAD_RETRY_MS));
+    return readCase(path, retries - 1);
+  }
+}
 
 export function useCitizenCase(token: string) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
@@ -121,20 +132,24 @@ export function useCitizenCase(token: string) {
 
   const loadedAt = useRef(0);
 
-  const load = useCallback(async () => {
-    try {
-      const data = await apiFetch<CitizenCase>(base);
-      loadedAt.current = Date.now();
-      setState({ kind: "ready", data });
-    } catch (error) {
-      setState((current) =>
-        // A failed background refresh must not wipe a case the citizen is looking at.
-        current.kind === "ready" && errorCode(error) === "network"
-          ? current
-          : { kind: "error", code: errorCode(error) },
-      );
-    }
-  }, [base]);
+  const read = useCallback(
+    async (retries: number) => {
+      try {
+        const data = await readCase(base, retries);
+        loadedAt.current = Date.now();
+        setState({ kind: "ready", data });
+      } catch (error) {
+        setState((current) =>
+          // A failed background refresh must not wipe a case the citizen is looking at.
+          current.kind === "ready" && errorCode(error) === "network"
+            ? current
+            : { kind: "error", code: errorCode(error) },
+        );
+      }
+    },
+    [base],
+  );
+  const load = useCallback(() => read(0), [read]);
 
   // From the error screen: show that something is happening, and the result of this attempt.
   const retryLoad = useCallback(() => {
@@ -144,8 +159,10 @@ export function useCitizenCase(token: string) {
 
   useEffect(() => {
     // Initial fetch: setState happens after the await, not synchronously in the effect.
-    void load();
-  }, [load]);
+    // It leaves with the page's scripts, when a slow connection is busiest: one lost request
+    // is tried again before the citizen is asked to.
+    void read(1);
+  }, [read]);
 
   // Operators may change the case (requests, verification): refresh when the citizen returns.
   useEffect(() => {
