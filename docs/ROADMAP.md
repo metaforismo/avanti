@@ -1,6 +1,6 @@
 # Stato e roadmap
 
-Aggiornato al 15 ottobre 2026. Obiettivo: 2–3 CAF pilota in uso reale durante il picco ISEE di
+Aggiornato al 17 ottobre 2026. Obiettivo: 2–3 CAF pilota in uso reale durante il picco ISEE di
 gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 
 ## Cosa c'è
@@ -54,6 +54,20 @@ nelle PR.
   Hobby con manutenzione giornaliera).
 - Decisioni commerciali del fondatore in `docs/gtm/README.md` (sedi, budget pilota, soglie,
   prezzo da testare, promesse in landing).
+
+## Fatto di recente (17 ottobre)
+
+- Picco di gennaio: assegnazione in blocco, tempo d'attesa in coda e avviso per le pratiche
+  ferme da più di 2 giorni lavorativi; il conteggio «quasi pronta» non scorre più ogni pratica.
+- Ritentativi sicuri: un messaggio, una conferma o un documento rimandati dopo una risposta
+  persa non vengono salvati due volte (`docs/decisions/retry-safety.md`); chiedere
+  un'integrazione registra da sola «non era pronta».
+- Sicurezza: dettatura funzionante in produzione, HSTS e isolamento cross-origin, corpi delle
+  richieste limitati a 256 KB, password temporanee valide 7 giorni.
+- Console: sessione scaduta spiegata senza perdere il lavoro, azioni concorrenti tra colleghi,
+  dati estremi; percorso del cittadino che non si blocca e non perde dati.
+- Design: movimento misurato, comportamento da app sul telefono, contrasto dei pulsanti,
+  bersagli da 44 px, RTL; formattazione verificata da Prettier dentro `pnpm check`.
 
 ## Fatto di recente (16 ottobre)
 
