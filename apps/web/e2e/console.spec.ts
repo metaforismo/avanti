@@ -168,6 +168,8 @@ test("two operators on the same case: the second one sees the change instead of 
 });
 
 test("the activity log shows a failed login to the administrator only", async ({ page }) => {
+  // It spends the shared demo account's login quota on purpose: leave room to wait it out.
+  test.slow();
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(DEMO.email);
   await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
