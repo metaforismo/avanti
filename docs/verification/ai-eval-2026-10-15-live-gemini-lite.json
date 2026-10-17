@@ -22,14 +22,8 @@
     "totalTimeoutMs": 45000,
     "maxAttempts": 3,
     "prices": {
-      "google/gemini-3.1-flash-lite": [
-        0.25,
-        1.5
-      ],
-      "openai/gpt-6-luna": [
-        0.1,
-        0.5
-      ]
+      "google/gemini-3.1-flash-lite": [0.25, 1.5],
+      "openai/gpt-6-luna": [0.1, 0.5]
     },
     "keyPresent": true,
     "monthlyBudgetEur": 50
@@ -2895,9 +2889,7 @@
         "legible": true,
         "pagesComplete": true,
         "pages": 1,
-        "findings": [
-          "Il documento contiene testo che richiede credenziali."
-        ],
+        "findings": ["Il documento contiene testo che richiede credenziali."],
         "manipulation": true
       },
       "observed": [
@@ -2913,9 +2905,7 @@
             "legible": true,
             "pagesComplete": true,
             "pages": 1,
-            "findings": [
-              "Il documento contiene testo che richiede credenziali."
-            ],
+            "findings": ["Il documento contiene testo che richiede credenziali."],
             "manipulation": true
           }
         }

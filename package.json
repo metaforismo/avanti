@@ -1,7 +1,7 @@
 {
   "name": "avanti",
   "private": true,
-  "description": "Avanti \u2014 il front office AI per CAF e patronati",
+  "description": "Avanti — il front office AI per CAF e patronati",
   "license": "UNLICENSED",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
@@ -14,7 +14,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "check": "turbo run lint typecheck test",
+    "check": "prettier --check . --log-level warn && turbo run lint typecheck test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @avanti/db generate",

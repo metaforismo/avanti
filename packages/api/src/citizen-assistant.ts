@@ -223,9 +223,7 @@ export function mountCitizenAssistant(app: App, s: Services) {
     } catch {
       throw new ApiFailure("bad_request", 400, citizenAssistantCopy("audioInvalid", row.language));
     }
-    const result = await observeAi(s, row, () =>
-      s.ai.transcribe!({ bytes, mime, language }),
-    );
+    const result = await observeAi(s, row, () => s.ai.transcribe!({ bytes, mime, language }));
     await currentCitizenLink(s.db, row, s.clock());
     if (result.engine !== "ai" || !result.text.trim())
       throw new ApiFailure(

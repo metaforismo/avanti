@@ -24,18 +24,11 @@
     {
       "issues": [
         {
-          "path": [
-            "reply"
-          ],
+          "path": ["reply"],
           "code": "too_small"
         }
       ],
-      "keys": [
-        "sources",
-        "reply",
-        "intent",
-        "action"
-      ],
+      "keys": ["sources", "reply", "intent", "action"],
       "intent": "emergency",
       "action": "none"
     },
@@ -70,17 +63,11 @@
     {
       "issues": [
         {
-          "path": [
-            "clarification"
-          ],
+          "path": ["clarification"],
           "code": "too_big"
         }
       ],
-      "keys": [
-        "status",
-        "value",
-        "clarification"
-      ]
+      "keys": ["status", "value", "clarification"]
     },
     {
       "invalidJson": true,
