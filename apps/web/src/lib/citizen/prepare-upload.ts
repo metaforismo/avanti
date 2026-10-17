@@ -5,24 +5,29 @@ const JPEG_QUALITY = 0.85;
 // Phone photos are usually 3–12 MB: shrink anything above this before upload.
 const COMPRESS_ABOVE_BYTES = 1.5 * 1024 * 1024;
 
-const EXTENSION_TYPES: Record<string, string> = {
-  pdf: "application/pdf",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  heic: "image/heic",
-  heif: "image/heic",
-};
-
 export type PreparedUpload =
   | { ok: true; file: File }
   | { ok: false; reason: "unsupported_file" | "file_too_large" | "compress" };
 
-function detectType(file: File) {
-  if ((UPLOAD_LIMITS.mimeTypes as readonly string[]).includes(file.type)) return file.type;
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  return EXTENSION_TYPES[ext] ?? null;
+const ascii = (bytes: Uint8Array, start: number, end: number) =>
+  String.fromCharCode(...bytes.subarray(start, end));
+
+/**
+ * The type from the first bytes, with the same signatures the server checks. The server refuses
+ * a file whose declared type differs from its content, and phones often declare the wrong one:
+ * iPhone HEIF as image/heif, PNG screenshots renamed .jpg by chat apps, PDFs as x-pdf.
+ */
+export function sniffType(bytes: Uint8Array): (typeof UPLOAD_LIMITS.mimeTypes)[number] | null {
+  if (ascii(bytes, 0, 5) === "%PDF-") return "application/pdf";
+  if ([137, 80, 78, 71, 13, 10, 26, 10].every((b, i) => bytes[i] === b)) return "image/png";
+  if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return "image/jpeg";
+  if (ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 12) === "WEBP") return "image/webp";
+  if (
+    ascii(bytes, 4, 8) === "ftyp" &&
+    ["heic", "heix", "hevc", "hevx", "mif1"].includes(ascii(bytes, 8, 12))
+  )
+    return "image/heic";
+  return null;
 }
 
 async function shrinkImage(file: File): Promise<File | null> {
@@ -54,17 +59,20 @@ async function shrinkImage(file: File): Promise<File | null> {
 
 /** Validate type, downscale large photos, and enforce the server size limit client-side. */
 export async function prepareUpload(file: File): Promise<PreparedUpload> {
-  const type = detectType(file);
+  if (file.size === 0) return { ok: false, reason: "unsupported_file" };
+  const type = sniffType(new Uint8Array(await file.slice(0, 12).arrayBuffer()));
   if (!type) return { ok: false, reason: "unsupported_file" };
 
-  let result = file;
+  let result =
+    file.type === type
+      ? file
+      : new File([file], file.name, { type, lastModified: file.lastModified });
   const isRaster = type.startsWith("image/");
   if (isRaster && file.size > COMPRESS_ABOVE_BYTES) {
-    const shrunk = await shrinkImage(file);
+    const shrunk = await shrinkImage(result);
     if (shrunk) result = shrunk;
     else if (file.size > UPLOAD_LIMITS.maxBytes) return { ok: false, reason: "compress" };
   }
   if (result.size > UPLOAD_LIMITS.maxBytes) return { ok: false, reason: "file_too_large" };
-  if (result.size === 0) return { ok: false, reason: "unsupported_file" };
   return { ok: true, file: result };
 }
