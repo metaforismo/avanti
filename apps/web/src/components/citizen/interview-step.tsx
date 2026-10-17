@@ -30,9 +30,9 @@ export function InterviewStep({ api, data, m }: StepProps) {
           >
             {data.practice?.name ?? m.steps.interview}
           </h1>
-          <RemainingQuestions progress={data.progress} m={m} />
+          <RemainingQuestions progress={data.progress} language={data.language} m={m} />
         </div>
-        <InterviewProgressBar progress={data.progress} m={m} />
+        <InterviewProgressBar progress={data.progress} language={data.language} m={m} />
       </div>
 
       <RenewalNotice data={data} />

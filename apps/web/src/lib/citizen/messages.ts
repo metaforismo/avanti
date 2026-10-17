@@ -1,10 +1,13 @@
 import type { ChecklistStatus, ErrorCode, Language, MemberRole } from "@avanti/contracts";
+import type { PluralForms } from "@avanti/core/plural";
 import { ar, bn, es, fr, ro, uk } from "./messages-extra";
 
 /**
  * Interface strings for the citizen flow. Catalog content (questions, checklist items) comes
  * already localized from the API; these cover only the chrome around it.
  * Italian is the source; every other language must define every key (enforced by the type).
+ * A message with a count is a `PluralForms` object, rendered with `plural(language, n, forms)`:
+ * each language writes the forms its own plural rules need (messages.test.ts checks them).
  */
 const it = {
   common: {
@@ -73,7 +76,10 @@ const it = {
     emergency: "Se tu o qualcuno siete in pericolo, chiama subito il 112.",
     goToDocuments: "Vai ai documenti",
     sources: "Fonti",
-    remaining: "Puoi fare ancora {n} domande oggi.",
+    remaining: {
+      one: "Puoi fare ancora una domanda oggi.",
+      other: "Puoi fare ancora {n} domande oggi.",
+    },
     limit: "Oggi hai fatto molte domande. Riprova domani o chiedi allo sportello.",
     error: "L'assistente non risponde ora. Riprova tra poco.",
     askAboutQuestion: "Non è chiaro? Chiedi all'assistente",
@@ -122,7 +128,7 @@ const it = {
     available: "Disponibile",
     beta: "In prova",
     comingSoon: "Presto disponibile",
-    minutes: "circa {n} minuti",
+    minutes: { one: "circa un minuto", other: "circa {n} minuti" },
     tooShort: "Scrivi qualche parola in più.",
   },
   interview: {
@@ -130,8 +136,8 @@ const it = {
     progressLabel: "Domande: {n} di {total}",
     remainingOne: "Ultima domanda",
     remainingMany: "Ancora circa {n} domande",
-    remainingRange: "Ancora {min}–{max} domande",
-    remainingAtLeast: "Ancora almeno {n} domande",
+    remainingRange: { other: "Ancora {min}–{max} domande" },
+    remainingAtLeast: { one: "Ancora almeno una domanda", other: "Ancora almeno {n} domande" },
     assistant: "Assistente automatico",
     known: "Abbiamo capito",
     why: "Perché te lo chiediamo",
@@ -216,8 +222,10 @@ const it = {
       "Hai raggiunto il limite di documenti per questa pratica: 60 file o 120 MB in tutto. Elimina quelli che non servono e riprova.",
     compressFailed: "Non riesco a ridurre questa foto. Prova a fotografare di nuovo.",
     allDone: "Tutti i documenti obbligatori sono pronti.",
-    missing: "Ne mancano {n}. Puoi inviare lo stesso: lo sportello te li chiederà.",
-    missingOne: "Ne manca 1. Puoi inviare lo stesso: lo sportello te lo chiederà.",
+    missing: {
+      one: "Ne manca 1. Puoi inviare lo stesso: lo sportello te lo chiederà.",
+      other: "Ne mancano {n}. Puoi inviare lo stesso: lo sportello te li chiederà.",
+    },
     toReview: "Vai al riepilogo",
     groupOther: "Altri documenti",
     operatorNote: "Nota dello sportello",
@@ -229,7 +237,7 @@ const it = {
       rejected: "Da rifare",
       waived: "Non serve",
     } satisfies Record<ChecklistStatus, string>,
-    pages: "{n} pagine",
+    pages: { one: "{n} pagina", other: "{n} pagine" },
   },
   review: {
     showAll: "Mostra tutti ({n})",
@@ -273,7 +281,7 @@ const it = {
     book: "Prenota l'appuntamento",
     bookHint: "Si apre il sito di prenotazione dello sportello.",
     bringMissing: "Porta anche questi documenti allo sportello",
-    bringMore: "e altri {n}",
+    bringMore: { one: "e un altro", other: "e altri {n}" },
     renewalSaved: "Scelta salvata",
     officeNote: "Indicazioni dello sportello",
   },
@@ -323,7 +331,9 @@ type Widen<T> = T extends string
   ? string
   : T extends readonly string[]
     ? readonly string[]
-    : { [K in keyof T]: Widen<T[K]> };
+    : T extends PluralForms
+      ? PluralForms
+      : { [K in keyof T]: Widen<T[K]> };
 
 const en: Widen<CitizenMessages> = {
   common: {
@@ -391,7 +401,10 @@ const en: Widen<CitizenMessages> = {
     emergency: "If you or someone else is in danger, call 112 now.",
     goToDocuments: "Go to documents",
     sources: "Sources",
-    remaining: "You can ask {n} more questions today.",
+    remaining: {
+      one: "You can ask one more question today.",
+      other: "You can ask {n} more questions today.",
+    },
     limit: "You have asked many questions today. Try again tomorrow or ask the desk.",
     error: "The assistant is not answering right now. Try again shortly.",
     askAboutQuestion: "Not clear? Ask the assistant",
@@ -440,7 +453,7 @@ const en: Widen<CitizenMessages> = {
     available: "Available",
     beta: "Trial",
     comingSoon: "Coming soon",
-    minutes: "about {n} minutes",
+    minutes: { one: "about a minute", other: "about {n} minutes" },
     tooShort: "Please write a few more words.",
   },
   interview: {
@@ -448,8 +461,8 @@ const en: Widen<CitizenMessages> = {
     progressLabel: "Questions: {n} of {total}",
     remainingOne: "Last question",
     remainingMany: "About {n} questions left",
-    remainingRange: "{min}–{max} questions left",
-    remainingAtLeast: "At least {n} questions left",
+    remainingRange: { other: "{min}–{max} questions left" },
+    remainingAtLeast: { one: "At least 1 question left", other: "At least {n} questions left" },
     assistant: "Automated assistant",
     known: "What we understood",
     why: "Why we ask",
@@ -534,8 +547,10 @@ const en: Widen<CitizenMessages> = {
       "You have reached the document limit for this application: 60 files or 120 MB in total. Delete the ones you don't need and try again.",
     compressFailed: "We couldn't shrink this photo. Please take it again.",
     allDone: "All required documents are ready.",
-    missing: "{n} still missing. You can send anyway: the desk will ask you for them.",
-    missingOne: "1 still missing. You can send anyway: the desk will ask you for it.",
+    missing: {
+      one: "1 still missing. You can send anyway: the desk will ask you for it.",
+      other: "{n} still missing. You can send anyway: the desk will ask you for them.",
+    },
     toReview: "Go to summary",
     groupOther: "Other documents",
     operatorNote: "Note from the desk",
@@ -547,7 +562,7 @@ const en: Widen<CitizenMessages> = {
       rejected: "Redo",
       waived: "Not needed",
     },
-    pages: "{n} pages",
+    pages: { one: "{n} page", other: "{n} pages" },
   },
   review: {
     showAll: "Show all ({n})",
@@ -591,7 +606,7 @@ const en: Widen<CitizenMessages> = {
     book: "Book your appointment",
     bookHint: "Opens the office's booking site.",
     bringMissing: "Also bring these documents to the desk",
-    bringMore: "and {n} more",
+    bringMore: { other: "and {n} more" },
     renewalSaved: "Choice saved",
     officeNote: "Notes from the office (in Italian)",
   },
@@ -644,6 +659,7 @@ export const MESSAGES: Record<Language, Widen<CitizenMessages>> = {
   bn,
 };
 export type { Widen };
+export { plural } from "@avanti/core/plural";
 
 export function messagesFor(language: Language) {
   return MESSAGES[language] ?? it;

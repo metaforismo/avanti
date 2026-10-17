@@ -17,7 +17,7 @@ import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
-import { format } from "@/lib/citizen/messages";
+import { plural } from "@/lib/citizen/messages";
 import { cn } from "@/lib/cn";
 import { ActionErrorNotice } from "./action-error";
 import { WaitingStatus } from "./waiting-status";
@@ -251,7 +251,7 @@ function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
                 {!disabled && (
                   <span className="mt-2 flex items-center gap-1.5 text-sm text-ink-3">
                     <Clock className="size-3.5" aria-hidden />
-                    {format(m.need.minutes, { n: practice.estimatedMinutes })}
+                    {plural(data.language, practice.estimatedMinutes, m.need.minutes)}
                   </span>
                 )}
               </span>
