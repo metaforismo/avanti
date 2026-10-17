@@ -39,19 +39,20 @@ Requisiti: Node ≥ 22.19 (consigliato 24), pnpm 10. Nessuna chiave necessaria i
 
 ## Percorsi dell'app
 
-| Percorso                 | Per chi   | Cosa fa                                                       |
-| ------------------------ | --------- | ------------------------------------------------------------- |
-| `/`                      | CAF       | Landing e candidatura al pilota                               |
-| `/s/[sportello]`         | Cittadino | Ingresso dal QR dello sportello: lingua, informativa, avvio   |
-| `/pratica/[token]`       | Cittadino | Esigenza, domande, documenti, invio (link personale)          |
-| `/console`               | Operatore | Coda pratiche con filtri                                      |
-| `/console/pratiche/[id]` | Operatore | Fascicolo: problemi, verifica documenti, integrazioni, export |
-| `/console/metriche`      | Operatore | Tempi e completezza misurati                                  |
-| `/console/sportelli`     | Operatore | Link e QR degli sportelli, cartello A4 da stampare            |
-| `/console/impostazioni`  | Admin     | Operatori, parametri, avvisi email, verifica obbligatoria     |
-| `/console/rapporto`      | Admin     | Rapporto del pilota: soglie, numeri, PDF e CSV                |
-| `/console/registro`      | Admin     | Registro attività con export CSV                              |
-| `/console/stato`         | Admin     | Stato del sistema: database, archivio, AI, manutenzione, coda |
+| Percorso                 | Per chi   | Cosa fa                                                        |
+| ------------------------ | --------- | -------------------------------------------------------------- |
+| `/`                      | CAF       | Landing e candidatura al pilota                                |
+| `/s/[sportello]`         | Cittadino | Ingresso dal QR dello sportello: lingua, informativa, avvio    |
+| `/pratica/[token]`       | Cittadino | Esigenza, domande, documenti, invio (link personale)           |
+| `/console`               | Operatore | Coda pratiche con filtri                                       |
+| `/console/pratiche/[id]` | Operatore | Fascicolo: problemi, verifica documenti, integrazioni, export  |
+| `/console/stampa/[id]`   | Operatore | Documenti da portare, A4 nella lingua del cittadino e italiano |
+| `/console/metriche`      | Operatore | Tempi e completezza misurati                                   |
+| `/console/sportelli`     | Operatore | Link e QR degli sportelli, cartello A4 da stampare             |
+| `/console/impostazioni`  | Admin     | Operatori, parametri, avvisi email, verifica obbligatoria      |
+| `/console/rapporto`      | Admin     | Rapporto del pilota: soglie, numeri, PDF e CSV                 |
+| `/console/registro`      | Admin     | Registro attività con export CSV                               |
+| `/console/stato`         | Admin     | Stato del sistema: database, archivio, AI, manutenzione, coda  |
 
 ## Struttura
 

@@ -68,6 +68,11 @@ nelle PR.
   dati estremi; percorso del cittadino che non si blocca e non perde dati.
 - Design: movimento misurato, comportamento da app sul telefono, contrasto dei pulsanti,
   bersagli da 44 px, RTL; formattazione verificata da Prettier dentro `pnpm check`.
+- Avvisare chi non ha l'email: dopo una richiesta d'integrazione (e quando la pratica è pronta)
+  la console prepara un messaggio WhatsApp/SMS nella lingua del cittadino e in italiano, con
+  nuovo link se serve; la scheda Cittadino dice chi l'ha già avvisato e quando.
+- Elenco dei documenti da portare da stampare (A4 bilingue, anche in arabo) per chi non ha lo
+  smartphone; la stampa entra nel registro attività.
 
 ## Fatto di recente (16 ottobre)
 
