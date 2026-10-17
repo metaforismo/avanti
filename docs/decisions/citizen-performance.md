@@ -44,8 +44,9 @@ anche per la navigazione dallo sportello: React applica il preload appena arriva
 
 Il token era già nell'URL e nell'HTML; `Referrer-Policy: no-referrer` resta. Un preload
 fallito per la rete viene consegnato al client come errore, come prima (schermata «Riprova»).
-`e2e/citizen-loading.spec.ts` controlla che la pratica sia letta una volta sola: se un giorno
-`apiFetch` cambia credenziali o URL, il browser la scaricherebbe due volte senza errori.
+`e2e/citizen-loading.spec.ts` controlla che il preload venga usato (Chrome lo segnala in
+console quando non lo è): se `apiFetch` cambia credenziali o URL, il browser scaricherebbe la
+pratica due volte senza errori visibili.
 
 Scartato: leggere la pratica nel server component. L'API in-process è ammessa solo per le
 GET pubbliche (vedi ARCHITECTURE.md): la lettura del cittadino è limitata e registrata per IP,
