@@ -17,6 +17,7 @@ import {
   newIdempotencyKey,
   withRetryKey,
 } from "@/lib/idempotency";
+import { casePath } from "./case-path";
 import { createLimiter } from "./limiter";
 import { prepareUpload } from "./prepare-upload";
 
@@ -108,7 +109,7 @@ export function useCitizenCase(token: string) {
   const [lastTurn, setLastTurn] = useState<IntakeTurn["type"] | null>(null);
   // The story pointed to a practice Avanti can't prepare yet: the need step offers the list.
   const [unavailablePractice, setUnavailablePractice] = useState<PracticeId | null>(null);
-  const base = `/api/c/${encodeURIComponent(token)}`;
+  const base = casePath(token);
   const inFlight = useRef(0);
   const uploadSlots = useRef(createLimiter(PARALLEL_UPLOADS));
   // The original files, so a failed upload can be retried without picking the photo again. The

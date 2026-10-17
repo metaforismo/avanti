@@ -7,8 +7,10 @@ import {
 
 // Atkinson Hyperlegible was designed for low-vision readers: our citizens include elderly
 // people and non-native speakers, so legibility beats fashion for body copy.
+// `subsets` only picks what is preloaded: every subset stays in the CSS with its unicode-range,
+// so Romanian (ă, ș, ț) still gets latin-ext, downloaded only on pages that draw those letters.
 export const body = Atkinson_Hyperlegible_Next({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
   // Next has no metric overrides for Atkinson yet; skip the (failing) fallback generation.
