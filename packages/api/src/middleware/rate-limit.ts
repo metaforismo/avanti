@@ -47,6 +47,7 @@ export const RATE_POLICIES = {
   upload: { category: "upload", primary: [minute(30), hour(120)], ip: [minute(400), hour(4000)] },
   leads: { category: "leads", primary: [], ip: [minute(5)] },
   export: { category: "export", primary: [minute(20)], ip: [minute(200)] },
+  assign: { category: "assign", primary: [minute(20), hour(200)], ip: [minute(200)] },
   link: { category: "link", primary: [minute(20)], ip: [minute(200)] },
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
@@ -78,6 +79,7 @@ function policy(path: string, method: string): Policy | null {
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
   if (method !== "POST") return null;
+  if (path === "/api/cases/assign") return RATE_POLICIES.assign;
   if (/^\/api\/cases\/[^/]+\/(reuse|documents\/[^/]+\/reuse-check)$/.test(path))
     return RATE_POLICIES.link;
   if (path === "/api/cases/families/search") return RATE_POLICIES.link;
@@ -128,7 +130,7 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       return next();
     if (
       rule &&
-      (!["export", "link", "translate", "copilot", "renewals", "renewalsRead"].includes(
+      (!["export", "link", "translate", "copilot", "renewals", "renewalsRead", "assign"].includes(
         rule.category,
       ) ||
         context.get("operator"))

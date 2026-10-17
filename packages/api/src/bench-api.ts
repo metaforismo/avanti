@@ -150,6 +150,7 @@ if (process.argv.includes("--cold")) {
       queueSearch: () => request("/api/cases?q=Esempio%2042"),
       queueReference: () => request("/api/cases?q=VOL-2027-0000042"),
       queueCursor: () => request(`/api/cases?limit=50&cursor=${page.nextCursor ?? ""}`),
+      queueWaiting: () => request("/api/cases?status=submitted&sort=waiting&limit=50"),
       dossier: () => request(`/api/cases/${volumeId(1)}`),
       metrics30: () => request("/api/metrics?from=2026-12-17&to=2027-01-15"),
       metrics90: () => request("/api/metrics?from=2026-10-18&to=2027-01-15"),

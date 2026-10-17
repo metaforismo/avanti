@@ -154,6 +154,7 @@ anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è ac
 | GET    | `/cases/:id`                             | —                            | `CaseDossier`, senza transizione di stato         |
 | GET    | `/cases/:id/dsu-sheet`                   | `Id`                         | `DsuSheet` o `null`, audit `dsu_sheet.viewed`     |
 | PATCH  | `/cases/:id`                             | `UpdateCaseRequest`          | `CaseDossier`                                     |
+| POST   | `/cases/assign`                          | `AssignCasesRequest`         | `AssignCasesResponse`, solo admin                 |
 | POST   | `/cases/:id/checklist/:itemId/review`    | `ReviewChecklistItemRequest` | `CaseDossier`                                     |
 | POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`  | `CaseDossier`                                     |
 | GET    | `/cases/:id/export?format=json`          | `ExportFormat` json o pdf    | allegato completo, evento audit di accesso        |
@@ -198,7 +199,9 @@ registra un audit senza metadata personali e non modifica stato o `updatedAt`.
 Inventario e limiti in [dsu-prospetto.md](research/dsu-prospetto.md).
 
 Lista ordinata per updatedAt e id decrescenti, cursore opaco base64url, limite default 50,
-max 100. Counts applica filtri della lista escluso lo stato selezionato. Il cursore non è
+max 100. Con `sort=waiting` l'ordine è per primo invio (`submittedAt`) e id crescenti, le
+pratiche mai inviate in fondo (indice `cases_org_status_submitted_idx`); il cursore vale solo
+per l'ordinamento che l'ha prodotto, altrimenti 400. Counts applica filtri della lista escluso lo stato selezionato. Il cursore non è
 una snapshot: modifiche concorrenti possono cambiare le pagine; ricaricare la prima pagina.
 
 Stati: submitted → in_review → ready → closed; in_review → needs_citizen → submitted
@@ -207,6 +210,38 @@ Closed non modificabile nello stato. Ready richiede intervista completa, assenza
 ogni voce obbligatoria verificata o motivatamente esentata. Rifiuto/esenzione richiedono nota.
 Integrazione preserva messaggio italiano; traduzione AI se disponibile, altrimenti avviso
 localizzato con originale visibile (mai spacciato per traduzione). Header `X-Avanti-Engine`.
+
+### Attesa in coda
+
+Ogni voce `submitted` senza assegnatario ha `waiting: {since, days, overdue}`: `since` è il
+primo invio (un reinvio dopo un'integrazione non azzera l'attesa), `days` i giorni di
+calendario italiani trascorsi, `overdue` vero oltre **2 giorni lavorativi** (lunedì–venerdì,
+festività nazionali escluse, patroni locali no; fuso Europe/Rome, stessa ora: venerdì 16:00 →
+martedì 16:00). Le altre voci hanno `waiting: null`; il dossier non lo valorizza.
+`waitingOverdue` conta le pratiche in ritardo con i filtri della lista escluso lo stato.
+Il calcolo è in `@avanti/core` (`queueWaitCutoff`): il server traduce la soglia in un istante
+e il conteggio resta un confronto su indice.
+
+### Assegnazione in blocco
+
+`POST /api/cases/assign` (solo admin, ricontrollato sotto lock con la sessione):
+
+```json
+{
+  "assigneeId": "operator-id",
+  "cases": [{ "id": "case-1", "expectedUpdatedAt": "2027-01-18T09:00:00.000Z" }]
+}
+```
+
+Da 1 a 100 pratiche distinte, ciascuna con l'`updatedAt` letto in coda; `assigneeId: null`
+toglie l'assegnazione. Destinatario dello stesso CAF (altrimenti 404) e attivo (altrimenti
+409, nulla viene assegnato). Una sola transazione con un esito per pratica, nell'ordine della
+richiesta: `assigned` (versione avanzata, audit `case.assigned` con `{bulk:true}`, senza dati
+personali), `unchanged` (già in quello stato, nessuna scrittura), `conflict` (cambiata dalla
+lettura: non toccata, `updatedAt` attuale per ricontrollare), `not_found` (inesistente o di
+un altro CAF, indistinguibili). Scelta motivata: nel picco la coda cambia di continuo e un
+lotto tutto-o-niente fallirebbe per una sola pratica; nessuna pratica cambiata viene
+sovrascritta. Limite 20/minuto e 200/ora per admin, 200/minuto per IP.
 
 ## Metriche e limiti
 

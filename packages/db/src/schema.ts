@@ -241,6 +241,7 @@ export const cases = pgTable(
       sql`(${t.renewalSourceId} is null and ${t.renewalYear} is null and ${t.renewalHouseholdConfirmedAt} is null and ${t.renewalInvitedAt} is null) or (${t.renewalSourceId} is not null and ${t.renewalYear} is not null and ${t.practiceId} is not null and ${t.renewalYear} between 2021 and 2100 and ${t.practiceId} = 'isee_ordinario' and ${t.familyId} is not null)`,
     ),
     index("cases_org_status_updated_idx").on(t.organizationId, t.status, t.updatedAt, t.id),
+    index("cases_org_status_submitted_idx").on(t.organizationId, t.status, t.submittedAt, t.id),
     index("cases_org_office_created_idx").on(t.organizationId, t.officeId, t.createdAt),
     index("cases_org_assignee_idx").on(t.organizationId, t.assigneeId),
     index("cases_reference_search_idx").using("gin", sql`${t.reference} gin_trgm_ops`),
