@@ -23,12 +23,13 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["Pixel 7"], channel: "chrome", locale: "it-IT" },
-      testMatch: /citizen|landing|accessibility/,
+      // Match the file name only: a checkout path containing «citizen» must not pull in helpers.
+      testMatch: /[^/]*(citizen|landing|accessibility)[^/]*\.spec\.ts$/,
     },
     {
       name: "desktop",
       use: { ...devices["Desktop Chrome"], channel: "chrome", locale: "it-IT" },
-      testMatch: /console|landing|screenshots/,
+      testMatch: /[^/]*(console|landing|screenshots)[^/]*\.spec\.ts$/,
     },
   ],
   // With E2E_BASE_URL the tests target an already running app (another port, a preview deploy).
