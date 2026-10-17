@@ -1133,26 +1133,6 @@ export const SystemStatus = z
         storage: StatusComponent,
         ai: StatusComponent.extend({
           configured: z.boolean(),
-          configuration: z
-            .object({
-              provider: z.enum(["openrouter", "openai", "anthropic", "gateway", "none"]),
-              models: z.object({ fast: z.string(), reasoning: z.string(), vision: z.string() }),
-              /** Backup chain tried when the tier model is slow or down. */
-              fallbacks: z.array(z.string()).default([]),
-              dataPolicy: z.enum(["strict", "permissive"]),
-              keyPresent: z.boolean(),
-              monthlyBudgetEur: z.number(),
-            })
-            .optional(),
-          budget: z
-            .object({
-              month: z.string(),
-              budgetEur: z.number(),
-              usedEur: z.number(),
-              reservedEur: z.number(),
-              exhausted: z.boolean(),
-            })
-            .optional(),
           mode: z.enum(["ai", "fallback", "unknown"]),
           /** Current UTC hour plus the preceding 23 hours, scoped to the authenticated CAF. */
           hourly: z

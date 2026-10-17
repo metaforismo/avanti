@@ -154,8 +154,8 @@ Migrazione unica `0015_ai_runtime`: tabella `ai_usage` e `settings.ai_monthly_bu
 `PATCH /api/settings` accettava `aiMonthlyBudgetEur`; dal 16 ottobre 2026 lo ignora (vedi sotto).
 `GET /api/ai/usage` è stato rimosso il 17 ottobre 2026: con l'AI inclusa nel piano modello,
 costi e budget non si mostrano ai CAF. L'uso per CAF si consulta con le CLI di piattaforma.
-Lo stato `/api/status` aggiunge configurazione pubblica (chiave presente, mai valore) e budget;
-se esaurito mostra attention/fallback.
+Dal 17 ottobre 2026 lo stato `/api/status` non mostra più configurazione e budget: dice solo se
+l'AI risponde; a budget esaurito mostra attention/fallback.
 
 L'ammissione prenota la stima conservativa sotto lock breve sull'organizzazione; la rete
 avviene dopo il commit. La riconciliazione rimpiazza la prenotazione con la stima dei token,
