@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Link2, RefreshCw, Users } from "lucide-react";
+import { ArrowUpRight, Inbox, Link2, RefreshCw, Users } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import type { Route } from "next";
@@ -305,7 +305,7 @@ export default function RenewalsPage() {
               validi.
             </EmptyState>
           ) : (
-            <EmptyState title="Nessuna famiglia in questo stato">
+            <EmptyState icon={Inbox} title="Nessuna famiglia in questo stato">
               {status === "not_invited"
                 ? "Avete già preparato il rinnovo per tutte le famiglie dell'anno scorso."
                 : "Le famiglie compaiono qui man mano che avanzano."}

@@ -83,8 +83,8 @@ export function DoneStep({ api, data, m, token }: StepProps) {
 
       {missing.length > 0 && (
         <section aria-labelledby="bring-title" className="rounded-lg bg-warn-wash/60 p-5">
-          <h2 id="bring-title" className="flex items-center gap-2 font-semibold">
-            <FileWarning className="size-5 text-warn" aria-hidden />
+          <h2 id="bring-title" className="flex items-start gap-2 font-semibold">
+            <FileWarning className="mt-0.5 size-5 shrink-0 text-warn" aria-hidden />
             {m.done.bringMissing}
           </h2>
           <ul className="mt-2 grid gap-1.5">

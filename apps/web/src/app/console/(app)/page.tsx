@@ -334,7 +334,17 @@ function Queue() {
           firstDay && !filtered ? (
             <FirstSteps />
           ) : (
-            <EmptyQueue status={status} filtered={filtered} />
+            <EmptyQueue
+              status={status}
+              filtered={filtered}
+              onClearFilters={() => {
+                setSearch("");
+                router.replace(
+                  (status === "submitted" ? "/console" : `/console?stato=${status}`) as Route,
+                  { scroll: false },
+                );
+              }}
+            />
           )
         ) : (
           <>
@@ -503,7 +513,15 @@ function PriorityBadge({ item }: { item: CaseListItem }) {
   );
 }
 
-function EmptyQueue({ status, filtered }: { status: CaseStatus; filtered: boolean }) {
+function EmptyQueue({
+  status,
+  filtered,
+  onClearFilters,
+}: {
+  status: CaseStatus;
+  filtered: boolean;
+  onClearFilters: () => void;
+}) {
   return (
     <EmptyState
       icon={Inbox}
@@ -513,16 +531,22 @@ function EmptyQueue({ status, filtered }: { status: CaseStatus; filtered: boolea
           : `Nessuna pratica: ${CASE_STATUS[status].label.toLowerCase()}`
       }
       action={
-        !filtered &&
-        status === "submitted" && (
-          <Button asChild variant="secondary">
-            <Link href="/console/sportelli">Stampa il QR dello sportello</Link>
+        filtered ? (
+          <Button variant="secondary" onClick={onClearFilters}>
+            <X className="size-4" aria-hidden />
+            Togli i filtri
           </Button>
+        ) : (
+          status === "submitted" && (
+            <Button asChild variant="secondary">
+              <Link href="/console/sportelli">Stampa il QR dello sportello</Link>
+            </Button>
+          )
         )
       }
     >
       {filtered
-        ? "Prova a togliere un filtro o a cercare un altro nome."
+        ? "Nessun risultato in questa scheda: prova le altre o cerca un altro nome."
         : status === "submitted"
           ? "Quando un cittadino invia il suo fascicolo, compare qui."
           : CASE_STATUS[status].hint + "."}

@@ -195,7 +195,7 @@ export function AssistantSheet({
                   <button
                     type="button"
                     onClick={() => setDesk(lastQuestion)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-stamp ring-1 ring-line-strong transition-colors hover:bg-stamp-wash focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-stamp ring-1 ring-line-strong transition-colors hover:bg-stamp-wash focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none"
                   >
                     <MessageCircleQuestion className="size-4" aria-hidden />
                     {m.assistant.askDesk}

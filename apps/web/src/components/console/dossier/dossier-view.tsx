@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   Check,
+  FileQuestion,
   ChevronDown,
   Download,
   FileJson,
@@ -26,6 +27,7 @@ import type {
 } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { PageContainer } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
@@ -161,19 +163,28 @@ export function DossierView({ caseId }: { caseId: string }) {
   if (dossier.status === "error" && !dossier.data) {
     const missing = dossier.error.status === 404;
     return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-center">
-        <p className="font-display text-2xl font-semibold">
-          {missing ? "Pratica non trovata" : "Fascicolo non disponibile"}
-        </p>
-        <p className="mt-2 text-ink-2">
+      <PageContainer width="3xl" centered className="py-16 lg:py-24">
+        <EmptyState
+          icon={FileQuestion}
+          title={missing ? "Pratica non trovata" : "Fascicolo non disponibile"}
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              {!missing && (
+                <Button variant="secondary" onClick={() => void reload()}>
+                  Riprova
+                </Button>
+              )}
+              <Button asChild>
+                <Link href="/console">Torna alle pratiche</Link>
+              </Button>
+            </div>
+          }
+        >
           {missing
-            ? "Potrebbe essere stata eliminata o appartenere a un altro CAF."
+            ? "Potrebbe essere stata eliminata o appartenere a un altro CAF. Puoi cercarla con ⌘K."
             : dossier.error.message}
-        </p>
-        <Button asChild variant="secondary" className="mt-6">
-          <Link href="/console">Torna alle pratiche</Link>
-        </Button>
-      </div>
+        </EmptyState>
+      </PageContainer>
     );
   }
 

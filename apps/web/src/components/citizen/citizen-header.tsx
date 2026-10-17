@@ -65,7 +65,7 @@ export function CitizenHeader({
         <AssistantButton label={m.assistant.open} />
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
-            className="inline-flex h-10 items-center gap-1.5 rounded-sm px-2.5 text-sm font-semibold text-ink-2 ring-1 ring-line-strong ring-inset hover:bg-sunk data-[state=open]:bg-sunk"
+            className="inline-flex h-11 items-center gap-1.5 rounded-sm px-2.5 text-sm font-semibold text-ink-2 ring-1 ring-line-strong ring-inset hover:bg-sunk data-[state=open]:bg-sunk"
             aria-label={`${m.common.language}: ${LANGUAGE_NAMES[data.language].native}`}
           >
             {switching ? <Spinner className="size-4" /> : <Globe className="size-4" aria-hidden />}
@@ -162,10 +162,11 @@ function AssistantButton({ label }: { label: string }) {
     <button
       type="button"
       onClick={() => open()}
-      className="inline-flex h-10 items-center gap-1.5 rounded-sm px-2.5 text-sm font-semibold text-stamp ring-1 ring-stamp/30 ring-inset hover:bg-stamp-wash"
+      className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-sm px-2.5 text-sm font-semibold text-stamp ring-1 ring-stamp/30 ring-inset hover:bg-stamp-wash"
     >
       <MessageCircleQuestion className="size-4" aria-hidden />
-      {label}
+      {/* On the narrowest phones the icon alone leaves room for the CAF's name. */}
+      <span className="max-[359px]:sr-only">{label}</span>
     </button>
   );
 }

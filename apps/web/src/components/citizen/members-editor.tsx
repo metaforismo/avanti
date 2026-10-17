@@ -217,7 +217,7 @@ function MemberRow({
               <label
                 key={role}
                 className={cn(
-                  "inline-flex min-h-10 cursor-pointer items-center rounded-full px-3.5 text-sm ring-1 ring-line-strong ring-inset",
+                  "inline-flex min-h-11 cursor-pointer items-center rounded-full px-3.5 text-sm ring-1 ring-line-strong ring-inset",
                   "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
                   member.role === role
                     ? "bg-contrast font-semibold text-on-contrast ring-contrast"
