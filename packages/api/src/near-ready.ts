@@ -420,7 +420,11 @@ export async function recordNearReadyFinal(
   if (!evaluation) return false;
   let recorded = false;
   const known = await db
-    .select({ action: nearReadyEvents.action })
+    .select({
+      id: nearReadyEvents.id,
+      action: nearReadyEvents.action,
+      reason: nearReadyEvents.reason,
+    })
     .from(nearReadyEvents)
     .where(
       and(
@@ -428,22 +432,32 @@ export async function recordNearReadyFinal(
         inArray(nearReadyEvents.action, ["final_decision", "critical_error"]),
       ),
     );
-  if (!known.some((event) => event.action === "final_decision")) {
+  const final = known.find((event) => event.action === "final_decision");
+  const detail = {
+    ready,
+    reason: reason ?? null,
+    durationMinutes: row.reviewStartedAt
+      ? Math.max(0, (now.getTime() - Date.parse(row.reviewStartedAt)) / 60000)
+      : null,
+  };
+  if (!final) {
     await nearReadyEvent(
       db,
       evaluation,
       "final_decision",
       now,
       actorId,
-      {
-        ready,
-        reason: reason ?? null,
-        durationMinutes: row.reviewStartedAt
-          ? Math.max(0, (now.getTime() - Date.parse(row.reviewStartedAt)) / 60000)
-          : null,
-      },
+      detail,
       row.contentVersion,
     );
+    recorded = true;
+  } else if (final.reason === INTEGRATION_REQUESTED && reason !== INTEGRATION_REQUESTED) {
+    // The automatic label is provisional: the operator's own outcome on the same content (a
+    // withdrawn request, then «pronta»; or a precise reason) replaces it.
+    await db
+      .update(nearReadyEvents)
+      .set({ ...detail, actorId, at: now.toISOString() })
+      .where(eq(nearReadyEvents.id, final.id));
     recorded = true;
   }
   // A critical error is a failure of the suggestion: an evaluation that suggested nothing
@@ -473,6 +487,25 @@ export async function recordNearReadyFinal(
     recorded = true;
   }
   return recorded;
+}
+const INTEGRATION_REQUESTED = "integration_requested";
+/**
+ * Asking the citizen for a required document says the dossier, as delivered, was not ready.
+ * Labels only a suggestion of the current content (suggested, accepted, dismissed or shadow):
+ * an evaluation that suggested nothing has no precision to lose. Never a critical error.
+ */
+export async function recordIntegrationRequested(
+  db: Database,
+  row: CaseRow,
+  now: Date,
+  actorId: string,
+) {
+  const evaluation = await nearReadyAtContent(db, row);
+  if (
+    evaluation?.eligible &&
+    ["suggested", "accepted", "dismissed", "shadow"].includes(evaluation.state)
+  )
+    await recordNearReadyFinal(db, row, now, actorId, false, INTEGRATION_REQUESTED);
 }
 export function mountNearReady(app: App, s: Services) {
   app.post("/cases/:id/near-ready/evaluate", async (c) => {

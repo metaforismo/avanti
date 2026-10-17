@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { createRetryKeys, withRetryKey } from "@/lib/idempotency";
 import { cn } from "@/lib/cn";
 import {
   ChatInput,
@@ -61,6 +62,7 @@ export function DossierChat({
   const field = useRef<HTMLTextAreaElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const fieldId = useId();
+  const keys = useRef(createRetryKeys());
 
   useEffect(() => {
     if (!open || turns !== null || loadFailed) return;
@@ -110,10 +112,13 @@ export function DossierChat({
     try {
       // No history from the client: the server rebuilds it from saved answers about this
       // dossier version only, so an answer about an older version never becomes a fact.
-      const { turn, ...response } = await apiFetch<DossierAskResult>(base, {
-        method: "POST",
-        body: { question: value },
-      });
+      const { turn, ...response } = await withRetryKey(
+        keys.current,
+        "ask",
+        { question: value },
+        (headers) =>
+          apiFetch<DossierAskResult>(base, { method: "POST", body: { question: value }, headers }),
+      );
       setTurns((current) => [...(current ?? []), { ...turn, question: value, response }]);
     } catch (err) {
       setText(value);

@@ -24,6 +24,7 @@ import { ApiFailure, notFound } from "./security";
 import { observeAi } from "./operational-telemetry";
 import { rateKey, rateLimitSecret } from "./rate-limit-key";
 import { audioMetadata } from "./speech-audio";
+import { idempotent, remember, replayOf, type IdempotentResult } from "./idempotency";
 
 async function assistantBody<T>(c: ApiContext, schema: z.ZodType<T>) {
   try {
@@ -43,6 +44,21 @@ async function citizenAiAllowed(s: Services, organizationId: string) {
     .from(settings)
     .where(eq(settings.organizationId, organizationId));
   return policy?.enabled !== false;
+}
+/** The reply saved by the first attempt, for a retry whose response was lost. */
+async function savedReply(s: Services, caseId: string, result: IdempotentResult) {
+  const [message] = await s.db
+    .select()
+    .from(messages)
+    .where(and(eq(messages.caseId, caseId), eq(messages.id, result.replyId ?? "")));
+  if (!message?.assistantMetadata) throw notFound();
+  return AssistantReply.parse({
+    id: message.id,
+    reply: message.text,
+    ...message.assistantMetadata,
+    engine: result.engine,
+    createdAt: iso(message.createdAt),
+  });
 }
 export function mountCitizenAssistant(app: App, s: Services) {
   app.get("/c/:token/assistant", async (c) => {
@@ -65,6 +81,12 @@ export function mountCitizenAssistant(app: App, s: Services) {
   app.post("/c/:token/assistant", async (c) => {
     const row = c.get("citizen"),
       input = await assistantBody(c, AssistantAsk);
+    const action = idempotent(c, { caseId: row.id, actor: "citizen", route: "assistant" }, input);
+    const previous = await replayOf(s.db, action, s.clock());
+    if (previous) {
+      await currentCitizenLink(s.db, row, s.clock());
+      return c.json(await savedReply(s, row.id, previous));
+    }
     const view = await citizenView(s.db, row, s.clock());
     const history = await s.db
       .select()
@@ -103,8 +125,11 @@ export function mountCitizenAssistant(app: App, s: Services) {
         title: taskInput.context.find((i) => i.id === id)!.title,
       })),
     });
-    await s.db.transaction(async (tx) => {
+    const replay = await s.db.transaction(async (tx) => {
       const current = await currentCitizenLink(tx, row, s.clock(), true);
+      // Two attempts in flight: the later one answers with the reply the first one saved.
+      const replay = await replayOf(tx, action, s.clock());
+      if (replay) return replay;
       const [latest] = await tx
         .select({ at: messages.createdAt })
         .from(messages)
@@ -138,15 +163,19 @@ export function mountCitizenAssistant(app: App, s: Services) {
         .update(cases)
         .set({ updatedAt: nextCaseUpdate(current, s.clock()) })
         .where(eq(cases.id, row.id));
+      await remember(tx, action, s.clock(), { replyId: reply.id, engine: reply.engine });
+      return null;
     });
-    return c.json(reply);
+    return c.json(replay ? await savedReply(s, row.id, replay) : reply);
   });
   app.post("/c/:token/assistant/ask-desk", async (c) => {
     const row = c.get("citizen"),
       input = await assistantBody(c, AskDesk),
       now = s.clock();
+    const action = idempotent(c, { caseId: row.id, actor: "citizen", route: "ask-desk" }, input);
     await s.db.transaction(async (tx) => {
       const current = await currentCitizenLink(tx, row, s.clock(), true);
+      if (await replayOf(tx, action, now)) return;
       await tx.insert(messages).values({
         id: crypto.randomUUID(),
         caseId: row.id,
@@ -162,6 +191,7 @@ export function mountCitizenAssistant(app: App, s: Services) {
         .update(cases)
         .set({ updatedAt: nextCaseUpdate(current, now) })
         .where(eq(cases.id, row.id));
+      await remember(tx, action, now);
     });
     return c.json({ ok: true }, 201);
   });

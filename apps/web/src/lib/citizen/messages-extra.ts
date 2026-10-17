@@ -209,6 +209,8 @@ export const fr: M = {
     tooLarge:
       "Le fichier est trop lourd. Maximum 4 Mo : essayez de prendre la page en photo au lieu du PDF.",
     unsupported: "Ce type de fichier n'est pas accepté. Utilisez une photo (JPG, PNG) ou un PDF.",
+    caseFull:
+      "Vous avez atteint la limite de documents pour cette demande : 60 fichiers ou 120 Mo au total. Supprimez ceux qui ne servent pas et réessayez.",
     compressFailed: "Impossible de réduire cette photo. Reprenez-la.",
     allDone: "Tous les documents obligatoires sont prêts.",
     missing: "Il en manque {n}. Vous pouvez envoyer quand même : le guichet vous les demandera.",
@@ -519,6 +521,8 @@ export const es: M = {
     tooLarge:
       "El archivo es demasiado grande. El máximo es 4 MB: prueba a hacer una foto de la página en vez del PDF.",
     unsupported: "Este tipo de archivo no se admite. Usa una foto (JPG, PNG) o un PDF.",
+    caseFull:
+      "Has llegado al límite de documentos de este trámite: 60 archivos o 120 MB en total. Elimina los que no necesitas y vuelve a intentarlo.",
     compressFailed: "No podemos reducir esta foto. Hazla de nuevo.",
     allDone: "Todos los documentos obligatorios están listos.",
     missing: "Faltan {n}. Puedes enviar igualmente: en la ventanilla te los pedirán.",
@@ -827,6 +831,8 @@ export const ro: M = {
       "Fișierul este prea mare. Maximum 4 MB: încearcă să fotografiezi pagina în loc de PDF.",
     unsupported:
       "Acest tip de fișier nu este acceptat. Folosește o fotografie (JPG, PNG) sau un PDF.",
+    caseFull:
+      "Ai atins limita de documente pentru această cerere: 60 de fișiere sau 120 MB în total. Șterge-le pe cele de care nu ai nevoie și încearcă din nou.",
     compressFailed: "Nu putem micșora această fotografie. Fă-o din nou.",
     allDone: "Toate documentele obligatorii sunt gata.",
     missing: "Mai lipsesc {n}. Poți trimite oricum: ghișeul ți le va cere.",
@@ -1130,6 +1136,8 @@ export const uk: M = {
     removed: "Документ видалено",
     tooLarge: "Файл завеликий. Максимум 4 МБ: спробуйте сфотографувати сторінку замість PDF.",
     unsupported: "Такий тип файлу не підтримується. Використайте фото (JPG, PNG) або PDF.",
+    caseFull:
+      "Ви досягли ліміту документів для цієї заяви: 60 файлів або 120 МБ загалом. Видаліть непотрібні й спробуйте ще раз.",
     compressFailed: "Не вдалося зменшити фото. Сфотографуйте ще раз.",
     allDone: "Усі обов’язкові документи готові.",
     missing: "Бракує ще {n}. Можна надіслати й так: у вікні обслуговування їх попросять.",
@@ -1434,6 +1442,8 @@ export const ar: M = {
     removed: "تم حذف الوثيقة",
     tooLarge: "الملف كبير جداً. الحد الأقصى 4 ميغابايت: جرّب تصوير الصفحة بدلاً من ملف PDF.",
     unsupported: "نوع الملف غير مدعوم. استخدم صورة (JPG أو PNG) أو ملف PDF.",
+    caseFull:
+      "وصلت إلى الحد الأقصى للوثائق في هذا الطلب: 60 ملفاً أو 120 ميغابايت في المجموع. احذف الوثائق التي لا تحتاجها وحاول مرة أخرى.",
     compressFailed: "لم نتمكن من تصغير هذه الصورة. التقطها مرة أخرى.",
     allDone: "كل الوثائق الإلزامية جاهزة.",
     missing: "ما زال ينقص {n}. يمكنك الإرسال الآن وسيطلبها منك شباك الخدمة.",
@@ -1737,6 +1747,8 @@ export const bn: M = {
     removed: "নথিটি মুছে ফেলা হয়েছে",
     tooLarge: "ফাইলটি অনেক বড়। সর্বোচ্চ ৪ MB: PDF-এর বদলে পৃষ্ঠাটির ছবি তুলে দেখুন।",
     unsupported: "এই ধরনের ফাইল চলবে না। ছবি (JPG, PNG) বা PDF ব্যবহার করুন।",
+    caseFull:
+      "এই আবেদনে নথির সীমা পূর্ণ হয়েছে: মোট ৬০টি ফাইল বা ১২০ MB। যে নথিগুলো দরকার নেই সেগুলো মুছে আবার চেষ্টা করুন।",
     compressFailed: "ছবিটি ছোট করা গেল না। আবার ছবি তুলুন।",
     allDone: "সব বাধ্যতামূলক নথি প্রস্তুত।",
     missing: "এখনও {n}টি বাকি। তবুও পাঠাতে পারেন: সেবা কাউন্টার পরে চেয়ে নেবে।",

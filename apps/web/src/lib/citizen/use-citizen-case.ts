@@ -11,6 +11,12 @@ import type {
   SubmitCaseRequest,
 } from "@avanti/contracts";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import {
+  createRetryKeys,
+  IDEMPOTENCY_HEADER,
+  newIdempotencyKey,
+  withRetryKey,
+} from "@/lib/idempotency";
 import { createLimiter } from "./limiter";
 import { prepareUpload } from "./prepare-upload";
 
@@ -45,6 +51,7 @@ export const UPLOAD_RESPONSE_MS = 120_000;
 function uploadWithProgress(
   url: string,
   body: FormData,
+  key: string,
   onProgress: (fraction: number) => void,
 ): Promise<CitizenCase> {
   return new Promise((resolve, reject) => {
@@ -61,6 +68,7 @@ function uploadWithProgress(
     xhr.open("POST", url);
     xhr.responseType = "json";
     xhr.setRequestHeader("Accept", "application/json");
+    xhr.setRequestHeader(IDEMPOTENCY_HEADER, key);
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
       wait(UPLOAD_STALL_MS);
@@ -103,14 +111,20 @@ export function useCitizenCase(token: string) {
   const base = `/api/c/${encodeURIComponent(token)}`;
   const inFlight = useRef(0);
   const uploadSlots = useRef(createLimiter(PARALLEL_UPLOADS));
-  // The original files, so a failed upload can be retried without picking the photo again.
-  const uploadFiles = useRef(new Map<string, { file: File; checklistItemId: string | null }>());
+  // The original files, so a failed upload can be retried without picking the photo again. The
+  // key travels with the file: a retry after a lost response must not store the document twice.
+  const uploadFiles = useRef(
+    new Map<string, { file: File; checklistItemId: string | null; key: string }>(),
+  );
+  const keys = useRef(createRetryKeys());
 
   const loadedAt = useRef(0);
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<CitizenCase>(base);
+      // The case on screen now shows whether an earlier attempt went through.
+      keys.current.clear();
       loadedAt.current = Date.now();
       setState({ kind: "ready", data });
     } catch (error) {
@@ -196,7 +210,9 @@ export function useCitizenCase(token: string) {
   const turn = useCallback(
     (input: IntakeTurn, key: string = input.type) =>
       run(key, () =>
-        apiFetch<IntakeTurnResponse>(`${base}/turn`, { method: "POST", body: input }),
+        withRetryKey(keys.current, "turn", input, (headers) =>
+          apiFetch<IntakeTurnResponse>(`${base}/turn`, { method: "POST", body: input, headers }),
+        ),
       ).then((data) => {
         if (data) {
           setLastTurn(input.type);
@@ -229,7 +245,9 @@ export function useCitizenCase(token: string) {
   const removeDocument = useCallback(
     (documentId: string) =>
       run(`remove:${documentId}`, () =>
-        apiFetch<CitizenCase>(`${base}/documents/${documentId}`, { method: "DELETE" }),
+        withRetryKey(keys.current, "remove", documentId, (headers) =>
+          apiFetch<CitizenCase>(`${base}/documents/${documentId}`, { method: "DELETE", headers }),
+        ),
       ).then(apply),
     [apply, base, run],
   );
@@ -246,15 +264,17 @@ export function useCitizenCase(token: string) {
   const submit = useCallback(
     (input: SubmitCaseRequest) =>
       run("submit", () =>
-        apiFetch<CitizenCase>(`${base}/submit`, { method: "POST", body: input }),
+        withRetryKey(keys.current, "submit", input, (headers) =>
+          apiFetch<CitizenCase>(`${base}/submit`, { method: "POST", body: input, headers }),
+        ),
       ).then(apply),
     [apply, base, run],
   );
 
   const upload = useCallback(
-    async (file: File, checklistItemId: string | null) => {
+    async (file: File, checklistItemId: string | null, key = newIdempotencyKey()) => {
       const id = crypto.randomUUID();
-      uploadFiles.current.set(id, { file, checklistItemId });
+      uploadFiles.current.set(id, { file, checklistItemId, key });
       const patch = (update: Partial<PendingUpload>) =>
         setUploads((list) => list.map((u) => (u.id === id ? { ...u, ...update } : u)));
       setUploads((list) => [
@@ -275,7 +295,7 @@ export function useCitizenCase(token: string) {
         if (checklistItemId) body.append("checklistItemId", checklistItemId);
         inFlight.current += 1;
         try {
-          const data = await uploadWithProgress(`${base}/documents`, body, (p) =>
+          const data = await uploadWithProgress(`${base}/documents`, body, key, (p) =>
             patch({ progress: p }),
           );
           setUploads((list) => list.filter((u) => u.id !== id));
@@ -303,7 +323,7 @@ export function useCitizenCase(token: string) {
     (id: string) => {
       const original = uploadFiles.current.get(id);
       dismissUpload(id);
-      if (original) void upload(original.file, original.checklistItemId);
+      if (original) void upload(original.file, original.checklistItemId, original.key);
     },
     [dismissUpload, upload],
   );

@@ -212,6 +212,8 @@ const it = {
     tooLarge:
       "Il file è troppo grande. Il massimo è 4 MB: prova a fotografare la pagina invece del PDF.",
     unsupported: "Questo tipo di file non è supportato. Usa una foto (JPG, PNG) o un PDF.",
+    caseFull:
+      "Hai raggiunto il limite di documenti per questa pratica: 60 file o 120 MB in tutto. Elimina quelli che non servono e riprova.",
     compressFailed: "Non riesco a ridurre questa foto. Prova a fotografare di nuovo.",
     allDone: "Tutti i documenti obbligatori sono pronti.",
     missing: "Ne mancano {n}. Puoi inviare lo stesso: lo sportello te li chiederà.",
@@ -527,6 +529,8 @@ const en: Widen<CitizenMessages> = {
     tooLarge:
       "The file is too large. The limit is 4 MB: try taking a photo of the page instead of the PDF.",
     unsupported: "This file type isn't supported. Use a photo (JPG, PNG) or a PDF.",
+    caseFull:
+      "You have reached the document limit for this application: 60 files or 120 MB in total. Delete the ones you don't need and try again.",
     compressFailed: "We couldn't shrink this photo. Please take it again.",
     allDone: "All required documents are ready.",
     missing: "{n} still missing. You can send anyway: the desk will ask you for them.",
@@ -662,6 +666,8 @@ export function errorMessage(m: Widen<CitizenMessages>, code: ErrorCode | "netwo
       return m.docs.tooLarge;
     case "unsupported_file":
       return m.docs.unsupported;
+    case "case_full":
+      return m.docs.caseFull;
     case "network":
       return m.errors.network;
     case "practice_unavailable":

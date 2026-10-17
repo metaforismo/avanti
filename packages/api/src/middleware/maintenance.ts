@@ -16,6 +16,7 @@ import { ApiFailure } from "../security";
 import { purgeAuditEvents } from "../audit-log";
 import { maintainNotifications } from "../notifications";
 import { startSystemJob, finishSystemJob } from "../operational-telemetry";
+import { purgeIdempotencyKeys } from "../idempotency";
 
 export function mountMaintenance(app: App, s: Services) {
   app.get("/cron/maintenance", async (c) => {
@@ -57,6 +58,7 @@ export function mountMaintenance(app: App, s: Services) {
           ),
         );
       await clearExpiredRateLimits(s.db, now);
+      await purgeIdempotencyKeys(s.db, now);
       const notificationResult = await maintainNotifications(s, now);
       await startSystemJob(s, "retention", runId);
       let deletedCases: number;

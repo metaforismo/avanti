@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog } from "@/components/ui/dialog";
 import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { createRetryKeys, withRetryKey } from "@/lib/idempotency";
 import { LANGUAGE_IT } from "@/lib/console/labels";
 import { useResource } from "@/lib/console/use-resource";
 
@@ -175,6 +176,8 @@ function RequestForm({
   };
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Sending again after a lost response must not send the citizen the request twice.
+  const keys = useRef(createRetryKeys());
 
   const toggle = (id: string, on: boolean) => {
     const next = on ? [...selected, id] : selected.filter((x) => x !== id);
@@ -194,16 +197,13 @@ function RequestForm({
     setPending(true);
     setError(null);
     try {
-      const result = await apiFetch<CaseDossier | { ok: true }>(
-        `/api/cases/${dossier.id}/requests`,
-        {
+      const payload = { checklistItemIds: selected, message: message.trim() };
+      const result = await withRetryKey(keys.current, "request", payload, (headers) =>
+        apiFetch<CaseDossier | { ok: true }>(`/api/cases/${dossier.id}/requests`, {
           method: "POST",
-          body: {
-            checklistItemIds: selected,
-            message: message.trim(),
-            expectedUpdatedAt: dossier.updatedAt,
-          },
-        },
+          body: { ...payload, expectedUpdatedAt: dossier.updatedAt },
+          headers,
+        }),
       );
       onDone(result && "checklist" in result ? result : null);
     } catch (err) {

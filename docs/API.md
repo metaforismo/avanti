@@ -5,6 +5,18 @@ Base path `/api`, JSON UTF-8, backend Hono in Next runtime Node. Schemi request/
 `ApiError`: messaggio sicuro, codice stabile e request ID; niente stack o SQL. Gli errori
 di dominio dell'intervista sono nella lingua cittadino, gli errori infrastrutturali in italiano.
 
+Ritentativi: le scritture che ripeterebbero un effetto visibile o una chiamata AI accettano
+l'header facoltativo `Idempotency-Key` (16–128 caratteri `[A-Za-z0-9_-]`, un UUID va bene):
+cittadino `POST /turn`, `/conversation`, `/conversation/confirm`, `/assistant`,
+`/assistant/ask-desk`, `/documents`, `/submit` e `DELETE /documents/:id`; operatore
+`POST /cases/:id/requests` e `/cases/:id/ai/ask`. Il client genera una chiave per azione e la
+rimanda identica a ogni ritentativo: entro 24 ore il server risponde con il risultato del primo
+tentativo (stato attuale ricostruito, o la risposta già salvata) senza ripetere effetto, AI o
+storage, anche se due tentativi arrivano insieme. La chiave vale per pratica e persona; riusata
+con un'altra rotta o un altro input dà `409 conflict`, malformata `400 bad_request`. Senza
+header il comportamento non cambia. Scelte e limiti in
+[decisions/retry-safety.md](decisions/retry-safety.md).
+
 `GET /api/status` restituisce `SystemStatus` solo agli admin del CAF autenticato:
 componenti, contatori senza dati personali, job e versione. Contratto, esempio JSON,
 scope e soglie in [SYSTEM_STATUS.md](SYSTEM_STATUS.md).
@@ -40,7 +52,8 @@ Il link è una credenziale: frontend/proxy devono oscurarlo dai log e applicare 
 | GET    | `/documents/:id/file`     | —                                        | allegato autorizzato                        |
 | POST   | `/submit`                 | `SubmitCaseRequest`                      | `CitizenCase` con stato submitted           |
 
-Intervista/upload modificabili in `intake` o `needs_citizen`. Invio richiede pratica e
+Intervista/upload modificabili in `intake` o `needs_citizen`. Oltre 60 documenti o 120 MB per
+pratica l'upload risponde `409 case_full` (codice proprio, tradotto dal frontend). Invio richiede pratica e
 intervista terminata; può contenere documenti mancanti, esplicitamente segnalati. La prima
 completezza è fotografata al primo invio e non riscritta da integrazioni successive.
 
@@ -1111,7 +1124,13 @@ Content-Type: application/json
 `criticalError`: `identity | household | year | missing_document`; richiede admin.
 L’endpoint non cambia lo stato ufficiale. `ready: true` è ammesso solo se lo stato
 è già ready. La decisione finale etichetta soltanto la valutazione della versione di
-contenuto corrente; la prima decisione di quella valutazione resta immutabile.
+contenuto corrente; la prima decisione di quella valutazione resta immutabile, salvo
+l'esito automatico della richiesta di integrazione. `POST /cases/:id/requests` con almeno una
+voce obbligatoria registra `final_decision` `ready: false`, motivo `integration_requested`,
+sulla valutazione idonea del contenuto corrente (suggerita, accettata, scartata o in ombra),
+senza errore critico e senza togliere il giudizio cieco. È provvisorio: un esito esplicito
+sullo stesso contenuto (`PATCH status: ready` dopo il ritiro della richiesta, oppure
+«non era pronta» con motivo o errore critico) lo sostituisce.
 Il passaggio `PATCH status: ready` registra la conferma su quella valutazione nella stessa
 transazione, anche dopo presa in carico e verifica delle voci. Le versioni precedenti non
 ereditano l’esito. L'endpoint non risponde mai 200 senza registrare: `409 conflict` se il

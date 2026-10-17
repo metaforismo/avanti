@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { createRetryKeys, withRetryKey } from "@/lib/idempotency";
 
 import type { AssistantReply, AssistantTurn } from "@avanti/contracts";
 
@@ -25,6 +26,7 @@ export function useAssistant(token: string) {
   const [history, setHistory] = useState<History | null>(null);
   const [pending, setPending] = useState<"load" | "ask" | "desk" | null>(null);
   const [error, setError] = useState<ApiRequestError | null>(null);
+  const keys = useRef(createRetryKeys());
 
   const fail = (err: unknown) =>
     setError(err instanceof ApiRequestError ? err : new ApiRequestError(0, "internal", ""));
@@ -57,10 +59,9 @@ export function useAssistant(token: string) {
         remainingToday: h?.remainingToday ?? 0,
       }));
       try {
-        const reply = await apiFetch<AssistantReply>(base, {
-          method: "POST",
-          body: { message, focus },
-        });
+        const reply = await withRetryKey(keys.current, "ask", { message, focus }, (headers) =>
+          apiFetch<AssistantReply>(base, { method: "POST", body: { message, focus }, headers }),
+        );
         const turn: AssistantTurn = {
           id: reply.id,
           role: "assistant",
@@ -93,7 +94,9 @@ export function useAssistant(token: string) {
       setPending("desk");
       setError(null);
       try {
-        await apiFetch(`${base}/ask-desk`, { method: "POST", body: { message } });
+        await withRetryKey(keys.current, "desk", { message }, (headers) =>
+          apiFetch(`${base}/ask-desk`, { method: "POST", body: { message }, headers }),
+        );
         return true;
       } catch (err) {
         fail(err);

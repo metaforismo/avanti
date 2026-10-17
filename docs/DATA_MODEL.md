@@ -34,6 +34,7 @@ della directory. In produzione le migrazioni si applicano esplicitamente con
 | `settings`           | Baseline dichiarata, retention (default 180 giorni), durata link (default 60 giorni).                                                                                         |
 | `notifications`      | Outbox atomica degli eventi: tipo, lingua, ID tecnici, envelope AES-GCM con destinatario e messaggio minimo, stato, tentativi, prossimo tentativo, lease ed errore sintetico. |
 | `rate_limits`        | Contatori e scadenze; la chiave deve essere un hash, senza IP in chiaro.                                                                                                      |
+| `idempotency_keys`   | Chiavi dei ritentativi per pratica e attore (0028): rotta, impronta SHA-256 dell'input, soli riferimenti al risultato; 24 ore, cancellate con la pratica.                     |
 | `reference_counters` | Progressivo atomico per organizzazione e anno.                                                                                                                                |
 
 `settings` include `notifyCitizenReady` e `notifyOperatorDigest` (false per default),

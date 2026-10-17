@@ -1150,3 +1150,143 @@ it("una verifica manuale antecedente a nuove risposte non evita la rilettura deg
   );
   expect(evaluation?.reading).toBe("ai");
 });
+const askIntegration = async (checklistItemIds: string[]) =>
+  request("/cases/case/requests", "POST", {
+    expectedUpdatedAt: (await current()).updatedAt,
+    checklistItemIds,
+    message: "Serve un documento più leggibile.",
+  });
+const finals = () =>
+  db.select().from(nearReadyEvents).where(eq(nearReadyEvents.action, "final_decision"));
+it("integrazione su una voce obbligatoria: «non era pronta» sulla valutazione suggerita, contata dalla precisione", async () => {
+  const view = NearReady.parse(await (await evaluate()).json());
+  expect(view.state).toBe("suggested");
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  await db
+    .update(cases)
+    .set({ reviewStartedAt: new Date(now.getTime() - 3 * 60000).toISOString() })
+    .where(eq(cases.id, "case"));
+  expect((await askIntegration(["identity:person"])).status).toBe(200);
+  expect(await finals()).toMatchObject([
+    {
+      evaluationId: view.evaluationId,
+      ready: false,
+      reason: "integration_requested",
+      actorId: "admin",
+      durationMinutes: 3,
+    },
+  ]);
+  // A second request on the same content and the citizen's reply add nothing to this label.
+  expect((await askIntegration(["tax_code:person"])).status).toBe(200);
+  await citizenChanges();
+  expect(await finals()).toHaveLength(1);
+  const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
+  expect(report.total).toMatchObject({
+    unjudged: 0,
+    reviewedSelected: 1,
+    falseNearReady: 1,
+    criticalErrors: 0,
+    precision: 0,
+  });
+  const [policy] = await db.select().from(settings).where(eq(settings.organizationId, "org"));
+  expect(policy?.nearReadySuspendedAt).toBeNull();
+});
+it("un suggerimento scartato riceve comunque l'esito dell'integrazione", async () => {
+  const view = NearReady.parse(await (await evaluate()).json());
+  const dismissed = await request("/cases/case/near-ready/decision", "POST", {
+    evaluationId: view.evaluationId,
+    expectedUpdatedAt: (await current()).updatedAt,
+    decision: "dismiss",
+    reason: "household",
+  });
+  expect(dismissed.status).toBe(200);
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect((await askIntegration(["tax_code:person"])).status).toBe(200);
+  expect(await finals()).toMatchObject([{ ready: false, reason: "integration_requested" }]);
+});
+it("integrazione solo per voci facoltative o senza voci: nessun esito automatico", async () => {
+  const view = NearReady.parse(await (await evaluate()).json());
+  expect(view.state).toBe("suggested");
+  // An optional item on the judged content (direct write: content_version does not move).
+  await db
+    .update(cases)
+    .set({ answers: sql`${cases.answers} || '{"excluded_savings": true}'::jsonb` })
+    .where(eq(cases.id, "case"));
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect((await askIntegration(["excluded_savings:case"])).status).toBe(200);
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect((await askIntegration([])).status).toBe(200);
+  expect(await finals()).toEqual([]);
+});
+it("richiesta ritirata e poi «pronta» sullo stesso contenuto: vale l'esito dell'operatore", async () => {
+  const view = NearReady.parse(await (await evaluate()).json());
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect((await askIntegration(["identity:person"])).status).toBe(200);
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect((await db.select().from(nearReadyEvaluations))[0]?.state).toBe("suggested");
+  await verifyAll();
+  expect((await patchCase({ status: "ready" })).status).toBe(200);
+  expect(await finals()).toMatchObject([
+    { evaluationId: view.evaluationId, ready: true, reason: null },
+  ]);
+  const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
+  expect(report.total).toMatchObject({ correctSelected: 1, falseNearReady: 0 });
+});
+it("un esito già registrato resta; un motivo preciso o un errore grave sostituiscono quello automatico", async () => {
+  await evaluate();
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect((await finalDecision({ ready: false, reason: "household" })).status).toBe(200);
+  expect((await askIntegration(["identity:person"])).status).toBe(200);
+  expect(await finals()).toMatchObject([{ ready: false, reason: "household" }]);
+
+  await db.execute(sql`truncate near_ready_evaluations cascade`);
+  await db.update(cases).set({ status: "in_review" }).where(eq(cases.id, "case"));
+  await citizenChanges();
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect(NearReady.parse(await (await evaluate()).json()).state).toBe("suggested");
+  expect((await askIntegration(["identity:person"])).status).toBe(200);
+  const critical = await finalDecision({
+    ready: false,
+    reason: "identity",
+    criticalError: "identity",
+  });
+  expect(critical.status).toBe(200);
+  expect(await finals()).toMatchObject([{ ready: false, reason: "identity" }]);
+  expect(
+    await db.select().from(nearReadyEvents).where(eq(nearReadyEvents.action, "critical_error")),
+  ).toHaveLength(1);
+});
+it("ombra: l'integrazione registra l'esito senza togliere il giudizio cieco; nulla senza suggerimento", async () => {
+  await db
+    .update(settings)
+    .set({ nearReadyMode: "shadow" })
+    .where(eq(settings.organizationId, "org"));
+  expect(NearReady.parse(await (await evaluate()).json()).state).toBe("shadow");
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect((await askIntegration(["identity:person"])).status).toBe(200);
+  expect(await finals()).toMatchObject([{ ready: false, reason: "integration_requested" }]);
+  const dossier = CaseDossier.parse(await (await request("/cases/case")).json());
+  expect(dossier.nearReady).toMatchObject({ blindReviewRequired: true, result: null });
+  const blind = await request("/cases/case/near-ready/blind-review", "POST", {
+    expectedUpdatedAt: (await current()).updatedAt,
+    ready: true,
+    reason: "other",
+  });
+  expect(blind.status).toBe(200);
+  const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
+  expect(report.total).toMatchObject({ disagreements: 1, falseNearReady: 1 });
+
+  await db.execute(sql`truncate near_ready_evaluations cascade`);
+  reply = async (r) => {
+    const result = await baselineReply(r);
+    if (r.system.includes("cross-check the pilot"))
+      result.output = { consistent: false, securityWarning: false };
+    return result;
+  };
+  await citizenChanges();
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  await evaluate();
+  expect((await db.select().from(nearReadyEvaluations))[0]?.eligible).toBe(false);
+  expect((await askIntegration(["identity:person"])).status).toBe(200);
+  expect(await finals()).toEqual([]);
+});

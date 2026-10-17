@@ -28,3 +28,10 @@ export const PASSWORD_MIN_LENGTH = 12;
 
 /** Most cases an admin can assign in one go: two full queue pages. */
 export const ASSIGN_CASES_MAX = 100;
+
+/**
+ * Optional on writes that would repeat a visible effect or an AI call. The client generates one
+ * per action and sends the same value on every retry of that action; the server answers a
+ * retry with the result of the first attempt instead of doing it again (24 hours).
+ */
+export const IDEMPOTENCY_HEADER = "Idempotency-Key";
