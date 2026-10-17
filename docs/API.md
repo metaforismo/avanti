@@ -935,14 +935,19 @@ Sono additivi: il cittadino continua a usare il flusso esistente.
 | Endpoint                                        | Risposta / effetto                                                              |
 | ----------------------------------------------- | ------------------------------------------------------------------------------- |
 | `GET /api/cases/:id`                            | `CaseDossier.nearReady`, null se mai valutata; prima lettura avvia il controllo |
-| `POST /api/cases/:id/near-ready/evaluate`       | `NearReady`; ricalcolo esplicito con `expectedUpdatedAt`                        |
+| `POST /api/cases/:id/near-ready/evaluate`       | `NearReady`; ricalcolo esplicito («Ricontrolla») con `expectedUpdatedAt`        |
 | `POST /api/cases/:id/near-ready/blind-review`   | `NearReady`, dopo giudizio cieco personale immutabile                           |
 | `POST /api/cases/:id/near-ready/decision`       | `NearReady`; accetta percorso rapido o scarta con motivo                        |
-| `POST /api/cases/:id/near-ready/final-decision` | `NearReady`; registra esito negativo/errore critico confermato                  |
+| `POST /api/cases/:id/near-ready/final-decision` | `NearReady` se registra esito/errore critico, altrimenti sempre `409`           |
 | `GET /api/cases?ai=near_ready`                  | Coda filtrata prima della paginazione; `priorityCounts.near_ready`              |
 | `GET /api/reports/near-ready`                   | `NearReadyPilotResponse`, solo admin e solo CAF della sessione                  |
 
 Tutte le POST richiedono sessione operatore, origine valida e versione ISO corrente.
+`expectedUpdatedAt` resta la versione di concorrenza della pratica. La valutazione invece
+giudica la versione del contenuto (`cases.content_version`, vedi `DATA_MODEL.md`): presa in
+carico, revisione delle voci, note, assegnatario, richiesta di integrazione e apertura non
+la cambiano; risposte, nucleo, documenti, invio del cittadino, nuove incongruenze AI e
+modifiche della politica del CAF sì.
 `evaluationId` identifica esattamente il suggerimento su cui agire. Una decisione concorrente,
 un vecchio risultato o una modifica nel frattempo danno `409 conflict` nel formato `ApiError`.
 I motivi codificati di esclusione sono l’enum `NearReadyReason`; il testo italiano è fornito
@@ -997,7 +1002,9 @@ Esempio di oggetto nel fascicolo (ID e date dimostrativi):
 ```
 
 Gli stati sono `suggested | not_eligible | withdrawn | accepted | dismissed | shadow`.
-`caseVersion` è la versione attuale; `evaluatedVersion` resta quella controllata.
+`caseVersion` è la versione attuale del contenuto (può differire da `updatedAt` del
+fascicolo dopo il lavoro dell'operatore); `evaluatedVersion` resta quella controllata.
+Se differiscono, o lo stato è `withdrawn`, la valutazione è superata.
 `source` distingue `ai | manual | answer`: provenienza documentale con pagina per AI,
 oppure `answerId` per risposta confermata; la verifica manuale può non avere pagina.
 Il backend non inserisce nel segnale nomi, CF o importi letti. I documenti originali
@@ -1007,7 +1014,12 @@ e il fascicolo restituisce documenti/checklist nell’ordine di controllo rapido
 In shadow, prima del giudizio personale, il payload è sempre `state: shadow`,
 `result: null`, `evaluationId: null`, `conditionsMet: []`, `criticalFields: []`,
 `exclusions: []`, `blindReviewRequired: true`, anche per i non selezionati.
-Non mostrare quindi il suggerimento né dedurlo dagli altri campi. Ogni operatore
+Non mostrare quindi il suggerimento né dedurlo dagli altri campi. Se il contenuto è
+cambiato dopo la valutazione, il payload cieco diventa `state: withdrawn`,
+`blindReviewRequired: false`, `exclusions: [stale_version]`, sempre senza risultato:
+il giudizio cieco su quella valutazione darebbe 409. «Ricontrolla» chiama `evaluate`,
+con gli stessi limiti di frequenza e budget AI, e la nuova versione torna a chiedere
+il giudizio cieco. `GET /cases/:id` non rivaluta da sé una versione superata. Ogni operatore
 registra il proprio giudizio prima della rivelazione:
 
 ```http
@@ -1043,8 +1055,10 @@ Accettazione e scarto (solo visible, nessun cambio automatico a pronta):
 
 Motivi: `identity | household | document_match | year | amount | other`.
 La nota è facoltativa (1000 caratteri), protetta nel dato applicativo e mai copiata
-negli eventi o nei log. Una nuova risposta, un documento, una segnalazione, un rifiuto
-o altra modifica di versione ritira immediatamente suggerimento e accettazione.
+negli eventi o nei log. Una nuova risposta, un documento, un reinvio del cittadino, una
+nuova incongruenza AI o una modifica della politica ritira immediatamente suggerimento e
+accettazione. Il lavoro dell'operatore (inizio revisione, verifica o rifiuto delle voci,
+note, integrazione richiesta) no: l'accettazione resta valida fino all'esito finale.
 La conferma finale continua a passare da `PATCH /api/cases/:id` con `status: ready` e
 le verifiche ordinarie; quell’azione registra automaticamente l’esito positivo del pilota.
 
@@ -1059,12 +1073,15 @@ Content-Type: application/json
 
 `criticalError`: `identity | household | year | missing_document`; richiede admin.
 L’endpoint non cambia lo stato ufficiale. `ready: true` è ammesso solo se lo stato
-è già ready. La decisione finale etichetta soltanto una valutazione della versione
-corrente della pratica; la prima decisione di quella valutazione resta immutabile.
-Il passaggio `PATCH status: ready` registra la conferma sulla versione appena verificata,
-prima di avanzarla nella stessa transazione. Le versioni precedenti non ereditano l’esito.
-Gli errori critici successivi sono eventi separati: restano fallimenti delle valutazioni
-della pratica anche dopo correzioni o esiti positivi e sospendono il suggerimento per il CAF.
+è già ready. La decisione finale etichetta soltanto la valutazione della versione di
+contenuto corrente; la prima decisione di quella valutazione resta immutabile.
+Il passaggio `PATCH status: ready` registra la conferma su quella valutazione nella stessa
+transazione, anche dopo presa in carico e verifica delle voci. Le versioni precedenti non
+ereditano l’esito. L'endpoint non risponde mai 200 senza registrare: `409 conflict` se il
+contenuto è cambiato dopo la valutazione (invito a ricontrollare), se l'esito è già
+registrato e non c'è un nuovo errore critico, o se `criticalError` riguarda una valutazione
+non selezionata. Un errore critico marca solo la valutazione selezionata della versione
+giudicata e sospende il suggerimento per il CAF.
 
 La coda restituisce `aiPriority: near_ready` e `nearReadyBadge: true` soltanto per segnali
 correnti in visible, senza sospensione. Domande cittadino e attenzione hanno precedenza.
@@ -1088,8 +1105,10 @@ successiva, incluso lo storico scritto prima di questa correzione, viene ignorat
 Senza giudizio valido la valutazione è non giudicabile: resta in `evaluated`, `selected`
 e `selectionRate`, esclusa da `reviewedSelected`, `falseNearReady`, precisione e opportunità mancate/richiamo.
 In caso di conflitto fra cieco e finale, o fra revisori ciechi della stessa versione,
-prevale «non pronta» e aumenta `disagreements`. Un errore critico attribuito alla valutazione
-è sempre un fallimento, anche senza altri giudizi o se segnalato su una versione successiva.
+prevale «non pronta» e aumenta `disagreements`. Un errore critico sulla versione valutata di
+una valutazione selezionata è sempre un fallimento, anche senza altri giudizi; quelli
+registrati su un altro contenuto (incluso lo storico precedente alla migrazione 0026) o su
+valutazioni non selezionate non la etichettano.
 `missedOpportunities` conta solo non selezionati giudicati pronti senza errore critico.
 `precisionInterval` è null senza revisioni, altrimenti contiene `lower`, `upper`
 (intervallo esatto bilaterale 95%) e `oneSidedLower95` per il criterio di attivazione.

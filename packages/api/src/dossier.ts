@@ -252,7 +252,7 @@ async function loadViewData(
         nearReadyBlindReviews,
         and(
           eq(nearReadyBlindReviews.caseId, row.id),
-          eq(nearReadyBlindReviews.caseVersion, row.updatedAt),
+          eq(nearReadyBlindReviews.caseVersion, row.contentVersion),
           eq(nearReadyBlindReviews.operatorId, operatorId ?? ""),
         ),
       )

@@ -70,6 +70,52 @@ const evaluate = async () =>
   request("/cases/case/near-ready/evaluate", "POST", {
     expectedUpdatedAt: (await current()).updatedAt,
   });
+const patchCase = async (input: Record<string, unknown>) =>
+  request("/cases/case", "PATCH", { expectedUpdatedAt: (await current()).updatedAt, ...input });
+const verifyAll = async () => {
+  const row = await current();
+  for (const item of buildChecklist(
+    "isee_ordinario",
+    row.answers,
+    buildHousehold(row.answers),
+    "it",
+  ))
+    expect(
+      (
+        await request(`/cases/case/checklist/${encodeURIComponent(item.id)}/review`, "POST", {
+          expectedUpdatedAt: (await current()).updatedAt,
+          decision: "verified",
+        })
+      ).status,
+    ).toBe(200);
+};
+const finalDecision = async (input: Record<string, unknown>) =>
+  request("/cases/case/near-ready/final-decision", "POST", {
+    expectedUpdatedAt: (await current()).updatedAt,
+    ...input,
+  });
+/** The operator asks for an integration (work), then the citizen reassigns a document (content). */
+const citizenChanges = async () => {
+  if ((await current()).status === "submitted")
+    expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect(
+    (
+      await request("/cases/case/requests", "POST", {
+        expectedUpdatedAt: (await current()).updatedAt,
+        checklistItemIds: [],
+        message: "Ricarica il documento, per favore.",
+      })
+    ).status,
+  ).toBe(200);
+  const [doc] = await db.select().from(documents).where(eq(documents.id, "doc0"));
+  expect(
+    (
+      await request(`/c/${"c".repeat(43)}/documents/doc0`, "PATCH", {
+        checklistItemId: doc!.checklistItemId,
+      })
+    ).status,
+  ).toBe(200);
+};
 const baselineReply: Transport = async (r) => {
   if (r.system.includes("rapid-review screening")) {
     const match = r.prompt.match(/"slots"\s*:\s*(\[[\s\S]*?\])/);
@@ -691,33 +737,10 @@ it.each([false, true])(
       ).toBe(200);
     }
     const original = (await db.select().from(nearReadyEvaluations))[0]!;
-    let row = await current();
-    expect(
-      (
-        await request("/cases/case", "PATCH", {
-          expectedUpdatedAt: row.updatedAt,
-          status: "in_review",
-        })
-      ).status,
-    ).toBe(200);
-    row = await current();
-    const checklist = buildChecklist(
-      "isee_ordinario",
-      row.answers,
-      buildHousehold(row.answers),
-      "it",
-    );
-    for (const item of checklist) {
-      const r = await request(
-        `/cases/case/checklist/${encodeURIComponent(item.id)}/review`,
-        "POST",
-        {
-          expectedUpdatedAt: (await current()).updatedAt,
-          decision: "verified",
-        },
-      );
-      expect(r.status).toBe(200);
-    }
+    // Operator work no longer supersedes the evaluation: the correction comes from the citizen.
+    await citizenChanges();
+    expect((await patchCase({ status: "in_review" })).status).toBe(200);
+    await verifyAll();
     now = new Date(now.getTime() + 3 * 60000);
     const response = await request("/cases/case", "PATCH", {
       expectedUpdatedAt: (await current()).updatedAt,
@@ -790,37 +813,183 @@ it("la conferma pronta giudica la versione corrente prima di avanzarla", async (
   expect(new Date(final!.caseVersion).toISOString()).toBe(screened.evaluatedVersion);
   expect((await current()).updatedAt).not.toBe(screened.evaluatedVersion);
 });
-it("un critico tardivo resta un errore della valutazione senza attribuirle un esito di altra versione", async () => {
-  await evaluate();
+it("accettato, presa in carico e verifica delle voci: «pronta» etichetta la valutazione accettata", async () => {
+  const view = NearReady.parse(await (await evaluate()).json());
+  expect(view.state).toBe("suggested");
   expect(
     (
-      await request("/cases/case", "PATCH", {
+      await request("/cases/case/near-ready/decision", "POST", {
+        evaluationId: view.evaluationId,
         expectedUpdatedAt: (await current()).updatedAt,
-        internalNotes: "ESEMPIO correzione",
+        decision: "accept",
       })
     ).status,
   ).toBe(200);
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  await verifyAll();
+  expect((await patchCase({ internalNotes: "ESEMPIO nota" })).status).toBe(200);
+  const dossier = CaseDossier.parse(await (await request("/cases/case")).json());
+  expect(dossier.nearReady).toMatchObject({ state: "accepted", evaluationId: view.evaluationId });
+  expect(dossier.nearReady?.reviewOrder.length).toBeGreaterThan(0);
+  now = new Date(now.getTime() + 5 * 60000);
+  expect((await patchCase({ status: "ready" })).status).toBe(200);
+  const finals = await db
+    .select()
+    .from(nearReadyEvents)
+    .where(eq(nearReadyEvents.action, "final_decision"));
+  expect(finals).toMatchObject([{ evaluationId: view.evaluationId, ready: true }]);
+  expect(new Date(finals[0]!.caseVersion).toISOString()).toBe(view.evaluatedVersion);
   expect(
-    (
-      await request("/cases/case/near-ready/final-decision", "POST", {
-        expectedUpdatedAt: (await current()).updatedAt,
-        ready: false,
-        reason: "identity",
-        criticalError: "identity",
-      })
-    ).status,
-  ).toBe(200);
+    await db.select().from(nearReadyEvents).where(eq(nearReadyEvents.action, "withdrawn")),
+  ).toEqual([]);
   const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
   expect(report.total).toMatchObject({
     unjudged: 0,
-    disagreements: 0,
-    precision: 0,
-    falseNearReady: 1,
-    criticalErrors: 1,
+    reviewedSelected: 1,
+    correctSelected: 1,
+    precision: 1,
+    suggestedReview: { count: 1, medianMinutes: 5 },
+  });
+  // Never a silent 200: the outcome of this evaluation is already recorded.
+  const again = await finalDecision({ ready: false, reason: "identity" });
+  expect(again.status).toBe(409);
+  expect(await again.json()).toMatchObject({
+    error: { code: "conflict", message: expect.stringContaining("già registrato") },
   });
   expect(
     await db.select().from(nearReadyEvents).where(eq(nearReadyEvents.action, "final_decision")),
+  ).toHaveLength(1);
+});
+it("dopo l'accettazione il cittadino cambia il fascicolo: ritirato, nessun esito attribuito", async () => {
+  const view = NearReady.parse(await (await evaluate()).json());
+  await request("/cases/case/near-ready/decision", "POST", {
+    evaluationId: view.evaluationId,
+    expectedUpdatedAt: (await current()).updatedAt,
+    decision: "accept",
+  });
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  expect((await db.select().from(nearReadyEvaluations))[0]?.state).toBe("accepted");
+  await citizenChanges();
+  expect((await db.select().from(nearReadyEvaluations))[0]?.state).toBe("withdrawn");
+  expect(CaseDossier.parse(await (await request("/cases/case")).json()).nearReady).toMatchObject({
+    state: "withdrawn",
+    reviewOrder: [],
+  });
+  const stale = await finalDecision({ ready: false, reason: "identity" });
+  expect(stale.status).toBe(409);
+  expect(await stale.json()).toMatchObject({
+    error: { code: "conflict", message: expect.stringContaining("Ricontrolla") },
+  });
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  await verifyAll();
+  expect((await patchCase({ status: "ready" })).status).toBe(200);
+  expect(
+    await db
+      .select()
+      .from(nearReadyEvents)
+      .where(sql`${nearReadyEvents.action} in ('final_decision','critical_error')`),
   ).toEqual([]);
+  const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
+  expect(report.total).toMatchObject({ unjudged: 1, reviewedSelected: 0, precision: null });
+});
+it("«non era pronta» con errore critico marca solo la valutazione giudicata e sospende", async () => {
+  await evaluate();
+  const [first] = await db.select().from(nearReadyEvaluations);
+  await citizenChanges();
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  const view = NearReady.parse(await (await evaluate()).json());
+  expect(view).toMatchObject({ state: "suggested", evaluatedVersion: view.caseVersion });
+  expect(view.evaluationId).not.toBe(first!.id);
+  await request("/cases/case/near-ready/decision", "POST", {
+    evaluationId: view.evaluationId,
+    expectedUpdatedAt: (await current()).updatedAt,
+    decision: "accept",
+  });
+  expect((await patchCase({ internalNotes: "ESEMPIO nota" })).status).toBe(200);
+  const response = await finalDecision({
+    ready: false,
+    reason: "identity",
+    criticalError: "identity",
+  });
+  expect(response.status).toBe(200);
+  const marked = await db
+    .select()
+    .from(nearReadyEvents)
+    .where(sql`${nearReadyEvents.action} in ('final_decision','critical_error')`);
+  expect(marked.map((e) => [e.action, e.evaluationId]).sort()).toEqual([
+    ["critical_error", view.evaluationId],
+    ["final_decision", view.evaluationId],
+  ]);
+  const [policy] = await db.select().from(settings).where(eq(settings.organizationId, "org"));
+  expect(policy).toMatchObject({ nearReadyMode: "shadow" });
+  expect(new Date(policy!.nearReadySuspendedAt!).toISOString()).toBe(now.toISOString());
+  // The cohort is the first screening, of content the critical error did not judge.
+  const report = NearReadyPilotResponse.parse(await (await request("/reports/near-ready")).json());
+  expect(report.total).toMatchObject({ evaluated: 1, unjudged: 1, criticalErrors: 0 });
+});
+it("un errore grave non si attribuisce a un controllo che non suggeriva nulla", async () => {
+  reply = async (r) => {
+    const result = await baselineReply(r);
+    if (r.system.includes("cross-check the pilot"))
+      result.output = { consistent: false, securityWarning: false };
+    return result;
+  };
+  expect(NearReady.parse(await (await evaluate()).json()).state).toBe("not_eligible");
+  const response = await finalDecision({
+    ready: false,
+    reason: "identity",
+    criticalError: "identity",
+  });
+  expect(response.status).toBe(409);
+  const [policy] = await db.select().from(settings).where(eq(settings.organizationId, "org"));
+  expect(policy?.nearReadySuspendedAt).toBeNull();
+  expect(
+    await db.select().from(nearReadyEvents).where(eq(nearReadyEvents.action, "critical_error")),
+  ).toEqual([]);
+  expect((await finalDecision({ ready: false, reason: "identity" })).status).toBe(200);
+});
+it("ombra: il lavoro dell'operatore non blocca il giudizio cieco; dopo un cambio del cittadino si ricontrolla", async () => {
+  await db
+    .update(settings)
+    .set({ nearReadyMode: "shadow" })
+    .where(eq(settings.organizationId, "org"));
+  await evaluate();
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  const blindNow = async (ready: boolean) =>
+    request("/cases/case/near-ready/blind-review", "POST", {
+      expectedUpdatedAt: (await current()).updatedAt,
+      ready,
+      reason: "other",
+    });
+  expect(
+    CaseDossier.parse(await (await request("/cases/case")).json()).nearReady?.blindReviewRequired,
+  ).toBe(true);
+  expect((await blindNow(true)).status).toBe(200);
+  await citizenChanges();
+  expect((await patchCase({ status: "in_review" })).status).toBe(200);
+  const superseded = CaseDossier.parse(await (await request("/cases/case")).json()).nearReady;
+  expect(superseded).toMatchObject({
+    state: "withdrawn",
+    blindReviewRequired: false,
+    evaluationId: null,
+    result: null,
+    conditionsMet: [],
+    criticalFields: [],
+    exclusions: [expect.objectContaining({ code: "stale_version" })],
+  });
+  expect(superseded?.evaluatedVersion).not.toBe(superseded?.caseVersion);
+  expect((await blindNow(false)).status).toBe(409);
+  const rechecked = NearReady.parse(await (await evaluate()).json());
+  expect(rechecked).toMatchObject({
+    state: "shadow",
+    blindReviewRequired: true,
+    result: null,
+    evaluatedVersion: rechecked.caseVersion,
+  });
+  expect(await db.select().from(nearReadyEvaluations)).toHaveLength(2);
+  expect((await blindNow(false)).status).toBe(200);
+  const reviews = await db.select().from(nearReadyBlindReviews);
+  expect(new Set(reviews.map((r) => new Date(r.caseVersion).toISOString())).size).toBe(2);
 });
 it("cambiare una preferenza estranea non resetta modalità e soglie", async () => {
   await db

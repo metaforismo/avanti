@@ -36,7 +36,7 @@ import { ApiFailure, notFound } from "./security";
 import { aiBudget } from "./ai-usage";
 import { observeAi } from "./operational-telemetry";
 import { lockOperatorAccess } from "./operator-access";
-import { nextCaseUpdate } from "./case-version";
+import { markOperatorWork, nextCaseUpdate } from "./case-version";
 
 import { copilotDossier, redactContact, stripInternalIds } from "./copilot-context";
 export { copilotDossier, redactContact } from "./copilot-context";
@@ -423,6 +423,7 @@ export function mountCopilot(app: App, s: Services) {
             set: value,
           });
         const version = nextCaseUpdate(row, s.clock());
+        await markOperatorWork(tx);
         await tx.update(cases).set({ updatedAt: version }).where(eq(cases.id, row.id));
         // Only a decision changed: carry remaining readings forward for batch confirmation.
         await tx.insert(copilotCache).values({

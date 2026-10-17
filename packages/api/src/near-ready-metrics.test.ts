@@ -307,21 +307,24 @@ for (const engine of ["pglite", "postgres"] as const) {
           precision: 0,
         });
       });
+      const critical = async (caseVersion = version) => {
+        await db.insert(nearReadyEvents).values({
+          id,
+          evaluationId: id,
+          action: "critical_error",
+          actor: "system",
+          at: later,
+          caseVersion,
+          reason: "identity",
+        });
+      };
       it.each(["blind", "final", "none"] as const)(
-        "a late critical error remains a failure regardless of %s truth",
+        "a critical error on the judged content is a failure regardless of %s truth",
         async (source) => {
           await evaluation();
           if (source === "blind") await blind([true]);
           if (source === "final") await final(true);
-          await db.insert(nearReadyEvents).values({
-            id,
-            evaluationId: id,
-            action: "critical_error",
-            actor: "system",
-            at: later,
-            caseVersion: later,
-            reason: "identity",
-          });
+          await critical();
           expect((await nearReadyPilot(db, id, "synthetic")).total).toMatchObject({
             unjudged: 0,
             disagreements: 0,
@@ -332,6 +335,28 @@ for (const engine of ["pglite", "postgres"] as const) {
           });
         },
       );
+      // Rows written before content versions stamped every historical evaluation.
+      it("ignores a critical error stamped from later content", async () => {
+        await evaluation();
+        await blind([true]);
+        await critical(later);
+        expect((await nearReadyPilot(db, id, "synthetic")).total).toMatchObject({
+          unjudged: 0,
+          reviewedSelected: 1,
+          correctSelected: 1,
+          criticalErrors: 0,
+          precision: 1,
+        });
+      });
+      it("a critical error cannot fail an evaluation that suggested nothing", async () => {
+        await evaluation(false);
+        await final(true);
+        await critical();
+        expect((await nearReadyPilot(db, id, "synthetic")).total).toMatchObject({
+          criticalErrors: 0,
+          missedOpportunities: 1,
+        });
+      });
       it.each(["blind", "final"] as const)(
         "uses same-version %s truth for missed opportunities",
         async (source) => {

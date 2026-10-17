@@ -294,3 +294,33 @@ restituire `deletedCases:0`. Vedi [decisione](decisions/renewals.md#promemoria-m
 
 L’export CLI del CAF include `renewalReminders` per portabilità, senza `withdrawal_token_hash`;
 non esporta nuove capability. Il formato resta versione 1 con campo additivo.
+
+## Versione del contenuto per «quasi pronta» (0026)
+
+`0026_near_ready_content_version`, generata con drizzle-kit e completata in coda con SQL
+manuale, aggiunge `cases.content_version` (`timestamptz NOT NULL`, backfill uguale a
+`updated_at`). `updated_at` resta la versione di concorrenza (`expectedUpdatedAt`) e
+cresce a ogni scrittura; `content_version` identifica il fascicolo come l'ha consegnato
+il cittadino ed è la chiave di `near_ready_evaluations.case_version`,
+`near_ready_blind_reviews.case_version` e `near_ready_events.case_version`.
+
+La colonna è gestita solo dal trigger `cases_content_version` (BEFORE INSERT/UPDATE):
+all'inserimento vale `updated_at`; avanza quando cambia `ai_attention` (nuove incongruenze
+AI, pubblicate senza nuovo `updated_at`) o quando cambia `updated_at` in una transazione
+che non ha dichiarato lavoro dell'operatore con
+`set_config('avanti.operator_work', 'on', true)` (`markOperatorWork` nell'API). Il valore è
+`greatest(updated_at, content_version precedente + 1 ms)`: monotono anche con clock fermo e
+con la stessa precisione al millisecondo delle versioni API. Una scrittura diretta della
+colonna conserva il valore precedente. La classificazione è prudente: un nuovo writer che
+non dichiara il lavoro conta come contenuto e ritira un suggerimento, mai il contrario.
+
+Dichiarano lavoro: presa in carico e cambi di stato, assegnatario e note (`PATCH /cases/:id`),
+verifica/rifiuto/«non serve» delle voci, richiesta di integrazione, rigenerazione del link e
+decisioni sul precompilato DSU. Restano contenuto: risposte e conversazione, nucleo,
+caricamento/rimozione/riassegnazione e analisi dei documenti, riuso familiare, invio del
+cittadino, `ai_attention`, il ricontrollo esplicito e le modifiche di politica del CAF (che
+avanzano `updated_at` delle pratiche aperte dal trigger su `settings`).
+
+`withdraw_near_ready` ora scatta (AFTER UPDATE OF `updated_at`, `ai_attention`,
+`content_version`: le colonne cambiate solo da un BEFORE trigger non contano per
+`UPDATE OF`) quando cambia `content_version` e registra il ritiro con quella versione.

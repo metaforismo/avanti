@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   cases,
   documents,
@@ -81,13 +81,14 @@ export async function evaluateCaseNearReady(s: Services, row: CaseRow) {
   const current = await caseById(s.db, row.id, row.organizationId);
   assertCaseVersion(current, iso(row.updatedAt));
   const previous = await latestNearReady(s.db, row.id);
-  if (previous && iso(previous.caseVersion) === iso(current.updatedAt)) return previous;
+  if (previous && iso(previous.caseVersion) === iso(current.contentVersion)) return previous;
   // Share the durable copilot lease across HTTP reads and background workers. Only the
   // evaluation id is cached; document readings and values never enter this payload.
+  // New AI inconsistencies advance the content without a new updated_at: key by both.
   const id = await cached(
     s,
     current,
-    "near-ready",
+    `near-ready:${iso(current.contentVersion)}`,
     Id,
     false,
     async () => (await screenNearReady(s, current)).id,
@@ -101,10 +102,11 @@ export async function evaluateCaseNearReady(s: Services, row: CaseRow) {
 }
 async function screenNearReady(s: Services, row: CaseRow) {
   const policy = await nearReadyPolicy(s.db, row.organizationId);
-  const version = iso(row.updatedAt);
+  const version = iso(row.updatedAt),
+    contentVersion = iso(row.contentVersion);
   const previous = await latestNearReady(s.db, row.id);
   // A version is screened once; retrying unavailable AI requires a fresh version/recheck.
-  if (previous && iso(previous.caseVersion) === version) return previous;
+  if (previous && iso(previous.caseVersion) === contentVersion) return previous;
   const started = performance.now();
   const d = await dossierView(s.db, row, s.clock());
   const [stored, safety, openQuestions, consistency, manualReviews] = await Promise.all([
@@ -339,12 +341,11 @@ async function screenNearReady(s: Services, row: CaseRow) {
       .where(eq(organizations.id, row.organizationId))
       .for("share");
     const current = await caseById(tx, row.id, row.organizationId, true);
-    assertCaseVersion(current, version);
-    // Consistency publishes derived attention without advancing the dossier version.
-    // A reading started before that publication must not approve the older picture.
-    if (current.aiAttention !== row.aiAttention) throw conflict();
+    // Operator work during the AI calls leaves the judged content intact; new answers,
+    // documents or AI inconsistencies (ai_attention) advance it and discard this result.
+    if (iso(current.contentVersion) !== contentVersion) throw conflict();
     const existing = await latestNearReady(tx, row.id);
-    if (existing && iso(existing.caseVersion) === version) return existing;
+    if (existing && iso(existing.caseVersion) === contentVersion) return existing;
     const currentPolicy = await nearReadyPolicy(tx, row.organizationId);
     if (JSON.stringify(currentPolicy) !== JSON.stringify(policy)) throw conflict();
     const state = policy.mode === "shadow" ? "shadow" : eligible ? "suggested" : "not_eligible";
@@ -353,8 +354,8 @@ async function screenNearReady(s: Services, row: CaseRow) {
       .values({
         id: crypto.randomUUID(),
         caseId: row.id,
-        caseVersion: version,
-        currentVersion: version,
+        caseVersion: contentVersion,
+        currentVersion: contentVersion,
         checkedAt: s.clock().toISOString(),
         eligible,
         mode: policy.mode,
@@ -392,6 +393,20 @@ async function screenNearReady(s: Services, row: CaseRow) {
     return evaluation!;
   });
 }
+/** The evaluation of the content the operator is judging, if that content was screened. */
+async function nearReadyAtContent(db: Database, row: CaseRow) {
+  const [evaluation] = await db
+    .select()
+    .from(nearReadyEvaluations)
+    .where(
+      and(
+        eq(nearReadyEvaluations.caseId, row.id),
+        eq(nearReadyEvaluations.caseVersion, row.contentVersion),
+      ),
+    );
+  return evaluation;
+}
+/** Returns false when there was nothing left to record for the current content version. */
 export async function recordNearReadyFinal(
   db: Database,
   row: CaseRow,
@@ -400,71 +415,50 @@ export async function recordNearReadyFinal(
   ready: boolean,
   reason?: (typeof nearReadyEvents.$inferInsert)["reason"],
   criticalError?: (typeof nearReadyEvents.$inferInsert)["reason"],
-) {
-  const evaluations = await db
-    .select()
-    .from(nearReadyEvaluations)
+): Promise<boolean> {
+  const evaluation = await nearReadyAtContent(db, row);
+  if (!evaluation) return false;
+  let recorded = false;
+  const known = await db
+    .select({ action: nearReadyEvents.action })
+    .from(nearReadyEvents)
     .where(
       and(
-        eq(nearReadyEvaluations.caseId, row.id),
-        eq(nearReadyEvaluations.caseVersion, row.updatedAt),
+        eq(nearReadyEvents.evaluationId, evaluation.id),
+        inArray(nearReadyEvents.action, ["final_decision", "critical_error"]),
       ),
     );
-  for (const evaluation of evaluations) {
-    const [final] = await db
-      .select({ id: nearReadyEvents.id })
-      .from(nearReadyEvents)
-      .where(
-        and(
-          eq(nearReadyEvents.evaluationId, evaluation.id),
-          eq(nearReadyEvents.action, "final_decision"),
-        ),
-      )
-      .limit(1);
-    if (!final)
+  if (!known.some((event) => event.action === "final_decision")) {
+    await nearReadyEvent(
+      db,
+      evaluation,
+      "final_decision",
+      now,
+      actorId,
+      {
+        ready,
+        reason: reason ?? null,
+        durationMinutes: row.reviewStartedAt
+          ? Math.max(0, (now.getTime() - Date.parse(row.reviewStartedAt)) / 60000)
+          : null,
+      },
+      row.contentVersion,
+    );
+    recorded = true;
+  }
+  // A critical error is a failure of the suggestion: an evaluation that suggested nothing
+  // cannot fail that way, and other versions judged different content.
+  if (criticalError && evaluation.eligible) {
+    if (!known.some((event) => event.action === "critical_error"))
       await nearReadyEvent(
         db,
         evaluation,
-        "final_decision",
+        "critical_error",
         now,
         actorId,
-        {
-          ready,
-          reason: reason ?? null,
-          durationMinutes: row.reviewStartedAt
-            ? Math.max(0, (now.getTime() - Date.parse(row.reviewStartedAt)) / 60000)
-            : null,
-        },
-        row.updatedAt,
+        { reason: criticalError },
+        row.contentVersion,
       );
-  }
-  if (criticalError) {
-    const historical = await db
-      .select()
-      .from(nearReadyEvaluations)
-      .where(eq(nearReadyEvaluations.caseId, row.id));
-    for (const evaluation of historical) {
-      const [known] = await db
-        .select({ id: nearReadyEvents.id })
-        .from(nearReadyEvents)
-        .where(
-          and(
-            eq(nearReadyEvents.evaluationId, evaluation.id),
-            eq(nearReadyEvents.action, "critical_error"),
-          ),
-        )
-        .limit(1);
-      if (!known)
-        await nearReadyEvent(
-          db,
-          evaluation,
-          "critical_error",
-          now,
-          actorId,
-          { reason: criticalError },
-          row.updatedAt,
-        );
-    }
     await db
       .insert(settings)
       .values({
@@ -476,7 +470,9 @@ export async function recordNearReadyFinal(
         target: settings.organizationId,
         set: { nearReadySuspendedAt: now.toISOString(), nearReadyMode: "shadow" },
       });
+    recorded = true;
   }
+  return recorded;
 }
 export function mountNearReady(app: App, s: Services) {
   app.post("/cases/:id/near-ready/evaluate", async (c) => {
@@ -487,7 +483,9 @@ export function mountNearReady(app: App, s: Services) {
       const current = await caseById(tx, parse(Id, c.req.param("id")), actor.organizationId, true);
       assertCaseVersion(current, input.expectedUpdatedAt);
       const existing = await latestNearReady(tx, current.id);
-      if (!existing || iso(existing.caseVersion) !== iso(current.updatedAt)) return current;
+      // A content change already makes room for a new evaluation; only an evaluated
+      // version needs a new one (this write is not operator work, so it advances the content).
+      if (!existing || iso(existing.caseVersion) !== iso(current.contentVersion)) return current;
       const [updated] = await tx
         .update(cases)
         .set({ updatedAt: nextCaseUpdate(current, s.clock()) })
@@ -512,7 +510,7 @@ export function mountNearReady(app: App, s: Services) {
       const row = await caseById(tx, parse(Id, c.req.param("id")), actor.organizationId, true);
       assertCaseVersion(row, input.expectedUpdatedAt);
       const evaluation = await latestNearReady(tx, row.id);
-      if (!evaluation || iso(evaluation.caseVersion) !== iso(row.updatedAt)) throw conflict();
+      if (!evaluation || iso(evaluation.caseVersion) !== iso(row.contentVersion)) throw conflict();
       const [exposed] = await tx
         .select({ id: nearReadyEvents.id })
         .from(nearReadyEvents)
@@ -529,7 +527,7 @@ export function mountNearReady(app: App, s: Services) {
         .insert(nearReadyBlindReviews)
         .values({
           caseId: row.id,
-          caseVersion: row.updatedAt,
+          caseVersion: row.contentVersion,
           operatorId: actor.id,
           ready: input.ready,
           reason: input.reason,
@@ -559,7 +557,7 @@ export function mountNearReady(app: App, s: Services) {
       if (
         !evaluation ||
         evaluation.id !== input.evaluationId ||
-        iso(evaluation.caseVersion) !== iso(row.updatedAt) ||
+        iso(evaluation.caseVersion) !== iso(row.contentVersion) ||
         !currentNearReadyProfile(evaluation.snapshot, nearReadyProfile(s.ai), s.clock()) ||
         !s.ai.configured ||
         !evaluation.eligible ||
@@ -588,14 +586,26 @@ export function mountNearReady(app: App, s: Services) {
       await lockOperatorAccess(tx, c, s);
       const row = await caseById(tx, parse(Id, c.req.param("id")), actor.organizationId, true);
       assertCaseVersion(row, input.expectedUpdatedAt);
-      if (!(await latestNearReady(tx, row.id))) throw conflict();
+      const evaluation = await nearReadyAtContent(tx, row);
+      if (!evaluation)
+        throw new ApiFailure(
+          "conflict",
+          409,
+          "Il fascicolo è cambiato dopo il controllo «quasi pronta»: l'esito non si può attribuire a quel controllo. Ricontrolla la pratica.",
+        );
+      if (input.criticalError && !evaluation.eligible)
+        throw new ApiFailure(
+          "conflict",
+          409,
+          "Per questa versione del fascicolo non c'era un suggerimento di revisione rapida: l'errore grave non gli si può attribuire.",
+        );
       if (input.ready && row.status !== "ready")
         throw new ApiFailure(
           "conflict",
           409,
           "Segna prima il fascicolo pronto con il comando di revisione.",
         );
-      await recordNearReadyFinal(
+      const recorded = await recordNearReadyFinal(
         tx,
         row,
         s.clock(),
@@ -604,6 +614,12 @@ export function mountNearReady(app: App, s: Services) {
         input.reason,
         input.criticalError,
       );
+      if (!recorded)
+        throw new ApiFailure(
+          "conflict",
+          409,
+          "L'esito di questo controllo «quasi pronta» è già registrato.",
+        );
     };
     // A confirmed critical error changes tenant policy; take the admin lock before any case lock.
     if (input.criticalError) await administer(s, c, action);
