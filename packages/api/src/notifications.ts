@@ -10,7 +10,7 @@ import {
   type Database,
   type NotificationKind,
 } from "@avanti/db";
-import { catalog, requirementText, type RequirementId } from "@avanti/core";
+import { genericChecklistTitle } from "@avanti/core";
 import type { ChecklistItem, Language, PilotLeadRequest } from "@avanti/contracts";
 import type { Services } from "./context";
 import type { CaseRow } from "./dossier";
@@ -106,14 +106,11 @@ export async function enqueueCitizen(
     .where(eq(organizations.id, row.organizationId));
   if (!org) throw new Error("Notification organization missing");
   // Rebuild catalog titles: checklist titles can contain bank names and other citizen answers.
-  const titles = row.practiceId
-    ? selected.map(
+  const practiceId = row.practiceId;
+  const titles = practiceId
+    ? selected.flatMap(
         (item) =>
-          requirementText(
-            item.requirementId as RequirementId,
-            row.language,
-            catalog[row.practiceId!].referenceYear,
-          ).title,
+          genericChecklistTitle(item.requirementId, practiceId, row.answers, row.language) ?? [],
       )
     : [];
   return enqueueNotification(

@@ -1,7 +1,7 @@
 "use client";
 
 import { BellRing, Link2, MessageCircle, Printer, Smartphone } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type {
   CaseDossier,
   CitizenHandoff,
@@ -21,28 +21,52 @@ import {
   noticeText,
   smsHref,
   whatsappHref,
+  whatsappNumber,
 } from "@/lib/console/citizen-notice";
 import { LANGUAGE_IT, timeAgo } from "@/lib/console/labels";
 
+// Avanti only sees the button press: what it knows is that the message was prepared.
 const CHANNEL_IT: Record<Exclude<CitizenHandoffChannel, "print">, string> = {
-  whatsapp: "su WhatsApp",
-  sms: "via SMS",
-  copy: "con il messaggio copiato",
+  whatsapp: "Avviso preparato su WhatsApp",
+  sms: "Avviso preparato per SMS",
+  copy: "Messaggio copiato",
 };
 
 export const printPath = (caseId: string) => `/console/stampa/${encodeURIComponent(caseId)}`;
 
-/** Fire and forget: the message already left; a lost record must not block the operator. */
-export function recordHandoff(caseId: string, channel: CitizenHandoffChannel) {
-  return apiFetch(`/api/cases/${encodeURIComponent(caseId)}/citizen-handoff/events`, {
-    method: "POST",
-    body: { channel },
-    keepalive: true,
-  }).catch(() => undefined);
+/**
+ * Records the channel. Resolves to an Italian message when the record failed (a 429 included):
+ * the message itself already left, so the operator is told, never blocked.
+ */
+export async function recordHandoff(
+  caseId: string,
+  channel: CitizenHandoffChannel,
+): Promise<string | null> {
+  try {
+    await apiFetch(`/api/cases/${encodeURIComponent(caseId)}/citizen-handoff/events`, {
+      method: "POST",
+      body: { channel },
+      keepalive: true,
+    });
+    return null;
+  } catch (err) {
+    return err instanceof ApiRequestError && err.status === 429
+      ? `Avviso non registrato in cronologia: ${err.message}`
+      : "Avviso non registrato in cronologia: scrivilo nelle note interne.";
+  }
 }
 
+/** A new citizen link outlives the dialog: the old one is already dead. */
+export type IssuedLink = { url: string; sent: boolean };
+
+const coarsePointer = (notify: () => void) => {
+  const query = window.matchMedia("(pointer: coarse)");
+  query.addEventListener("change", notify);
+  return () => query.removeEventListener("change", notify);
+};
+
 /**
- * In the citizen card: whether the citizen knows they have to act, and the way to tell them.
+ * In the citizen card: whether someone already prepared a notice, and the way to tell them.
  * Email reaches only those who left one; many leave just a phone number.
  */
 export function CitizenNoticeStatus({
@@ -61,7 +85,7 @@ export function CitizenNoticeStatus({
       {kind &&
         (told ? (
           <p className="text-sm text-ink-2" role="status">
-            Avvisato {CHANNEL_IT[told.channel]}
+            {CHANNEL_IT[told.channel]}
             {told.by ? ` da ${told.by}` : ""}, {timeAgo(told.at)}.
           </p>
         ) : !dossier.citizen.email ? (
@@ -106,18 +130,39 @@ export function CitizenNoticeDialog({
   open,
   onOpenChange,
   dossier,
-  onRecorded,
+  link,
+  onLinkChange,
+  onClosedAfterChanges,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dossier: CaseDossier;
-  onRecorded: () => void;
+  link: IssuedLink | null;
+  onLinkChange: (link: IssuedLink) => void;
+  /** Once per close, and only if something was recorded: each reload is an audited view. */
+  onClosedAfterChanges: () => void;
 }) {
+  const changed = useRef(false);
   const language = LANGUAGE_IT[dossier.language].toLowerCase();
+
+  // Leaving the page would lose the only working link: the browser asks first.
+  useEffect(() => {
+    if (!link || link.sent) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [link]);
+
   return (
     <Dialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        onOpenChange(next);
+        if (!next && changed.current) {
+          changed.current = false;
+          onClosedAfterChanges();
+        }
+      }}
       title="Avvisa il cittadino"
       description={
         dossier.language === "it"
@@ -125,18 +170,39 @@ export function CitizenNoticeDialog({
           : `Messaggio in ${language} e in italiano. Parte dal tuo WhatsApp o dal tuo telefono; Avanti registra solo che l'hai preparato.`
       }
     >
-      {open && <NoticeBody dossier={dossier} onRecorded={onRecorded} />}
+      {open && (
+        <NoticeBody
+          dossier={dossier}
+          link={link}
+          onLinkChange={onLinkChange}
+          onChanged={() => (changed.current = true)}
+        />
+      )}
     </Dialog>
   );
 }
 
-function NoticeBody({ dossier, onRecorded }: { dossier: CaseDossier; onRecorded: () => void }) {
+function NoticeBody({
+  dossier,
+  link,
+  onLinkChange,
+  onChanged,
+}: {
+  dossier: CaseDossier;
+  link: IssuedLink | null;
+  onLinkChange: (link: IssuedLink) => void;
+  onChanged: () => void;
+}) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [attempt, setAttempt] = useState(0);
-  const [link, setLink] = useState<string | null>(null);
   const [linkStep, setLinkStep] = useState<"idle" | "confirm" | "pending">("idle");
   const [linkError, setLinkError] = useState<string | null>(null);
-  const kind = noticeKind(dossier.status);
+  const [recordError, setRecordError] = useState<string | null>(null);
+  const touch = useSyncExternalStore(
+    coarsePointer,
+    () => window.matchMedia("(pointer: coarse)").matches,
+    () => false,
+  );
 
   useEffect(() => {
     let live = true;
@@ -164,22 +230,15 @@ function NoticeBody({ dossier, onRecorded }: { dossier: CaseDossier; onRecorded:
         `/api/cases/${encodeURIComponent(dossier.id)}/link`,
         { method: "POST" },
       );
-      setLink(issued.url);
+      onLinkChange({ url: issued.url, sent: false });
+      onChanged();
       setLinkStep("idle");
-      onRecorded();
     } catch (err) {
       setLinkError(err instanceof ApiRequestError ? err.message : "Link non creato. Riprova.");
       setLinkStep("confirm");
     }
   }
 
-  if (!kind)
-    return (
-      <Notice tone="info">
-        La pratica non aspetta niente dal cittadino: l&apos;avviso serve quando chiedi
-        un&apos;integrazione o quando la pratica è pronta.
-      </Notice>
-    );
   if (load.state === "loading")
     return (
       <div className="grid place-items-center py-10 text-ink-3">
@@ -201,10 +260,24 @@ function NoticeBody({ dossier, onRecorded }: { dossier: CaseDossier; onRecorded:
     );
 
   const { handoff } = load;
-  const text = noticeText(handoff, kind, link ?? undefined);
+  // The case as the server sees it now, not as this page last loaded it.
+  const kind = noticeKind(handoff.status);
+  if (!kind)
+    return (
+      <Notice tone="info">
+        La pratica non aspetta niente dal cittadino: l&apos;avviso serve quando chiedi
+        un&apos;integrazione o quando la pratica è pronta.
+      </Notice>
+    );
+
+  const text = noticeText(handoff, kind, link?.url);
   const phone = dossier.citizen.phone;
-  const record = (channel: CitizenHandoffChannel) =>
-    void recordHandoff(dossier.id, channel).then(onRecorded);
+  const number = whatsappNumber(phone);
+  const record = (channel: CitizenHandoffChannel) => {
+    onChanged();
+    if (link && !link.sent) onLinkChange({ ...link, sent: true });
+    void recordHandoff(dossier.id, channel).then(setRecordError);
+  };
 
   return (
     <div className="grid gap-5">
@@ -230,8 +303,10 @@ function NoticeBody({ dossier, onRecorded }: { dossier: CaseDossier; onRecorded:
       </div>
 
       {link ? (
-        <Notice tone="ok" title="Nuovo link aggiunto al messaggio">
-          Il link precedente non funziona più.
+        <Notice tone="ok" title="Nuovo link nel messaggio: si invia copiandolo">
+          Il link precedente non funziona più. Un link personale non passa da indirizzi WhatsApp o
+          SMS, che restano nella cronologia del browser: copia il messaggio e incollalo nella chat
+          del cittadino. Il link resta qui finché non lasci la pagina.
         </Notice>
       ) : linkStep === "idle" ? (
         <Button
@@ -263,41 +338,55 @@ function NoticeBody({ dossier, onRecorded }: { dossier: CaseDossier; onRecorded:
         </Notice>
       )}
 
-      {!phone && (
+      {!link && !number && (
         <p className="text-sm text-ink-3">
-          Il cittadino non ha lasciato un telefono: scegli il contatto in WhatsApp o copia il
-          messaggio.
+          {phone
+            ? "Il numero lasciato dal cittadino non sembra completo: in WhatsApp scegli tu la chat."
+            : "Il cittadino non ha lasciato un telefono: in WhatsApp scegli tu la chat, oppure copia il messaggio."}
         </p>
       )}
+      {recordError && (
+        <Notice tone="warn" role="alert">
+          {recordError}
+        </Notice>
+      )}
       <div className="grid gap-2 sm:grid-cols-2">
-        <Button asChild size="lg" className="sm:col-span-2">
-          <a
-            href={whatsappHref(phone, text)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => record("whatsapp")}
-          >
-            <MessageCircle className="size-4" aria-hidden />
-            WhatsApp
-          </a>
-        </Button>
-        <Button variant="secondary" asChild>
-          <a href={smsHref(phone, text)} onClick={() => record("sms")}>
-            <Smartphone className="size-4" aria-hidden />
-            SMS
-          </a>
-        </Button>
-        <span onClickCapture={() => record("copy")} className="grid">
+        {!link && (
+          <Button asChild size="lg" className="sm:col-span-2">
+            <a
+              href={whatsappHref(phone, text)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => record("whatsapp")}
+            >
+              <MessageCircle className="size-4" aria-hidden />
+              {number ? `WhatsApp a +${number}` : "WhatsApp"}
+            </a>
+          </Button>
+        )}
+        {/* A desk PC has no SMS app, and a long bilingual text costs several messages. */}
+        {!link && touch && (
+          <Button variant="secondary" asChild>
+            <a href={smsHref(phone, text)} onClick={() => record("sms")}>
+              <Smartphone className="size-4" aria-hidden />
+              SMS
+            </a>
+          </Button>
+        )}
+        <div className={link || !touch ? "grid sm:col-span-2" : "grid"}>
           <CopyButton
             value={text}
+            size={link ? "lg" : undefined}
+            variant={link ? "primary" : "secondary"}
             className="w-full"
+            onCopied={() => record("copy")}
             labels={{
               copy: "Copia il messaggio",
               copied: "Messaggio copiato",
               failed: "Copia non riuscita: seleziona il testo e copialo a mano.",
             }}
           />
-        </span>
+        </div>
       </div>
     </div>
   );

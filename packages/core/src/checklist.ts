@@ -2,6 +2,24 @@ import type { ChecklistItem, Language, Member, PracticeId } from "@avanti/contra
 import { boundedCount, catalog, referenceYearFor, type Answers } from "./catalog";
 import { requirements, requirementText, type RequirementId } from "./requirements";
 
+export const isRequirementId = (id: string): id is RequirementId =>
+  Object.prototype.hasOwnProperty.call(requirements, id);
+
+/**
+ * The catalog title of a checklist item, without the bank or person that the answers append:
+ * what may leave Avanti in an email or a WhatsApp message. Same year as the checklist, which
+ * follows the case's `practice_year` (a renewal or a reused family can be a later year).
+ */
+export function genericChecklistTitle(
+  requirementId: string,
+  practiceId: PracticeId,
+  answers: Answers,
+  language: Language,
+): string | null {
+  if (!isRequirementId(requirementId)) return null;
+  return requirementText(requirementId, language, referenceYearFor(practiceId, answers)).title;
+}
+
 export function buildChecklist(
   practiceId: PracticeId,
   answers: Answers,

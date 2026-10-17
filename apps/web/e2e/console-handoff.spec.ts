@@ -57,13 +57,11 @@ test("after a request, the operator tells a phone-only citizen in their language
   const preview = notice.getByRole("region", { name: "Anteprima del messaggio" });
   await expect(preview.locator('p[lang="ar"]')).toContainText(reference);
   await expect(preview.locator('p[lang="it"]')).toContainText("lo sportello ti chiede ancora");
-  const whatsapp = notice.getByRole("link", { name: "WhatsApp" });
+  const whatsapp = notice.getByRole("link", { name: "WhatsApp a +393330000000" });
   await expect(whatsapp).toHaveAttribute("href", /^https:\/\/wa\.me\/393330000000\?text=/);
   await expect(whatsapp).toHaveAttribute("rel", /noreferrer/);
-  await expect(notice.getByRole("link", { name: "SMS" })).toHaveAttribute(
-    "href",
-    /^sms:3330000000\?&body=/,
-  );
+  // A desk PC has no SMS app.
+  await expect(notice.getByRole("link", { name: "SMS" })).toHaveCount(0);
 
   const inDialog = await seriousViolations(page);
   expect(inDialog, inDialog.join("\n")).toEqual([]);
@@ -78,13 +76,46 @@ test("after a request, the operator tells a phone-only citizen in their language
   expect(copied).not.toContain("Amina");
 
   await notice.getByRole("button", { name: "Chiudi" }).click();
-  await expect(page.getByText(/Avvisato con il messaggio copiato/)).toBeVisible();
+  await expect(page.getByText(/^Messaggio copiato da Operatore Demo/)).toBeVisible();
   await expect(page.getByText("Avviso al cittadino copiato")).toBeVisible();
+
+  // Lost link: the new one goes out by copy only, once, and survives closing the dialog.
+  await page.getByRole("button", { name: "Avvisa il cittadino" }).click();
+  await notice.getByRole("button", { name: /ha perso il link/ }).click();
+  await notice.getByRole("button", { name: "Crea il nuovo link" }).click();
+  await expect(notice.getByText("Nuovo link nel messaggio: si invia copiandolo")).toBeVisible();
+  await expect(notice.getByRole("link", { name: /WhatsApp/ })).toHaveCount(0);
+  const withLink = (await preview.textContent()) ?? "";
+  const links = withLink.match(/https?:\/\/\S+\/pratica\/[\w-]+/g) ?? [];
+  expect(links).toHaveLength(1);
+  await notice.getByRole("button", { name: "Chiudi" }).click();
+  await page.getByRole("button", { name: "Avvisa il cittadino" }).click();
+  await expect(preview).toContainText(links[0]!);
 });
 
 test("a citizen without a smartphone leaves with the list on paper", async ({ page }) => {
   const { id, reference } = await phoneOnlyCase(page);
   await logIn(page, OPERATOR);
+  // The desk asks for something: its message is printed once, not under every item.
+  const read = async () =>
+    (await (await page.request.get(`/api/cases/${id}`)).json()) as { updatedAt: string };
+  const started = await page.request.patch(`/api/cases/${id}`, {
+    headers: origin(),
+    data: { status: "in_review", expectedUpdatedAt: (await read()).updatedAt },
+  });
+  expect(started.ok(), await started.text()).toBeTruthy();
+  const handoff = (await (await page.request.get(`/api/cases/${id}/citizen-handoff`)).json()) as {
+    items: { id: string }[];
+  };
+  const asked = await page.request.post(`/api/cases/${id}/requests`, {
+    headers: origin(),
+    data: {
+      expectedUpdatedAt: (await read()).updatedAt,
+      checklistItemIds: handoff.items.slice(0, 2).map((item) => item.id),
+      message: "Serve anche il retro del documento.",
+    },
+  });
+  expect(asked.ok(), await asked.text()).toBeTruthy();
   await page.goto(`/console/stampa/${id}`);
 
   const sheet = page.locator("article");
@@ -96,6 +127,7 @@ test("a citizen without a smartphone leaves with the list on paper", async ({ pa
   await expect(sheet.getByText("Documenti da portare allo sportello")).toBeVisible();
   await expect(sheet.getByText(reference)).toBeVisible();
   await expect(sheet.getByText(/^Documento d.identità$/)).toBeVisible();
+  await expect(sheet.getByText("Serve anche il retro del documento.")).toHaveCount(1);
 
   const onSheet = await seriousViolations(page);
   expect(onSheet, onSheet.join("\n")).toEqual([]);
@@ -119,6 +151,6 @@ test("the print page sends a signed-out operator to sign in and back", async ({ 
   await expect(page.getByText("La sessione è scaduta.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Accedi di nuovo" })).toHaveAttribute(
     "href",
-    "/console/accedi?next=%2Fconsole%2Fstampa%2Fnon-esiste",
+    "/console/accedi?motivo=sessione&next=%2Fconsole%2Fstampa%2Fnon-esiste",
   );
 });

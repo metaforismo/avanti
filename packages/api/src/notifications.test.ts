@@ -159,7 +159,7 @@ async function request(path: string, method = "GET", input?: unknown) {
     ...(input ? { body: JSON.stringify(input) } : {}),
   });
 }
-async function fixture(email: string | undefined = "citizen@example.test") {
+async function fixture(email: string | undefined = "citizen@example.test", year?: number) {
   const [row] = await db
     .insert(cases)
     .values({
@@ -179,6 +179,7 @@ async function fixture(email: string | undefined = "citizen@example.test") {
         accounts_count: 1,
         account_bank_0: "Banca Riservata",
         account_type_0: "deposit",
+        ...(year ? { practice_year: year } : {}),
       },
       contact: { firstName: "Persona", lastName: "Riservata", ...(email ? { email } : {}) },
       createdAt: initial,
@@ -377,6 +378,28 @@ it("requests only catalog titles, commits audit and outbox together, rejects sta
   await jobs[0]!();
   expect(send).toHaveBeenCalledTimes(1);
   expect(send.mock.calls[0]![0].kind).toBe("citizen_request");
+});
+
+it("names the documents of the case's own year, as the checklist does", async () => {
+  captureBackground();
+  const row = await fixture("citizen@example.test", 2028);
+  const checklist = buildChecklist(
+    "isee_ordinario",
+    row.answers,
+    buildHousehold(row.answers),
+    "it",
+  );
+  const selected = checklist.filter((item) => item.requirementId === "account_balance");
+  expect(selected[0]!.title).toContain("31/12/2026");
+  const input = {
+    expectedUpdatedAt: initial,
+    checklistItemIds: selected.map((i) => i.id),
+    message: "Serve il saldo",
+  };
+  expect((await request("/cases/case/requests", "POST", input)).status).toBe(200);
+  const [notification] = await db.select().from(notifications);
+  expect(envelope(notification!).text).toContain("31/12/2026");
+  expect(envelope(notification!).text).not.toContain("31/12/2025");
 });
 
 it("an outbox failure rolls back integration, reviews, messages and audit", async () => {

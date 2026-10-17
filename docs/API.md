@@ -274,15 +274,20 @@ obbligatorie. Ogni voce ha il titolo come lo vede il cittadino nella sua lingua 
 contenere nomi e banche dalle risposte), lo stesso in italiano (`titleIt`), il titolo di
 catalogo senza dati personali in entrambe le lingue (`genericTitle`, `genericTitleIt`: è quello
 che la console mette nei messaggi WhatsApp/SMS, come fanno già le email), «dove lo trovo» e la
-nota dello sportello. `interviewComplete:false` avvisa che l'elenco può ancora crescere. Stesso
-CAF della sessione, altrimenti 404; limite degli export (20/minuto per operatore).
+nota dello sportello. I titoli seguono l'anno della pratica (`practice_year`), come la checklist e
+le email: entrambi usano `genericChecklistTitle` di `@avanti/core`. `interviewComplete:false`
+avvisa che l'elenco può ancora crescere. In `needs_citizen`, `request` porta l'ultima richiesta
+dello sportello senza l'elenco delle voci aggiunto in coda (`text` nella lingua del cittadino se
+tradotta, altrimenti uguale a `textIt`); negli altri stati è `null`. Stesso CAF della sessione,
+altrimenti 404; limite degli export (20/minuto per operatore).
 
 `POST /cases/:id/citizen-handoff/events` con `{channel}` (`whatsapp`, `sms`, `copy`, `print`)
 registra che un avviso o una stampa sono stati preparati: eventi `citizen.notice_whatsapp`,
 `citizen.notice_sms`, `citizen.notice_copied` in cronologia, `citizen.checklist_printed` anche nel
 registro attività perché mette dati personali su carta. Nessun testo, nessun metadato; non
 modifica `updatedAt` (un collega con il fascicolo aperto non riceve un conflitto). Non certifica
-l'invio: il messaggio parte dall'app dell'operatore. Body con campi in più: 400.
+l'invio: il messaggio parte dall'app dell'operatore. Body con campi in più: 400. Limite proprio
+(`handoff`): 30/minuto e 300/ora per operatore, 300/minuto per IP; la console mostra il 429.
 
 ## Metriche e limiti
 

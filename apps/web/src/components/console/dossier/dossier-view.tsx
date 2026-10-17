@@ -54,7 +54,7 @@ import { ReuseDialog } from "./reuse-dialog";
 import { FindingsSummary } from "./findings-summary";
 import { RequestDialog, type ReplyContext } from "./request-dialog";
 import { CitizenQuestions } from "./citizen-questions";
-import { CitizenNoticeDialog, printPath } from "../citizen-notice";
+import { CitizenNoticeDialog, printPath, type IssuedLink } from "../citizen-notice";
 import { AnswersSection, AssistantTurnsSection, ConversationSection } from "./secondary-sections";
 
 const CONFLICT_MESSAGE =
@@ -93,6 +93,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [confirmReady, setConfirmReady] = useState(false);
   const [newLink, setNewLink] = useState(false);
   const [notifying, setNotifying] = useState(false);
+  const [issuedLink, setIssuedLink] = useState<IssuedLink | null>(null);
   const [reuse, setReuse] = useState(false);
   const [eraseFamily, setEraseFamily] = useState(false);
   const readyButton = useRef<HTMLButtonElement>(null);
@@ -797,7 +798,9 @@ export function DossierView({ caseId }: { caseId: string }) {
         open={notifying}
         onOpenChange={setNotifying}
         dossier={data}
-        onRecorded={() => void dossier.reload()}
+        link={issuedLink}
+        onLinkChange={setIssuedLink}
+        onClosedAfterChanges={() => void dossier.reload()}
       />
     </PageContainer>
   );

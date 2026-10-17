@@ -72,7 +72,8 @@ afterAll(async () => close?.());
 
 async function fixture(
   language: "ar" | "it" = "ar",
-  status: "needs_citizen" | "intake" = "needs_citizen",
+  status: "needs_citizen" | "intake" | "in_review" = "needs_citizen",
+  year = 2027,
 ) {
   const id = `case-${++sequence}`;
   await db.insert(cases).values({
@@ -87,7 +88,7 @@ async function fixture(
     answers: {
       members: [applicant, child],
       household_count: 2,
-      practice_year: 2027,
+      practice_year: year,
       accounts_count: 1,
       account_owner_0: applicant.id,
       account_bank_0: "Banca Segreta",
@@ -161,6 +162,38 @@ it("leaves out what is done and keeps the desk's reason for a rejection", async 
   expect(rejected).toMatchObject({ status: "rejected", note: "Serve il retro" });
   // Italian citizens get one language: both columns say the same.
   expect(rejected!.title).toBe(rejected!.titleIt);
+});
+
+it("names the documents of the case's own year, not the catalog default", async () => {
+  const id = await fixture("ar", "needs_citizen", 2028);
+  const handoff = CitizenHandoff.parse(await (await get(id)).json());
+  const balance = handoff.items.find((item) => item.titleIt.includes("Banca Segreta"))!;
+  expect(balance.genericTitleIt).toContain("31/12/2026");
+  expect(balance.genericTitle).toContain("2026");
+  expect(balance.genericTitle).not.toContain("2025");
+});
+
+it("carries the desk's latest request once, without the item list appended to it", async () => {
+  const id = await fixture("ar", "in_review");
+  const before = CitizenHandoff.parse(await (await get(id)).json());
+  expect(before.request).toBeNull();
+  const asked = await app.request(`/api/cases/${id}/requests`, {
+    method: "POST",
+    headers: { Cookie: cookies.a, Origin: origin, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      expectedUpdatedAt: now.toISOString(),
+      checklistItemIds: before.items.slice(0, 2).map((item) => item.id),
+      message: "Serve anche il retro.\nGrazie.",
+    }),
+  });
+  expect(asked.status, await asked.text()).toBe(200);
+  const after = CitizenHandoff.parse(await (await get(id)).json());
+  // No AI key in tests: the Italian text is all there is, and nothing claims a translation.
+  expect(after.request).toEqual({
+    text: "Serve anche il retro.\nGrazie.",
+    textIt: "Serve anche il retro.\nGrazie.",
+  });
+  expect(after.items.filter((item) => item.status === "rejected")).toHaveLength(2);
 });
 
 it("says when the interview is still open, so the list can still grow", async () => {

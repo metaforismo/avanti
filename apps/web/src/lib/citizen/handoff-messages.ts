@@ -3,13 +3,12 @@ import type { Language } from "@avanti/contracts";
 /**
  * What the desk hands to a citizen who left no email (a WhatsApp/SMS notice) or has no
  * smartphone (a printed list). Register and glossary follow docs/decisions/citizen-copy.md.
- * Arabic lines start with Arabic words: a line opening with the CAF's Latin name would be laid
- * out left to right by WhatsApp and by the printer alike.
+ * Arabic lines start with Arabic words, and the console marks each line's direction as well.
  */
 const it = {
   requestIntro: "{org}: per la pratica {ref} lo sportello ti chiede ancora questi documenti:",
   requestGeneric: "{org}: per la pratica {ref} lo sportello ti chiede un'integrazione.",
-  readyIntro: "{org}: la pratica {ref} è pronta per il prossimo passaggio.",
+  readyIntro: "{org}: la pratica {ref} è pronta. Ora prenota l'appuntamento allo sportello.",
   savedLink:
     "Leggi la richiesta e carica i documenti dal link della tua pratica. Se l'hai perso, chiedi allo sportello un nuovo link.",
   newLink:
@@ -30,12 +29,12 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
   en: {
     requestIntro: "{org}: for application {ref}, the desk still needs these documents:",
     requestGeneric: "{org}: for application {ref}, the desk needs more information.",
-    readyIntro: "{org}: application {ref} is ready for the next step.",
+    readyIntro: "{org}: application {ref} is ready. Now book your appointment at the desk.",
     savedLink:
       "Read the request and upload the documents using your application link. If you have lost it, ask the desk for a new link.",
     newLink:
       "Read the request and upload the documents using this new link (the old one no longer works):",
-    readySavedLink: "You'll find the details in your application link.",
+    readySavedLink: "Open your application link for the details.",
     readyNewLink: "You'll find the details in this new link (the old one no longer works):",
     book: "Book your appointment here:",
     sheetTitle: "Documents to bring to the desk",
@@ -46,8 +45,9 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
   fr: {
     requestIntro:
       "{org} : pour votre demande {ref}, le guichet vous demande encore ces documents :",
-    requestGeneric: "{org} : pour votre demande {ref}, le guichet vous demande un complément.",
-    readyIntro: "{org} : votre demande {ref} est prête pour la prochaine étape.",
+    requestGeneric:
+      "{org} : pour votre demande {ref}, le guichet vous demande un complément d'information.",
+    readyIntro: "{org} : votre demande {ref} est prête. Prenez maintenant rendez-vous au guichet.",
     savedLink:
       "Lisez le message et envoyez les documents depuis le lien de votre demande. Si vous l'avez perdu, demandez un nouveau lien au guichet.",
     newLink:
@@ -64,7 +64,7 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
   es: {
     requestIntro: "{org}: para tu trámite {ref}, la ventanilla todavía te pide estos documentos:",
     requestGeneric: "{org}: para tu trámite {ref}, la ventanilla te pide información adicional.",
-    readyIntro: "{org}: tu trámite {ref} está listo para el siguiente paso.",
+    readyIntro: "{org}: tu trámite {ref} está listo. Ahora reserva tu cita en la ventanilla.",
     savedLink:
       "Lee el mensaje y sube los documentos desde el enlace de tu trámite. Si lo has perdido, pide uno nuevo en la ventanilla.",
     newLink:
@@ -80,7 +80,7 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
   ro: {
     requestIntro: "{org}: pentru cererea ta {ref}, ghișeul îți mai cere aceste documente:",
     requestGeneric: "{org}: pentru cererea ta {ref}, ghișeul îți cere informații suplimentare.",
-    readyIntro: "{org}: cererea ta {ref} este pregătită pentru pasul următor.",
+    readyIntro: "{org}: cererea ta {ref} este gata. Acum fă-ți programarea la ghișeu.",
     savedLink:
       "Citește mesajul și încarcă documentele din linkul cererii tale. Dacă l-ai pierdut, cere un link nou la ghișeu.",
     newLink:
@@ -91,13 +91,14 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
     sheetTitle: "Documente de adus la ghișeu",
     sheetLead: "Bifează fiecare document când îl găsești și adu-le pe toate la ghișeu.",
     sheetEmpty: "Nu lipsește niciun document.",
-    sheetDate: "Listă din {date}",
+    sheetDate: "Lista din {date}",
   },
   uk: {
     requestIntro: "{org}: для Вашої заяви {ref} вікно обслуговування ще просить ці документи:",
     requestGeneric:
       "{org}: для Вашої заяви {ref} вікно обслуговування просить додаткову інформацію.",
-    readyIntro: "{org}: Ваша заява {ref} готова до наступного кроку.",
+    readyIntro:
+      "{org}: Ваша заява {ref} готова. Тепер запишіться на прийом у вікні обслуговування.",
     savedLink:
       "Прочитайте повідомлення й завантажте документи за посиланням на Вашу заяву. Якщо Ви його втратили, попросіть нове у вікні обслуговування.",
     newLink:
@@ -114,7 +115,7 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
   ar: {
     requestIntro: "طلبك {ref} لدى {org}: ما زال شباك الخدمة يطلب هذه الوثائق:",
     requestGeneric: "طلبك {ref} لدى {org}: يطلب شباك الخدمة معلومات إضافية.",
-    readyIntro: "طلبك {ref} لدى {org} جاهز للخطوة التالية.",
+    readyIntro: "طلبك {ref} لدى {org} جاهز. احجز الآن موعدك في شباك الخدمة.",
     savedLink:
       "اقرأ الرسالة وارفع الوثائق عبر رابط طلبك. إذا فقدته، اطلب رابطًا جديدًا من شباك الخدمة.",
     newLink: "اقرأ الرسالة وارفع الوثائق عبر هذا الرابط الجديد (الرابط القديم لم يعد يعمل):",
@@ -123,13 +124,13 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
     book: "احجز موعدك هنا:",
     sheetTitle: "الوثائق التي يجب إحضارها إلى شباك الخدمة",
     sheetLead: "ضع علامة على كل وثيقة عندما تجدها، وأحضر كل شيء إلى شباك الخدمة.",
-    sheetEmpty: "لا تنقص أي وثيقة.",
+    sheetEmpty: "لا توجد وثائق ناقصة.",
     sheetDate: "قائمة بتاريخ {date}",
   },
   bn: {
     requestIntro: "{org}: আপনার আবেদন {ref}-এর জন্য সেবা কাউন্টার এখনও এই নথিগুলি চাইছে:",
     requestGeneric: "{org}: আপনার আবেদন {ref}-এর জন্য সেবা কাউন্টার অতিরিক্ত তথ্য চেয়েছে।",
-    readyIntro: "{org}: আপনার আবেদন {ref} পরবর্তী ধাপের জন্য প্রস্তুত।",
+    readyIntro: "{org}: আপনার আবেদন {ref} প্রস্তুত। এখন সেবা কাউন্টারে সাক্ষাতের সময় বুক করুন।",
     savedLink:
       "আপনার আবেদনের লিংকে বার্তাটি পড়ুন এবং নথিগুলি আপলোড করুন। লিংক হারিয়ে গেলে সেবা কাউন্টার থেকে নতুন লিংক চান।",
     newLink: "এই নতুন লিংকে বার্তাটি পড়ুন এবং নথিগুলি আপলোড করুন (পুরোনোটি আর কাজ করে না):",

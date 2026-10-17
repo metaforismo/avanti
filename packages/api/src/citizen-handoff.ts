@@ -7,11 +7,12 @@ import {
   type CitizenHandoffItem,
   type Language,
 } from "@avanti/contracts";
-import { catalog, requirements, requirementText, type RequirementId } from "@avanti/core";
+import { genericChecklistTitle } from "@avanti/core";
 import { body, parse, type App, type Services } from "./context";
 import { audit, caseById, citizenView, loadViewData, type CaseRow } from "./dossier";
 
-const TO_BRING = new Set<ChecklistItem["status"]>(["missing", "rejected", "issue"]);
+const toBring = (status: ChecklistItem["status"]): status is CitizenHandoffItem["status"] =>
+  status === "missing" || status === "rejected" || status === "issue";
 
 /** Printing puts personal data on paper: it is in the activity log like a PDF export. */
 const EVENT: Record<CitizenHandoffChannel, string> = {
@@ -22,12 +23,20 @@ const EVENT: Record<CitizenHandoffChannel, string> = {
 };
 
 function catalogTitle(row: CaseRow, item: ChecklistItem, language: Language) {
-  if (!row.practiceId || !(item.requirementId in requirements)) return null;
-  return requirementText(
-    item.requirementId as RequirementId,
-    language,
-    catalog[row.practiceId].referenceYear,
-  ).title;
+  return row.practiceId
+    ? genericChecklistTitle(item.requirementId, row.practiceId, row.answers, language)
+    : null;
+}
+
+/** As the request route appends them to the message, one per line. */
+const label = (item: ChecklistItem) =>
+  `${item.title}${item.memberName ? ` · ${item.memberName}` : ""}`;
+
+/** The message without the item list appended under it: the sheet prints the items itself. */
+function withoutLabels(text: string, labels: Set<string>) {
+  const lines = text.split("\n");
+  while (lines.length > 1 && labels.has(lines.at(-1)!.trim())) lines.pop();
+  return lines.join("\n").trim();
 }
 
 /**
@@ -47,7 +56,7 @@ export async function citizenHandoff(
   const it = italian ?? local;
   const titlesIt = new Map(it.checklist.map((item) => [item.id, item.title]));
   const items: CitizenHandoffItem[] = local.checklist
-    .filter((item) => TO_BRING.has(item.status))
+    .flatMap((item) => (toBring(item.status) ? [{ ...item, status: item.status }] : []))
     .map((item) => {
       const titleIt = titlesIt.get(item.id) ?? item.title;
       return {
@@ -59,12 +68,23 @@ export async function citizenHandoff(
         howToGet: item.howToGet,
         memberName: item.memberName,
         required: item.required,
-        status: item.status as CitizenHandoffItem["status"],
+        status: item.status,
         note: item.note,
       };
     })
     // Required first, each group in checklist order: the paper list is read top to bottom.
     .sort((a, b) => Number(b.required) - Number(a.required));
+  const asked =
+    row.status === "needs_citizen"
+      ? local.messages.findLast((m) => m.role === "operator")
+      : undefined;
+  const labels = new Set([...local.checklist, ...it.checklist].map(label));
+  const request = asked
+    ? {
+        text: withoutLabels(asked.text, labels),
+        textIt: withoutLabels(asked.originalText ?? asked.text, labels),
+      }
+    : null;
   return CitizenHandoff.parse({
     reference: row.reference,
     language: row.language,
@@ -76,6 +96,7 @@ export async function citizenHandoff(
       : null,
     interviewComplete: local.step !== "need" && local.step !== "interview",
     items,
+    request: request?.textIt ? request : null,
   });
 }
 

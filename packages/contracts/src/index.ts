@@ -1062,6 +1062,11 @@ export const CitizenHandoff = z.object({
   /** False while the interview is still open: the list can still grow. */
   interviewComplete: z.boolean(),
   items: z.array(CitizenHandoffItem),
+  /**
+   * While the case waits for the citizen: the desk's latest request without the item list,
+   * in the citizen's language when it was translated (`text` equals `textIt` otherwise).
+   */
+  request: z.object({ text: z.string(), textIt: z.string() }).nullable(),
 });
 export type CitizenHandoff = z.infer<typeof CitizenHandoff>;
 

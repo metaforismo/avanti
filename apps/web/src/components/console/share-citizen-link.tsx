@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { FullscreenQr } from "@/components/ui/fullscreen-qr";
 import { QrCode } from "@/components/ui/qr-code";
-import { whatsappNumber } from "@/lib/console/citizen-notice";
+import { smsHref, whatsappHref } from "@/lib/console/citizen-notice";
 
 /**
  * Messages sent with the link: Italian always, plus the citizen's language so they understand
@@ -84,17 +84,13 @@ export function ShareCitizenLink({
       <div className="grid gap-2 sm:grid-cols-3">
         <CopyButton value={link} showValueOnFailure={false} className="w-full" />
         <Button variant="secondary" asChild>
-          <a
-            href={`https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(message)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a href={whatsappHref(phone, message)} target="_blank" rel="noopener noreferrer">
             <MessageCircle className="size-4" />
             WhatsApp
           </a>
         </Button>
         <Button variant="secondary" asChild>
-          <a href={`sms:${phone ?? ""}?&body=${encodeURIComponent(message)}`}>
+          <a href={smsHref(phone, message)}>
             <Smartphone className="size-4" />
             SMS
           </a>
