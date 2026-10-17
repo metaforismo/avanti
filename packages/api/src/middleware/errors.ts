@@ -7,7 +7,9 @@ import { ApiFailure } from "../security";
 export function registerErrors(app: App, logger: ApiOptions["errorLogger"], s?: Services) {
   app.onError(async (error, context) => {
     let failure: ApiFailure;
-    if (context.get("bodyTooLarge"))
+    if (context.get("jsonTooLarge"))
+      failure = new ApiFailure("bad_request", 413, "Richiesta troppo grande.");
+    else if (context.get("bodyTooLarge"))
       failure = new ApiFailure("file_too_large", 413, "Il file è troppo grande. Il limite è 4 MB.");
     else if (error instanceof ApiFailure) failure = error;
     else if (error instanceof DomainValidationError) {

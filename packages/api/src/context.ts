@@ -50,6 +50,7 @@ export interface ApiEnv {
     citizen: CaseRow;
     requestId: string;
     bodyTooLarge: boolean;
+    jsonTooLarge: boolean;
   };
 }
 export type App = Hono<ApiEnv>;

@@ -71,6 +71,22 @@ export function mountAuthRoutes(app: App, services: Services) {
         );
         return null;
       }
+      // Checked only after the right password: the message reveals nothing to a stranger.
+      if (
+        current.mustChangePassword &&
+        current.temporaryPasswordExpiresAt &&
+        Date.parse(current.temporaryPasswordExpiresAt) <= now.getTime()
+      ) {
+        await recordActivity(
+          tx,
+          current.organizationId,
+          null,
+          "auth.login_failed",
+          now,
+          current.id,
+        );
+        return "expired" as const;
+      }
       const [policy] = await tx
         .select()
         .from(settings)
@@ -108,6 +124,12 @@ export function mountAuthRoutes(app: App, services: Services) {
       return { operator: updated, state, expiresAt, seconds };
     });
     if (!result) throw new ApiFailure("unauthorized", 401, "Email o password non corrette.");
+    if (result === "expired")
+      throw new ApiFailure(
+        "unauthorized",
+        401,
+        "La password temporanea è scaduta: chiedi al responsabile del CAF di generarne una nuova.",
+      );
     setSessionCookie(context, token, services.production, result.seconds);
     return context.json(
       result.state === "mfa_pending"
@@ -155,7 +177,11 @@ export function mountAuthRoutes(app: App, services: Services) {
         throw new ApiFailure("bad_request", 400, "Scegli una password diversa da quella attuale.");
       const [updated] = await tx
         .update(operators)
-        .set({ passwordHash: await hashPassword(input.newPassword), mustChangePassword: false })
+        .set({
+          passwordHash: await hashPassword(input.newPassword),
+          mustChangePassword: false,
+          temporaryPasswordExpiresAt: null,
+        })
         .where(eq(operators.id, current.id))
         .returning();
       if (!updated) throw notFound();

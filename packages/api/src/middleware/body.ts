@@ -4,15 +4,23 @@ import type { ApiEnv, Services } from "../context";
 import { ApiFailure } from "../security";
 import { limitLanguage, limitMessage } from "./limit-message";
 
+/** JSON requests carry text and ids only: the largest legitimate ones are a few KB. */
+export const MAX_JSON_BYTES = 256 * 1024;
+
 export function boundedBody(): MiddlewareHandler<ApiEnv> {
   return async (context, next) => {
     const request = context.req.raw;
     if (request.body) {
+      const json = (request.headers.get("content-type") ?? "").includes("application/json");
       let size = 0;
       const stream = request.body.pipeThrough(
         new TransformStream<Uint8Array, Uint8Array>({
           transform(chunk, controller) {
             size += chunk.byteLength;
+            if (json && size > MAX_JSON_BYTES) {
+              context.set("jsonTooLarge", true);
+              throw new ApiFailure("bad_request", 413, "Richiesta troppo grande.");
+            }
             if (size > UPLOAD_LIMITS.maxBytes + 128 * 1024) {
               context.set("bodyTooLarge", true);
               throw new ApiFailure(

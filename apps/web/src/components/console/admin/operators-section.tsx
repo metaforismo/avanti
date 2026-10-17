@@ -284,7 +284,7 @@ export function OperatorsSection() {
         onOpenChange={(open) => !open && setIssued(null)}
         dismissible={false}
         title="Password temporanea"
-        description="Comunicala di persona o per telefono, non per email. Non la vedrai più: al primo accesso l'operatore dovrà sceglierne una nuova."
+        description="Comunicala di persona o per telefono, non per email. Non la vedrai più e vale 7 giorni: al primo accesso l'operatore dovrà sceglierne una nuova."
       >
         {issued && (
           <div className="grid gap-4">

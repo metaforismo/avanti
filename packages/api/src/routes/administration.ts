@@ -1,3 +1,4 @@
+import { temporaryPasswordExpiry } from "../temporary-password";
 import { randomInt } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { offices, operators, organizations, sessions, settings, type Database } from "@avanti/db";
@@ -208,6 +209,7 @@ export function mountAdministrationRoutes(app: App, s: Services) {
           organizationId: actor.organizationId,
           passwordHash,
           mustChangePassword: true,
+          temporaryPasswordExpiresAt: temporaryPasswordExpiry(s.clock()),
           createdAt: s.clock().toISOString(),
         })
         .onConflictDoNothing({ target: operators.email })
@@ -297,7 +299,11 @@ export function mountAdministrationRoutes(app: App, s: Services) {
       const password = temporaryPassword();
       const [updated] = await tx
         .update(operators)
-        .set({ passwordHash: await hashPassword(password), mustChangePassword: true })
+        .set({
+          passwordHash: await hashPassword(password),
+          mustChangePassword: true,
+          temporaryPasswordExpiresAt: temporaryPasswordExpiry(s.clock()),
+        })
         .where(eq(operators.id, current.id))
         .returning();
       if (!updated) throw notFound();
