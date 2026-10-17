@@ -19,6 +19,7 @@ import { body, mutableCitizen, type App, type Services, type ApiContext } from "
 import { assistantTurns, citizenView, audit, iso } from "./dossier";
 import { currentCitizenLink } from "./citizen-link";
 import { nextCaseUpdate } from "./case-version";
+import { visibleToCitizen } from "./document-visibility";
 import { ApiFailure, notFound } from "./security";
 import { observeAi } from "./operational-telemetry";
 import { rateKey, rateLimitSecret } from "./rate-limit-key";
@@ -173,7 +174,7 @@ export function mountCitizenAssistant(app: App, s: Services) {
         .select()
         .from(documents)
         .where(and(eq(documents.caseId, row.id), eq(documents.id, c.req.param("id"))));
-      if (!document) throw notFound();
+      if (!document || !visibleToCitizen(document, current)) throw notFound();
       if (document.status === "processing")
         throw new ApiFailure("conflict", 409, citizenAssistantCopy("desk", row.language));
       if (document.citizenKeptAt) return;

@@ -27,6 +27,9 @@ export function requestMetadata(logger: ApiOptions["logger"]): MiddlewareHandler
       "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
     );
     context.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    // Documents and case data must not be embeddable or readable by another site's page.
+    context.header("Cross-Origin-Resource-Policy", "same-origin");
+    context.header("Cross-Origin-Opener-Policy", "same-origin");
     try {
       await next();
     } finally {

@@ -258,8 +258,10 @@ it("pilot: API headers also protect auth failures and no CORS / capabilities / s
   expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
   expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
   expect(response.headers.get("Cache-Control")).toBe("no-store");
+  expect(response.headers.get("Cross-Origin-Resource-Policy")).toBe("same-origin");
   const failure = await request("/api/auth/me", "GET", undefined, "");
   expect(failure.headers.get("Content-Security-Policy")).toContain("default-src 'none'");
+  expect(failure.headers.get("Cross-Origin-Resource-Policy")).toBe("same-origin");
   const output = JSON.stringify([logs, errors]);
   for (const secret of [
     tokens.a,

@@ -72,6 +72,10 @@ Il reverse proxy deve oscurare i segmenti capability nei log delle richieste e i
 `Referrer-Policy: no-referrer` sulle pagine cittadino. Analytics, replay di sessione e
 tracker non devono raccogliere quelle pagine. Non incollare link veri in ticket o chat.
 La policy del proxy/browser fa parte del deployment e non è provata dai soli test Hono.
+In produzione le pagine inviano anche HSTS (`max-age=63072000`, come il default Vercel),
+COOP e CORP `same-origin`; l'API aggiunge COOP/CORP alle proprie intestazioni. Il
+microfono è consentito (`microphone=(self)`) solo su `/pratica/:token`, dove il cittadino
+detta; console e pagine pubbliche lo negano. Regole in `apps/web/src/lib/security-headers.ts`.
 
 ## Sala d'attesa e manutenzione pianificata
 
