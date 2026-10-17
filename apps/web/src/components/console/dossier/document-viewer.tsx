@@ -53,6 +53,8 @@ export function DocumentViewer({
   const canDecide = dossier.status !== "closed" && dossier.status !== "intake";
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  // The pass through the files ended on this document: say so and offer the way back.
+  const [finishedOn, setFinishedOn] = useState<string | null>(null);
   // The page's error notice sits under this panel: a failed decision is reported here too.
   const [failedOn, setFailedOn] = useState<string | null>(null);
   const files = useDownload();
@@ -79,7 +81,13 @@ export function DocumentViewer({
       return it && it.id !== target.id && !DECIDED.has(it.status);
     };
     const following = [...docs.slice(index + 1), ...docs.slice(0, Math.max(index, 0))].find(open);
-    if (following) {
+    if (!following) {
+      setFinishedOn(doc?.id ?? null);
+      setAnnouncement(`${target.title}: verificato. Nessun altro documento da controllare.`);
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLButtonElement>('[data-viewer-done="true"]')?.focus(),
+      );
+    } else {
       onNavigate(following);
       const position = docs.indexOf(following) + 1;
       setAnnouncement(
@@ -200,6 +208,21 @@ export function DocumentViewer({
                     <Notice tone="danger" className="mb-4">
                       {failure}
                     </Notice>
+                  )}
+                  {item && finishedOn === doc.id && DECIDED.has(item.status) && (
+                    <Notice
+                      tone="ok"
+                      role="none"
+                      className="mb-4"
+                      title="Nessun altro documento da controllare."
+                      action={
+                        <Primitive.Close asChild>
+                          <Button size="sm" data-viewer-done="true">
+                            Torna al fascicolo
+                          </Button>
+                        </Primitive.Close>
+                      }
+                    />
                   )}
                   {item && canDecide && (
                     <Decision
@@ -409,15 +432,22 @@ function Decision({
               Rifiuta
             </Button>
           </div>
-          <p className="mt-2 text-xs text-ink-3">
-            Tasti: <kbd className="font-semibold">V</kbd> verifica,{" "}
-            <kbd className="font-semibold">R</kbd> rifiuta, <kbd className="font-semibold">←</kbd>{" "}
-            <kbd className="font-semibold">→</kbd> documenti. Dopo la verifica passa al prossimo
-            documento da controllare.
+          <p className="mt-3 text-xs leading-relaxed text-ink-3">
+            Tasti: <Kbd>V</Kbd> verifica, <Kbd>R</Kbd> rifiuta, <Kbd>←</Kbd> <Kbd>→</Kbd> documenti.
+            Dopo la verifica passa al prossimo documento da controllare.
           </p>
         </>
       )}
     </section>
+  );
+}
+
+/** Same look as the ⌘K hint in the sidebar: one key, one chip. */
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded-xs px-1 font-mono text-[0.6875rem] font-semibold text-ink-2 ring-1 ring-line-strong">
+      {children}
+    </kbd>
   );
 }
 

@@ -31,13 +31,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { PageContainer } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { CASE_STATUS, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
-import { forgetCase, rememberCase } from "@/lib/console/recent-cases";
+import { forgetCase, rememberCase, useQueueHref } from "@/lib/console/recent-cases";
 import { useOperator } from "@/lib/console/operator-context";
 import { useDownload } from "@/lib/console/use-download";
 import { useResource } from "@/lib/console/use-resource";
+import { cn } from "@/lib/cn";
 import { ChecklistSection } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
 import { CopilotPanel } from "./copilot-panel";
@@ -111,6 +112,19 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [reply, setReply] = useState<ReplyContext | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const files = useDownload();
+  const queueHref = useQueueHref();
+  // The bar above the title names the case once the h1 has scrolled under it (64px tall).
+  const [title, setTitle] = useState<HTMLHeadingElement | null>(null);
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    if (!title) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setCompact(entry ? !entry.isIntersecting : false),
+      { rootMargin: "-64px 0px 0px 0px" },
+    );
+    observer.observe(title);
+    return () => observer.disconnect();
+  }, [title]);
 
   // The version every write must carry. A ref, not the render's copy: writes queue up behind
   // each other (a note saved on blur while «Verifica» is clicked), and each one must carry
@@ -197,13 +211,7 @@ export function DossierView({ caseId }: { caseId: string }) {
     return () => window.clearInterval(id);
   }, [analysing, reload]);
 
-  if (dossier.status === "loading") {
-    return (
-      <div className="grid min-h-[60dvh] place-items-center text-ink-3">
-        <Spinner label="Caricamento del fascicolo" className="size-6" />
-      </div>
-    );
-  }
+  if (dossier.status === "loading") return <DossierSkeleton queueHref={queueHref} />;
   const gone = dossier.status === "error" && dossier.error.status === 404;
   if ((dossier.status === "error" && !dossier.data) || gone) {
     const missing = gone;
@@ -220,7 +228,7 @@ export function DossierView({ caseId }: { caseId: string }) {
                 </Button>
               )}
               <Button asChild>
-                <Link href="/console">Torna alle pratiche</Link>
+                <Link href={queueHref as Route}>Torna alle pratiche</Link>
               </Button>
             </div>
           }
@@ -236,6 +244,8 @@ export function DossierView({ caseId }: { caseId: string }) {
   const data = dossier.data!;
   const viewing = viewingId ? (data.documents.find((doc) => doc.id === viewingId) ?? null) : null;
   const status = CASE_STATUS[data.status];
+  const citizenName =
+    [data.citizen.firstName, data.citizen.lastName].filter(Boolean).join(" ") || null;
   const base = `/api/cases/${encodeURIComponent(data.id)}`;
   const assignedToMe = data.assignee?.id === operator.id;
   // What still stands between this case and the official practice. While anything is open,
@@ -343,137 +353,170 @@ export function DossierView({ caseId }: { caseId: string }) {
   return (
     // Bottom room for the floating «Chiedi al fascicolo», so it never hides the last row.
     // Names and file names come from citizens and can be one unbroken word in any script.
-    <PageContainer width="7xl" className="pb-24 wrap-anywhere lg:pb-24">
-      <Link
-        href="/console"
-        className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
-      >
-        <ArrowLeft className="rtl-flip size-4" aria-hidden />
-        Pratiche
-      </Link>
+    <PageContainer width="7xl" className="pb-24 wrap-anywhere lg:pt-2 lg:pb-24">
+      {/* The case's actions stay in reach while the operator works far down the dossier: on a
+          desktop this bar sticks to the top, and once the title has scrolled away it names the
+          case (aria-hidden: the h1 already does). On a phone the actions follow the title.
+          `contents` keeps the bar's sticky range the whole page, not this wrapper. */}
+      <div className="flex flex-col items-start lg:contents">
+        <div
+          className={cn(
+            "max-lg:contents lg:sticky lg:top-0 lg:z-20 lg:-mx-10 lg:flex lg:min-h-16 lg:items-center lg:gap-4 lg:border-b lg:bg-paper lg:px-10 lg:py-3",
+            compact ? "lg:border-line" : "lg:border-transparent",
+          )}
+        >
+          <Link
+            href={queueHref as Route}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
+          >
+            <ArrowLeft className="rtl-flip size-4" aria-hidden />
+            Pratiche
+          </Link>
+          {compact && (
+            <p
+              aria-hidden
+              className="hidden min-w-0 flex-1 animate-fade-in items-baseline gap-2 border-s border-line ps-4 lg:flex"
+            >
+              <span className="min-w-0 truncate font-semibold" title={citizenName ?? data.headline}>
+                {citizenName ?? data.headline}
+              </span>
+              <span
+                // Up to 1536px the actions leave room for the name only.
+                className="hidden shrink-0 font-mono text-xs text-ink-3 2xl:inline"
+                translate="no"
+              >
+                {data.reference}
+              </span>
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap items-center gap-2 max-lg:order-2 lg:ms-auto lg:mt-0">
+            {!assignedToMe && data.status !== "closed" && (
+              <Button
+                variant="secondary"
+                loading={pending === "update"}
+                onClick={() => void actions.update({ assigneeId: operator.id })}
+              >
+                <UserCheck className="size-4" aria-hidden />
+                Prendi in carico
+              </Button>
+            )}
+            {data.status !== "closed" && data.status !== "intake" && (
+              <Button
+                variant={openIssues > 0 ? "primary" : "secondary"}
+                onClick={() => void openRequest()}
+              >
+                <Send className="size-4" aria-hidden />
+                Chiedi integrazione
+              </Button>
+            )}
+            {(data.status === "in_review" || data.status === "submitted") && (
+              <Button
+                ref={readyButton}
+                variant={openIssues > 0 ? "secondary" : "primary"}
+                loading={pending === "update" && !confirmReady}
+                onClick={() => (openIssues > 0 ? setConfirmReady(true) : void setStatus("ready"))}
+              >
+                <Check className="size-4" aria-hidden />
+                Segna come pronta
+              </Button>
+            )}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <Button ref={moreButton} variant="secondary">
+                  Altro
+                  <ChevronDown className="size-4" aria-hidden />
+                </Button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={6}
+                  className="z-50 min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
+                >
+                  <MenuItem onSelect={() => void exportAs("pdf")}>
+                    <Download className="me-2.5 size-4 text-ink-3" aria-hidden />
+                    Scarica fascicolo PDF
+                  </MenuItem>
+                  <MenuItem onSelect={() => void exportAs("json")}>
+                    <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
+                    Scarica dati JSON
+                  </MenuItem>
+                  <DropdownMenu.Separator className="my-1 h-px bg-line" />
+                  {data.status === "closed" ? (
+                    <MenuItem onSelect={() => void setStatus("in_review")}>
+                      Riapri la pratica
+                    </MenuItem>
+                  ) : (
+                    <>
+                      {data.status === "ready" && (
+                        <MenuItem onSelect={() => void setStatus("in_review")}>
+                          Torna in revisione
+                        </MenuItem>
+                      )}
+                      <MenuItem onSelect={() => setNewLink(true)}>
+                        Nuovo link per il cittadino…
+                      </MenuItem>
+                      <MenuItem onSelect={() => setConfirmClose(true)}>Chiudi e archivia…</MenuItem>
+                    </>
+                  )}
+                  <MenuItem onSelect={() => setReuse(true)}>
+                    Nuova pratica per questa famiglia…
+                  </MenuItem>
+                  {data.practice?.id === "isee_ordinario" && (
+                    <MenuItem
+                      onSelect={() => {
+                        setWithdrawError(null);
+                        setWithdraw("ask");
+                      }}
+                    >
+                      Revoca l&apos;avviso di rinnovo…
+                    </MenuItem>
+                  )}
+                  {assignedToMe && (
+                    <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
+                      Lascia la pratica
+                    </MenuItem>
+                  )}
+                  {operator.role === "admin" && (
+                    <>
+                      <DropdownMenu.Separator className="my-1 h-px bg-line" />
+                      <MenuItem onSelect={() => setConfirmDelete(true)}>
+                        <span className="text-danger">Elimina definitivamente…</span>
+                      </MenuItem>
+                      <MenuItem onSelect={() => setEraseFamily(true)}>
+                        <span className="text-danger">Cancella tutta la famiglia…</span>
+                      </MenuItem>
+                    </>
+                  )}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
+        </div>
 
-      <header className="mt-3 flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
+        <header className="mt-3 min-w-0 max-lg:order-1 lg:mt-2">
           <div className="flex flex-wrap items-center gap-2">
             <Pill tone={status.tone}>{status.label}</Pill>
-            <span className="font-mono text-sm text-ink-3">{data.reference}</span>
+            <span className="font-mono text-sm text-ink-3" translate="no">
+              {data.reference}
+            </span>
             {data.language !== "it" && (
               <Pill tone="neutral">Cittadino in {LANGUAGE_IT[data.language].toLowerCase()}</Pill>
             )}
           </div>
-          <h1 className="mt-2 font-display text-3xl leading-tight font-bold tracking-[-0.025em]">
-            {data.headline}
+          {/* The person, not the practice, is the title: a January desk sees forty «ISEE
+            ordinario» in a day, and the name is what tells them apart (as in the queue). */}
+          <h1
+            ref={setTitle}
+            className="mt-2 font-display text-3xl leading-tight font-bold tracking-[-0.025em]"
+          >
+            {citizenName ?? data.headline}
           </h1>
           <p className="mt-1 text-lg text-ink-2">
-            {[data.citizen.firstName, data.citizen.lastName].filter(Boolean).join(" ") ||
-              "Cittadino senza nome"}
+            {citizenName ? data.headline : "Cittadino senza nome"}
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {!assignedToMe && data.status !== "closed" && (
-            <Button
-              variant="secondary"
-              loading={pending === "update"}
-              onClick={() => void actions.update({ assigneeId: operator.id })}
-            >
-              <UserCheck className="size-4" aria-hidden />
-              Prendi in carico
-            </Button>
-          )}
-          {data.status !== "closed" && data.status !== "intake" && (
-            <Button
-              variant={openIssues > 0 ? "primary" : "secondary"}
-              onClick={() => void openRequest()}
-            >
-              <Send className="size-4" aria-hidden />
-              Chiedi integrazione
-            </Button>
-          )}
-          {(data.status === "in_review" || data.status === "submitted") && (
-            <Button
-              ref={readyButton}
-              variant={openIssues > 0 ? "secondary" : "primary"}
-              loading={pending === "update" && !confirmReady}
-              onClick={() => (openIssues > 0 ? setConfirmReady(true) : void setStatus("ready"))}
-            >
-              <Check className="size-4" aria-hidden />
-              Segna come pronta
-            </Button>
-          )}
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <Button ref={moreButton} variant="secondary">
-                Altro
-                <ChevronDown className="size-4" aria-hidden />
-              </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="end"
-                sideOffset={6}
-                className="z-50 min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
-              >
-                <MenuItem onSelect={() => void exportAs("pdf")}>
-                  <Download className="me-2.5 size-4 text-ink-3" aria-hidden />
-                  Scarica fascicolo PDF
-                </MenuItem>
-                <MenuItem onSelect={() => void exportAs("json")}>
-                  <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
-                  Scarica dati JSON
-                </MenuItem>
-                <DropdownMenu.Separator className="my-1 h-px bg-line" />
-                {data.status === "closed" ? (
-                  <MenuItem onSelect={() => void setStatus("in_review")}>
-                    Riapri la pratica
-                  </MenuItem>
-                ) : (
-                  <>
-                    {data.status === "ready" && (
-                      <MenuItem onSelect={() => void setStatus("in_review")}>
-                        Torna in revisione
-                      </MenuItem>
-                    )}
-                    <MenuItem onSelect={() => setNewLink(true)}>
-                      Nuovo link per il cittadino…
-                    </MenuItem>
-                    <MenuItem onSelect={() => setConfirmClose(true)}>Chiudi e archivia…</MenuItem>
-                  </>
-                )}
-                <MenuItem onSelect={() => setReuse(true)}>
-                  Nuova pratica per questa famiglia…
-                </MenuItem>
-                {data.practice?.id === "isee_ordinario" && (
-                  <MenuItem
-                    onSelect={() => {
-                      setWithdrawError(null);
-                      setWithdraw("ask");
-                    }}
-                  >
-                    Revoca l&apos;avviso di rinnovo…
-                  </MenuItem>
-                )}
-                {assignedToMe && (
-                  <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
-                    Lascia la pratica
-                  </MenuItem>
-                )}
-                {operator.role === "admin" && (
-                  <>
-                    <DropdownMenu.Separator className="my-1 h-px bg-line" />
-                    <MenuItem onSelect={() => setConfirmDelete(true)}>
-                      <span className="text-danger">Elimina definitivamente…</span>
-                    </MenuItem>
-                    <MenuItem onSelect={() => setEraseFamily(true)}>
-                      <span className="text-danger">Cancella tutta la famiglia…</span>
-                    </MenuItem>
-                  </>
-                )}
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
-        </div>
-      </header>
+        </header>
+      </div>
       {withdraw === "done" && (
         <Notice
           tone="ok"
@@ -491,7 +534,7 @@ export function DossierView({ caseId }: { caseId: string }) {
         <Notice
           tone="danger"
           size="md"
-          className="sticky top-16 z-20 mt-4 shadow-float lg:top-4"
+          className="sticky top-16 z-20 mt-4 shadow-float lg:top-20"
           onDismiss={() => setFailure(null)}
           dismissLabel="Chiudi avviso"
         >
@@ -499,7 +542,7 @@ export function DossierView({ caseId }: { caseId: string }) {
         </Notice>
       )}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-8">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8">
           <CitizenQuestions
             dossier={data}
@@ -718,5 +761,43 @@ function MenuItem({ children, onSelect }: { children: React.ReactNode; onSelect:
     >
       {children}
     </DropdownMenu.Item>
+  );
+}
+
+/**
+ * The dossier's shape while it loads: header, main column and side cards stay where they will
+ * be, so nothing jumps when the data lands. «← Pratiche» already works.
+ */
+function DossierSkeleton({ queueHref }: { queueHref: string }) {
+  return (
+    <PageContainer width="7xl" className="lg:pt-2">
+      <div className="flex min-h-10 items-center lg:min-h-16">
+        <Link
+          href={queueHref as Route}
+          className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
+        >
+          <ArrowLeft className="rtl-flip size-4" aria-hidden />
+          Pratiche
+        </Link>
+      </div>
+      <div role="status" aria-busy="true" className="mt-3 lg:mt-2">
+        <span className="sr-only">Caricamento del fascicolo</span>
+        <Skeleton className="h-5 w-48 rounded-full" />
+        <Skeleton className="mt-3 h-9 w-full max-w-sm" />
+        <Skeleton className="mt-2.5 h-6 w-48" />
+        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="grid content-start gap-8">
+            <Skeleton className="h-48 rounded-lg" />
+            <Skeleton className="h-32 rounded-lg" />
+            <Skeleton className="h-64 rounded-lg" />
+          </div>
+          <div className="hidden content-start gap-5 lg:grid">
+            <Skeleton className="h-40 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-36 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </PageContainer>
   );
 }

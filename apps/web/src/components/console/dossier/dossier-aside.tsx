@@ -92,36 +92,61 @@ export function DossierAside({
 
       <InternalNotes dossier={dossier} actions={actions} />
 
-      <Card title="Cronologia">
-        <ol className="relative grid gap-4 border-s border-line ps-4">
-          {collapseTimeline(dossier.timeline).map(({ event, count }) => (
-            <li key={event.id} className="relative">
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute -start-[1.3rem] top-1.5 size-2 rounded-full ring-2 ring-surface",
-                  event.actor === "operator"
-                    ? "bg-stamp"
-                    : event.actor === "citizen"
-                      ? "bg-ok"
-                      : "bg-line-strong",
-                )}
-              />
-              <p className="text-body-sm">
-                {event.label}
-                {count > 1 && <span className="text-ink-3"> ({count} volte)</span>}
-              </p>
-              <p className="text-xs text-ink-3">
-                {event.actorName ? `${event.actorName}, ` : ""}
-                <time dateTime={event.at} title={formatDateTime(event.at)}>
-                  {timeAgo(event.at)}
-                </time>
-              </p>
-            </li>
-          ))}
-        </ol>
-      </Card>
+      <Timeline timeline={dossier.timeline} />
     </aside>
+  );
+}
+
+// Every opening of the dossier is an event: after a few days of work the full history would
+// push the side column far below the checklist. The latest events first, the rest on request.
+const TIMELINE_SHOWN = 6;
+
+function Timeline({ timeline }: { timeline: CaseDossier["timeline"] }) {
+  const [all, setAll] = useState(false);
+  const rows = collapseTimeline(timeline);
+  const shown = all ? rows : rows.slice(0, TIMELINE_SHOWN);
+  return (
+    <Card title="Cronologia">
+      <ol id="dossier-timeline" className="relative grid gap-4 border-s border-line ps-4">
+        {shown.map(({ event, count }) => (
+          <li key={event.id} className="relative">
+            <span
+              aria-hidden
+              className={cn(
+                "absolute -start-[1.3rem] top-1.5 size-2 rounded-full ring-2 ring-surface",
+                event.actor === "operator"
+                  ? "bg-stamp"
+                  : event.actor === "citizen"
+                    ? "bg-ok"
+                    : "bg-line-strong",
+              )}
+            />
+            <p className="text-body-sm">
+              {event.label}
+              {count > 1 && <span className="text-ink-3"> ({count} volte)</span>}
+            </p>
+            <p className="text-xs text-ink-3">
+              {event.actorName ? `${event.actorName}, ` : ""}
+              <time dateTime={event.at} title={formatDateTime(event.at)}>
+                {timeAgo(event.at)}
+              </time>
+            </p>
+          </li>
+        ))}
+      </ol>
+      {rows.length > TIMELINE_SHOWN && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ms-3 mt-3"
+          aria-expanded={all}
+          aria-controls="dossier-timeline"
+          onClick={() => setAll((v) => !v)}
+        >
+          {all ? "Mostra solo le ultime" : "Mostra tutta la cronologia"}
+        </Button>
+      )}
+    </Card>
   );
 }
 

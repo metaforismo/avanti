@@ -3,6 +3,7 @@
 import {
   ClipboardCheck,
   Activity,
+  AlertTriangle,
   BarChart3,
   CircleHelp,
   Inbox,
@@ -378,22 +379,25 @@ function SessionExpired() {
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- see above
     window.location.assign(`/console/accedi?motivo=sessione&next=${next}`);
   };
+  // A bar attached to the top edge of the page, not a card floating over it: it takes its own
+  // room above the content and, sticky, stays in sight wherever the failed action was. Above
+  // the page's own sticky bars (z-30): while the session is over, their actions can't work.
   return (
-    <div className="sticky top-14 z-20 px-4 pt-4 lg:top-0 lg:px-8">
-      <Notice
-        tone="danger"
-        size="md"
-        className="shadow-float"
-        title="La sessione è scaduta"
-        action={
-          <Button size="sm" onClick={login}>
-            Accedi di nuovo
-          </Button>
-        }
-      >
-        Finché non accedi di nuovo, Avanti non può salvare. Se hai scritto qualcosa che non risulta
-        salvato, copialo; dopo l&apos;accesso tornerai su questa pagina.
-      </Notice>
+    <div
+      role="alert"
+      className="sticky top-14 z-30 border-b border-danger/25 bg-danger-wash text-danger lg:top-0"
+    >
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-2 px-4 py-2.5 sm:px-6 lg:items-center lg:gap-x-4 lg:px-10">
+        <AlertTriangle className="mt-0.5 size-5 shrink-0 lg:mt-0" aria-hidden />
+        <p className="min-w-0 flex-1 basis-72 text-body-sm">
+          <strong className="font-semibold">La sessione è scaduta.</strong> Finché non accedi di
+          nuovo, Avanti non può salvare. Se hai scritto qualcosa che non risulta salvato, copialo;
+          dopo l&apos;accesso tornerai su questa pagina.
+        </p>
+        <Button size="sm" className="ms-auto" onClick={login}>
+          Accedi di nuovo
+        </Button>
+      </div>
     </div>
   );
 }

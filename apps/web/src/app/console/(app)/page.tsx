@@ -42,6 +42,7 @@ import {
   type Tone,
 } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
+import { rememberQueue } from "@/lib/console/recent-cases";
 import { QUEUE_SEARCH_MAX, readQueueParams, uniqueById } from "@/lib/console/queue-params";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
@@ -144,6 +145,8 @@ function Queue() {
     document.title =
       waiting > 0 ? `(${waiting}) Pratiche · Console Avanti` : "Pratiche · Console Avanti";
   }, [waiting]);
+
+  useEffect(() => rememberQueue(params), [params]);
 
   const appended = extra?.query === query ? extra : null;
   const items = uniqueById([...(list.data?.items ?? []), ...(appended?.items ?? [])]);
