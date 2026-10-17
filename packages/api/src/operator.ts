@@ -2,7 +2,22 @@ import { nearReadyProfile, currentNearReadyProfile } from "./near-ready-profile"
 import { evaluateCaseNearReady, nearReadyEvent, recordNearReadyFinal } from "./near-ready";
 import { latestNearReady } from "./near-ready-view";
 import { nearReadyPrioritySql, queuePrioritySql } from "./copilot-queue";
-import { and, eq, desc, lt, or, ilike, sql, count, gte, inArray } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  desc,
+  gt,
+  lt,
+  or,
+  ilike,
+  isNull,
+  sql,
+  count,
+  gte,
+  inArray,
+} from "drizzle-orm";
+import { queueWaitCutoff, queueWaitDays } from "@avanti/core";
 import { enqueueCitizen, scheduleNotificationDelivery } from "./notifications";
 import { observeAi } from "./operational-telemetry";
 import {
@@ -88,6 +103,13 @@ export function mountOperatorRoutes(app: App, s: Services) {
       query.status ? eq(cases.status, query.status) : undefined,
       nearReadyPrioritySql(profile, s.clock()),
     );
+    const now = s.clock();
+    const waitCutoff = queueWaitCutoff(now);
+    const overdueFilter = and(
+      eq(cases.status, "submitted"),
+      isNull(cases.assigneeId),
+      sql`${cases.submittedAt} <= ${waitCutoff.toISOString()}`,
+    );
     const totals = await s.db
       .select({
         status: cases.status,
@@ -95,6 +117,10 @@ export function mountOperatorRoutes(app: App, s: Services) {
           ? sql<number>`count(*) filter (where ${priorityFilter})`.mapWith(Number)
           : count(),
         nearReadyTotal: sql<number>`count(*) filter (where ${nearReadyFilter})`.mapWith(Number),
+        overdueTotal:
+          sql<number>`count(*) filter (where ${and(overdueFilter, priorityFilter)})`.mapWith(
+            Number,
+          ),
       })
       .from(cases)
       .where(and(...filters))
@@ -103,13 +129,23 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const counts = emptyCounts();
     for (const t of totals) counts[t.status] = t.total;
     if (query.status) filters.push(eq(cases.status, query.status));
+    const waitingSort = query.sort === "waiting";
     if (query.cursor) {
-      const cursor = decodeCursor(query.cursor);
+      const cursor = decodeCursor(query.cursor, query.sort);
+      // Ascending order keeps never-submitted cases (null) last, matching the index.
       filters.push(
-        or(
-          lt(cases.updatedAt, cursor.at),
-          and(eq(cases.updatedAt, cursor.at), lt(cases.id, cursor.id)),
-        )!,
+        waitingSort
+          ? cursor.at === null
+            ? and(isNull(cases.submittedAt), gt(cases.id, cursor.id))!
+            : or(
+                gt(cases.submittedAt, cursor.at),
+                and(eq(cases.submittedAt, cursor.at), gt(cases.id, cursor.id)),
+                isNull(cases.submittedAt),
+              )!
+          : or(
+              lt(cases.updatedAt, cursor.at!),
+              and(eq(cases.updatedAt, cursor.at!), lt(cases.id, cursor.id)),
+            )!,
       );
     }
     const rows = await s.db
@@ -119,20 +155,42 @@ export function mountOperatorRoutes(app: App, s: Services) {
       })
       .from(cases)
       .where(and(...filters))
-      .orderBy(desc(cases.updatedAt), desc(cases.id))
+      .orderBy(
+        ...(waitingSort
+          ? [asc(cases.submittedAt), asc(cases.id)]
+          : [desc(cases.updatedAt), desc(cases.id)]),
+      )
       .limit(query.limit + 1);
     const page = rows.slice(0, query.limit);
     const last = page.at(-1);
-    const items = await caseListViews(s.db, page, s.clock());
+    const views = await caseListViews(s.db, page, now);
+    const items = views.map((item) => ({
+      ...item,
+      waiting:
+        item.status === "submitted" && !item.assignee && item.submittedAt
+          ? {
+              since: item.submittedAt,
+              days: queueWaitDays(new Date(item.submittedAt), now),
+              overdue: Date.parse(item.submittedAt) <= waitCutoff.getTime(),
+            }
+          : null,
+    }));
+    const cursorAt = (row: NonNullable<typeof last>) =>
+      waitingSort ? (row.submittedAt ? iso(row.submittedAt) : null) : iso(row.updatedAt);
     return c.json({
       items,
       counts,
       priorityCounts: { near_ready: totals.reduce((sum, t) => sum + t.nearReadyTotal, 0) },
+      waitingOverdue: totals.reduce((sum, t) => sum + t.overdueTotal, 0),
       nextCursor:
         rows.length > query.limit && last
-          ? Buffer.from(JSON.stringify({ at: iso(last.updatedAt), id: last.id })).toString(
-              "base64url",
-            )
+          ? Buffer.from(
+              JSON.stringify({
+                at: cursorAt(last),
+                id: last.id,
+                ...(waitingSort ? { sort: "waiting" } : {}),
+              }),
+            ).toString("base64url")
           : null,
     });
   });
@@ -622,7 +680,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
   });
 }
 
-function decodeCursor(cursor: string) {
+function decodeCursor(cursor: string, sort: "updated" | "waiting") {
   try {
     if (cursor.length > 300) throw new Error("Invalid cursor");
     const value: unknown = JSON.parse(Buffer.from(cursor, "base64url").toString());
@@ -631,13 +689,17 @@ function decodeCursor(cursor: string) {
       !value ||
       !("at" in value) ||
       !("id" in value) ||
-      typeof value.at !== "string" ||
+      (typeof value.at !== "string" && !(sort === "waiting" && value.at === null)) ||
       typeof value.id !== "string" ||
       value.id.length > 64 ||
-      !Number.isFinite(Date.parse(value.at))
+      (typeof value.at === "string" && !Number.isFinite(Date.parse(value.at))) ||
+      ("sort" in value ? value.sort : "updated") !== sort
     )
       throw new Error("Invalid cursor");
-    return { at: new Date(value.at).toISOString(), id: value.id };
+    return {
+      at: typeof value.at === "string" ? new Date(value.at).toISOString() : null,
+      id: value.id,
+    };
   } catch {
     throw new ApiFailure("bad_request", 400, "Pagina non valida.");
   }

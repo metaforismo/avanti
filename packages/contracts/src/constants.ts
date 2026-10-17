@@ -25,3 +25,6 @@ export const UPLOAD_LIMITS = {
 
 /** Minimum length for operator passwords chosen by people (temporary ones are generated). */
 export const PASSWORD_MIN_LENGTH = 12;
+
+/** Most cases an admin can assign in one go: two full queue pages. */
+export const ASSIGN_CASES_MAX = 100;

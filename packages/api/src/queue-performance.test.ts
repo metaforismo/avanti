@@ -96,8 +96,9 @@ it("keeps list evaluation equal to dossiers, orders timestamp ties, searches lit
       );
       expect(page.items).toHaveLength(1);
       const dossier = (await get(`/api/cases/${volumeId(n)}`)) as Record<string, unknown>;
+      // Waiting time is a queue-only view of the case (see CaseListItem.waiting).
       for (const [key, value] of Object.entries(page.items[0]!))
-        expect(dossier[key], key).toEqual(value);
+        if (key !== "waiting") expect(dossier[key], key).toEqual(value);
       expect(Object.keys(page.items[0]!)).not.toContain("documents");
       expect(Object.keys(page.items[0]!)).not.toContain("answers");
     }

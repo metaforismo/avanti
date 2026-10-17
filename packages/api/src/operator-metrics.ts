@@ -1,4 +1,4 @@
-import { calendarDate } from "@avanti/core";
+import { calendarDate, romeMidnight } from "@avanti/core";
 import { LANGUAGES, PRACTICE_IDS, type Metrics } from "@avanti/contracts";
 import { minutes, type CaseRow } from "./dossier";
 import { ApiFailure } from "./security";
@@ -134,17 +134,4 @@ export function calculateMetrics(
   };
 }
 
-export function romeMidnight(date: string): Date {
-  const utc = Date.parse(`${date}T00:00:00Z`);
-  const formatter = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Rome",
-    hour: "2-digit",
-    hourCycle: "h23",
-  });
-  let instant = utc;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const offset = Number(formatter.format(new Date(instant))) % 24;
-    instant -= offset * 3600000;
-  }
-  return new Date(instant);
-}
+export { romeMidnight };

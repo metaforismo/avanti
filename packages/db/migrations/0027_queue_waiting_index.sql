@@ -1,0 +1,1 @@
+CREATE INDEX "cases_org_status_submitted_idx" ON "cases" USING btree ("organization_id","status","submitted_at","id");

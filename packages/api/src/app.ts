@@ -25,6 +25,7 @@ import { mountCitizenAssistant } from "./citizen-assistant";
 import { mountCitizenRoutes } from "./citizen";
 import { mountAdministrationRoutes } from "./routes/administration";
 import { mountOperatorRoutes } from "./operator";
+import { mountCaseAssignment } from "./case-assignment";
 import { mountPilotReportRoutes } from "./routes/pilot-report";
 import { mountAuditRoutes } from "./audit-log";
 import { mountNearReady } from "./near-ready";
@@ -114,6 +115,7 @@ export function createApp(options: ApiOptions) {
   for (const path of ["/c/:token/assistant/*", "/c/:token/transcribe"]) app.use(path, limited);
   mountCitizenAssistant(app, services);
   mountConversationRoutes(app, services);
+  mountCaseAssignment(app, services);
   mountOperatorRoutes(app, services);
   mountFamilyReuseRoutes(app, services);
   mountRenewalRoutes(app, services);
