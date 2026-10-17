@@ -1,8 +1,10 @@
-import type { PilotReport, PilotReportGroup } from "@avanti/contracts";
+import type { PilotCount, PilotReport, PilotReportGroup } from "@avanti/contracts";
 import { csvCell } from "./audit-log";
 
 const display = (value: string | number | null) =>
   value === null ? "Non misurato / oscurato" : String(value);
+const counted = (value: PilotCount, one: string, other: string) =>
+  value === null ? display(null) : `${value} ${value === 1 ? one : other}`;
 const percentage = (value: number | null) =>
   value === null ? display(null) : `${(value * 100).toFixed(2)}%`;
 
@@ -46,7 +48,7 @@ export async function pilotReportPdf(report: PilotReport): Promise<Uint8Array> {
     9,
   );
   printer.paragraph(
-    `${report.baseline.label}: ${display(report.baseline.manualMinutesPerCase)} minuti per caso.`,
+    `${report.baseline.label}: ${counted(report.baseline.manualMinutesPerCase, "minuto", "minuti")} per caso.`,
     10,
   );
   const printGroup = (group: PilotReportGroup) => {
@@ -60,7 +62,7 @@ export async function pilotReportPdf(report: PilotReport): Promise<Uint8Array> {
       `Completezza alla consegna: ${percentage(group.completeness.value)}; senza blocchi: ${display(group.completeness.complete)}; campione: ${display(group.completeness.sample)}; valori mancanti: ${display(group.completeness.missing)}. Proxy automatico, da verificare.`,
     );
     printer.paragraph(
-      `Integrazioni: ${display(group.integrations.requests)} richieste su ${display(group.integrations.cases)} pratiche.`,
+      `Integrazioni: ${counted(group.integrations.requests, "richiesta", "richieste")} su ${counted(group.integrations.cases, "pratica", "pratiche")}.`,
     );
     for (const time of group.times)
       printer.paragraph(

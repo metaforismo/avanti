@@ -25,7 +25,7 @@ import { Pill } from "@/components/ui/pill";
 import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { useChanged } from "@/components/ui/use-changed";
-import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
+import { errorMessage, plural, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
 import { DONE_STATUSES } from "@/lib/citizen/view";
@@ -66,7 +66,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
                 ? (data.progress.documentsDone / data.progress.documentsRequired) * 100
                 : 100
             }
-            label={format(m.docs.progress, {
+            label={plural(data.language, data.progress.documentsRequired, m.docs.progress, {
               done: data.progress.documentsDone,
               total: data.progress.documentsRequired,
             })}
@@ -74,7 +74,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
             className="flex-1"
           />
           <span className="tabular shrink-0 text-sm font-semibold text-ink-2">
-            {format(m.docs.progress, {
+            {plural(data.language, data.progress.documentsRequired, m.docs.progress, {
               done: data.progress.documentsDone,
               total: data.progress.documentsRequired,
             })}
@@ -187,9 +187,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
           >
             {missingRequired === 0
               ? m.docs.allDone
-              : missingRequired === 1
-                ? m.docs.missingOne
-                : format(m.docs.missing, { n: missingRequired })}
+              : plural(data.language, missingRequired, m.docs.missing)}
           </p>
           <Button
             size="lg"
@@ -597,7 +595,9 @@ function DocumentRow({
             ) : (
               <>
                 <span dir="ltr">{formatSize(doc.sizeBytes, data.language)}</span>
-                {doc.pages && doc.pages > 1 ? ` · ${format(m.docs.pages, { n: doc.pages })}` : ""}
+                {doc.pages && doc.pages > 1
+                  ? ` · ${plural(data.language, doc.pages, m.docs.pages)}`
+                  : ""}
                 {doc.reuse && (
                   <Pill tone="stamp" className="ms-2">
                     <History aria-hidden />

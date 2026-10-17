@@ -1,41 +1,57 @@
 "use client";
 
 import { useState } from "react";
-import type { CitizenCase } from "@avanti/contracts";
+import type { CitizenCase, Language } from "@avanti/contracts";
 import { ProgressBar } from "@/components/ui/progress";
-import { format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
+import { format, plural, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import { interviewEstimate } from "@/lib/citizen/view";
 
 /** The "questions left" line, for the step header. */
 export function RemainingQuestions({
   progress,
+  language,
   m,
 }: {
   progress: CitizenCase["progress"];
+  language: Language;
   m: Widen<CitizenMessages>;
 }) {
   const { remaining } = interviewEstimate(progress);
   if (!remaining) return null;
   return (
     <p aria-hidden className="text-sm text-ink-3">
-      {remaining.atLeast
-        ? format(m.interview.remainingAtLeast, { n: remaining.min })
-        : remaining.min !== remaining.max
-          ? format(m.interview.remainingRange, { min: remaining.min, max: remaining.max })
-          : remaining.max === 1
-            ? m.interview.remainingOne
-            : format(m.interview.remainingMany, { n: remaining.max })}
+      {remaining.atLeast || remaining.min !== remaining.max
+        ? rangeText(remaining, language, m)
+        : remaining.max === 1
+          ? m.interview.remainingOne
+          : format(m.interview.remainingMany, { n: remaining.max })}
     </p>
   );
+}
+
+/** "At least 3" or "3–5" questions left. In a range the noun agrees with the last number. */
+function rangeText(
+  remaining: { min: number; max: number; atLeast?: boolean },
+  language: Language,
+  m: Widen<CitizenMessages>,
+) {
+  return remaining.atLeast
+    ? plural(language, remaining.min, m.interview.remainingAtLeast)
+    : plural(language, remaining.max, m.interview.remainingRange, {
+        min: remaining.min,
+        max: remaining.max,
+      });
 }
 
 /** The interview bar. While the citizen moves forward it never goes back, even when an answer
  * opens new questions; an edit that removes answers may move it back. */
 export function InterviewProgressBar({
   progress,
+  language,
   m,
 }: {
   progress: CitizenCase["progress"];
+  language: Language;
   m: Widen<CitizenMessages>;
 }) {
   const { percent } = interviewEstimate(progress);
@@ -53,11 +69,9 @@ export function InterviewProgressBar({
       label={
         progress.questionsTotal > 0
           ? format(m.interview.progressLabel, { n: answered, total: progress.questionsTotal })
-          : remaining?.atLeast
-            ? format(m.interview.remainingAtLeast, { n: remaining.min })
-            : remaining
-              ? format(m.interview.remainingRange, { min: remaining.min, max: remaining.max })
-              : ""
+          : remaining
+            ? rangeText(remaining, language, m)
+            : ""
       }
       className="mt-2"
     />

@@ -157,7 +157,7 @@ export function heuristicBrief(
         ? "verify_documents"
         : "ready_for_practice";
   return {
-    situation: `${d.practice?.name ?? "Pratica da identificare"}. Nucleo dichiarato: ${d.household.length} componenti.`,
+    situation: `${d.practice?.name ?? "Pratica da identificare"}. Nucleo dichiarato: ${d.household.length === 1 ? "1 componente" : `${d.household.length} componenti`}.`,
     attention: [...issues]
       .sort(
         (a, b) =>

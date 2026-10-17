@@ -17,7 +17,7 @@ export async function openFirstCaseIn(
   await page.getByRole("button", { name: tab.button }).click();
   await filtered;
   await expect(
-    page.getByRole("status").filter({ hasText: new RegExp(`pratiche: ${tab.label}`) }),
+    page.getByRole("status").filter({ hasText: new RegExp(`pratic(?:a|he): ${tab.label}`) }),
   ).toBeAttached();
   await page.locator('a[href^="/console/pratiche/"]').first().click();
   await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();

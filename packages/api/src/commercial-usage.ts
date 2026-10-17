@@ -81,7 +81,7 @@ export async function enqueueUsageAlerts(
         to: admin.email,
         email: {
           subject: `Avanti: quota consegne al ${highest.threshold}%`,
-          text: `Mese ${usage.month}: ${usage.delivered} fascicoli consegnati su una quota di ${usage.cap}. Soglia ${highest.threshold}% raggiunta. Gli invii continuano anche oltre quota. Contatta Avanti per rivedere il cap.`,
+          text: `Mese ${usage.month}: ${usage.delivered} ${usage.delivered === 1 ? "fascicolo consegnato" : "fascicoli consegnati"} su una quota di ${usage.cap}. Soglia ${highest.threshold}% raggiunta. Gli invii continuano anche oltre quota. Contatta Avanti per rivedere il cap.`,
         },
       },
       now,

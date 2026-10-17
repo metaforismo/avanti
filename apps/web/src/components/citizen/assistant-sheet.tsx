@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Spinner } from "@/components/ui/spinner";
 import { useAssistant, type AssistantFocus, type AssistantTurn } from "@/lib/citizen/assistant";
-import { errorMessage, format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
+import { errorMessage, plural, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { View } from "@/lib/citizen/view";
 import { cn } from "@/lib/cn";
 import { AssistantAvatar, ChatBubble, Thinking } from "./chat-bubble";
@@ -204,9 +204,11 @@ export function AssistantSheet({
                 }
               />
             )}
-            {history && history.remainingToday <= 5 && (
+            {history && history.remainingToday <= 5 && !limited && (
               <p className="text-center text-xs text-ink-3">
-                {format(m.assistant.remaining, { n: history.remainingToday })}
+                {history.remainingToday === 0
+                  ? m.assistant.limit
+                  : plural(data.language, history.remainingToday, m.assistant.remaining)}
               </p>
             )}
           </div>

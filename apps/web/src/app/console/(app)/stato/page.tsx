@@ -68,7 +68,7 @@ const emailSummary = (email: SystemStatus["components"]["email"]) =>
     ? "Solo registro"
     : email.sent24Hours === null
       ? null
-      : `${email.sent24Hours} inviati nelle ultime 24 ore`;
+      : `${email.sent24Hours} ${email.sent24Hours === 1 ? "inviato" : "inviati"} nelle ultime 24 ore`;
 
 export default function SystemStatusPage() {
   const operator = useOperator();
@@ -346,7 +346,7 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
           return (
             <div
               key={h.hour}
-              title={`${hour(h.hour)}: ${h.successes} con AI, ${h.fallbacks} con le regole, ${h.errors} errori`}
+              title={`${hour(h.hour)}: ${h.successes} con AI, ${h.fallbacks} con le regole, ${h.errors} ${h.errors === 1 ? "errore" : "errori"}`}
               className="relative flex h-full flex-1 flex-col justify-end gap-0.5 rounded-xs hover:bg-sunk"
             >
               {h.errors > 0 && (

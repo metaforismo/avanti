@@ -272,7 +272,9 @@ export default function RenewalsPage() {
       )}
 
       <p role="status" className="sr-only">
-        {data ? `${items.length} famiglie: ${STATUSES.find((s) => s.key === status)?.label}` : ""}
+        {data
+          ? `${items.length === 1 ? "1 famiglia" : `${items.length} famiglie`}: ${STATUSES.find((s) => s.key === status)?.label}`
+          : ""}
       </p>
       <section aria-busy={list.status === "loading" || list.refreshing} className="mt-5">
         {list.status === "error" ? (

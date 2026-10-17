@@ -38,9 +38,7 @@ export function FamilyErasureDialog({
         `/api/cases/${dossier.id}/family-erasure`,
         { method: "POST", body: { confirmReference: typed.trim(), confirmed: true } },
       );
-      router.replace(
-        `/console?eliminata=${encodeURIComponent(`${deletedCases} pratiche della famiglia`)}`,
-      );
+      router.replace(`/console?famiglia=${deletedCases}`);
     } catch (err) {
       setError(
         err instanceof ApiRequestError ? err.message : "Cancellazione non riuscita. Riprova.",

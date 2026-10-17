@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Textarea } from "@/components/ui/field";
-import { format } from "@/lib/citizen/messages";
+import { format, plural } from "@/lib/citizen/messages";
 import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
 import { isEmail } from "@/lib/validation";
 import { ActionErrorNotice } from "./action-error";
@@ -110,7 +110,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
         )}
         <SummaryRow
           label={m.review.documents}
-          value={format(m.docs.progress, {
+          value={plural(data.language, data.progress.documentsRequired, m.docs.progress, {
             done: data.progress.documentsDone,
             total: data.progress.documentsRequired,
           })}
@@ -148,9 +148,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
             )}
           </ul>
           <p className="mt-3 text-sm text-ink-2">
-            {missing.length === 1
-              ? m.docs.missingOne
-              : format(m.docs.missing, { n: missing.length })}
+            {plural(data.language, missing.length, m.docs.missing)}
           </p>
         </section>
       )}

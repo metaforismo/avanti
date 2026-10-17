@@ -53,7 +53,7 @@ test("a citizen goes from the office QR to a submitted dossier", async ({ page }
       "base64",
     ),
   });
-  await expect(page.getByText(/1 di \d+ pronti/)).toBeVisible();
+  await expect(page.getByText(/1 di \d+ pront[oi]/)).toBeVisible();
   // Files are served as downloads: the photo opens in a preview instead.
   await page.getByRole("button", { name: /Anteprima: documento\.png/ }).click();
   const preview = page.getByRole("dialog");
@@ -232,6 +232,6 @@ test("a failed upload can be retried without choosing the photo again", async ({
       ),
     });
   await page.getByRole("button", { name: "Riprova" }).click();
-  await expect(page.getByText(/1 di \d+ pronti/)).toBeVisible();
+  await expect(page.getByText(/1 di \d+ pront[oi]/)).toBeVisible();
   expect(attempts).toBe(2);
 });

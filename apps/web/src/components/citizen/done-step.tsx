@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { apiFetch } from "@/lib/api";
 import { Notice } from "@/components/ui/notice";
 import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
-import { format } from "@/lib/citizen/messages";
+import { plural } from "@/lib/citizen/messages";
 import type { StepProps } from "./citizen-app";
 import { SaveLinkActions } from "./save-link";
 
@@ -102,7 +102,7 @@ export function DoneStep({ api, data, m, token }: StepProps) {
           </ul>
           {missing.length > shown && (
             <p className="mt-1.5 ps-4 text-ink-2">
-              {format(m.done.bringMore, { n: missing.length - shown })}
+              {plural(data.language, missing.length - shown, m.done.bringMore)}
             </p>
           )}
         </section>
