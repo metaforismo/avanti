@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { FullscreenQr } from "@/components/ui/fullscreen-qr";
 import { QrCode } from "@/components/ui/qr-code";
+import { whatsappNumber } from "@/lib/console/citizen-notice";
 
 /**
  * Messages sent with the link: Italian always, plus the citizen's language so they understand
@@ -38,13 +39,6 @@ export function shareMessage(kind: keyof typeof MESSAGES, language: Language, li
   const lines = [MESSAGES[kind].it];
   if (language !== "it") lines.push(MESSAGES[kind][language]);
   return `${lines.join("\n")}\n${link}`;
-}
-
-/** Italian mobile numbers are often typed without the country code. */
-function whatsappNumber(phone?: string) {
-  const digits = phone?.replace(/[^\d+]/g, "").replace(/^\+/, "");
-  if (!digits) return "";
-  return digits.length === 10 && digits.startsWith("3") ? `39${digits}` : digits;
 }
 
 /** QR, link and ready-made messages to hand a citizen their personal link. */

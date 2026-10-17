@@ -15,14 +15,17 @@ import {
   timeAgo,
 } from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
+import { CitizenNoticeStatus } from "../citizen-notice";
 import type { DossierActions } from "./dossier-view";
 
 export function DossierAside({
   dossier,
   actions,
+  onNotify,
 }: {
   dossier: CaseDossier;
   actions: DossierActions;
+  onNotify: () => void;
 }) {
   const { citizen } = dossier;
   return (
@@ -52,6 +55,7 @@ export function DossierAside({
             </a>
           )}
         </div>
+        <CitizenNoticeStatus dossier={dossier} onNotify={onNotify} />
         {dossier.citizenLink && (
           <CopyButton
             value={dossier.citizenLink}
