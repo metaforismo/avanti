@@ -4,6 +4,7 @@ import {
   AlertOctagon,
   AlertTriangle,
   CheckCheck,
+  Clock,
   Inbox,
   MessageCircleQuestion,
   Search,
@@ -14,15 +15,22 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "next";
-import type { CaseListItem, CaseListResponse, CaseStatus } from "@avanti/contracts";
-import { PRACTICE_IDS } from "@avanti/contracts/constants";
+import type {
+  AssignCasesResponse,
+  CaseListItem,
+  CaseListResponse,
+  CaseStatus,
+} from "@avanti/contracts";
+import { ASSIGN_CASES_MAX, PRACTICE_IDS } from "@avanti/contracts/constants";
 import { FirstSteps } from "@/components/console/first-steps";
+import { casesLabel, QueueAssign } from "@/components/console/queue-assign";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Select } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
 import { PageContainer, PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api";
 import {
@@ -33,6 +41,7 @@ import {
   timeAgo,
   type Tone,
 } from "@/lib/console/labels";
+import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 
@@ -51,6 +60,9 @@ function Queue() {
   const practice = params.get("pratica") ?? "";
   const assignee = params.get("assegnatario") ?? "";
   const priority = params.get("priorita") ?? "";
+  const longestWaiting = params.get("ordina") === "attesa";
+  const operator = useOperator();
+  const admin = operator.role === "admin";
   // Set by the dossier after a permanent deletion, which leaves nothing else to show.
   const deleted = params.get("eliminata");
   const familyErased = params.get("famiglia");
@@ -91,8 +103,9 @@ function Queue() {
     if (assignee) q.set("assignee", assignee);
     if (priority in PRIORITY) q.set("ai", priority);
     if (deferredSearch) q.set("q", deferredSearch);
+    if (longestWaiting) q.set("sort", "waiting");
     return `/api/cases?${q.toString()}`;
-  }, [status, practice, assignee, priority, deferredSearch]);
+  }, [status, practice, assignee, priority, deferredSearch, longestWaiting]);
 
   const list = useResource<CaseListResponse>(query);
   const [extra, setExtra] = useState<{
@@ -102,6 +115,13 @@ function Queue() {
   } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
+  // Tied to the query: changing tab or filter drops a selection the admin can no longer see.
+  const [selection, setSelection] = useState<{ query: string; ids: Set<string> }>({
+    query: "",
+    ids: new Set(),
+  });
+  const selectedIds = selection.query === query ? selection.ids : EMPTY;
+  const [assigned, setAssigned] = useState<{ text: string; partial: boolean } | null>(null);
 
   // Keep the queue fresh while an operator works on it.
   const { reload } = list;
@@ -124,6 +144,41 @@ function Queue() {
   const nextCursor = appended ? appended.cursor : (list.data?.nextCursor ?? null);
   const counts = list.data?.counts;
   const filtered = Boolean(practice || assignee || priority || deferredSearch);
+  const visibleById = new Map(items.map((item) => [item.id, item]));
+  const selected = [...selectedIds].flatMap((id) => visibleById.get(id) ?? []);
+  const selectable = items.slice(0, ASSIGN_CASES_MAX);
+  const allSelected = selectable.length > 0 && selectable.every((item) => selectedIds.has(item.id));
+  const overdue = list.data?.waitingOverdue ?? 0;
+
+  function toggle(id: string) {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else if (next.size < ASSIGN_CASES_MAX) next.add(id);
+    setSelection({ query, ids: next });
+  }
+
+  function assignmentDone(response: AssignCasesResponse) {
+    const by = (outcome: string) => response.results.filter((r) => r.outcome === outcome);
+    const done = by("assigned").length + by("unchanged").length;
+    const conflicts = by("conflict");
+    const missing = by("not_found").length;
+    const parts = [
+      response.assignee
+        ? `${casesLabel(done)} ${done === 1 ? "assegnata" : "assegnate"} a ${response.assignee.name}.`
+        : `${casesLabel(done)} ${done === 1 ? "è" : "sono"} di nuovo senza assegnazione.`,
+    ];
+    if (conflicts.length)
+      parts.push(
+        `${casesLabel(conflicts.length)} ${conflicts.length === 1 ? "è cambiata" : "sono cambiate"} nel frattempo e non ${conflicts.length === 1 ? "è stata toccata" : "sono state toccate"}: ${conflicts.length === 1 ? "resta selezionata" : "restano selezionate"}, ricontrolla e riprova.`,
+      );
+    if (missing)
+      parts.push(`${casesLabel(missing)} non ${missing === 1 ? "esiste" : "esistono"} più.`);
+    setAssigned({ text: parts.join(" "), partial: conflicts.length + missing > 0 });
+    setSelection({ query, ids: new Set(conflicts.map((r) => r.id)) });
+    setExtra(null);
+    void list.reload();
+  }
+
   // No case in any state yet: a CAF's first day.
   const firstDay = counts ? Object.values(counts).every((n) => n === 0) : false;
 
@@ -148,11 +203,22 @@ function Queue() {
   }
 
   return (
-    <PageContainer width="6xl">
+    <PageContainer width="6xl" className={cn(selected.length > 0 && "pb-28")}>
       <PageHeader title="Pratiche" />
 
       {/* The live region stays mounted so the confirmation is announced when it appears. */}
       <div role="status">
+        {assigned && (
+          <Notice
+            tone={assigned.partial ? "warn" : "ok"}
+            role="none"
+            className="mt-4"
+            onDismiss={() => setAssigned(null)}
+            dismissLabel="Chiudi avviso"
+          >
+            {assigned.text}
+          </Notice>
+        )}
         {familyErased && (
           <Notice
             tone="ok"
@@ -309,6 +375,31 @@ function Queue() {
         </div>
       </div>
 
+      {status === "submitted" && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p
+            className={cn(
+              "flex items-center gap-2 text-sm",
+              overdue > 0 ? "text-warn" : "text-ink-3",
+            )}
+          >
+            <Clock className="size-4 shrink-0" aria-hidden />
+            {overdue > 0
+              ? `${casesLabel(overdue)} non ${overdue === 1 ? "assegnata aspetta" : "assegnate aspettano"} da più di 2 giorni lavorativi.`
+              : "Nessuna pratica aspetta da più di 2 giorni lavorativi."}
+          </p>
+          <SegmentedControl
+            label="Ordina le pratiche inviate"
+            value={longestWaiting ? "attesa" : "recenti"}
+            options={[
+              { value: "recenti", label: "Più recenti" },
+              { value: "attesa", label: "In attesa da più tempo" },
+            ]}
+            onChange={(value) => setParam("ordina", value === "attesa" ? value : "")}
+          />
+        </div>
+      )}
+
       <p role="status" className="sr-only">
         {list.status === "ready"
           ? `${items.length} pratiche: ${CASE_STATUS[status].label.toLowerCase()}`
@@ -348,16 +439,54 @@ function Queue() {
           )
         ) : (
           <>
-            <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] gap-4 px-4 pb-2 text-xs text-ink-3 md:grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]">
-              <span>Cittadino</span>
-              <span>Pratica</span>
-              <span>Documenti</span>
-              <span>Problemi</span>
-              <span className="text-end">Aggiornata</span>
+            <div className={cn("flex items-center text-xs text-ink-3 md:pb-2", admin && "pb-2")}>
+              {admin && (
+                <SelectAll
+                  checked={allSelected}
+                  mixed={!allSelected && selected.length > 0}
+                  count={selectable.length}
+                  onChange={() =>
+                    setSelection({
+                      query,
+                      ids: allSelected ? new Set() : new Set(selectable.map((item) => item.id)),
+                    })
+                  }
+                />
+              )}
+              <div
+                className={cn(
+                  "hidden flex-1 grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] gap-4 px-4 md:grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]",
+                  admin && "ps-1",
+                )}
+              >
+                <span>Cittadino</span>
+                <span>Pratica</span>
+                <span>Documenti</span>
+                <span>Problemi</span>
+                <span className="text-end">Aggiornata</span>
+              </div>
+              {admin && (
+                <span className="ps-1 md:hidden">
+                  {allSelected ? "Deseleziona tutte" : "Seleziona tutte le visibili"}
+                </span>
+              )}
             </div>
             <ul className="divide-y divide-line overflow-hidden rounded-lg bg-surface ring-1 ring-line">
               {items.map((item) => (
-                <QueueRow key={item.id} item={item} />
+                <QueueRow
+                  key={item.id}
+                  item={item}
+                  selection={
+                    admin
+                      ? {
+                          checked: selectedIds.has(item.id),
+                          disabled:
+                            !selectedIds.has(item.id) && selectedIds.size >= ASSIGN_CASES_MAX,
+                          onToggle: () => toggle(item.id),
+                        }
+                      : null
+                  }
+                />
               ))}
             </ul>
             {nextCursor && (
@@ -378,11 +507,59 @@ function Queue() {
           </>
         )}
       </section>
+
+      {admin && selected.length > 0 && (
+        <QueueAssign
+          selected={selected}
+          currentOperatorId={operator.id}
+          onClear={() => setSelection({ query, ids: new Set() })}
+          onDone={assignmentDone}
+        />
+      )}
     </PageContainer>
   );
 }
 
-function QueueRow({ item }: { item: CaseListItem }) {
+const EMPTY: ReadonlySet<string> = new Set();
+
+function SelectAll({
+  checked,
+  mixed,
+  count,
+  onChange,
+}: {
+  checked: boolean;
+  mixed: boolean;
+  count: number;
+  onChange: () => void;
+}) {
+  return (
+    <label className="grid size-11 shrink-0 cursor-pointer place-items-center">
+      <input
+        type="checkbox"
+        checked={checked}
+        ref={(node) => {
+          if (node) node.indeterminate = mixed;
+        }}
+        onChange={onChange}
+        aria-label={
+          checked
+            ? "Deseleziona tutte le pratiche"
+            : `Seleziona tutte le ${count} pratiche visibili`
+        }
+        className="size-4.5 accent-stamp"
+      />
+    </label>
+  );
+}
+
+function QueueRow({
+  item,
+  selection,
+}: {
+  item: CaseListItem;
+  selection: { checked: boolean; disabled: boolean; onToggle: () => void } | null;
+}) {
   const router = useRouter();
   const { documentsDone, documentsRequired } = item.progress;
   const docPercent = documentsRequired ? (documentsDone / documentsRequired) * 100 : 0;
@@ -392,13 +569,34 @@ function QueueRow({ item }: { item: CaseListItem }) {
   const prefetch = () => router.prefetch(href);
   return (
     // Rows off screen skip layout and paint: long queues scroll as lightly as short ones.
-    <li className="[contain-intrinsic-size:auto_4.5rem] [content-visibility:auto]">
+    <li
+      className={cn(
+        "flex [contain-intrinsic-size:auto_4.5rem] [content-visibility:auto]",
+        selection?.checked && "bg-stamp-wash",
+      )}
+    >
+      {selection && (
+        // Outside the link: a checkbox inside an anchor would open the case on every tick.
+        <label className="grid w-11 shrink-0 cursor-pointer place-items-center self-stretch has-[:disabled]:cursor-not-allowed">
+          <input
+            type="checkbox"
+            checked={selection.checked}
+            disabled={selection.disabled}
+            onChange={selection.onToggle}
+            aria-label={`Seleziona ${item.citizenName ?? "pratica"} ${item.reference}`}
+            className="size-4.5 accent-stamp disabled:opacity-40"
+          />
+        </label>
+      )}
       <Link
         href={href}
         prefetch={false}
         onPointerEnter={prefetch}
         onFocus={prefetch}
-        className="grid gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-paper focus-visible:bg-paper md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] md:items-center xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]"
+        className={cn(
+          "grid min-w-0 flex-1 gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-paper focus-visible:bg-paper md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] md:items-center xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]",
+          selection && "ps-1",
+        )}
       >
         <span className="min-w-0">
           <span className="block truncate font-semibold">
@@ -413,7 +611,21 @@ function QueueRow({ item }: { item: CaseListItem }) {
                 {LANGUAGE_IT[item.language]}
               </span>
             )}
+            {item.waiting && !item.waiting.overdue && (
+              <span className="whitespace-nowrap">
+                <span aria-hidden>· </span>
+                in attesa {waitingSince(item.waiting.days)}
+              </span>
+            )}
           </span>
+          {item.waiting?.overdue && (
+            <span title="Nessuno l'ha presa in carico da più di 2 giorni lavorativi">
+              <Pill tone="warn" className="mt-1 w-fit">
+                <Clock aria-hidden />
+                In attesa {waitingSince(item.waiting.days)}
+              </Pill>
+            </span>
+          )}
           {item.aiPriority && <PriorityBadge item={item} />}
         </span>
         <span className="min-w-0 text-body-sm">
@@ -469,6 +681,9 @@ function QueueRow({ item }: { item: CaseListItem }) {
     </li>
   );
 }
+
+const waitingSince = (days: number) =>
+  days === 0 ? "da oggi" : days === 1 ? "da ieri" : `da ${days} giorni`;
 
 type Priority = NonNullable<CaseListItem["aiPriority"]>;
 
