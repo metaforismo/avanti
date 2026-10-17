@@ -147,7 +147,11 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
               </li>
             )}
           </ul>
-          <p className="mt-3 text-sm text-ink-2">{format(m.docs.missing, { n: missing.length })}</p>
+          <p className="mt-3 text-sm text-ink-2">
+            {missing.length === 1
+              ? m.docs.missingOne
+              : format(m.docs.missing, { n: missing.length })}
+          </p>
         </section>
       )}
 

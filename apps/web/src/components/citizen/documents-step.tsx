@@ -187,7 +187,9 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
           >
             {missingRequired === 0
               ? m.docs.allDone
-              : format(m.docs.missing, { n: missingRequired })}
+              : missingRequired === 1
+                ? m.docs.missingOne
+                : format(m.docs.missing, { n: missingRequired })}
           </p>
           <Button
             size="lg"
