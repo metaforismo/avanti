@@ -1,96 +1,224 @@
 import type { AnswerValue, CitizenCase, Language, PracticeId } from "@avanti/contracts";
+import { plural, type PluralForms } from "@avanti/core";
 import type { IntakeProposal } from "./ai";
 
 type Phrases = {
   prefix: string;
   alone: string;
-  household: string;
+  household: PluralForms;
   relatives: [string, string, string];
   with: string;
-  accounts: [string, string];
-  properties: [string, string];
-  vehicles: [string, string];
+  // With "=0", no accounts reads "non hai conti", not "hai 0 conti".
+  accounts: PluralForms;
+  properties: PluralForms;
+  vehicles: PluralForms;
 };
 const phrases: Record<Language, Phrases> = {
   it: {
     prefix: "Ho capito",
     alone: "Vivi da solo o sola",
-    household: "Il tuo nucleo familiare comprende {n} persone",
+    household: {
+      one: "Il tuo nucleo familiare comprende una persona",
+      other: "Il tuo nucleo familiare comprende {n} persone",
+    },
     relatives: ["tua madre", "tuo padre", "il tuo coniuge"],
     with: "Vivi con {who}",
-    accounts: ["hai un conto", "hai {n} conti"],
-    properties: ["hai un immobile", "hai {n} immobili"],
-    vehicles: ["hai un veicolo", "hai {n} veicoli"],
+    accounts: { "=0": "non hai conti", one: "hai un conto", other: "hai {n} conti" },
+    properties: { "=0": "non hai immobili", one: "hai un immobile", other: "hai {n} immobili" },
+    vehicles: { "=0": "non hai veicoli", one: "hai un veicolo", other: "hai {n} veicoli" },
   },
   en: {
     prefix: "I understood",
     alone: "You live alone",
-    household: "Your household has {n} people",
+    household: { one: "Your household has 1 person", other: "Your household has {n} people" },
     relatives: ["your mother", "your father", "your spouse"],
     with: "You live with {who}",
-    accounts: ["you have a bank account", "you have {n} bank accounts"],
-    properties: ["you own a property", "you own {n} properties"],
-    vehicles: ["you have a vehicle", "you have {n} vehicles"],
+    accounts: {
+      "=0": "you have no bank accounts",
+      one: "you have a bank account",
+      other: "you have {n} bank accounts",
+    },
+    properties: {
+      "=0": "you own no property",
+      one: "you own a property",
+      other: "you own {n} properties",
+    },
+    vehicles: {
+      "=0": "you have no vehicles",
+      one: "you have a vehicle",
+      other: "you have {n} vehicles",
+    },
   },
   fr: {
     prefix: "J’ai compris",
     alone: "Vous vivez seul ou seule",
-    household: "Votre foyer compte {n} personnes",
+    household: {
+      one: "Votre foyer compte {n} personne",
+      other: "Votre foyer compte {n} personnes",
+    },
     relatives: ["votre mère", "votre père", "votre conjoint"],
     with: "Vous vivez avec {who}",
-    accounts: ["vous avez un compte", "vous avez {n} comptes"],
-    properties: ["vous avez un bien immobilier", "vous avez {n} biens immobiliers"],
-    vehicles: ["vous avez un véhicule", "vous avez {n} véhicules"],
+    accounts: {
+      "=0": "vous n’avez pas de compte",
+      one: "vous avez un compte",
+      other: "vous avez {n} comptes",
+    },
+    properties: {
+      "=0": "vous n’avez pas de bien immobilier",
+      one: "vous avez un bien immobilier",
+      other: "vous avez {n} biens immobiliers",
+    },
+    vehicles: {
+      "=0": "vous n’avez pas de véhicule",
+      one: "vous avez un véhicule",
+      other: "vous avez {n} véhicules",
+    },
   },
   es: {
     prefix: "He entendido",
     alone: "Vives solo o sola",
-    household: "Tu unidad familiar tiene {n} personas",
+    household: {
+      one: "Tu unidad familiar tiene una persona",
+      other: "Tu unidad familiar tiene {n} personas",
+    },
     relatives: ["tu madre", "tu padre", "tu cónyuge"],
     with: "Vives con {who}",
-    accounts: ["tienes una cuenta", "tienes {n} cuentas"],
-    properties: ["tienes un inmueble", "tienes {n} inmuebles"],
-    vehicles: ["tienes un vehículo", "tienes {n} vehículos"],
+    accounts: { "=0": "no tienes cuentas", one: "tienes una cuenta", other: "tienes {n} cuentas" },
+    properties: {
+      "=0": "no tienes inmuebles",
+      one: "tienes un inmueble",
+      other: "tienes {n} inmuebles",
+    },
+    vehicles: {
+      "=0": "no tienes vehículos",
+      one: "tienes un vehículo",
+      other: "tienes {n} vehículos",
+    },
   },
   ro: {
     prefix: "Am înțeles",
     alone: "Locuiești singur sau singură",
-    household: "Nucleul tău familial are {n} persoane",
+    household: {
+      one: "Nucleul tău familial are o persoană",
+      few: "Nucleul tău familial are {n} persoane",
+      other: "Nucleul tău familial are {n} de persoane",
+    },
     relatives: ["mama ta", "tatăl tău", "soțul sau soția ta"],
     with: "Locuiești cu {who}",
-    accounts: ["ai un cont", "ai {n} conturi"],
-    properties: ["ai un imobil", "ai {n} imobile"],
-    vehicles: ["ai un vehicul", "ai {n} vehicule"],
+    accounts: {
+      "=0": "nu ai conturi",
+      one: "ai un cont",
+      few: "ai {n} conturi",
+      other: "ai {n} de conturi",
+    },
+    properties: {
+      "=0": "nu ai imobile",
+      one: "ai un imobil",
+      few: "ai {n} imobile",
+      other: "ai {n} de imobile",
+    },
+    vehicles: {
+      "=0": "nu ai vehicule",
+      one: "ai un vehicul",
+      few: "ai {n} vehicule",
+      other: "ai {n} de vehicule",
+    },
   },
   uk: {
     prefix: "Я зрозумів",
     alone: "Ви живете самі",
-    household: "У Вашій сім’ї {n} осіб",
+    household: {
+      one: "У Вашій сім’ї {n} особа",
+      few: "У Вашій сім’ї {n} особи",
+      many: "У Вашій сім’ї {n} осіб",
+      other: "У Вашій сім’ї {n} особи",
+    },
     relatives: ["матір’ю", "батьком", "чоловіком або дружиною"],
     with: "Ви живете з {who}",
-    accounts: ["у Вас один рахунок", "у Вас {n} рахунків"],
-    properties: ["у Вас один об’єкт нерухомості", "у Вас {n} об’єктів нерухомості"],
-    vehicles: ["у Вас один транспортний засіб", "у Вас {n} транспортних засобів"],
+    accounts: {
+      "=0": "у Вас немає рахунків",
+      "=1": "у Вас один рахунок",
+      one: "у Вас {n} рахунок",
+      few: "у Вас {n} рахунки",
+      many: "у Вас {n} рахунків",
+      other: "у Вас {n} рахунку",
+    },
+    properties: {
+      "=0": "у Вас немає нерухомості",
+      "=1": "у Вас один об’єкт нерухомості",
+      one: "у Вас {n} об’єкт нерухомості",
+      few: "у Вас {n} об’єкти нерухомості",
+      many: "у Вас {n} об’єктів нерухомості",
+      other: "у Вас {n} об’єкта нерухомості",
+    },
+    vehicles: {
+      "=0": "у Вас немає транспортних засобів",
+      "=1": "у Вас один транспортний засіб",
+      one: "у Вас {n} транспортний засіб",
+      few: "у Вас {n} транспортні засоби",
+      many: "у Вас {n} транспортних засобів",
+      other: "у Вас {n} транспортного засобу",
+    },
   },
   ar: {
     prefix: "فهمت",
     alone: "تعيش وحدك",
-    household: "تتكون أسرتك من {n} أشخاص",
+    household: {
+      zero: "تتكون أسرتك من {n} أشخاص",
+      one: "تتكون أسرتك من شخص واحد",
+      two: "تتكون أسرتك من شخصين",
+      few: "تتكون أسرتك من {n} أشخاص",
+      many: "تتكون أسرتك من {n} شخصًا",
+      other: "تتكون أسرتك من {n} شخص",
+    },
     relatives: ["والدتك", "والدك", "زوجك أو زوجتك"],
     with: "تعيش مع {who}",
-    accounts: ["لديك حساب واحد", "لديك {n} حسابات"],
-    properties: ["لديك عقار واحد", "لديك {n} عقارات"],
-    vehicles: ["لديك مركبة واحدة", "لديك {n} مركبات"],
+    accounts: {
+      zero: "ليس لديك حسابات",
+      one: "لديك حساب واحد",
+      two: "لديك حسابان",
+      few: "لديك {n} حسابات",
+      many: "لديك {n} حسابًا",
+      other: "لديك {n} حساب",
+    },
+    properties: {
+      zero: "ليس لديك عقارات",
+      one: "لديك عقار واحد",
+      two: "لديك عقاران",
+      few: "لديك {n} عقارات",
+      many: "لديك {n} عقارًا",
+      other: "لديك {n} عقار",
+    },
+    vehicles: {
+      zero: "ليس لديك مركبات",
+      one: "لديك مركبة واحدة",
+      two: "لديك مركبتان",
+      few: "لديك {n} مركبات",
+      many: "لديك {n} مركبةً",
+      other: "لديك {n} مركبة",
+    },
   },
   bn: {
     prefix: "বুঝেছি",
     alone: "আপনি একা থাকেন",
-    household: "আপনার পরিবারে {n} জন আছেন",
+    household: { other: "আপনার পরিবারে {n} জন আছেন" },
     relatives: ["আপনার মায়ের", "আপনার বাবার", "আপনার স্বামী বা স্ত্রীর"],
     with: "আপনি {who} সঙ্গে থাকেন",
-    accounts: ["আপনার একটি হিসাব আছে", "আপনার {n}টি হিসাব আছে"],
-    properties: ["আপনার একটি সম্পত্তি আছে", "আপনার {n}টি সম্পত্তি আছে"],
-    vehicles: ["আপনার একটি গাড়ি আছে", "আপনার {n}টি গাড়ি আছে"],
+    accounts: {
+      "=0": "আপনার কোনো হিসাব নেই",
+      "=1": "আপনার একটি হিসাব আছে",
+      other: "আপনার {n}টি হিসাব আছে",
+    },
+    properties: {
+      "=0": "আপনার কোনো সম্পত্তি নেই",
+      "=1": "আপনার একটি সম্পত্তি আছে",
+      other: "আপনার {n}টি সম্পত্তি আছে",
+    },
+    vehicles: {
+      "=0": "আপনার কোনো গাড়ি নেই",
+      "=1": "আপনার একটি গাড়ি আছে",
+      other: "আপনার {n}টি গাড়ি আছে",
+    },
   },
 };
 
@@ -167,7 +295,7 @@ export function turnAcknowledgement(
     facts.push(
       changes.household_count === 1
         ? words.alone
-        : words.household.replace("{n}", String(changes.household_count)),
+        : plural(view.language, changes.household_count, words.household),
     );
   }
   for (const [key, templates] of [
@@ -181,11 +309,12 @@ export function turnAcknowledgement(
         const banks = Object.entries(changes)
           .filter(([id, value]) => /^account_bank_\d+$/.test(id) && typeof value === "string")
           .map(([, value]) => String(value));
-        if (banks.length) facts.push(accountBanks(templates[0], banks, view.language));
+        if (banks.length)
+          facts.push(accountBanks(plural(view.language, 1, templates), banks, view.language));
       }
       continue;
     }
-    let sentence = (count === 1 ? templates[0] : templates[1]).replace("{n}", String(count));
+    let sentence = plural(view.language, count, templates);
     if (key === "accounts_count") {
       const banks = Object.entries(changes)
         .filter(([id, value]) => /^account_bank_\d+$/.test(id) && typeof value === "string")

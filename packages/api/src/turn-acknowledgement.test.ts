@@ -81,3 +81,36 @@ it("does not repeat unchanged facts and keeps the newly selected practice in a s
     "Ho capito: ISEE ordinario. Vivi con tua madre e hai un veicolo.",
   );
 });
+
+it.each([
+  ["it", { accounts_count: 0 }, "Ho capito: non hai conti."],
+  [
+    "it",
+    { household_count: 4, vehicles_count: 2 },
+    "Ho capito: Il tuo nucleo familiare comprende 4 persone e hai 2 veicoli.",
+  ],
+  ["uk", { household_count: 3 }, "Я зрозумів: У Вашій сім’ї 3 особи."],
+  ["uk", { household_count: 5 }, "Я зрозумів: У Вашій сім’ї 5 осіб."],
+  [
+    "uk",
+    { accounts_count: 2, vehicles_count: 0 },
+    "Я зрозумів: у Вас 2 рахунки і немає транспортних засобів.",
+  ],
+  ["uk", { accounts_count: 21 }, "Я зрозумів: у Вас 21 рахунок."],
+  ["uk", { accounts_count: 11 }, "Я зрозумів: у Вас 11 рахунків."],
+  ["ar", { household_count: 2 }, "فهمت: تتكون أسرتك من شخصين."],
+  ["ar", { accounts_count: 2 }, "فهمت: لديك حسابان."],
+  ["ar", { accounts_count: 11 }, "فهمت: لديك 11 حسابًا."],
+  ["ro", { accounts_count: 20 }, "Am înțeles: ai 20 de conturi."],
+  ["ro", { accounts_count: 5 }, "Am înțeles: ai 5 conturi."],
+] as const)("%s: counts agree with the number (%j)", (language, answers, sentence) => {
+  const view = { language, practice: getPractice("isee_ordinario", language), answers };
+  const proposal = {
+    practiceId: "isee_ordinario" as const,
+    confidence: 1,
+    answers,
+    reply: "",
+    engine: "heuristic" as const,
+  };
+  expect(turnAcknowledgement(view, proposal, {}, "", "isee_ordinario")).toBe(sentence);
+});
