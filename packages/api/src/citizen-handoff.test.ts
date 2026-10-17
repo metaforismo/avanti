@@ -70,7 +70,10 @@ beforeAll(async () => {
 });
 afterAll(async () => close?.());
 
-async function fixture(language: "ar" | "it" = "ar", status = "needs_citizen" as const) {
+async function fixture(
+  language: "ar" | "it" = "ar",
+  status: "needs_citizen" | "intake" = "needs_citizen",
+) {
   const id = `case-${++sequence}`;
   await db.insert(cases).values({
     id,

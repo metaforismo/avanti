@@ -67,8 +67,8 @@ export function CitizenNoticeStatus({
         ) : !dossier.citizen.email ? (
           <p className="text-sm text-warn" role="status">
             {kind === "request"
-              ? "Non ha lasciato l'email: non sa ancora della richiesta."
-              : "Non ha lasciato l'email: non sa ancora che è pronta."}
+              ? "Non ha lasciato l'email: nessun avviso automatico della richiesta."
+              : "Non ha lasciato l'email: nessun avviso automatico che è pronta."}
           </p>
         ) : null)}
       {kind && (
