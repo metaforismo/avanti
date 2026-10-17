@@ -256,8 +256,7 @@ it("emails only the highest threshold crossed and starts over when the cap chang
   const quotaMail = async () =>
     (await db.select().from(notifications).where(eq(notifications.kind, "usage_quota"))).map(
       (mail) =>
-        unseal(s.notifications, `${mail.id}:${mail.kind}:${mail.language}`, mail.envelope!)
-          .subject,
+        unseal(s.notifications, `${mail.id}:${mail.kind}:${mail.language}`, mail.envelope!).subject,
     );
   const thresholds = async () =>
     (await db.select().from(usageQuotaAlerts).orderBy(usageQuotaAlerts.threshold)).map(

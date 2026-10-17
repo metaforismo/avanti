@@ -65,10 +65,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -95,10 +92,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -126,49 +120,36 @@
           },
           {
             "text": "Voce richiesta mancante: Documento d’identità (Ada Esempio).",
-            "evidence": [
-              "identity:m_synthetic_0"
-            ],
+            "evidence": ["identity:m_synthetic_0"],
             "citations": [],
             "unavailable": false
           },
           {
             "text": "Voce richiesta mancante: Codice fiscale / tessera sanitaria (Luca Esempio).",
-            "evidence": [
-              "tax_code:m_synthetic_1"
-            ],
+            "evidence": ["tax_code:m_synthetic_1"],
             "citations": [],
             "unavailable": false
           },
           {
             "text": "Voce richiesta mancante: Giacenza media 2025 · Banca sintetica A (Ada Esempio).",
-            "evidence": [
-              "account_average:account_0_m_synthetic_0"
-            ],
+            "evidence": ["account_average:account_0_m_synthetic_0"],
             "citations": [],
             "unavailable": false
           },
           {
             "text": "Avviso: documento-sintetico.pdf: alcuni dati non sono verificati. L’operatore controllerà il documento.",
-            "evidence": [
-              "document.unchecked:doc_synthetic_1"
-            ],
+            "evidence": ["document.unchecked:doc_synthetic_1"],
             "citations": [],
             "unavailable": false
           },
           {
             "text": "Avviso: documento-sintetico.pdf: alcuni dati non sono verificati. L’operatore controllerà il documento.",
-            "evidence": [
-              "document.unchecked:doc_synthetic_2"
-            ],
+            "evidence": ["document.unchecked:doc_synthetic_2"],
             "citations": [],
             "unavailable": false
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -196,17 +177,12 @@
           },
           {
             "text": "Avviso: Preparazione 2027 basata sulle regole vigenti: il CAF deve verificare modello e istruzioni 2027 prima della presentazione.",
-            "evidence": [
-              "practice.provisional_year:case"
-            ],
+            "evidence": ["practice.provisional_year:case"],
             "citations": [],
             "unavailable": false
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -233,10 +209,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -264,17 +237,12 @@
           },
           {
             "text": "Avviso: Preparazione 2027 basata sulle regole vigenti: il CAF deve verificare modello e istruzioni 2027 prima della presentazione.",
-            "evidence": [
-              "practice.provisional_year:case"
-            ],
+            "evidence": ["practice.provisional_year:case"],
             "citations": [],
             "unavailable": false
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -301,10 +269,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -331,10 +296,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -361,10 +323,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -391,10 +350,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -421,10 +377,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -451,10 +404,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -481,10 +431,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     },
     {
@@ -511,10 +458,7 @@
             "unavailable": true
           }
         ],
-        "suggestions": [
-          "Quali documenti mancano?",
-          "Quali voci sono rifiutate?"
-        ]
+        "suggestions": ["Quali documenti mancano?", "Quali voci sono rifiutate?"]
       }
     }
   ]

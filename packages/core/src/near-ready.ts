@@ -181,9 +181,7 @@ export function evaluateNearReady(i: NearReadyInput) {
   );
   test(
     "catalog",
-    i.catalogVersion === CATALOG_VERSION &&
-      practiceYear(a) === 2027 &&
-      calendarYear(i.now) <= 2027,
+    i.catalogVersion === CATALOG_VERSION && practiceYear(a) === 2027 && calendarYear(i.now) <= 2027,
     "catalog_outdated",
   );
   test(
