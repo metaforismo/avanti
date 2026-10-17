@@ -8,7 +8,7 @@ import type {
 } from "@avanti/contracts";
 import { directionOf } from "@/lib/citizen/document-language";
 import { HANDOFF_MESSAGES } from "@/lib/citizen/handoff-messages";
-import { format, messagesFor } from "@/lib/citizen/messages";
+import { format, messagesFor, plural } from "@/lib/citizen/messages";
 
 export type NoticeKind = "request" | "ready";
 
@@ -54,9 +54,12 @@ function block(handoff: CitizenHandoff, kind: NoticeKind, language: Language, wi
     const titles = requestedTitles(handoff.items, language);
     if (titles.length === 0) lines.push(format(m.requestGeneric, vars));
     else {
-      lines.push(format(m.requestIntro, vars));
+      lines.push(plural(language, titles.length, m.requestIntro, vars));
       lines.push(...titles.slice(0, MAX_LISTED).map((title) => `• ${title}`));
-      if (titles.length > MAX_LISTED) lines.push("• …");
+      if (titles.length > MAX_LISTED)
+        lines.push(
+          `• ${plural(language, titles.length - MAX_LISTED, messagesFor(language).done.bringMore)}`,
+        );
     }
     if (!withLink) lines.push(m.savedLink);
   } else {

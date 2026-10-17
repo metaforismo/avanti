@@ -1,12 +1,18 @@
 import type { Language } from "@avanti/contracts";
+import type { PluralForms } from "@avanti/core/plural";
 
 /**
  * What the desk hands to a citizen who left no email (a WhatsApp/SMS notice) or has no
  * smartphone (a printed list). Register and glossary follow docs/decisions/citizen-copy.md.
  * Arabic lines start with Arabic words, and the console marks each line's direction as well.
+ * `requestIntro` names no number, so it changes only between one document and several (and
+ * the Arabic dual for two).
  */
 const it = {
-  requestIntro: "{org}: per la pratica {ref} lo sportello ti chiede ancora questi documenti:",
+  requestIntro: {
+    "=1": "{org}: per la pratica {ref} lo sportello ti chiede ancora questo documento:",
+    other: "{org}: per la pratica {ref} lo sportello ti chiede ancora questi documenti:",
+  } as PluralForms,
   requestGeneric: "{org}: per la pratica {ref} lo sportello ti chiede un'integrazione.",
   readyIntro: "{org}: la pratica {ref} è pronta. Ora prenota l'appuntamento allo sportello.",
   savedLink:
@@ -27,7 +33,10 @@ export type HandoffMessages = typeof it;
 export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
   it,
   en: {
-    requestIntro: "{org}: for application {ref}, the desk still needs these documents:",
+    requestIntro: {
+      "=1": "{org}: for application {ref}, the desk still needs this document:",
+      other: "{org}: for application {ref}, the desk still needs these documents:",
+    },
     requestGeneric: "{org}: for application {ref}, the desk needs more information.",
     readyIntro: "{org}: application {ref} is ready. Now book your appointment at the desk.",
     savedLink:
@@ -43,8 +52,10 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
     sheetDate: "List dated {date}",
   },
   fr: {
-    requestIntro:
-      "{org} : pour votre demande {ref}, le guichet vous demande encore ces documents :",
+    requestIntro: {
+      "=1": "{org} : pour votre demande {ref}, le guichet vous demande encore ce document :",
+      other: "{org} : pour votre demande {ref}, le guichet vous demande encore ces documents :",
+    },
     requestGeneric:
       "{org} : pour votre demande {ref}, le guichet vous demande un complément d'information.",
     readyIntro: "{org} : votre demande {ref} est prête. Prenez maintenant rendez-vous au guichet.",
@@ -62,7 +73,10 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
     sheetDate: "Liste du {date}",
   },
   es: {
-    requestIntro: "{org}: para tu trámite {ref}, la ventanilla todavía te pide estos documentos:",
+    requestIntro: {
+      "=1": "{org}: para tu trámite {ref}, la ventanilla todavía te pide este documento:",
+      other: "{org}: para tu trámite {ref}, la ventanilla todavía te pide estos documentos:",
+    },
     requestGeneric: "{org}: para tu trámite {ref}, la ventanilla te pide información adicional.",
     readyIntro: "{org}: tu trámite {ref} está listo. Ahora reserva tu cita en la ventanilla.",
     savedLink:
@@ -78,7 +92,10 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
     sheetDate: "Lista del {date}",
   },
   ro: {
-    requestIntro: "{org}: pentru cererea ta {ref}, ghișeul îți mai cere aceste documente:",
+    requestIntro: {
+      "=1": "{org}: pentru cererea ta {ref}, ghișeul îți mai cere acest document:",
+      other: "{org}: pentru cererea ta {ref}, ghișeul îți mai cere aceste documente:",
+    },
     requestGeneric: "{org}: pentru cererea ta {ref}, ghișeul îți cere informații suplimentare.",
     readyIntro: "{org}: cererea ta {ref} este gata. Acum fă-ți programarea la ghișeu.",
     savedLink:
@@ -94,7 +111,10 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
     sheetDate: "Lista din {date}",
   },
   uk: {
-    requestIntro: "{org}: для Вашої заяви {ref} вікно обслуговування ще просить ці документи:",
+    requestIntro: {
+      "=1": "{org}: для Вашої заяви {ref} вікно обслуговування ще просить цей документ:",
+      other: "{org}: для Вашої заяви {ref} вікно обслуговування ще просить ці документи:",
+    },
     requestGeneric:
       "{org}: для Вашої заяви {ref} вікно обслуговування просить додаткову інформацію.",
     readyIntro:
@@ -113,7 +133,11 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
     sheetDate: "Список від {date}",
   },
   ar: {
-    requestIntro: "طلبك {ref} لدى {org}: ما زال شباك الخدمة يطلب هذه الوثائق:",
+    requestIntro: {
+      "=1": "طلبك {ref} لدى {org}: ما زال شباك الخدمة يطلب هذه الوثيقة:",
+      two: "طلبك {ref} لدى {org}: ما زال شباك الخدمة يطلب هاتين الوثيقتين:",
+      other: "طلبك {ref} لدى {org}: ما زال شباك الخدمة يطلب هذه الوثائق:",
+    },
     requestGeneric: "طلبك {ref} لدى {org}: يطلب شباك الخدمة معلومات إضافية.",
     readyIntro: "طلبك {ref} لدى {org} جاهز. احجز الآن موعدك في شباك الخدمة.",
     savedLink:
@@ -128,7 +152,10 @@ export const HANDOFF_MESSAGES: Record<Language, HandoffMessages> = {
     sheetDate: "قائمة بتاريخ {date}",
   },
   bn: {
-    requestIntro: "{org}: আপনার আবেদন {ref}-এর জন্য সেবা কাউন্টার এখনও এই নথিগুলি চাইছে:",
+    requestIntro: {
+      "=1": "{org}: আপনার আবেদন {ref}-এর জন্য সেবা কাউন্টার এখনও এই নথিটি চাইছে:",
+      other: "{org}: আপনার আবেদন {ref}-এর জন্য সেবা কাউন্টার এখনও এই নথিগুলি চাইছে:",
+    },
     requestGeneric: "{org}: আপনার আবেদন {ref}-এর জন্য সেবা কাউন্টার অতিরিক্ত তথ্য চেয়েছে।",
     readyIntro: "{org}: আপনার আবেদন {ref} প্রস্তুত। এখন সেবা কাউন্টারে সাক্ষাতের সময় বুক করুন।",
     savedLink:

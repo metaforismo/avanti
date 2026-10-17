@@ -76,7 +76,9 @@ function defaultMessage(dossier: CaseDossier, titles: string[]) {
   if (titles.length > MAX_LISTED) {
     return `Buongiorno${name}, per completare la pratica ci servono ancora ${titles.length} documenti. Li trovi elencati nel tuo link: puoi caricarli da lì. Grazie.`;
   }
-  return `Buongiorno${name}, per completare la pratica ci servono ancora:\n${titles.map((t) => `- ${t}`).join("\n")}\nPuoi caricarli dallo stesso link. Grazie.`;
+  const [need, upload] =
+    titles.length === 1 ? ["ci serve", "caricarlo"] : ["ci servono", "caricarli"];
+  return `Buongiorno${name}, per completare la pratica ${need} ancora:\n${titles.map((t) => `- ${t}`).join("\n")}\nPuoi ${upload} dallo stesso link. Grazie.`;
 }
 
 function RequestForm({

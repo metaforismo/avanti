@@ -107,7 +107,26 @@ describe("noticeText", () => {
     );
     const text = plain(noticeText(handoff({ language: "it", items: many }), "request"));
     expect(text.match(/^• Doc/gm)).toHaveLength(MAX_LISTED);
-    expect(text).toContain("• …");
+    expect(text).toContain("• e altri 3");
+    const one = Array.from({ length: MAX_LISTED + 1 }, (_, i) =>
+      item({ genericTitle: `Doc ${i}`, genericTitleIt: `Doc ${i}` }),
+    );
+    expect(plain(noticeText(handoff({ language: "it", items: one }), "request"))).toContain(
+      "• e un altro",
+    );
+  });
+
+  it("names one document in the singular, and two in the Arabic dual", () => {
+    const single = plain(noticeText(handoff({ items: [item()] }), "request"));
+    expect(single).toContain("îți mai cere acest document:");
+    expect(single).toContain("ti chiede ancora questo documento:");
+    const two = [
+      item({ genericTitle: "أ", genericTitleIt: "A" }),
+      item({ genericTitle: "ب", genericTitleIt: "B" }),
+    ];
+    const arabic = plain(noticeText(handoff({ language: "ar", items: two }), "request"));
+    expect(arabic).toContain("هاتين الوثيقتين:");
+    expect(arabic).toContain("ti chiede ancora questi documenti:");
   });
 
   it("puts a new link once, at the end, after its sentence in both languages", () => {
@@ -161,10 +180,13 @@ describe("handoff messages", () => {
     expect(Object.keys(m).sort()).toEqual(keys);
     for (const key of keys) {
       const value = m[key as keyof typeof m];
-      expect(value.trim(), `${language}.${key}`).not.toBe("");
-      expect(placeholders(value), `${language}.${key}`).toEqual(
-        placeholders(HANDOFF_MESSAGES.it[key as keyof typeof m]),
-      );
+      const italian = HANDOFF_MESSAGES.it[key as keyof typeof m];
+      const forms = typeof value === "string" ? [value] : Object.values(value);
+      const expected = placeholders(typeof italian === "string" ? italian : italian.other);
+      for (const text of forms) {
+        expect(text.trim(), `${language}.${key}`).not.toBe("");
+        expect(placeholders(text), `${language}.${key}`).toEqual(expected);
+      }
     }
   });
 });
