@@ -3,7 +3,7 @@ import { AssignCasesRequest, type AssignCasesResponse } from "@avanti/contracts"
 import { cases, operators } from "@avanti/db";
 import { body, type App, type Services } from "./context";
 import { audit, iso } from "./dossier";
-import { nextCaseUpdate } from "./case-version";
+import { markOperatorWork, nextCaseUpdate } from "./case-version";
 import { lockOperatorAccess } from "./operator-access";
 import { ApiFailure, notFound } from "./security";
 
@@ -22,6 +22,8 @@ export function mountCaseAssignment(app: App, s: Services) {
     const result = await s.db.transaction(async (tx): Promise<AssignCasesResponse> => {
       const actor = await lockOperatorAccess(tx, c, s);
       if (actor.role !== "admin") throw adminOnly();
+      // Assigning is operator work: it must not withdraw a «quasi pronta» suggestion.
+      await markOperatorWork(tx);
       let assignee: AssignCasesResponse["assignee"] = null;
       if (input.assigneeId) {
         // Shared lock: a deactivation cannot commit between this check and the assignment.

@@ -6,9 +6,9 @@ checklist e fascicolo verificato, l'operatore abilitato fa la pratica. Leggi `RE
 
 ## Divisione del lavoro
 
-- Backend (`packages/core`, `packages/db`, `packages/api`): Codex.
-- Frontend (`apps/web`, design system, UX): Claude. Il backend non tocca `apps/web/src`
-  tranne `src/app/api/[[...route]]/route.ts`.
+- Tutto il lavoro (backend, frontend, ricerca) è di Claude, anche con agenti Claude in
+  parallelo: uno per funzionalità o area, uno che rivede qualità e regressioni, uno che cura
+  design e UX. Ogni agente lavora in un proprio worktree in `.worktrees/` e non fa merge.
 - `packages/contracts` è il contratto: modificalo solo se necessario e spiega il perché nella PR.
 
 ## Regole

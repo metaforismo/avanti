@@ -40,7 +40,7 @@ for (const engine of ["pglite", "postgres"] as const) {
         await close?.();
       });
       it("accepts every migration hash and index definition, including pg_trgm", async () => {
-        expect(await checkDatabase(db)).toEqual({ migrations: 27, indexes: 45 });
+        expect(await checkDatabase(db)).toEqual({ migrations: 28, indexes: 46 });
         const [result] = await db
           .select({ similarity: sql<number>`similarity('Avanti', 'Avanti')` })
           .from(sql`(select 1) as trgm_check`);

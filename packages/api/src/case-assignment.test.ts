@@ -152,6 +152,7 @@ async function stored(ids: string[]) {
 
 describe("POST /cases/assign", () => {
   it("assigns several cases in one go, bumps their version and audits each without personal data", async () => {
+    const before = await stored(["old", "fresh"]);
     const request = client();
     const response = await request(
       "/cases/assign",
@@ -169,6 +170,9 @@ describe("POST /cases/assign", () => {
     expect(rows.old!.assigneeId).toBe("maria");
     expect(rows.fresh!.assigneeId).toBe("maria");
     expect(Date.parse(rows.old!.updatedAt)).toBe(now.getTime());
+    // Operator work: the citizen's content version, and so any «quasi pronta», is untouched.
+    expect(rows.old!.contentVersion).toBe(before.old!.contentVersion);
+    expect(rows.fresh!.contentVersion).toBe(before.fresh!.contentVersion);
     expect(body.results[0]!.updatedAt).toBe(now.toISOString());
     const audit = await db.select().from(events).where(eq(events.type, "case.assigned"));
     expect(audit.map((e) => e.caseId).sort()).toEqual(["fresh", "old"]);
