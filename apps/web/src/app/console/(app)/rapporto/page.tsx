@@ -14,6 +14,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime, formatMinutes, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
+import { useDownload } from "@/lib/console/use-download";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 import { NearReadyPilot } from "@/components/console/near-ready-pilot";
@@ -135,9 +136,14 @@ function ReportView() {
   const today = isoDay(new Date());
   const choices = useMemo(() => presets(today), [today]);
   // The period lives in the URL, like the queue filters: a report can be linked and reloaded.
-  const from = params.get("dal") ?? choices[0]!.from;
-  const to = params.get("al") ?? choices[0]!.to;
-  const officeId = params.get("sportello") ?? "";
+  // A hand-edited or outdated link with an impossible period opens the default one instead of
+  // waiting forever for a report that is never requested.
+  const linked = { from: params.get("dal") ?? "", to: params.get("al") ?? "" };
+  const { from, to } = periodError(linked.from, linked.to) ? choices[0]! : linked;
+  const linkedOffice = params.get("sportello") ?? "";
+  const officeId = operator.offices.some((office) => office.id === linkedOffice)
+    ? linkedOffice
+    : "";
   const apply = (next: Record<string, string>) => {
     const search = new URLSearchParams(params);
     for (const [key, value] of Object.entries(next))
@@ -173,6 +179,16 @@ function ReportView() {
   const data = report.data;
   const active = choices.find((c) => c.from === from && c.to === to)?.key;
   const downloadable = validApplied && !draft;
+  const files = useDownload();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const save = async (format: "pdf" | "csv") => {
+    setSaveError(null);
+    const failed = await files.download(
+      `/api/reports/pilot?${query}&format=${format}`,
+      `rapporto-pilota.${format}`,
+    );
+    if (failed) setSaveError(`Download non riuscito. ${failed}`);
+  };
 
   return (
     <PageContainer width="6xl">
@@ -187,17 +203,21 @@ function ReportView() {
         actions={
           downloadable ? (
             <>
-              <Button variant="secondary" asChild>
-                <a href={`/api/reports/pilot?${query}&format=pdf`} download>
-                  <FileText className="size-4" aria-hidden />
-                  Scarica PDF
-                </a>
+              <Button
+                variant="secondary"
+                loading={files.pending?.endsWith("format=pdf")}
+                onClick={() => void save("pdf")}
+              >
+                <FileText className="size-4" aria-hidden />
+                Scarica PDF
               </Button>
-              <Button variant="secondary" asChild>
-                <a href={`/api/reports/pilot?${query}&format=csv`} download>
-                  <Download className="size-4" aria-hidden />
-                  Scarica CSV
-                </a>
+              <Button
+                variant="secondary"
+                loading={files.pending?.endsWith("format=csv")}
+                onClick={() => void save("csv")}
+              >
+                <Download className="size-4" aria-hidden />
+                Scarica CSV
               </Button>
             </>
           ) : (
@@ -278,6 +298,16 @@ function ReportView() {
           </label>
         )}
       </form>
+      {saveError && (
+        <Notice
+          tone="danger"
+          className="mt-2"
+          onDismiss={() => setSaveError(null)}
+          dismissLabel="Chiudi avviso"
+        >
+          {saveError}
+        </Notice>
+      )}
       {draft && invalid && (
         <Notice tone="danger" id="period-error" className="mt-2">
           {invalid}
