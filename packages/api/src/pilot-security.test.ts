@@ -1,3 +1,4 @@
+import { ApiError } from "@avanti/contracts";
 import { withCaseVersion } from "./test-case-version";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
@@ -209,6 +210,35 @@ it("pilot: every mutation rejects foreign or missing Origin including multipart 
       })
     ).status,
   ).toBe(403);
+});
+it("pilot: JSON bodies over 256 KB are refused before parsing, on public routes too", async () => {
+  const padding = "x".repeat(300 * 1024);
+  for (const [path, input] of [
+    ["/api/intake", { officeSlug: "office-a", privacyAccepted: true, padding }],
+    [`/api/c/${tokens.a}/turn`, { type: "text", text: padding }],
+    ["/api/leads", { name: padding }],
+  ] as const) {
+    const response = await request(path, "POST", input, undefined);
+    expect(response.status, path).toBe(413);
+    expect(ApiError.parse(await response.json()).error.message).toBe("Richiesta troppo grande.");
+  }
+  // The declared type does not matter: the JSON parser ignores it.
+  for (const contentType of ["text/plain", null, "multipart/form-data; boundary=x"]) {
+    const headers = new Headers({ Origin: origin, Cookie: cookie });
+    if (contentType) headers.set("Content-Type", contentType);
+    const response = await app.request(`/api/c/${tokens.a}/turn`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ type: "text", text: padding }),
+    });
+    expect(response.status, String(contentType)).toBe(413);
+  }
+  // A large but legitimate JSON request still passes the size check.
+  const ok = await request(`/api/c/${tokens.a}/turn`, "POST", {
+    type: "text",
+    text: "x".repeat(900),
+  });
+  expect(ok.status).not.toBe(413);
 });
 it("pilot: capability is revoked on closure and stays revoked after reopening", async () => {
   expect((await request("/api/cases/case-a", "PATCH", { status: "closed" })).status).toBe(200);

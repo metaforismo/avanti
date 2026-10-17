@@ -161,6 +161,8 @@ anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è ac
 | GET    | `/cases/:id/documents/:docId/file`       | —                            | allegato autorizzato, evento audit di accesso     |
 | GET    | `/metrics?from=2027-01-01&to=2027-01-31` | `MetricsQuery`               | `Metrics`                                         |
 
+Una password temporanea scaduta (7 giorni dalla creazione o dal reset) dà 401 con il messaggio «La password temporanea è scaduta…», solo se la password è corretta; altrimenti il messaggio resta quello uniforme. Le richieste JSON oltre 256 KB ricevono 413 «Richiesta troppo grande.».
+
 Ogni accesso è filtrato per organizzazione della sessione. Sedi, assegnatari e documenti
 di altri tenant restituiscono 404. Operatore vede sempre italiano nei testi di dominio;
 le risposte libere e i messaggi del cittadino conservano l'originale per non alterare prove.

@@ -4,15 +4,29 @@ import type { ApiEnv, Services } from "../context";
 import { ApiFailure } from "../security";
 import { limitLanguage, limitMessage } from "./limit-message";
 
+/** Everything but a file upload carries text and ids: the largest legitimate body is a few KB. */
+export const MAX_JSON_BYTES = 256 * 1024;
+// Only these routes read multipart files; any other body is capped whatever its Content-Type,
+// because the JSON parser does not look at the declared type.
+const FILE_ROUTE = /^\/api\/c\/[^/]+\/(documents|transcribe)$/;
+
 export function boundedBody(): MiddlewareHandler<ApiEnv> {
   return async (context, next) => {
     const request = context.req.raw;
     if (request.body) {
+      const file =
+        request.method === "POST" &&
+        FILE_ROUTE.test(new URL(request.url).pathname) &&
+        (request.headers.get("content-type") ?? "").startsWith("multipart/form-data");
       let size = 0;
       const stream = request.body.pipeThrough(
         new TransformStream<Uint8Array, Uint8Array>({
           transform(chunk, controller) {
             size += chunk.byteLength;
+            if (!file && size > MAX_JSON_BYTES) {
+              context.set("jsonTooLarge", true);
+              throw new ApiFailure("bad_request", 413, "Richiesta troppo grande.");
+            }
             if (size > UPLOAD_LIMITS.maxBytes + 128 * 1024) {
               context.set("bodyTooLarge", true);
               throw new ApiFailure(

@@ -588,3 +588,17 @@ I messaggi `citizenCheck` derivano solo dai codici fissi del core. Le osservazio
 AI non vengono mostrate come esito di questo controllo. La conferma cittadino ha un timestamp
 proprio e non modifica analisi, rilievi o verifiche dell’operatore. Solo il cittadino della
 pratica può confermarla, durante le fasi modificabili. Nessuna nuova trasmissione agli enti.
+
+## Decisioni del 17 ottobre 2026
+
+- Le password temporanee (creazione operatore, reset, bootstrap) valgono 7 giorni. La scadenza
+  si controlla solo dopo una password corretta, così il messaggio «scaduta» non rivela nulla a
+  chi non la conosce; il cambio password la azzera.
+- Le richieste JSON oltre 256 KB ricevono 413 prima della lettura, anche sulle route pubbliche;
+  gli upload restano limitati a 4 MB.
+- Rimandate, con motivo: cookie `__Host-` (richiederebbe `Path=/` e cambierebbe il perimetro del
+  cookie; il dominio di produzione sarà dedicato, senza sottodomini di terzi); CSP con nonce
+  (renderebbe dinamiche tutte le pagine; oggi gli script inline sono solo quelli di Next);
+  email unica tra CAF (un admin può scoprire che un'email è già usata altrove: accettato, perché
+  l'email è l'identità di accesso); GET dell'AI richiamabili da un link esterno (cookie Lax,
+  limite di 60 all'ora e id della pratica necessario).

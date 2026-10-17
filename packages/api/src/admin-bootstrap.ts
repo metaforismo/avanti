@@ -1,3 +1,4 @@
+import { temporaryPasswordExpiry } from "./temporary-password";
 import { randomBytes } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { organizations, offices, operators, settings, events, type Database } from "@avanti/db";
@@ -43,6 +44,7 @@ export async function bootstrapOrganization(db: Database, raw: unknown, now: Dat
       role: "admin",
       active: true,
       mustChangePassword: true,
+      temporaryPasswordExpiresAt: temporaryPasswordExpiry(now),
       createdAt: now.toISOString(),
     });
     await tx.insert(events).values({

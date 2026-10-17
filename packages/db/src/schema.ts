@@ -75,6 +75,11 @@ export const operators = pgTable(
     role: text("role").$type<Operator["role"]>().notNull(),
     active: boolean("active").notNull().default(true),
     mustChangePassword: boolean("must_change_password").notNull().default(false),
+    /** A temporary password only works for a few days: a forgotten one must not stay valid. */
+    temporaryPasswordExpiresAt: timestamp("temporary_password_expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
     mfaSecret: text("mfa_secret"),
     mfaEnabledAt: instant("mfa_enabled_at"),
     mfaLastUsedStep: bigint("mfa_last_used_step", { mode: "number" }),

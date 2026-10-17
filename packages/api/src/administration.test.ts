@@ -256,6 +256,45 @@ describe("administration access boundaries", () => {
 });
 
 describe("password lifecycle", () => {
+  it("a temporary password expires after 7 days, says so only to whoever knows it, and stops expiring once changed", async () => {
+    const created = await createOperator("expiring@example.test");
+    const issuedAt = now;
+    now = new Date(issuedAt.getTime() + 7 * 24 * 60 * 60 * 1000 + 1000);
+    expect(
+      await fails(
+        await request("/auth/login", "POST", {
+          email: "expiring@example.test",
+          password: created.temporaryPassword,
+        }),
+        401,
+        "unauthorized",
+      ),
+    ).toMatch(/password temporanea è scaduta/);
+    // A wrong password still gets the uniform message: no hint that the account exists.
+    expect(
+      await fails(
+        await request("/auth/login", "POST", {
+          email: "expiring@example.test",
+          password: "sbagliata-del-tutto",
+        }),
+        401,
+        "unauthorized",
+      ),
+    ).toBe("Email o password non corrette.");
+    now = new Date(issuedAt.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const loggedIn = await login("expiring@example.test", created.temporaryPassword);
+    const changed = await request(
+      "/auth/password",
+      "POST",
+      { currentPassword: created.temporaryPassword, newPassword: "una-password-nuova-e-lunga" },
+      loggedIn.cookie,
+    );
+    expect(changed.status).toBe(200);
+    const [stored] = await db.select().from(operators).where(eq(operators.id, created.operator.id));
+    expect(stored?.temporaryPasswordExpiresAt).toBeNull();
+    now = new Date(issuedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    await login("expiring@example.test", "una-password-nuova-e-lunga");
+  });
   it("returns mustChangePassword, records lastLoginAt only on successful login, and blocks all other routes", async () => {
     const created = await createOperator();
     expect(created.temporaryPassword.length).toBeGreaterThanOrEqual(16);
