@@ -222,6 +222,24 @@ describe("citizen assistant capability and persistence", () => {
       true,
     );
   });
+  it("does not let the citizen keep a document hidden from them", async () => {
+    const { token, row } = await fresh();
+    await db.insert(documents).values({
+      id: "doc-hidden",
+      caseId: row.id,
+      fileName: "esempio.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 10,
+      storageKey: "unused",
+      sha256: "hash",
+      status: "analyzed",
+      citizenVisible: false,
+      uploadedAt: now.toISOString(),
+    });
+    expect((await post(app(), `/api/c/${token}/documents/doc-hidden/keep`, {})).status).toBe(404);
+    const [stored] = await db.select().from(documents).where(eq(documents.id, "doc-hidden"));
+    expect(stored?.citizenKeptAt).toBeNull();
+  });
   it("returns localized 503 without AI and validates actual audio before transport", async () => {
     const { token } = await fresh("es");
     const form = new FormData();
