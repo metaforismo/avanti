@@ -81,7 +81,12 @@ export function mountCitizenAssistant(app: App, s: Services) {
   app.post("/c/:token/assistant", async (c) => {
     const row = c.get("citizen"),
       input = await assistantBody(c, AssistantAsk);
-    const action = idempotent(c, { caseId: row.id, actor: "citizen", route: "assistant" }, input);
+    const action = idempotent(
+      s,
+      c,
+      { caseId: row.id, actor: "citizen", route: "assistant" },
+      input,
+    );
     const previous = await replayOf(s.db, action, s.clock());
     if (previous) {
       await currentCitizenLink(s.db, row, s.clock());
@@ -172,7 +177,7 @@ export function mountCitizenAssistant(app: App, s: Services) {
     const row = c.get("citizen"),
       input = await assistantBody(c, AskDesk),
       now = s.clock();
-    const action = idempotent(c, { caseId: row.id, actor: "citizen", route: "ask-desk" }, input);
+    const action = idempotent(s, c, { caseId: row.id, actor: "citizen", route: "ask-desk" }, input);
     await s.db.transaction(async (tx) => {
       const current = await currentCitizenLink(tx, row, s.clock(), true);
       if (await replayOf(tx, action, now)) return;

@@ -92,7 +92,7 @@ export function mountDossierAsk(app: App, s: Services) {
     const input = await body(c, DossierAskRequest);
     const actor = c.get("operator");
     const row = await caseById(s.db, parse(Id, c.req.param("id")), actor.organizationId);
-    const action = idempotent(c, { caseId: row.id, actor: actor.id, route: "ai.ask" }, input);
+    const action = idempotent(s, c, { caseId: row.id, actor: actor.id, route: "ai.ask" }, input);
     c.header("Cache-Control", "private, no-store");
     const stored = await replayOf(s.db, action, s.clock());
     if (stored) return c.json(await savedTurn(s, row.id, actor.id, stored));

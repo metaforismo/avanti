@@ -77,7 +77,10 @@ export function parse<T>(schema: z.ZodType<T>, input: unknown): T {
   if (!result.success) throw new ApiFailure("bad_request", 400, "Controlla i dati inseriti.");
   return result.data;
 }
+export function citizenEditable(row: Pick<CaseRow, "status">) {
+  return row.status === "intake" || row.status === "needs_citizen";
+}
 export function mutableCitizen(row: CaseRow) {
-  if (row.status !== "intake" && row.status !== "needs_citizen")
+  if (!citizenEditable(row))
     throw new ApiFailure("conflict", 409, "Il fascicolo è in revisione. Contatta lo sportello.");
 }
