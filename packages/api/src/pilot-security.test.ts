@@ -222,6 +222,17 @@ it("pilot: JSON bodies over 256 KB are refused before parsing, on public routes 
     expect(response.status, path).toBe(413);
     expect(ApiError.parse(await response.json()).error.message).toBe("Richiesta troppo grande.");
   }
+  // The declared type does not matter: the JSON parser ignores it.
+  for (const contentType of ["text/plain", null, "multipart/form-data; boundary=x"]) {
+    const headers = new Headers({ Origin: origin, Cookie: cookie });
+    if (contentType) headers.set("Content-Type", contentType);
+    const response = await app.request(`/api/c/${tokens.a}/turn`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ type: "text", text: padding }),
+    });
+    expect(response.status, String(contentType)).toBe(413);
+  }
   // A large but legitimate JSON request still passes the size check.
   const ok = await request(`/api/c/${tokens.a}/turn`, "POST", {
     type: "text",
