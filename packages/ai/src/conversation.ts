@@ -86,7 +86,9 @@ export function deterministicReply(
   understood: string[] = [],
 ) {
   return [
-    understood.length ? `${understoodCopy[input.language]}: ${understood.join("; ")}.` : "",
+    understood.length
+      ? `${understoodCopy[input.language]}${input.language === "fr" ? " : " : ": "}${understood.join("; ")}.`
+      : "",
     input.askNext
       .slice(0, 1)
       .map((q) => q.prompt)

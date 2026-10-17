@@ -1,9 +1,9 @@
-import type { PilotReport, PilotReportGroup } from "@avanti/contracts";
+import type { PilotCount, PilotReport, PilotReportGroup } from "@avanti/contracts";
 import { csvCell } from "./audit-log";
 
 const display = (value: string | number | null) =>
   value === null ? "Non misurato / oscurato" : String(value);
-const counted = (value: number | string | null, one: string, other: string) =>
+const counted = (value: PilotCount, one: string, other: string) =>
   value === null ? display(null) : `${value} ${value === 1 ? one : other}`;
 const percentage = (value: number | null) =>
   value === null ? display(null) : `${(value * 100).toFixed(2)}%`;

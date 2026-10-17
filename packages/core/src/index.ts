@@ -57,4 +57,4 @@ export { heuristicDossierAsk, type DossierStatement } from "./dossier-ask";
 export { renewalPending, renewalQuestion, renewalNotice } from "./renewal";
 export * from "./usage";
 export * from "./renewal-retention";
-export * from "./plural";
+export { plural, pluralCategory, type PluralForms } from "./plural";

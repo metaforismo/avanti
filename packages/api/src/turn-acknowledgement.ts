@@ -16,13 +16,13 @@ type Phrases = {
 const phrases: Record<Language, Phrases> = {
   it: {
     prefix: "Ho capito",
-    alone: "Vivi da solo o sola",
+    alone: "vivi da solo o sola",
     household: {
-      one: "Il tuo nucleo familiare comprende una persona",
-      other: "Il tuo nucleo familiare comprende {n} persone",
+      one: "il tuo nucleo familiare comprende una persona",
+      other: "il tuo nucleo familiare comprende {n} persone",
     },
     relatives: ["tua madre", "tuo padre", "il tuo coniuge"],
-    with: "Vivi con {who}",
+    with: "vivi con {who}",
     accounts: { "=0": "non hai conti", one: "hai un conto", other: "hai {n} conti" },
     properties: { "=0": "non hai immobili", one: "hai un immobile", other: "hai {n} immobili" },
     vehicles: { "=0": "non hai veicoli", one: "hai un veicolo", other: "hai {n} veicoli" },
@@ -51,13 +51,13 @@ const phrases: Record<Language, Phrases> = {
   },
   fr: {
     prefix: "J’ai compris",
-    alone: "Vous vivez seul ou seule",
+    alone: "vous vivez seul ou seule",
     household: {
-      one: "Votre foyer compte {n} personne",
-      other: "Votre foyer compte {n} personnes",
+      one: "votre foyer compte {n} personne",
+      other: "votre foyer compte {n} personnes",
     },
     relatives: ["votre mère", "votre père", "votre conjoint"],
-    with: "Vous vivez avec {who}",
+    with: "vous vivez avec {who}",
     accounts: {
       "=0": "vous n’avez pas de compte",
       one: "vous avez un compte",
@@ -76,13 +76,13 @@ const phrases: Record<Language, Phrases> = {
   },
   es: {
     prefix: "He entendido",
-    alone: "Vives solo o sola",
+    alone: "vives solo o sola",
     household: {
-      one: "Tu unidad familiar tiene una persona",
-      other: "Tu unidad familiar tiene {n} personas",
+      one: "tu unidad familiar tiene una persona",
+      other: "tu unidad familiar tiene {n} personas",
     },
     relatives: ["tu madre", "tu padre", "tu cónyuge"],
-    with: "Vives con {who}",
+    with: "vives con {who}",
     accounts: { "=0": "no tienes cuentas", one: "tienes una cuenta", other: "tienes {n} cuentas" },
     properties: {
       "=0": "no tienes inmuebles",
@@ -97,14 +97,14 @@ const phrases: Record<Language, Phrases> = {
   },
   ro: {
     prefix: "Am înțeles",
-    alone: "Locuiești singur sau singură",
+    alone: "locuiești singur sau singură",
     household: {
-      one: "Nucleul tău familial are o persoană",
-      few: "Nucleul tău familial are {n} persoane",
-      other: "Nucleul tău familial are {n} de persoane",
+      one: "nucleul tău familial are o persoană",
+      few: "nucleul tău familial are {n} persoane",
+      other: "nucleul tău familial are {n} de persoane",
     },
     relatives: ["mama ta", "tatăl tău", "soțul sau soția ta"],
-    with: "Locuiești cu {who}",
+    with: "locuiești cu {who}",
     accounts: {
       "=0": "nu ai conturi",
       one: "ai un cont",
@@ -128,10 +128,10 @@ const phrases: Record<Language, Phrases> = {
     prefix: "Я зрозумів",
     alone: "Ви живете самі",
     household: {
-      one: "У Вашій сім’ї {n} особа",
-      few: "У Вашій сім’ї {n} особи",
-      many: "У Вашій сім’ї {n} осіб",
-      other: "У Вашій сім’ї {n} особи",
+      one: "у Вашій сім’ї {n} особа",
+      few: "у Вашій сім’ї {n} особи",
+      many: "у Вашій сім’ї {n} осіб",
+      other: "у Вашій сім’ї {n} особи",
     },
     relatives: ["матір’ю", "батьком", "чоловіком або дружиною"],
     with: "Ви живете з {who}",
@@ -223,35 +223,59 @@ const phrases: Record<Language, Phrases> = {
 };
 
 type Composition = {
+  /** After the prefix: French puts a space before the colon. */
+  colon: string;
   separator: string;
   conjunction: string;
   stop: string;
   sharedPrefix: string | null;
+  /**
+   * Joins a positive fact to a negative one ("у Вас немає рахунків, але є 2 транспортні
+   * засоби"). Without it the shared prefix is kept, since dropping it after "у Вас немає…"
+   * would read as still negated.
+   */
+  contrast?: { joiner: string; prefix: string };
 };
 const composition: Record<Language, Composition> = {
-  it: { separator: ", ", conjunction: " e ", stop: ".", sharedPrefix: "hai " },
-  en: { separator: ", ", conjunction: " and ", stop: ".", sharedPrefix: "you have " },
-  fr: { separator: ", ", conjunction: " et ", stop: ".", sharedPrefix: "vous avez " },
-  es: { separator: ", ", conjunction: " y ", stop: ".", sharedPrefix: "tienes " },
-  ro: { separator: ", ", conjunction: " și ", stop: ".", sharedPrefix: "ai " },
-  uk: { separator: ", ", conjunction: " і ", stop: ".", sharedPrefix: "у Вас " },
-  ar: { separator: "، ", conjunction: " و", stop: ".", sharedPrefix: "لديك " },
-  bn: { separator: ", ", conjunction: " এবং ", stop: "।", sharedPrefix: null },
+  it: { colon: ": ", separator: ", ", conjunction: " e ", stop: ".", sharedPrefix: "hai " },
+  en: { colon: ": ", separator: ", ", conjunction: " and ", stop: ".", sharedPrefix: "you have " },
+  fr: { colon: " : ", separator: ", ", conjunction: " et ", stop: ".", sharedPrefix: "vous avez " },
+  es: { colon: ": ", separator: ", ", conjunction: " y ", stop: ".", sharedPrefix: "tienes " },
+  ro: { colon: ": ", separator: ", ", conjunction: " și ", stop: ".", sharedPrefix: "ai " },
+  uk: {
+    colon: ": ",
+    separator: ", ",
+    conjunction: " і ",
+    stop: ".",
+    sharedPrefix: "у Вас ",
+    contrast: { joiner: ", але ", prefix: "є " },
+  },
+  ar: { colon: ": ", separator: "، ", conjunction: " و", stop: ".", sharedPrefix: "لديك " },
+  bn: { colon: ": ", separator: ", ", conjunction: " এবং ", stop: "।", sharedPrefix: null },
 };
-function joinFacts(facts: string[], language: Language, compact = false): string {
-  const { separator, conjunction, sharedPrefix } = composition[language];
-  const clauses = facts.map((fact, index) =>
-    compact &&
-    sharedPrefix &&
-    index > 0 &&
-    fact.startsWith(sharedPrefix) &&
-    facts[index - 1]?.startsWith(sharedPrefix)
-      ? fact.slice(sharedPrefix.length)
-      : fact,
-  );
-  return clauses.length < 2
-    ? (clauses[0] ?? "")
-    : `${clauses.slice(0, -1).join(separator)}${conjunction}${clauses.at(-1)}`;
+/** `negative` marks the facts that say there is none ("non hai conti"). */
+function joinFacts(
+  facts: string[],
+  language: Language,
+  compact = false,
+  negative: ReadonlySet<number> = new Set(),
+): string {
+  const { separator, conjunction, sharedPrefix, contrast } = composition[language];
+  return facts.reduce((joined, fact, index) => {
+    if (index === 0) return fact;
+    const joiner = index === facts.length - 1 ? conjunction : separator;
+    const shared =
+      compact &&
+      sharedPrefix &&
+      fact.startsWith(sharedPrefix) &&
+      facts[index - 1]?.startsWith(sharedPrefix);
+    if (!shared) return `${joined}${joiner}${fact}`;
+    const rest = fact.slice(sharedPrefix.length);
+    if (!negative.has(index - 1) || negative.has(index)) return `${joined}${joiner}${rest}`;
+    return contrast
+      ? `${joined}${contrast.joiner}${contrast.prefix}${rest}`
+      : `${joined}${joiner}${fact}`;
+  }, "");
 }
 
 function accountBanks(sentence: string, banks: string[], language: Language): string {
@@ -278,6 +302,7 @@ export function turnAcknowledgement(
     ),
   );
   const facts: string[] = [];
+  const negative = new Set<number>();
   const practiceName =
     view.practice &&
     (previousPractice === null ||
@@ -314,6 +339,7 @@ export function turnAcknowledgement(
       }
       continue;
     }
+    if (count === 0) negative.add(facts.length);
     let sentence = plural(view.language, count, templates);
     if (key === "accounts_count") {
       const banks = Object.entries(changes)
@@ -323,9 +349,9 @@ export function turnAcknowledgement(
     }
     facts.push(sentence);
   }
-  const sentence = joinFacts(facts, view.language, true);
-  const stop = composition[view.language].stop;
+  const sentence = joinFacts(facts, view.language, true, negative);
+  const { colon, stop } = composition[view.language];
   if (practiceName)
-    return `${words.prefix}: ${practiceName}${stop}${sentence ? ` ${sentence[0]!.toLocaleUpperCase(view.language)}${sentence.slice(1)}${stop}` : ""}`;
-  return sentence ? `${words.prefix}: ${sentence}${stop}` : null;
+    return `${words.prefix}${colon}${practiceName}${stop}${sentence ? ` ${sentence[0]!.toLocaleUpperCase(view.language)}${sentence.slice(1)}${stop}` : ""}`;
+  return sentence ? `${words.prefix}${colon}${sentence}${stop}` : null;
 }

@@ -19,6 +19,34 @@ const read = (language: (typeof LANGUAGES)[number], key: string) =>
 
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
+/**
+ * Messages written with a single `other` form on purpose. Anything not listed here must write
+ * every category its language uses for whole numbers.
+ */
+const INVARIANT: Record<(typeof LANGUAGES)[number], readonly string[]> = {
+  // A range's upper bound is at least 2, always plural.
+  it: ["interview.remainingRange"],
+  en: ["interview.remainingRange", "docs.progress", "done.bringMore"],
+  fr: ["interview.remainingRange"],
+  es: ["interview.remainingRange"],
+  ro: ["docs.progress"], // "gata" does not change
+  // "хв" and "стор." are abbreviations; "Бракує ще {n}", "і ще {n}" and "Готово … з …" have no
+  // noun (the exact "=1" form of docs.missing only changes the pronoun).
+  uk: ["need.minutes", "docs.pages", "docs.missing", "done.bringMore", "docs.progress"],
+  ar: ["docs.progress"],
+  // The classifier "টি" keeps the noun unchanged after any number.
+  bn: [
+    "assistant.remaining",
+    "need.minutes",
+    "interview.remainingRange",
+    "interview.remainingAtLeast",
+    "docs.progress",
+    "docs.missing",
+    "docs.pages",
+    "done.bringMore",
+  ],
+};
+
 describe("citizen messages", () => {
   const italianKeys = leaves(MESSAGES.it).sort();
   const pluralKeys = italianKeys.filter((key) => isPluralForms(read("it", key)));
@@ -61,7 +89,10 @@ describe("citizen messages", () => {
     for (const key of pluralKeys) {
       const forms = read(language, key) as PluralForms;
       const categories = Object.keys(forms).filter((k) => !k.startsWith("="));
-      if (categories.length === 1) continue; // only "other": invariant in this language
+      if (INVARIANT[language].includes(key)) {
+        expect(categories, `${language}.${key} is listed as invariant`).toEqual(["other"]);
+        continue;
+      }
       for (const category of integerCategories(language))
         expect(categories, `${language}.${key}`).toContain(category);
     }

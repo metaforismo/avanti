@@ -69,7 +69,9 @@ function Queue() {
   const admin = operator.role === "admin";
   // Set by the dossier after a permanent deletion, which leaves nothing else to show.
   const deleted = params.get("eliminata");
-  const familyErased = params.get("famiglia");
+  // Only a count: anything else typed into the URL is not ours to show.
+  const erasedParam = params.get("famiglia");
+  const familyErased = erasedParam && /^\d+$/.test(erasedParam) ? erasedParam : null;
   const [search, setSearch] = useState(initialSearch);
   const searchRef = useRef<HTMLInputElement>(null);
   // "/" jumps to the search, as in most work tools, unless the operator is typing elsewhere.

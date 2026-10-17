@@ -4,12 +4,13 @@
  *
  * Categories are not "singular/plural": Ukrainian has one (1, 21, 31…), few (2–4, 22–24…) and
  * many (0, 5–20, 11–14…); Arabic has zero, one, two, few (3–10), many (11–99) and other (100…);
- * Romanian adds "de" from 20 on (few: 2–19, other: 20–100). French "one" also covers 0 and
+ * Romanian adds "de" from 20 on (few: 0, 2–19, 101–119; other: 20–100). French "one" covers 0 and
  * Bengali "one" covers 0 and 1, so a form that names the quantity ("un conto", "його") belongs
  * under "=1", never under "one" when the language's "one" means more than exactly 1.
  *
- * A message whose only key is `other` declares itself invariant in that language (Bengali
- * classifiers, abbreviations like "хв"). `other` is always required: it is the fallback.
+ * A message with only `other` is invariant in that language (Bengali classifiers, abbreviations
+ * like "хв"); the citizen messages test lists those cases explicitly. `other` is always required:
+ * it is the fallback.
  */
 export type PluralCategory = "zero" | "one" | "two" | "few" | "many" | "other";
 export type PluralForms = { readonly other: string } & {
