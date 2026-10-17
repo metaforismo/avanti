@@ -64,6 +64,21 @@ export function OfficeStart({
     return () => window.clearTimeout(timer);
   }, [officeSlug]);
 
+  // The next screen's code downloads while the citizen reads and chooses: on a slow connection
+  // it was most of the wait after «Inizia». It starts after this page's own fonts and icons.
+  useEffect(() => {
+    let timer = 0;
+    const prefetch = () => {
+      timer = window.setTimeout(() => void import("./citizen-app").catch(() => {}), 300);
+    };
+    if (document.readyState === "complete") prefetch();
+    else window.addEventListener("load", prefetch, { once: true });
+    return () => {
+      window.removeEventListener("load", prefetch);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
   const m = messagesFor(language);
   const dir = directionOf(language);
   useDocumentLanguage(language);
