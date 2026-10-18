@@ -31,19 +31,20 @@ export function ChatBubble({
     return (
       <li data-from="citizen" className="flex animate-fade-in scroll-mt-40 justify-end">
         <div className="max-w-[85%] rounded-3xl bg-sunk px-4 py-2.5 text-ink">
-          {label && <span className="sr-only">{label}: </span>}
+          {/* The question first, then who answered: «Hai un'auto? Tu: No», not «Tu: Hai un'auto?». */}
           {context && (
-            <p
+            <blockquote
               dir="auto"
-              className="mb-1 border-s-2 border-line-strong ps-2 text-sm leading-snug break-words text-ink-3"
+              className="mb-1 line-clamp-3 border-s-2 border-line-strong ps-2 text-sm leading-snug break-words text-ink-3"
             >
               {context}
-            </p>
+            </blockquote>
           )}
           <p
             dir="auto"
             className={cn("break-words whitespace-pre-line", context && "font-semibold")}
           >
+            {label && <span className="sr-only">{label}: </span>}
             {text}
           </p>
           {children}
