@@ -9,6 +9,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { PageContainer, PageHeader } from "@/components/ui/page-header";
 import { QrCode } from "@/components/ui/qr-code";
 import { Skeleton } from "@/components/ui/skeleton";
+import { officePlace } from "@/lib/office-place";
 import { useOperator } from "@/lib/console/operator-context";
 
 const subscribe = () => () => {};
@@ -51,9 +52,7 @@ export default function OfficesPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="font-display text-xl font-semibold">{office.name}</h2>
-                <p className="text-ink-2">
-                  {office.address}, {office.city}
-                </p>
+                <p className="text-ink-2">{officePlace(office)}</p>
                 <p className="mt-2 truncate font-mono text-xs text-ink-3">{link}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button asChild size="sm">

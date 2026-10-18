@@ -12,6 +12,7 @@ import {
   Phone,
 } from "lucide-react";
 import { useState } from "react";
+import { officePlace } from "@/lib/office-place";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiFetch } from "@/lib/api";
@@ -140,9 +141,7 @@ export function DoneStep({ api, data, m, token }: StepProps) {
           <span className="font-semibold text-ink">{data.office.name}</span>
           <span className="flex items-start gap-2">
             <MapPin className="mt-0.5 size-4 shrink-0 text-ink-3" aria-hidden />
-            <span dir="ltr">
-              {data.office.address}, {data.office.city}
-            </span>
+            <span dir="ltr">{officePlace(data.office)}</span>
           </span>
           {data.office.phone && (
             <a
