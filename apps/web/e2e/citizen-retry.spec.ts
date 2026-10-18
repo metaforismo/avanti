@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { ConversationState } from "@avanti/contracts";
-import { startCase } from "./helpers";
+import { loseReply, startCase } from "./helpers";
 
 test("a message sent again after a lost reply appears once", async ({ page }) => {
   const token = await startCase(page, "Devo fare l'ISEE");
@@ -10,8 +10,7 @@ test("a message sent again after a lost reply appears once", async ({ page }) =>
   // The server stores the message, but the Wi-Fi drops before the reply arrives.
   await page.route(/\/conversation$/, async (route) => {
     if (route.request().method() !== "POST" || ++attempts > 1) return route.fallback();
-    await route.fetch();
-    await route.abort("internetdisconnected");
+    await loseReply(route);
   });
   await page.getByLabel("Scrivi qui, con parole tue").fill(text);
   await page.getByRole("button", { name: "Invia", exact: true }).click();

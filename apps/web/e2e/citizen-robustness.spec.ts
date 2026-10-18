@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { finishInterview, holdScripts, startCase } from "./helpers";
+import { finishInterview, holdScripts, loseReply, startCase } from "./helpers";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
@@ -69,8 +69,7 @@ test("sending again after a lost reply opens the sent case", async ({ page }) =>
   let attempts = 0;
   await page.route(/\/submit$/, async (route) => {
     if (++attempts > 1) return route.fallback();
-    await route.fetch();
-    await route.abort("internetdisconnected");
+    await loseReply(route);
   });
   await sendCase(page);
   await expect(page.getByText("Connessione assente. Controlla la rete e riprova.")).toBeVisible();
@@ -89,8 +88,7 @@ test("confirming again after a lost reply does not leave the card stuck", async 
   let attempts = 0;
   await page.route(/\/conversation\/confirm$/, async (route) => {
     if (++attempts > 1) return route.fallback();
-    await route.fetch();
-    await route.abort("internetdisconnected");
+    await loseReply(route);
   });
   await confirm.click();
   await expect(page.getByText("Connessione assente. Controlla la rete e riprova.")).toBeVisible();

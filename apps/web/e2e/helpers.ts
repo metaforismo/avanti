@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page, type Route } from "@playwright/test";
 import type { Language } from "@avanti/contracts";
 
 /**
@@ -202,4 +202,17 @@ export async function holdScripts(page: Page) {
     await route.continue();
   });
   return release;
+}
+
+/** The server gets the request and answers, but the reply never reaches the page (Wi-Fi drop). */
+export async function loseReply(route: Route) {
+  try {
+    await route.fetch();
+  } catch (error) {
+    // Playwright's client reused a keep-alive socket the dev server had just closed (seen on a
+    // loaded machine): the request never reached the app, so it goes once more.
+    if (!String(error).includes("ECONNRESET")) throw error;
+    await route.fetch();
+  }
+  await route.abort("internetdisconnected");
 }
