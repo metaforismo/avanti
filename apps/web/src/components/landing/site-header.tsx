@@ -2,22 +2,23 @@
 
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 const NAV = [
-  { href: "#come-funziona", label: "Come funziona" },
-  { href: "#operatori", label: "Per gli operatori" },
-  { href: "#lingue", label: "Lingue" },
-  { href: "#pratiche", label: "Pratiche" },
-  { href: "#pilota", label: "Pilota 2027" },
+  { href: "/#come-funziona", label: "Come funziona" },
+  { href: "/#operatori", label: "Per gli operatori" },
+  { href: "/#dati", label: "Dati e sicurezza" },
+  { href: "/#pratiche", label: "Pratiche" },
+  { href: "/#pilota", label: "Pilota 2027" },
 ] as const;
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -28,7 +29,12 @@ export function SiteHeader() {
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    // Escape closes the menu and gives focus back to the button that opened it.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
@@ -54,7 +60,7 @@ export function SiteHeader() {
               <li key={item.href}>
                 <a
                   href={item.href}
-                  className="rounded-sm px-3 py-2 text-body-sm text-ink-2 transition-colors hover:text-ink"
+                  className="inline-flex h-11 items-center rounded-sm px-3 text-body-sm text-ink-2 transition-colors hover:text-ink"
                 >
                   {item.label}
                 </a>
@@ -63,15 +69,16 @@ export function SiteHeader() {
           </ul>
         </nav>
         <div className="flex items-center gap-2 lg:justify-self-end">
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <Button asChild variant="ghost" size="sm" className="hidden h-11 sm:inline-flex">
             <Link href="/console/accedi">Accedi</Link>
           </Button>
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <a href="#pilota">Diventa CAF pilota</a>
+          <Button asChild size="sm" className="hidden h-11 px-4 sm:inline-flex">
+            <Link href="/#pilota">Parliamo del pilota</Link>
           </Button>
           <Button
+            ref={toggleRef}
             variant="ghost"
-            size="icon"
+            size="icon-lg"
             className="lg:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
@@ -94,20 +101,20 @@ export function SiteHeader() {
                 <a
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="block rounded-sm px-2 py-3 text-base text-ink"
+                  className="flex min-h-11 items-center rounded-sm px-2 text-base text-ink"
                 >
                   {item.label}
                 </a>
               </li>
             ))}
             <li className="mt-2 flex gap-2 border-t border-line pt-3 sm:hidden">
-              <Button asChild variant="secondary" className="flex-1">
+              <Button asChild variant="secondary" className="h-11 flex-1">
                 <Link href="/console/accedi">Accedi</Link>
               </Button>
-              <Button asChild className="flex-1">
-                <a href="#pilota" onClick={() => setOpen(false)}>
-                  Diventa CAF pilota
-                </a>
+              <Button asChild className="h-11 flex-1">
+                <Link href="/#pilota" onClick={() => setOpen(false)}>
+                  Parliamo del pilota
+                </Link>
               </Button>
             </li>
           </ul>

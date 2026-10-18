@@ -13,7 +13,7 @@ export function SiteFooter() {
         </div>
         <nav aria-label="Prodotto">
           <h2 className="text-sm font-semibold text-ink">Prodotto</h2>
-          <ul className="mt-3 grid gap-2 text-ink-2">
+          <ul className="mt-2 grid text-ink-2 [&_a]:inline-flex [&_a]:min-h-10 [&_a]:items-center">
             <li>
               <Link className="hover:text-ink" href="/#come-funziona">
                 Come funziona
@@ -38,7 +38,7 @@ export function SiteFooter() {
         </nav>
         <nav aria-label="Informazioni">
           <h2 className="text-sm font-semibold text-ink">Informazioni</h2>
-          <ul className="mt-3 grid gap-2 text-ink-2">
+          <ul className="mt-2 grid text-ink-2 [&_a]:inline-flex [&_a]:min-h-10 [&_a]:items-center">
             <li>
               <Link className="hover:text-ink" href="/sicurezza">
                 Sicurezza e dati
@@ -55,9 +55,9 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <a className="hover:text-ink" href="mailto:ciao@avanti.example">
+              <Link className="hover:text-ink" href="/#pilota">
                 Contatti
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>

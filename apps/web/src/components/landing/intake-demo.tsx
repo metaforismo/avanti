@@ -69,7 +69,7 @@ export function IntakeDemo() {
       <div
         role="group"
         aria-label="Lingua dell'esempio"
-        className="-mx-1 mb-3 flex [scrollbar-width:none] items-center gap-0.5 overflow-x-auto px-1 sm:gap-1"
+        className="-mx-1 mb-2 flex [scrollbar-width:none] items-center gap-0.5 overflow-x-auto px-1 sm:gap-1"
       >
         {/* font-sans on the labels: one word in Arabic or Bengali reads fine in the system font,
             and would otherwise fetch 270 KB of Noto above the fold. The sample text keeps Noto. */}
@@ -84,7 +84,7 @@ export function IntakeDemo() {
               replay();
             }}
             className={cn(
-              "h-8 shrink-0 rounded-full px-2.5 font-sans text-sm transition-colors duration-150 sm:px-3",
+              "h-11 shrink-0 rounded-full px-3 font-sans text-sm transition-colors duration-150",
               i === sampleIndex
                 ? "bg-contrast text-on-contrast"
                 : "text-ink-2 hover:bg-sunk hover:text-ink",
@@ -102,7 +102,7 @@ export function IntakeDemo() {
             <button
               type="button"
               onClick={replay}
-              className="-m-1.5 inline-flex animate-fade-in items-center gap-1 rounded-sm p-1.5 text-ink-3 hover:text-ink"
+              className="-my-3 -me-2 inline-flex min-h-11 animate-fade-in items-center gap-1 rounded-sm px-2 text-ink-3 hover:text-ink"
             >
               <RotateCcw className="size-3.5" aria-hidden />
               Rivedi

@@ -11,6 +11,18 @@ test("landing explains the product and validates the pilot form", async ({ page 
   await expect(page.getByText("Serve il consenso per poterti ricontattare.")).toBeVisible();
 });
 
+test("an error in the folded pilot details unfolds them and takes focus", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#pilota").scrollIntoViewIfNeeded();
+  await page.getByText("Aggiungi qualche dettaglio").click();
+  await page.getByLabel("Quanti sportelli?").fill("0");
+  // Folded again: the error must still be seen and reached.
+  await page.getByText("Aggiungi qualche dettaglio").click();
+  await page.getByRole("button", { name: "Candida il tuo sportello" }).click();
+  await expect(page.getByLabel("Nome e cognome")).toBeFocused();
+  await expect(page.getByText("Indica un numero di sportelli tra 1 e 5000.")).toBeVisible();
+});
+
 test("a pilot request sent before the page is interactive arrives, its fields never in the URL", async ({
   page,
 }) => {

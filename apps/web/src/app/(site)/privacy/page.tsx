@@ -8,7 +8,7 @@ const SECTIONS = [
     title: "Chi tratta i dati",
     body: [
       "Quando usi Avanti per preparare una pratica, il titolare del trattamento è il CAF o il patronato che ti ha dato il link: il suo nome è in cima alla pagina della tua pratica e lo sportello ti dà i recapiti e l'informativa completa. Avanti tratta i dati per suo conto, come responsabile del trattamento, sulla base di un accordo scritto.",
-      "Per il modulo «Diventa CAF pilota» di questo sito il titolare è il team di Avanti.",
+      "Per il modulo di candidatura al pilota di questo sito il titolare è il team di Avanti.",
     ],
   },
   {

@@ -58,8 +58,8 @@ export default function OpenGraphImage() {
           </span>
         </div>
         <div style={{ fontSize: 34, color: "#485067", maxWidth: 900, lineHeight: 1.35 }}>
-          Il front office AI per CAF e patronati: ascolta il cittadino nella sua lingua, prepara la
-          checklist e ordina i documenti per l&apos;operatore.
+          Per CAF e patronati: il cittadino prepara l&apos;ISEE dal telefono, nella sua lingua;
+          l&apos;operatore trova documenti in ordine e quello che manca già segnalato.
         </div>
       </div>
     </div>,
