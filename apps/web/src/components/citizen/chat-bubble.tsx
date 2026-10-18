@@ -45,7 +45,7 @@ export function ChatBubble({
             className={cn("break-words whitespace-pre-line", context && "font-semibold")}
           >
             {label && <span className="sr-only">{label}: </span>}
-            {text}
+            <span>{text}</span>
           </p>
           {children}
         </div>
