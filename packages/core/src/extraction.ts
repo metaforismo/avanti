@@ -326,10 +326,15 @@ function extractHousehold(
         continue;
       }
       const previous = clause.text.slice(0, match.index).trim().split(/\s+/u).at(-1) ?? "";
+      const following =
+        clause.text
+          .slice(match.index + match[0].length)
+          .trim()
+          .split(/\s+/u)[0] ?? "";
       const pluralChildren = patterns.pluralChildren;
       const count =
         numericWord(previous) ??
-        (language === "ar" ? numericWord(match[0]) : undefined) ??
+        (language === "ar" ? (numericWord(match[0]) ?? numericWord(following)) : undefined) ??
         (pluralChildren.test(match[0]) ? 0 : 1);
       if (count > 0 && count < 20) relations.push(...Array.from({ length: count }, () => relation));
     }

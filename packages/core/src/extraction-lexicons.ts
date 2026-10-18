@@ -79,7 +79,20 @@ export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
     madre: ["madre", "mamma"],
     padre: ["padre", "papà", "papa", "babbo"],
     coniuge: ["moglie", "marito"],
-    figlio: ["figlio", "figlia", "figli", "figlie", "bimbo", "bimba", "bimbi"],
+    figlio: [
+      "figlio",
+      "figlia",
+      "figli",
+      "figlie",
+      "bimbo",
+      "bimba",
+      "bimbi",
+      "bimbe",
+      "bambino",
+      "bambina",
+      "bambini",
+      "bambine",
+    ],
   },
   en: {
     ...OTHER_KIN_TERMS.en,
@@ -107,7 +120,19 @@ export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
     madre: ["mamă", "mama", "mamei"],
     padre: ["tată", "tata", "tatal", "tatăl"],
     coniuge: ["soție", "soția", "sotie", "sotia", "soț", "soțul", "sot", "sotul"],
-    figlio: ["fiu", "fiul", "fiica", "fiică", "copil", "copilul", "copii", "copiii"],
+    figlio: [
+      "fiu",
+      "fiul",
+      "fiii",
+      "fiica",
+      "fiică",
+      "fiice",
+      "fiicele",
+      "copil",
+      "copilul",
+      "copii",
+      "copiii",
+    ],
   },
   uk: {
     ...OTHER_KIN_TERMS.uk,
@@ -145,6 +170,8 @@ export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
       "أطفال",
       "اطفال",
       "طفل",
+      "طفلي",
+      "طفلتي",
       "طفلين",
       "ولدين",
       "ولدان",
@@ -163,7 +190,10 @@ export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
       "মেয়ের",
       "মেয়ে",
       "সন্তান",
+      "সন্তানের",
+      "সন্তানদের",
       "বাচ্চা",
+      "বাচ্চার",
       "বাচ্চাদের",
       "ছেলেমেয়ে",
     ],
@@ -287,7 +317,7 @@ export const CONJUNCTIONS: Record<Language, string[]> = {
   ro: ["și", "si", "dar"],
   uk: ["і", "й", "та", "але"],
   ar: ["و", "لكن"],
-  bn: ["আর", "এবং", "কিন্তু"],
+  bn: ["আর", "এবং", "ও", "কিন্তু"],
 };
 export const BANK_ALIASES = [
   { name: "Fineco", aliases: ["Fineco"] },
@@ -328,13 +358,15 @@ export const COLLECTIVE_PARENT_TERMS: Record<Language, string[]> = {
   ar: ["والدين", "والداي"],
   bn: ["বাবা-মা"],
 };
+// Words that may sit between relatives in a list after "vivo con": articles, "our", and the
+// repeated preposition ("e con i nostri due figli", "și cei doi copii ai noștri").
 export const RELATION_LIST_TERMS: Record<Language, string[]> = {
-  it: ["i", "il", "la", "le"],
-  en: [],
-  fr: ["les", "le", "la"],
-  es: ["los", "las"],
-  ro: [],
-  uk: [],
+  it: ["i", "il", "la", "le", "gli", "nostro", "nostra", "nostri", "nostre", "con"],
+  en: ["the", "our", "with"],
+  fr: ["les", "le", "la", "nos", "notre", "avec"],
+  es: ["los", "las", "nuestro", "nuestra", "nuestros", "nuestras", "con"],
+  ro: ["cei", "cele", "ai", "ale", "nostru", "noastră", "noștri", "noastre", "cu"],
+  uk: ["наш", "наша", "наші", "нашим", "нашою", "нашими", "наших", "моїми", "з", "із", "зі"],
   ar: [],
   bn: [],
 };
@@ -364,14 +396,14 @@ export const HOME_MORTGAGE_PATTERNS: Record<Language, string[]> = {
 };
 
 export const PLURAL_CHILD_TERMS: Record<Language, string[]> = {
-  it: ["figli", "figlie", "bimbi"],
+  it: ["figli", "figlie", "bimbi", "bimbe", "bambini", "bambine"],
   en: ["sons", "daughters", "children", "kids"],
   fr: ["enfants", "filles"],
   es: ["hijos", "hijas", "niños", "ninos"],
-  ro: ["copii", "copiii"],
+  ro: ["copii", "copiii", "fiii", "fiice", "fiicele"],
   uk: ["діти", "дітьми", "сини", "синами"],
   ar: ["أولادي", "أطفالي", "أطفال"],
-  bn: ["বাচ্চাদের", "ছেলেমেয়ে"],
+  bn: ["বাচ্চাদের", "ছেলেমেয়ে", "সন্তানদের"],
 };
 export const CLAUSE_START_PATTERNS: Record<Language, string[]> = {
   it: ["(?:non )?c e", "ci sono", "(?:io )?(?:non )?ho", "(?:noi )?(?:non )?abbiamo"],
@@ -497,6 +529,11 @@ export const NUMBER_WORDS: Record<string, number> = {
   واحدة: 1,
   اثنان: 2,
   اثنين: 2,
+  // Arabic puts the number after a possessed noun: «أطفالي الثلاثة».
+  الاثنين: 2,
+  الاثنان: 2,
+  الثلاثة: 3,
+  الاربعة: 4,
   طفلين: 2,
   سيارتين: 2,
   حسابين: 2,
