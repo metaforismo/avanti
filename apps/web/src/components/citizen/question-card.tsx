@@ -23,6 +23,12 @@ type Props = {
   expectedRoles?: MemberInput["role"][];
   /** Move focus to the question when it replaces a previous one (not on first page load). */
   autoFocus?: boolean;
+  /**
+   * The conversation just asked this question in the bubble above. Said twice, it pushed the
+   * answers under the composer on small phones: the card then keeps the prompt for screen readers
+   * only and starts from the answers.
+   */
+  askedAbove?: boolean;
 };
 
 /**
@@ -37,6 +43,7 @@ export function QuestionCard({
   expectedMembers,
   expectedRoles,
   autoFocus,
+  askedAbove = false,
 }: Props) {
   const titleId = useId();
   const errorId = `${titleId}-error`;
@@ -54,25 +61,35 @@ export function QuestionCard({
     await api.turn({ type: "answer", questionId: question.id, value }, "answer");
   }
 
+  const helpers = (
+    <>
+      {question.help && <WhyWeAsk label={m.interview.why}>{question.help}</WhyWeAsk>}
+      <AskAbout questionId={question.id} label={m.assistant.askAboutQuestion} />
+    </>
+  );
+
   return (
     <section
       key={question.id}
       aria-labelledby={titleId}
       className="animate-rise rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:p-6"
     >
-      <p className="text-sm text-ink-3">{question.section}</p>
+      {!askedAbove && <p className="text-sm text-ink-3">{question.section}</p>}
       <h2
         id={titleId}
         ref={titleRef}
         tabIndex={-1}
-        className="mt-1 font-display text-2xl leading-tight font-semibold tracking-[-0.015em] outline-none"
+        className={
+          askedAbove
+            ? "sr-only"
+            : "mt-1 font-display text-2xl leading-tight font-semibold tracking-[-0.015em] outline-none"
+        }
       >
         {question.prompt}
       </h2>
-      {question.help && <WhyWeAsk label={m.interview.why}>{question.help}</WhyWeAsk>}
-      <AskAbout questionId={question.id} label={m.assistant.askAboutQuestion} />
+      {!askedAbove && helpers}
 
-      <div className="mt-5">
+      <div className={askedAbove ? undefined : "mt-5"}>
         {(question.kind === "single_choice" || question.kind === "yes_no") && (
           <ChoiceList
             options={
@@ -145,6 +162,7 @@ export function QuestionCard({
           {api.pending === "skip" && <Spinner className="size-4" />}
         </button>
       )}
+      {askedAbove && <div className="mt-1">{helpers}</div>}
     </section>
   );
 }

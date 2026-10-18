@@ -108,6 +108,12 @@ export function askedBefore(
   return answered.find((item) => item.questionId === turn.questionId)?.question ?? null;
 }
 
+/** The last thing the assistant said is this question: the card under it need not repeat it. */
+export function justAsked(turns: ConversationTurn[], questionId: string) {
+  const last = turns.at(-1);
+  return last?.role === "assistant" && last.questionId === questionId;
+}
+
 /**
  * An office request ends with one line per item it asks for: those lines become links to the
  * item, so the citizen does not hunt for it among the others. Lines that name no item stay text.
