@@ -190,8 +190,9 @@ test("the document viewer follows quick arrow presses and reports a failed decis
 
   await endSession(page);
   await page.keyboard.press("v");
-  // The page's own notice sits under the viewer: the reason shows inside it.
-  await expect(viewer.getByRole("alert")).toContainText("Accedi");
+  // The page's own notice sits under the viewer: the reason shows inside it. Only that alert:
+  // a preview that failed to load on a slow server is an alert of its own.
+  await expect(viewer.getByRole("alert").filter({ hasText: "Accedi" })).toBeVisible();
   await expect(position).toHaveText("2 / 4");
 });
 
