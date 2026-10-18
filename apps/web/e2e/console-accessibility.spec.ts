@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Cookie, type Page } from "@playwright/test";
-import { logIn, openFirstReadyCase } from "./helpers";
+import { animationsSettled, logIn, openFirstReadyCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const ADMIN = { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -23,6 +23,7 @@ async function seriousViolations(page: Page) {
   // And settled data: axe reads the DOM over several ticks, and a button that stops loading
   // halfway through is reported as unnamed although it never is.
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+  await animationsSettled(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();

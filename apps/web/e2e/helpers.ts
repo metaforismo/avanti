@@ -216,3 +216,20 @@ export async function loseReply(route: Route) {
   }
   await route.abort("internetdisconnected");
 }
+
+/**
+ * Waits until no finite animation is running. axe samples colours over several ticks: an element
+ * fading in (a dialog's content once loaded) reads as low contrast although it never is.
+ * Infinite ones (spinners) never settle and are left out; `[aria-busy]` covers those.
+ */
+export async function animationsSettled(page: Page) {
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every(
+        (animation) =>
+          animation.playState !== "running" ||
+          animation.effect?.getComputedTiming().iterations === Infinity,
+      ),
+  );
+}

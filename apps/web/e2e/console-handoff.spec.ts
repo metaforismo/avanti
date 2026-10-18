@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { finishInterview, logIn, origin, startCase } from "./helpers";
+import { animationsSettled, finishInterview, logIn, origin, startCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const OPERATOR = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -8,6 +8,7 @@ const OPERATOR = { email: "operatore@demo.avanti.local", password: "DemoAvanti20
 async function seriousViolations(page: Page) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+  await animationsSettled(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
