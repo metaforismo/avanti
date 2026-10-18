@@ -1,8 +1,8 @@
-import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 
 // See e2e/server-keep-alive.mjs; also pass it to a server started by hand for E2E_BASE_URL.
-const keepAlive = `--import=${fileURLToPath(new URL("./e2e/server-keep-alive.mjs", import.meta.url))}`;
+// A file URL (a bare path fails on Windows), quoted: NODE_OPTIONS splits on spaces.
+const keepAlive = `--import="${new URL("./e2e/server-keep-alive.mjs", import.meta.url).href}"`;
 
 /**
  * End-to-end tests against a running app with the demo seed (`pnpm db:migrate && pnpm db:seed`).
