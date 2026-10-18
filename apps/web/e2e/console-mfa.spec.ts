@@ -36,7 +36,7 @@ async function newOperator(page: Page, baseURL: string) {
   await expect(page).toHaveURL(/\/console\/accedi/);
 
   await logIn(page, { email, password: temporaryPassword });
-  await page.getByLabel("Password attuale").fill(temporaryPassword);
+  await page.getByLabel("Password temporanea").fill(temporaryPassword);
   await page.getByLabel("Nuova password", { exact: true }).fill(PASSWORD);
   await page.getByLabel("Ripeti la nuova password").fill(PASSWORD);
   await page.getByRole("button", { name: "Salva ed entra" }).click();

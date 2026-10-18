@@ -14,9 +14,12 @@ type Errors = { current?: string; next?: string; repeat?: string };
 export function PasswordForm({
   onChanged,
   submitLabel,
+  temporary = false,
 }: {
   onChanged: (operator: Operator) => void;
   submitLabel: string;
+  /** First access: the "current" password is the temporary one just used to sign in. */
+  temporary?: boolean;
 }) {
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -32,7 +35,10 @@ export function PasswordForm({
     const repeat = String(data.get("repeat") ?? "");
 
     const next: Errors = {};
-    if (!currentPassword) next.current = "Scrivi la password attuale.";
+    if (!currentPassword)
+      next.current = temporary
+        ? "Scrivi la password temporanea che hai usato per entrare."
+        : "Scrivi la password attuale.";
     if (newPassword.length < PASSWORD_MIN_LENGTH)
       next.next = `Almeno ${PASSWORD_MIN_LENGTH} caratteri.`;
     else if (newPassword === currentPassword) next.next = "Deve essere diversa da quella attuale.";
@@ -70,8 +76,19 @@ export function PasswordForm({
 
   return (
     <form onSubmit={onSubmit} noValidate className="grid max-w-md gap-4">
-      <Field label="Password attuale" error={errors.current}>
-        {(p) => <PasswordInput {...p} name="currentPassword" autoComplete="current-password" />}
+      <Field
+        label={temporary ? "Password temporanea" : "Password attuale"}
+        hint={temporary ? "Quella che hai appena usato per entrare." : undefined}
+        error={errors.current}
+      >
+        {(p) => (
+          <PasswordInput
+            {...p}
+            name="currentPassword"
+            autoComplete="current-password"
+            autoFocus={temporary}
+          />
+        )}
       </Field>
       <Field
         label="Nuova password"

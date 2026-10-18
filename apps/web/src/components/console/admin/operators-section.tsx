@@ -1,7 +1,7 @@
 "use client";
 
 import { KeyRound, ShieldOff, UserPlus } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import type { OperatorSummary, TemporaryPasswordResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -15,6 +15,7 @@ import { apiFetch, ApiRequestError } from "@/lib/api";
 import { timeAgo } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
+import { useHashTarget, useOpenOnHash } from "@/lib/console/use-hash-target";
 import { focusFirstError, isEmail, text } from "@/lib/validation";
 
 type Risky = "password" | "mfa" | "deactivate" | "promote" | "demote";
@@ -69,6 +70,13 @@ export function OperatorsSection() {
   const me = useOperator();
   const list = useResource<OperatorSummary[]>("/api/operators");
   const [adding, setAdding] = useState(false);
+  const section = useRef<HTMLElement>(null);
+  useHashTarget(["#operatori"], section);
+  // «Aggiungi un collega» from the first steps lands with the form already open.
+  useOpenOnHash("#nuovo-operatore", () => {
+    setAdding(true);
+    return true;
+  });
   const [issued, setIssued] = useState<TemporaryPasswordResponse | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ kind: Risky; operator: OperatorSummary } | null>(
@@ -134,7 +142,12 @@ export function OperatorsSection() {
     );
 
   return (
-    <section aria-labelledby="operators-title">
+    <section
+      ref={section}
+      id="operatori"
+      aria-labelledby="operators-title"
+      className="scroll-mt-20"
+    >
       <SectionHeader
         id="operators-title"
         title="Operatori"
@@ -284,14 +297,64 @@ export function OperatorsSection() {
         onOpenChange={(open) => !open && setIssued(null)}
         dismissible={false}
         title="Password temporanea"
-        description="Comunicala di persona o per telefono, non per email. Non la vedrai più e vale 7 giorni: al primo accesso l'operatore dovrà sceglierne una nuova."
+        description="Non la vedrai più: comunicala di persona o per telefono, non per email."
       >
-        {issued && (
-          <div className="grid gap-4">
-            <p className="text-ink-2">
-              Per <span className="font-semibold text-ink">{issued.operator.name}</span> (
-              {issued.operator.email})
-            </p>
+        {issued && <IssuedAccess issued={issued} onDone={() => setIssued(null)} />}
+      </Dialog>
+    </section>
+  );
+}
+
+const subscribe = () => () => {};
+
+/**
+ * Everything the colleague needs to sign in the first time: where, with which email and the
+ * password. Without the address, «the password» alone leaves them asking where to type it.
+ */
+function IssuedAccess({
+  issued,
+  onDone,
+}: {
+  issued: TemporaryPasswordResponse;
+  onDone: () => void;
+}) {
+  const origin = useSyncExternalStore(
+    subscribe,
+    () => window.location.origin,
+    () => "",
+  );
+  const address = origin ? `${origin}/console/accedi` : "";
+  return (
+    <div className="grid gap-4">
+      <p className="text-ink-2">
+        Per <span className="font-semibold text-ink">{issued.operator.name}</span>: per entrare
+        servono questi tre dati.
+      </p>
+      <dl className="divide-y divide-line rounded-md ring-1 ring-line">
+        <div className="grid gap-1 px-4 py-3">
+          <dt className="text-sm text-ink-3">Indirizzo della console</dt>
+          <dd className="flex items-center justify-between gap-2">
+            <span className="notranslate min-w-0 font-mono text-sm break-all" dir="ltr">
+              {address}
+            </span>
+            <CopyButton
+              value={address}
+              iconOnly
+              labels={{
+                copy: "Copia indirizzo",
+                copied: "Indirizzo copiato",
+                failed: "Copia non riuscita: selezionalo a mano.",
+              }}
+            />
+          </dd>
+        </div>
+        <div className="grid gap-1 px-4 py-3">
+          <dt className="text-sm text-ink-3">Email</dt>
+          <dd className="font-semibold break-all">{issued.operator.email}</dd>
+        </div>
+        <div className="grid gap-2 px-4 py-3">
+          <dt className="text-sm text-ink-3">Password temporanea</dt>
+          <dd className="grid gap-2">
             <p
               className="rounded-md bg-sunk px-4 py-3 text-center font-mono text-xl tracking-wider select-all"
               translate="no"
@@ -306,11 +369,14 @@ export function OperatorsSection() {
                 failed: "Copia non riuscita: selezionala a mano.",
               }}
             />
-            <Button onClick={() => setIssued(null)}>Fatto</Button>
-          </div>
-        )}
-      </Dialog>
-    </section>
+          </dd>
+        </div>
+      </dl>
+      <p className="text-sm text-ink-3">
+        Vale 7 giorni. Al primo accesso {issued.operator.name} sceglie una password sua.
+      </p>
+      <Button onClick={onDone}>Fatto</Button>
+    </div>
   );
 }
 
