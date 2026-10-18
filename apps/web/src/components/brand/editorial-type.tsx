@@ -8,7 +8,8 @@ import type { ReactNode } from "react";
  * Site and console: optical size and width axes for the large, condensed headlines (128 KB).
  */
 const editorial = Bricolage_Grotesque({
-  subsets: ["latin", "latin-ext"],
+  // Preloads Latin only; latin-ext stays available on demand (see lib/fonts.ts).
+  subsets: ["latin"],
   variable: "--font-display-face",
   axes: ["opsz", "wdth"],
   display: "swap",

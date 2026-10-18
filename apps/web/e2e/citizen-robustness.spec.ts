@@ -164,17 +164,19 @@ test("a slow assistant says to wait instead of sending again", async ({ page }) 
 
 test("trying again after a failed first load shows that it is loading", async ({ page }) => {
   const token = await startCase(page);
-  let attempts = 0;
+  // Offline until the error screen shows: the first load is tried twice before it does.
+  let offline = true;
   let release: () => void = () => {};
   const held = new Promise<void>((resolve) => (release = resolve));
   await page.route(new RegExp(`/api/c/${token}$`), async (route) => {
-    attempts += 1;
-    if (attempts === 1) return route.abort("internetdisconnected");
+    if (offline) return route.abort("internetdisconnected");
     await held;
     await route.fallback();
   });
   await page.goto(`/pratica/${token}`);
   const retry = page.getByRole("button", { name: "Riprova" });
+  await expect(retry).toBeVisible();
+  offline = false;
   await retry.click();
   await expect(retry).toBeHidden();
   await expect(page.getByRole("status").filter({ hasText: "Caricamento…" })).toBeAttached();

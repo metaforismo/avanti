@@ -6,7 +6,8 @@ import type { ReactNode } from "react";
  * never condensed, and a phone on a weak connection should spend its bytes on the form.
  */
 const plain = Bricolage_Grotesque({
-  subsets: ["latin", "latin-ext"],
+  // Preloads Latin only; latin-ext stays available on demand (see lib/fonts.ts).
+  subsets: ["latin"],
   variable: "--font-display-face",
   display: "swap",
 });
