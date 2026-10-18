@@ -125,3 +125,11 @@ export function formatMinutes(minutes: number | null) {
   const m = Math.round(minutes % 60);
   return m ? `${h} h ${m} min` : `${h} h`;
 }
+
+const megabytes = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
+/** "840 kB", "12,4 MB": the size of a download, rounded as a file manager shows it. */
+export function formatBytes(bytes: number) {
+  if (bytes < 1000) return `${bytes} byte`;
+  if (bytes < 999_500) return `${Math.round(bytes / 1000)} kB`;
+  return `${megabytes.format(bytes / 1_000_000)} MB`;
+}

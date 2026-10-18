@@ -6,6 +6,7 @@ import {
   FileQuestion,
   ChevronDown,
   Download,
+  FileArchive,
   FileJson,
   Printer,
   Send,
@@ -16,6 +17,7 @@ import Link from "next/link";
 import { DropdownMenu } from "radix-ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { documentArchivePlan, type DocumentArchivePlan } from "@avanti/core/document-archive";
 import type { Route } from "next";
 import type {
   CaseDossier,
@@ -38,6 +40,7 @@ import { CASE_STATUS, fullName, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/consol
 import { forgetCase, rememberCase, useQueueHref } from "@/lib/console/recent-cases";
 import { useOperator } from "@/lib/console/operator-context";
 import { useDownload } from "@/lib/console/use-download";
+import { zipComplete } from "@/lib/console/zip-complete";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 import { ChecklistSection } from "./checklist-section";
@@ -76,6 +79,8 @@ export type DossierActions = {
   pending: string | null;
   /** Why the last action failed, for surfaces that cover the page (the document viewer). */
   error: string | null;
+  /** Every original in one ZIP, named and ordered for the CAF's software. */
+  archive: { plan: DocumentArchivePlan; download: () => Promise<void>; pending: boolean };
 };
 
 export function DossierView({ caseId }: { caseId: string }) {
@@ -293,9 +298,23 @@ export function DossierView({ caseId }: { caseId: string }) {
     return started.updatedAt;
   };
 
+  const archivePath = `${base}/documents/archive`;
   const actions: DossierActions = {
     pending,
     error,
+    archive: {
+      plan: documentArchivePlan(data.checklist, data.documents),
+      pending: files.pending === archivePath,
+      download: async () => {
+        setError(null);
+        const problem = await files.download(
+          archivePath,
+          `${data.reference} - documenti.zip`,
+          zipComplete,
+        );
+        if (problem) setFailure({ message: `Download non riuscito. ${problem}`, status: 0 });
+      },
+    },
     openDocument: setViewing,
     nearReady: (action, input) =>
       succeeded(
@@ -471,6 +490,12 @@ export function DossierView({ caseId }: { caseId: string }) {
                     <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
                     Scarica dati JSON
                   </MenuItem>
+                  {actions.archive.plan.entries.length > 0 && (
+                    <MenuItem onSelect={() => void actions.archive.download()}>
+                      <FileArchive className="me-2.5 size-4 text-ink-3" aria-hidden />
+                      Scarica tutti i documenti (ZIP)
+                    </MenuItem>
+                  )}
                   {data.practice && data.status !== "closed" && (
                     <MenuItem
                       onSelect={() => window.open(printPath(data.id), "_blank", "noopener")}

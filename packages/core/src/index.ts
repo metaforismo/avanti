@@ -72,3 +72,11 @@ export {
   type DocumentCounts,
   type Readiness,
 } from "./readiness";
+export {
+  documentArchiveName,
+  documentArchivePlan,
+  fileNamePart,
+  MAX_NAME_BYTES,
+  type DocumentArchiveEntry,
+  type DocumentArchivePlan,
+} from "./document-archive";

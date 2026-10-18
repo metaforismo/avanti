@@ -17,6 +17,7 @@ import {
 import { registerErrors } from "./middleware/errors";
 import { requireOrigin } from "./middleware/origin";
 import { rateLimit } from "./middleware/rate-limit";
+import { mountDocumentArchive } from "./document-archive";
 import { mountMaintenance } from "./middleware/maintenance";
 import { requestMetadata } from "./middleware/request";
 import { mountAuthRoutes } from "./routes/auth";
@@ -119,6 +120,7 @@ export function createApp(options: ApiOptions) {
   mountCaseAssignment(app, services);
   mountOperatorRoutes(app, services);
   mountCitizenHandoff(app, services);
+  mountDocumentArchive(app, services);
   mountFamilyReuseRoutes(app, services);
   mountRenewalRoutes(app, services);
   mountAdministrationRoutes(app, services);

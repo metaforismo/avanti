@@ -93,6 +93,7 @@ const timelineLabels: Record<string, string> = {
   "document.reassigned": "Abbinamento documento modificato",
   "document.deleted": "Documento eliminato",
   "document.downloaded": "Documento consultato",
+  "documents.archive_downloaded": "Documenti scaricati in un unico ZIP",
   "case.submitted": "Fascicolo inviato al CAF",
   "checklist.reviewed": "Voce della checklist revisionata",
   "case.requested": "Integrazione richiesta al cittadino",

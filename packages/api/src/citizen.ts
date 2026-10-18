@@ -676,7 +676,12 @@ export function mountCitizenRoutes(app: App, s: Services) {
             );
       const updated = await tx
         .update(documents)
-        .set({ checklistItemId: input.checklistItemId, memberId: item?.memberId ?? null })
+        // Moved to another item, the file is judged again: an old rejection was about the old one.
+        .set({
+          checklistItemId: input.checklistItemId,
+          memberId: item?.memberId ?? null,
+          rejectedAt: null,
+        })
         .where(and(eq(documents.id, c.req.param("id")), eq(documents.caseId, current.id)))
         .returning();
       if (!updated.length) throw notFound();

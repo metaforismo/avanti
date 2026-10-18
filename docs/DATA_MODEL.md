@@ -131,6 +131,10 @@ validato prima del deploy.
 
 ## Coda di analisi e portabilità
 
+La migrazione 0030 aggiunge `documents.rejected_at`: quando il CAF ha rifiutato la voce a cui
+il file era abbinato. Resta anche dopo che il cittadino carica il sostituto, così lo ZIP degli
+originali non consegna il file sbagliato; ↺ sulla voce o lo spostamento del file lo azzerano.
+
 La migrazione 0007 aggiunge `documents.analysis_lease_token` e
 `analysis_lease_until`: proprietà e scadenza del lease DB condiviso da upload,
 recupero su lettura e cron. Restano interni, esclusi dai DTO e dall’export. Le righe

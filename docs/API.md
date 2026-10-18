@@ -195,9 +195,44 @@ anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è ac
 | POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`   | `CaseDossier`                                     |
 | GET    | `/cases/:id/export?format=json`          | `ExportFormat` json o pdf     | allegato completo, evento audit di accesso        |
 | GET    | `/cases/:id/documents/:docId/file`       | —                             | allegato autorizzato, evento audit di accesso     |
+| GET    | `/cases/:id/documents/archive`           | `Id`                          | ZIP degli originali, audit senza dati personali   |
 | GET    | `/metrics?from=2027-01-01&to=2027-01-31` | `MetricsQuery`                | `Metrics`                                         |
 
 Una password temporanea scaduta (7 giorni dalla creazione o dal reset) dà 401 con il messaggio «La password temporanea è scaduta…», solo se la password è corretta; altrimenti il messaggio resta quello uniforme. Le richieste JSON oltre 256 KB ricevono 413 «Richiesta troppo grande.».
+
+`GET /cases/:id/documents/archive` restituisce tutti gli originali della pratica in un solo
+ZIP (`application/zip`, `Cache-Control: no-store`), per caricarli nel gestionale del CAF.
+Ordine e nomi vengono da `documentArchivePlan` in `@avanti/core/document-archive`, lo
+stesso che la console usa per dire cosa conterrà: persona per persona come nel fascicolo,
+`NN Persona - Documento (k di n).ext`, al massimo 140 byte UTF-8 (il percorso completo resta
+sotto il limite di Esplora risorse di Windows), senza separatori di percorso né caratteri di
+controllo; i file non abbinati chiudono l'elenco come «Altri documenti». Restano fuori i
+documenti delle voci rifiutate o segnate «non serve» e ogni file con `rejectedAt`: un file
+rifiutato resta fuori anche dopo che il cittadino ne ha caricato il sostituto (l'upload
+cancella la decisione e la voce torna «caricata» con entrambi i file). Le voci sono «stored»
+(PDF e foto sono già compressi), nomi UTF-8 (bit 11 e campo Info-ZIP Unicode Path 0x7075 per
+gli strumenti più vecchi), date in ora di Roma. L'archivio si scrive mentre parte e legge un
+file solo quando il client ha preso il precedente (al massimo 4 MB in memoria); non viene
+mai salvato: dopo cancellazione o fine conservazione non c'è nulla da rimuovere. Se il client
+chiude la connessione, la lettura in corso dallo storage si interrompe.
+
+`Content-Length` è esatto e calcolato prima di leggere i file: un download interrotto è un
+errore nel browser, mai un file più corto che sembra completo. Ogni file deve avere la
+dimensione e lo SHA-256 registrati: un file illeggibile o diverso interrompe il download
+(meglio di uno ZIP incompleto) e scrive nel log solo `op`, ID pratica, ID documento e nome
+dell'errore (`ArchiveIntegrityError` per un file alterato). La console salva lo ZIP solo se
+termina con il record finale `PK\x05\x06`. `HEAD` restituisce le stesse intestazioni senza
+leggere file né registrare eventi. Nessun documento: 404 «In questa pratica non ci sono
+documenti da scaricare.». Audit `documents.archive_downloaded` con `documents` e `bytes`,
+registrato prima del primo byte. Limite: 6/minuto e 60/ora per operatore, 60/minuto per IP
+fidato. Su Vercel il percorso ha una route Next dedicata con `maxDuration = 300` (le altre API
+restano a 120 s): fino a 120 MB di originali anche su una connessione lenta.
+
+`DocumentSummary.rejectedAt` (contratto, `null` se il file non è mai stato rifiutato) dice quando il file è stato
+rifiutato: lo imposta «Rifiuta» su tutti i file della voce, lo azzera ↺ sulla voce e lo
+spostamento del file su un'altra voce. La console lo mostra come «rifiutato in precedenza»
+accanto al file e calcola lo stesso piano dello ZIP. Una richiesta d'integrazione non lo
+imposta: può chiedere una pagina mancante, non dire che il file è sbagliato.
 
 Ogni accesso è filtrato per organizzazione della sessione. Sedi, assegnatari e documenti
 di altri tenant restituiscono 404. Operatore vede sempre italiano nei testi di dominio;

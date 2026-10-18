@@ -63,6 +63,9 @@ export const RATE_POLICIES = {
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
   // Recording a WhatsApp, SMS, copy or print: a few per case, never a burst.
   handoff: { category: "handoff", primary: [minute(30), hour(300)], ip: [minute(300)] },
+  // Every original of a case read from storage at once: a handful a minute is a busy desk, a
+  // loop over the archive is not.
+  archive: { category: "archive", primary: [minute(6), hour(60)], ip: [minute(60)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
   if (path === "/api/renewals")
@@ -91,6 +94,8 @@ function policy(path: string, method: string): Policy | null {
     return RATE_POLICIES.export;
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
+  if (method === "GET" && /^\/api\/cases\/[^/]+\/documents\/archive$/.test(path))
+    return RATE_POLICIES.archive;
   // The handoff carries the checklist in two languages: an export by another name.
   if (method === "GET" && /^\/api\/cases\/[^/]+\/citizen-handoff$/.test(path))
     return RATE_POLICIES.export;
@@ -156,6 +161,7 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
         "renewalsRead",
         "assign",
         "handoff",
+        "archive",
       ].includes(rule.category) ||
         context.get("operator"))
     ) {

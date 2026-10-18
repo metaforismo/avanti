@@ -173,6 +173,7 @@ function evaluateCase(
           })
         : null,
     citizenKeptAt: d.citizenKeptAt ? iso(d.citizenKeptAt) : null,
+    rejectedAt: d.rejectedAt ? iso(d.rejectedAt) : null,
     citizenCheck: { status: d.status === "processing" ? "pending" : "warning", messages: [] },
   }));
   for (const item of checklist) {

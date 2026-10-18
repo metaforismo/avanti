@@ -576,6 +576,26 @@ PC condivisi dello sportello usare un profilo del browser per operatore senza
 sincronizzazione con account personali, oppure la sola copia; cancellare la cronologia a
 fine turno è a carico del CAF e non è verificato da Avanti.
 
+### ZIP degli originali
+
+«Scarica tutti» nel fascicolo consegna in un solo file tutti gli originali da caricare nel
+gestionale del CAF. È l'operazione che espone più dati in un colpo solo, quindi:
+
+- solo operatori autenticati del CAF della pratica (altri tenant: 404), limite di 6 archivi al
+  minuto e 60 all'ora per operatore;
+- dentro finisce solo ciò che il cittadino ha caricato e il CAF non ha rifiutato: dimensione e
+  SHA-256 di ogni file sono confrontati con quelli registrati, e un file rifiutato resta fuori
+  anche dopo il suo sostituto (`documents.rejected_at`);
+- evento `documents.archive_downloaded` nel registro attività e nella cronologia, con il numero
+  di file e i byte, mai nomi o titoli; registrato prima che il download parta;
+- l'archivio non esiste fuori dalla risposta: nessuna copia su disco, storage o cache
+  (`no-store`), quindi cancellazione e conservazione non hanno nulla in più da rimuovere. La
+  copia scaricata sul PC dello sportello è del CAF e segue le sue regole di archiviazione, come
+  i singoli documenti e l'export PDF;
+- il nome del file ZIP contiene cognome e nome solo nella forma `filename*` dell'header;
+  nomi interni ripuliti da separatori di percorso e caratteri di controllo (nessun path
+  traversal all'estrazione).
+
 ## Guard del runtime AI
 
 Il runtime provider-agnostico delimita testo cittadino, messaggi operatore e contesto con
