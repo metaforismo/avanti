@@ -3,7 +3,7 @@ import { LANGUAGES } from "@avanti/contracts";
 import { getQuestions, t } from "@avanti/core";
 import { AiRuntime } from "./runtime";
 import { loadAiConfig } from "./config";
-import { converseTask, type ConverseInput } from "./conversation";
+import { converseTask, deterministicReply, type ConverseInput } from "./conversation";
 
 const input = (language: ConverseInput["language"] = "it"): ConverseInput => {
   const openQuestions = getQuestions("isee_ordinario", {}, language);
@@ -48,7 +48,10 @@ describe("guided conversation task", () => {
       expect(output.output.proposals).toContainEqual(
         expect.objectContaining({ questionId: "household_count", value: 4 }),
       );
-      expect(output.output.reply).toContain(value.askNext[0]!.prompt);
+      // The card asks to confirm 4: the reply points to it instead of asking again.
+      expect(output.output.reply).toBe(t(language, "checkProposals"));
+      expect(output.output.reply).not.toContain(value.askNext[0]!.prompt);
+      expect(converseTask.heuristic({ ...value, text: "?" }).reply).toBe(value.askNext[0]!.prompt);
       const boolean = value.openQuestions.find((q) => q.kind === "yes_no")!;
       for (const answer of [true, false]) {
         const result = converseTask.heuristic({
@@ -88,11 +91,11 @@ describe("guided conversation task", () => {
         }),
       },
     );
-    const result = await runtime.runTask(converseTask, input());
+    const result = await runtime.runTask(converseTask, { ...input(), text: "non lo so" });
     expect(result.engine).toBe("heuristic");
     expect(result.fallbackReason).toBe("guard_violation");
     expect(result.output.reply).not.toContain("password");
-    expect(result.output.reply).toContain(input().askNext[0]!.prompt);
+    expect(result.output.reply).toBe(input().askNext[0]!.prompt);
   });
   it("does not turn uncertainty, questions or instructions into an exact numeric answer", () => {
     for (const text of [
@@ -102,5 +105,13 @@ describe("guided conversation task", () => {
     ]) {
       expect(converseTask.heuristic({ ...input(), text }).proposals).toEqual([]);
     }
+  });
+  it("ends with the documents when nothing is left to ask", () => {
+    expect(deterministicReply({ askNext: [], language: "it" })).toBe(
+      "Puoi caricare i documenti della checklist.",
+    );
+    expect(deterministicReply({ askNext: [], language: "it" }, true)).toBe(
+      t("it", "checkProposals"),
+    );
   });
 });

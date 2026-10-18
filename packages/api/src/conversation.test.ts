@@ -326,6 +326,12 @@ it("guards replies, records quick answers, scopes proposals to the capability, e
   };
   const state = await converse(first.token, "4");
   expect(state.turns.at(-1)!.text).not.toContain("password");
+  // The fallback reply points to the proposals card instead of asking the question again.
+  expect(state.turns.at(-1)).toMatchObject({
+    text: "Prima di andare avanti, guarda qui sotto se ho capito bene.",
+    kind: "message",
+    questionId: null,
+  });
   expect(state.ask[0]!.id).toBe("household_count");
   expect(
     (

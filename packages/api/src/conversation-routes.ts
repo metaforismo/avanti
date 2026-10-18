@@ -135,18 +135,16 @@ export function mountConversationRoutes(app: App, s: Services) {
         text,
       ];
       const proposals = validateProposals(current, result.proposals, citizenTexts, s.clock());
-      const understood = proposals
-        .filter((p) => !outputViolations(p.display, citizenTexts.join("\n")).length)
-        .map((p) => p.display);
+      const pending = mergeProposals(pendingProposals(current, s.clock()), proposals);
       const reply =
         result.reply &&
         !outputViolations(result.reply, citizenTexts.join("\n"), current.language).length
           ? result.reply
-          : deterministicReply(input, understood);
+          : deterministicReply(input, pending.length > 0);
       const [updated] = await tx
         .update(cases)
         .set({
-          conversationProposals: mergeProposals(pendingProposals(current, s.clock()), proposals),
+          conversationProposals: pending,
           conversationEngine: result.engine,
           citizenRequestId: null,
           updatedAt: nextCaseUpdate(current, s.clock()),
@@ -157,12 +155,15 @@ export function mountConversationRoutes(app: App, s: Services) {
       const now = s.clock();
       const [turnId] = await appendConversationTurns(tx, current.id, now, [
         { role: "citizen", text, kind: "message", questionId: null },
-        {
-          role: "assistant",
-          text: reply,
-          kind: input.askNext.length ? "question" : "summary",
-          questionId: input.askNext[0]?.id ?? null,
-        },
+        // With proposals to confirm the reply points to the card: the question comes after.
+        pending.length
+          ? { role: "assistant", text: reply, kind: "message", questionId: null }
+          : {
+              role: "assistant",
+              text: reply,
+              kind: input.askNext.length ? "question" : "summary",
+              questionId: input.askNext[0]?.id ?? null,
+            },
       ]);
       await audit(tx, updated, "citizen", "conversation.updated", now, null, {
         proposalsCount: proposals.length,

@@ -7,7 +7,7 @@ import {
   Question,
   SafeText,
 } from "@avanti/contracts";
-import { extractFacts, readableAnswer, t } from "@avanti/core";
+import { extractFacts, t } from "@avanti/core";
 import { citizenCopyStyle } from "./style";
 import {
   interviewConversationPrompt,
@@ -71,31 +71,22 @@ const done = {
   ar: "يمكنك تحميل الوثائق في القائمة.",
   bn: "তালিকার নথিগুলো আপলোড করতে পারেন।",
 };
-const understoodCopy = {
-  it: "Ho capito",
-  en: "I understood",
-  fr: "J’ai compris",
-  es: "He entendido",
-  ro: "Am înțeles",
-  uk: "Зрозуміло",
-  ar: "فهمت",
-  bn: "বুঝেছি",
-};
+/**
+ * The reply when the model's cannot be used. With proposals waiting, the card under it asks to
+ * confirm them: asking the next question as well would ask the same thing twice («Quante persone
+ * vivono…» above a card that already says 3).
+ */
 export function deterministicReply(
   input: Pick<ConverseInput, "askNext" | "language">,
-  understood: string[] = [],
+  proposalsPending = false,
 ) {
-  return [
-    understood.length
-      ? `${understoodCopy[input.language]}${input.language === "fr" ? " : " : ": "}${understood.join("; ")}.`
-      : "",
+  if (proposalsPending) return t(input.language, "checkProposals");
+  return (
     input.askNext
       .slice(0, 1)
       .map((q) => q.prompt)
-      .join(" ") || done[input.language],
-  ]
-    .filter(Boolean)
-    .join(" ");
+      .join(" ") || done[input.language]
+  );
 }
 export const converseTask: Task<ConverseInput, ConverseOutput> = {
   id: "interview.converse",
@@ -150,16 +141,7 @@ export const converseTask: Task<ConverseInput, ConverseOutput> = {
     });
     return {
       proposals,
-      reply: deterministicReply(
-        i,
-        proposals.map((p) =>
-          readableAnswer(
-            p.value,
-            i.openQuestions.find((q) => q.id === p.questionId)!,
-            i.language,
-          ),
-        ),
-      ),
+      reply: deterministicReply(i, proposals.length > 0),
       intent: "answer",
     };
   },
