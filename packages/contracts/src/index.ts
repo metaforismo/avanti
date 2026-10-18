@@ -257,6 +257,12 @@ export const DocumentSummary = z.object({
   reuse: DocumentReuseAssessment.nullable().optional(),
   citizenCheck: CitizenCheck.default({ status: "pending", messages: [] }),
   citizenKeptAt: IsoDateTime.nullable().default(null),
+  /**
+   * Set when the desk rejected the item this file was attached to. The file stays visible but
+   * is no longer part of the dossier handed over (the ZIP of originals leaves it out), also
+   * after the citizen uploads a replacement and the item is no longer «rejected».
+   */
+  rejectedAt: IsoDateTime.nullable().optional(),
 });
 export type DocumentSummary = z.infer<typeof DocumentSummary>;
 

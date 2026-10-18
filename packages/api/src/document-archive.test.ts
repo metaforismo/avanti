@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   cases,
@@ -15,9 +15,10 @@ import {
 import { ApiError, CaseDossier } from "@avanti/contracts";
 import { createApp } from "./app";
 import { GatewayIntelligence } from "./ai";
-import { hashToken, newToken } from "./security";
+import { hashBytes, hashToken, newToken } from "./security";
 import { MemoryStorage } from "./storage";
 import { readZip } from "./test-zip";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 
 const origin = "https://avanti.example.test";
 const now = new Date("2027-01-12T09:00:00Z");
@@ -75,7 +76,7 @@ beforeAll(async () => {
     db,
     storage,
     ai: new GatewayIntelligence(),
-    clock: () => now,
+    clock: () => clockAt,
     publicUrl: `${origin}/`,
     logger: (record) => logs.push(record),
     errorLogger: (record) => logs.push(record),
@@ -83,15 +84,21 @@ beforeAll(async () => {
   });
 });
 afterAll(async () => close?.());
+// Each test in its own rate-limit window: the archive quota is a few a minute.
+let clockAt = now;
+beforeEach(() => {
+  clockAt = new Date(clockAt.getTime() + 120_000);
+});
 
 async function fixture() {
   const id = `case-${++sequence}`;
+  const token = newToken();
   await db.insert(cases).values({
     id,
     organizationId: "a",
     officeId: "a",
     reference: `AV-2027-${String(sequence).padStart(6, "0")}`,
-    tokenHash: hashToken(newToken()),
+    tokenHash: hashToken(token),
     language: "ar",
     status: "in_review",
     practiceId: "isee_ordinario",
@@ -105,8 +112,51 @@ async function fixture() {
   const dossier = CaseDossier.parse(
     await (await app.request(`/api/cases/${id}`, { headers: { Cookie: cookies.a } })).json(),
   );
-  return { id, checklist: dossier.checklist };
+  return { id, token, checklist: dossier.checklist };
 }
+
+async function dossier(id: string) {
+  return CaseDossier.parse(
+    await (await app.request(`/api/cases/${id}`, { headers: { Cookie: cookies.a } })).json(),
+  );
+}
+
+async function review(id: string, itemId: string, decision: "rejected" | "reset") {
+  const response = await app.request(
+    `/api/cases/${id}/checklist/${encodeURIComponent(itemId)}/review`,
+    {
+      method: "POST",
+      headers: { Cookie: cookies.a, Origin: origin, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        decision,
+        note: decision === "rejected" ? "Foto sfocata" : undefined,
+        expectedUpdatedAt: (await dossier(id)).updatedAt,
+      }),
+    },
+  );
+  expect(response.status, await response.clone().text()).toBe(200);
+}
+
+async function citizenUpload(token: string, itemId: string, label: string) {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  pdf.addPage([300, 200]).drawText(label, { x: 20, y: 100, font, size: 12 });
+  const form = new FormData();
+  form.set(
+    "file",
+    new File([new Uint8Array(await pdf.save())], `${label}.pdf`, { type: "application/pdf" }),
+  );
+  form.set("checklistItemId", itemId);
+  const response = await app.request(`/api/c/${token}/documents`, {
+    method: "POST",
+    body: form,
+    headers: { Origin: origin },
+  });
+  expect(response.status, await response.clone().text()).toBeLessThan(300);
+}
+
+const entryNames = async (id: string) =>
+  readZip(new Uint8Array(await (await archive(id)).arrayBuffer())).map((entry) => entry.name);
 
 async function upload(
   caseId: string,
@@ -125,7 +175,7 @@ async function upload(
     mimeType,
     sizeBytes: data.length,
     storageKey,
-    sha256: documentId,
+    sha256: hashBytes(data),
     uploadedAt: new Date(now.getTime() - 3_600_000 + sequence * 1000).toISOString(),
     checklistItemId,
     memberId: null,
@@ -243,4 +293,85 @@ it("limits each operator to a few archives a minute", async () => {
   expect(Number(limited.headers.get("retry-after"))).toBeGreaterThan(0);
   // A colleague at the next desk is not slowed down.
   expect((await archive(id, cookies.a)).status).toBe(200);
+});
+
+it("keeps a rejected file out after the citizen sends its replacement, until the desk undoes it", async () => {
+  const { id, token, checklist } = await fixture();
+  const identity = checklist.find(
+    (item) => item.requirementId === "identity" && item.memberName === "Amina",
+  )!;
+  const wrong = await upload(id, identity.id, "sfocata");
+  await review(id, identity.id, "rejected");
+  // What «Chiedi integrazione» leaves the case in: the citizen can upload again.
+  await db.update(cases).set({ status: "needs_citizen" }).where(eq(cases.id, id));
+  await citizenUpload(token, identity.id, "nitida");
+
+  const after = await dossier(id);
+  const item = after.checklist.find((entry) => entry.id === identity.id)!;
+  // The upload cleared the rejection: both files are on an item waiting for review.
+  expect(item.status).not.toBe("rejected");
+  expect(item.documentIds).toHaveLength(2);
+  expect(after.documents.find((document) => document.id === wrong)!.rejectedAt).toBe(
+    clockAt.toISOString(),
+  );
+  expect(await entryNames(id)).toEqual(["01 Amina - Documento d’identità.pdf"]);
+
+  // ↺ on the item gives every file back to the dossier.
+  await review(id, identity.id, "reset");
+  expect((await dossier(id)).documents.every((document) => document.rejectedAt === null)).toBe(
+    true,
+  );
+  expect(await entryNames(id)).toHaveLength(2);
+});
+
+it("forgets an old rejection when the citizen moves the file to another item", async () => {
+  const { id, token, checklist } = await fixture();
+  const [first, second] = checklist.filter((item) => item.memberName === "Amina");
+  const moved = await upload(id, first!.id, "spostato");
+  await review(id, first!.id, "rejected");
+  await db.update(cases).set({ status: "needs_citizen" }).where(eq(cases.id, id));
+  const response = await app.request(`/api/c/${token}/documents/${moved}`, {
+    method: "PATCH",
+    headers: { Origin: origin, "Content-Type": "application/json" },
+    body: JSON.stringify({ checklistItemId: second!.id }),
+  });
+  expect(response.status).toBe(200);
+  const [row] = await db.select().from(documents).where(eq(documents.id, moved));
+  expect(row!.rejectedAt).toBeNull();
+});
+
+it("announces the exact length, answers HEAD without reading or logging, refuses altered files", async () => {
+  const { id, checklist } = await fixture();
+  await upload(id, checklist[0]!.id, "uno");
+  const altered = await upload(id, checklist[1]!.id, "due");
+
+  const head = await app.request(`/api/cases/${id}/documents/archive`, {
+    method: "HEAD",
+    headers: { Cookie: cookies.a },
+  });
+  expect(head.status).toBe(200);
+  const announced = Number(head.headers.get("content-length"));
+  const recorded = () =>
+    db
+      .select()
+      .from(events)
+      .where(and(eq(events.caseId, id), eq(events.type, "documents.archive_downloaded")));
+  expect(await recorded()).toHaveLength(0);
+
+  const full = await archive(id);
+  expect(Number(full.headers.get("content-length"))).toBe(announced);
+  expect((await full.arrayBuffer()).byteLength).toBe(announced);
+  expect(await recorded()).toHaveLength(1);
+
+  // Same size, different bytes: the stored file is not the one the case recorded.
+  const [row] = await db.select().from(documents).where(eq(documents.id, altered));
+  await storage.put(row!.storageKey, new TextEncoder().encode("tre"));
+  logs.length = 0;
+  await expect((await archive(id)).arrayBuffer()).rejects.toThrow();
+  expect(logs).toContainEqual({
+    op: "archive",
+    caseId: id,
+    documentId: altered,
+    errorName: "ArchiveIntegrityError",
+  });
 });

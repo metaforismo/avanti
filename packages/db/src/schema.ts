@@ -316,6 +316,8 @@ export const documents = pgTable(
     reusedMember: jsonb("reused_member").$type<import("@avanti/contracts").Member>(),
     citizenVisible: boolean("citizen_visible").notNull().default(true),
     citizenKeptAt: instant("citizen_kept_at"),
+    /** When the desk rejected the item this file was for: it never goes back into the archive. */
+    rejectedAt: instant("rejected_at"),
     analysisLeaseToken: text("analysis_lease_token"),
     analysisLeaseUntil: instant("analysis_lease_until"),
   },

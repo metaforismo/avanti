@@ -4,9 +4,13 @@ import { resolve, dirname, sep } from "node:path";
 import { deadline } from "./deadline";
 import { put, get, del } from "@vercel/blob";
 
+const readSignal = (caller?: AbortSignal) =>
+  caller ? AbortSignal.any([AbortSignal.timeout(15000), caller]) : AbortSignal.timeout(15000);
+
 export interface FileStorage {
   put(key: string, bytes: Uint8Array, mime: string): Promise<string>;
-  get(key: string): Promise<Uint8Array>;
+  /** `signal` stops a read nobody waits for any more (a ZIP download the client left). */
+  get(key: string, signal?: AbortSignal): Promise<Uint8Array>;
   delete(key: string): Promise<void>;
   health?(): Promise<void>;
 }
@@ -56,11 +60,11 @@ export class DiskStorage implements FileStorage {
     }
     return key;
   }
-  async get(key: string) {
+  async get(key: string, signal?: AbortSignal) {
     const handle = await open(await this.path(key), constants.O_RDONLY | constants.O_NOFOLLOW);
     try {
       if ((await handle.stat()).size > 4 * 1024 * 1024) throw new Error("Invalid storage size");
-      return await handle.readFile({ signal: AbortSignal.timeout(15000) });
+      return await handle.readFile({ signal: readSignal(signal) });
     } finally {
       await handle.close();
     }
@@ -94,8 +98,8 @@ export class BlobStorage implements FileStorage {
       throw error;
     }
   }
-  async get(key: string) {
-    const signal = AbortSignal.timeout(15000);
+  async get(key: string, caller?: AbortSignal) {
+    const signal = readSignal(caller);
     const result = await deadline(
       get(key, { access: "private", token: this.token, abortSignal: signal }),
       15000,
@@ -137,7 +141,8 @@ export class MemoryStorage implements FileStorage {
     this.files.set(key, bytes.slice());
     return key;
   }
-  async get(key: string) {
+  async get(key: string, signal?: AbortSignal) {
+    signal?.throwIfAborted();
     const bytes = this.files.get(key);
     if (!bytes) throw new Error("Missing file");
     return bytes.slice();

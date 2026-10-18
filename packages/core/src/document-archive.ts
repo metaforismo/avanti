@@ -30,11 +30,14 @@ export interface DocumentArchivePlan {
 type Item = Pick<ChecklistItem, "id" | "title" | "memberName" | "status">;
 type Document = Pick<
   DocumentSummary,
-  "id" | "fileName" | "mimeType" | "sizeBytes" | "uploadedAt" | "checklistItemId"
+  "id" | "fileName" | "mimeType" | "sizeBytes" | "uploadedAt" | "checklistItemId" | "rejectedAt"
 >;
 
-/** Most file systems cap a name at 255 bytes; this leaves room for an extracting folder. */
-export const MAX_NAME_BYTES = 200;
+/**
+ * Windows Explorer still stops at 260 characters for the whole path: «C:\Users\<name>\Downloads\»
+ * plus the folder named after the ZIP take about 110. In bytes, so other scripts stay safe too.
+ */
+export const MAX_NAME_BYTES = 140;
 
 const EXTENSIONS: Record<string, string> = {
   "application/pdf": "pdf",
@@ -87,9 +90,11 @@ export function documentArchivePlan(
 ): DocumentArchivePlan {
   const items = new Map(checklist.map((item) => [item.id, item]));
   const groups: { item: Item | null; documents: Document[] }[] = [];
-  let excluded = 0;
+  // A file the desk rejected stays out even after the citizen sent its replacement.
+  let excluded = documents.filter((document) => document.rejectedAt).length;
+  const current = documents.filter((document) => !document.rejectedAt);
   for (const item of checklist) {
-    const attached = documents.filter((document) => document.checklistItemId === item.id);
+    const attached = current.filter((document) => document.checklistItemId === item.id);
     if (!attached.length) continue;
     // A rejected file is the wrong one and a waived item is not part of the practice: neither
     // belongs in the CAF's archive.
@@ -99,7 +104,7 @@ export function documentArchivePlan(
     }
     groups.push({ item, documents: attached });
   }
-  const unmatched = documents.filter(
+  const unmatched = current.filter(
     (document) => !document.checklistItemId || !items.has(document.checklistItemId),
   );
   for (const document of unmatched) groups.push({ item: null, documents: [document] });
@@ -111,11 +116,11 @@ export function documentArchivePlan(
     attached.forEach((document, index) => {
       const number = String(entries.length + 1).padStart(digits, "0");
       const who = item
-        ? fileNamePart(item.memberName ?? "Nucleo familiare", 60)
+        ? fileNamePart(item.memberName ?? "Nucleo familiare", 48)
         : "Altri documenti";
       const what = item
-        ? fileNamePart(item.title, 110)
-        : fileNamePart(baseName(document.fileName), 110) || "documento";
+        ? fileNamePart(item.title, 100)
+        : fileNamePart(baseName(document.fileName), 100) || "documento";
       const part = attached.length > 1 ? ` (${index + 1} di ${attached.length})` : "";
       const ext = `.${extension(document)}`;
       const head = `${number} ${who || "Senza nome"} - `;

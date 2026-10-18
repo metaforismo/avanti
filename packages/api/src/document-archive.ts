@@ -2,8 +2,8 @@ import { Id } from "@avanti/contracts";
 import { documentArchiveName, documentArchivePlan } from "@avanti/core";
 import { parse, type App, type Services } from "./context";
 import { audit, caseById, citizenView, loadViewData } from "./dossier";
-import { ApiFailure } from "./security";
-import { zipStream } from "./zip";
+import { ApiFailure, hashBytes } from "./security";
+import { ArchiveIntegrityError, zipLength, zipStream, type ZipSource } from "./zip";
 
 function attachment(name: string) {
   const encoded = encodeURIComponent(name).replace(
@@ -30,40 +30,54 @@ export function mountDocumentArchive(app: App, s: Services) {
         404,
         "In questa pratica non ci sono documenti da scaricare.",
       );
-    const keys = new Map(data.storedDocs.map((document) => [document.id, document.storageKey]));
-    const citizen = {
-      firstName: row.contact?.firstName ?? null,
-      lastName: row.contact?.lastName ?? null,
-    };
+    const stored = new Map(data.storedDocs.map((document) => [document.id, document]));
+    const sources: ZipSource[] = plan.entries.map((entry) => {
+      const document = stored.get(entry.documentId)!;
+      return {
+        name: entry.name,
+        modified: new Date(entry.uploadedAt),
+        size: document.sizeBytes,
+        read: async (signal) => {
+          try {
+            const bytes = await s.storage.get(document.storageKey, signal);
+            // The file handed to the CAF is the one the citizen sent and the desk checked.
+            if (bytes.length !== document.sizeBytes || hashBytes(bytes) !== document.sha256)
+              throw new ArchiveIntegrityError("Stored file differs from the recorded one");
+            return bytes;
+          } catch (error) {
+            (s.storageLogger ?? console.error)({
+              op: "archive",
+              caseId: row.id,
+              documentId: document.id,
+              errorName: error instanceof Error ? error.name : "Error",
+            });
+            throw error;
+          }
+        },
+      };
+    });
+    c.header("Content-Type", "application/zip");
+    c.header(
+      "Content-Disposition",
+      attachment(
+        documentArchiveName(row.reference, {
+          firstName: view.contact?.firstName ?? null,
+          lastName: view.contact?.lastName ?? null,
+        }),
+      ),
+    );
+    // Announced up front: a download cut short (a timeout, a dropped connection) is then an
+    // error in the browser, never a smaller file that looks complete.
+    c.header("Content-Length", String(zipLength(sources)));
+    c.header("Cache-Control", "no-store");
+    c.header("X-Content-Type-Options", "nosniff");
+    // HEAD reads nothing and exposes nothing: no files, no event.
+    if (c.req.method === "HEAD") return c.body(null);
     // Recorded before the first byte: a download stopped halfway has still exposed files.
     await audit(s.db, row, "operator", "documents.archive_downloaded", now, operator.id, {
       documents: plan.entries.length,
       bytes: plan.totalBytes,
     });
-    c.header("Content-Type", "application/zip");
-    c.header("Content-Disposition", attachment(documentArchiveName(row.reference, citizen)));
-    c.header("Cache-Control", "no-store");
-    c.header("X-Content-Type-Options", "nosniff");
-    return c.body(
-      zipStream(
-        plan.entries.map((entry) => ({
-          name: entry.name,
-          modified: new Date(entry.uploadedAt),
-          read: async () => {
-            try {
-              return await s.storage.get(keys.get(entry.documentId)!);
-            } catch (error) {
-              (s.storageLogger ?? console.error)({
-                op: "archive",
-                caseId: row.id,
-                documentId: entry.documentId,
-                errorName: error instanceof Error ? error.name : "Error",
-              });
-              throw error;
-            }
-          },
-        })),
-      ),
-    );
+    return c.body(zipStream(sources));
   });
 }

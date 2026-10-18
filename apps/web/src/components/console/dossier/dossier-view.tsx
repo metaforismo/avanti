@@ -40,6 +40,7 @@ import { CASE_STATUS, fullName, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/consol
 import { forgetCase, rememberCase, useQueueHref } from "@/lib/console/recent-cases";
 import { useOperator } from "@/lib/console/operator-context";
 import { useDownload } from "@/lib/console/use-download";
+import { zipComplete } from "@/lib/console/zip-complete";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 import { ChecklistSection } from "./checklist-section";
@@ -306,7 +307,11 @@ export function DossierView({ caseId }: { caseId: string }) {
       pending: files.pending === archivePath,
       download: async () => {
         setError(null);
-        const problem = await files.download(archivePath, `${data.reference} - documenti.zip`);
+        const problem = await files.download(
+          archivePath,
+          `${data.reference} - documenti.zip`,
+          zipComplete,
+        );
         if (problem) setFailure({ message: `Download non riuscito. ${problem}`, status: 0 });
       },
     },

@@ -114,7 +114,7 @@ export function ChecklistSection({
             <ul className="flex flex-wrap gap-2 rounded-lg bg-surface p-3 ring-1 ring-line">
               {unmatched.map((doc) => (
                 <li key={doc.id} className="max-w-full min-w-0">
-                  <DocChip doc={doc} onClick={() => actions.openDocument(doc)} />
+                  <DocChip doc={doc} earlierRejection onClick={() => actions.openDocument(doc)} />
                 </li>
               ))}
             </ul>
@@ -124,6 +124,8 @@ export function ChecklistSection({
     </section>
   );
 }
+
+const LARGE_ARCHIVE = 50_000_000;
 
 /** What the ZIP will hold, said before the download so nobody is surprised by what is missing. */
 function archiveSummary({ plan }: DossierActions["archive"]) {
@@ -140,10 +142,12 @@ function archiveSummary({ plan }: DossierActions["archive"]) {
   if (plan.excluded)
     parts.push(
       plural("it", plan.excluded, {
-        one: "escluso {n} rifiutato o non necessario",
-        other: "esclusi {n} rifiutati o non necessari",
+        one: "Escluso {n} rifiutato o non necessario",
+        other: "Esclusi {n} rifiutati o non necessari",
       }),
     );
+  if (plan.totalBytes > LARGE_ARCHIVE)
+    parts.push("È un file grande: con una connessione lenta può richiedere qualche minuto");
   return `${parts.join(". ")}.`;
 }
 
@@ -253,7 +257,13 @@ function ChecklistRow({
           {docs.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {docs.map((doc) => (
-                <DocChip key={doc.id} doc={doc} onClick={() => actions.openDocument(doc)} />
+                <DocChip
+                  key={doc.id}
+                  doc={doc}
+                  // On a rejected item every file is; the mark matters once a replacement came.
+                  earlierRejection={item.status !== "rejected"}
+                  onClick={() => actions.openDocument(doc)}
+                />
               ))}
             </div>
           )}
@@ -391,7 +401,15 @@ function recognition(doc: DocumentSummary) {
       };
 }
 
-function DocChip({ doc, onClick }: { doc: DocumentSummary; onClick: () => void }) {
+function DocChip({
+  doc,
+  earlierRejection = false,
+  onClick,
+}: {
+  doc: DocumentSummary;
+  earlierRejection?: boolean;
+  onClick: () => void;
+}) {
   const Icon = doc.mimeType.startsWith("image/") ? ImageIcon : FileText;
   const name = doc.analysis?.detectedLabel ?? doc.fileName;
   const guess = recognition(doc);
@@ -412,6 +430,18 @@ function DocChip({ doc, onClick }: { doc: DocumentSummary; onClick: () => void }
           <span aria-hidden>· </span>
           {guess.label}
           <span className="sr-only">: {guess.detail}</span>
+        </span>
+      )}
+      {earlierRejection && doc.rejectedAt && (
+        <span
+          className="shrink-0 text-xs font-semibold text-danger"
+          title="Resta nel fascicolo ma non entra nello ZIP dei documenti."
+        >
+          <span aria-hidden>· </span>
+          rifiutato in precedenza
+          <span className="sr-only">
+            : resta nel fascicolo ma non entra nello ZIP dei documenti
+          </span>
         </span>
       )}
       {reuse && (

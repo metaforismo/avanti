@@ -583,6 +583,9 @@ gestionale del CAF. È l'operazione che espone più dati in un colpo solo, quind
 
 - solo operatori autenticati del CAF della pratica (altri tenant: 404), limite di 6 archivi al
   minuto e 60 all'ora per operatore;
+- dentro finisce solo ciò che il cittadino ha caricato e il CAF non ha rifiutato: dimensione e
+  SHA-256 di ogni file sono confrontati con quelli registrati, e un file rifiutato resta fuori
+  anche dopo il suo sostituto (`documents.rejected_at`);
 - evento `documents.archive_downloaded` nel registro attività e nella cronologia, con il numero
   di file e i byte, mai nomi o titoli; registrato prima che il download parta;
 - l'archivio non esiste fuori dalla risposta: nessuna copia su disco, storage o cache

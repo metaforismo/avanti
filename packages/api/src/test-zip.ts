@@ -3,6 +3,8 @@ import { crc32 } from "./zip";
 export interface ReadEntry {
   name: string;
   data: Uint8Array;
+  /** Central-directory extra field. */
+  extra: Uint8Array;
   flags: number;
   method: number;
   date: number;
@@ -33,7 +35,9 @@ export function readZip(bytes: Uint8Array): ReadEntry[] {
     const stored = view.getUint32(at + 20, true);
     const length = view.getUint32(at + 24, true);
     const nameLength = view.getUint16(at + 28, true);
-    const extra = view.getUint16(at + 30, true) + view.getUint16(at + 32, true);
+    const extraLength = view.getUint16(at + 30, true);
+    const extraField = bytes.slice(at + 46 + nameLength, at + 46 + nameLength + extraLength);
+    const extra = extraLength + view.getUint16(at + 32, true);
     const offset = view.getUint32(at + 42, true);
     const name = decoder.decode(bytes.subarray(at + 46, at + 46 + nameLength));
     at += 46 + nameLength + extra;
@@ -48,7 +52,7 @@ export function readZip(bytes: Uint8Array): ReadEntry[] {
     const data = bytes.slice(start, start + stored);
     if (stored !== length || data.length !== length) throw new Error("Size mismatch");
     if (crc32(data) !== crc) throw new Error("CRC mismatch");
-    entries.push({ name, data, flags, method, date, time });
+    entries.push({ name, data, extra: extraField, flags, method, date, time });
   }
   return entries;
 }

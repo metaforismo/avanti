@@ -25,6 +25,7 @@ const doc = (
   sizeBytes,
   uploadedAt: "2027-01-12T09:00:00.000Z",
   checklistItemId,
+  rejectedAt: null as string | null,
 });
 const size = (text: string) => new TextEncoder().encode(text).length;
 
@@ -76,6 +77,24 @@ describe("documentArchivePlan", () => {
       "03 Altri documenti - vecchio.pdf",
     ]);
     expect(plan.entries.every((entry) => !entry.verified)).toBe(true);
+  });
+
+  it("keeps a rejected file out after the citizen sent its replacement", () => {
+    // The upload clears the rejection, so the item reads «uploaded» with both files on it.
+    const wrong = {
+      ...doc("id-a", "sbagliato.jpg", "image/jpeg"),
+      rejectedAt: "2027-01-12T10:00:00Z",
+    };
+    const unmatchedWrong = { ...doc(null, "vecchio.pdf"), rejectedAt: "2027-01-12T10:00:00Z" };
+    const plan = documentArchivePlan(
+      [item("id-a", "Documento d’identità", "Mario Rossi", "uploaded")],
+      [wrong, doc("id-a", "giusto.jpg", "image/jpeg"), unmatchedWrong],
+    );
+    expect(plan.entries.map((entry) => entry.name)).toEqual([
+      "01 Mario Rossi - Documento d’identità.jpg",
+    ]);
+    expect(plan.excluded).toBe(2);
+    expect(plan.totalBytes).toBe(100);
   });
 
   it("returns an empty plan when there is nothing to hand over", () => {

@@ -30,6 +30,7 @@ import {
   offices,
   operators,
   checklistReviews,
+  documents,
   messages,
   events,
   settings,
@@ -480,6 +481,21 @@ export function mountOperatorRoutes(app: App, s: Services) {
         eq(checklistReviews.caseId, current.id),
         eq(checklistReviews.itemId, item.id),
       );
+      const reviewedAt = s.clock().toISOString();
+      const attached = and(
+        eq(documents.caseId, current.id),
+        eq(documents.checklistItemId, item.id),
+      );
+      // A rejected file stays attached when the citizen uploads its replacement (the upload
+      // clears the review): the mark keeps it out of what is handed to the CAF's software.
+      if (input.decision === "rejected")
+        await tx
+          .update(documents)
+          .set({ rejectedAt: reviewedAt })
+          .where(and(attached, isNull(documents.rejectedAt)));
+      // Undoing a decision on the item gives back every file it holds; the desk can reject again.
+      if (input.decision === "reset")
+        await tx.update(documents).set({ rejectedAt: null }).where(attached);
       if (input.decision === "reset") await tx.delete(checklistReviews).where(predicate);
       else
         await tx
@@ -490,7 +506,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
             decision: input.decision,
             note: input.note ?? null,
             operatorId: operator.id,
-            reviewedAt: s.clock().toISOString(),
+            reviewedAt,
           })
           .onConflictDoUpdate({
             target: [checklistReviews.caseId, checklistReviews.itemId],
@@ -498,7 +514,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
               decision: input.decision,
               note: input.note ?? null,
               operatorId: operator.id,
-              reviewedAt: s.clock().toISOString(),
+              reviewedAt,
             },
           });
       await markOperatorWork(tx);
