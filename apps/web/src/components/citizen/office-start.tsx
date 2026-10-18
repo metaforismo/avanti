@@ -116,6 +116,9 @@ export function OfficeStart({
     // Read from the form, not from state: a box ticked before hydration is only in the DOM.
     const consent = (form.elements.namedItem("consent") as HTMLInputElement | null)?.checked;
     const chosen = checkedLanguage(form) ?? language;
+    // A language picked before hydration lives only in the DOM until now: the page follows it,
+    // so a refused or failed start is explained in it and the next attempt keeps it.
+    if (chosen !== language) setLanguage(chosen);
     if (!consent) {
       setConsentError(true);
       document.getElementById("consent")?.focus();
@@ -139,7 +142,7 @@ export function OfficeStart({
       setStarting(false);
       setStartError(
         errorMessage(
-          m,
+          messagesFor(chosen),
           error instanceof ApiRequestError
             ? error.status === 0
               ? "network"

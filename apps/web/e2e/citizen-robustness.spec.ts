@@ -198,3 +198,26 @@ test("choices made before the page is interactive are kept, and «Inizia» still
   expect((await started).postDataJSON()).toMatchObject({ language: "en", privacyAccepted: true });
   await page.waitForURL(/\/pratica\//);
 });
+
+test("a language picked before the page is interactive survives a start that fails", async ({
+  page,
+}) => {
+  const release = await holdScripts(page);
+  let attempts = 0;
+  await page.route(/\/api\/intake$/, (route) =>
+    ++attempts === 1 ? route.abort("internetdisconnected") : route.fallback(),
+  );
+  await page.goto("/s/demo-milano-centro", { waitUntil: "domcontentloaded" });
+  await page.getByText("English", { exact: true }).click();
+  await page.getByLabel(/Ho letto l'informativa/).check();
+  await page.getByRole("button", { name: "Inizia" }).click();
+  release();
+
+  // The failure is told in English and the page stays in English for the second try.
+  await expect(page.getByText("No connection. Check your network and try again.")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  const started = page.waitForRequest((r) => r.url().endsWith("/api/intake"));
+  await page.getByRole("button", { name: "Start" }).click();
+  expect((await started).postDataJSON()).toMatchObject({ language: "en" });
+  await page.waitForURL(/\/pratica\//);
+});
