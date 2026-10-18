@@ -461,14 +461,15 @@ export default function HomePage() {
             </dl>
           </div>
           <ol className="relative grid gap-0 border-s border-line-strong ps-8">
+            {/* Dots centred on the 1px rule (ps-8 + border) and on the date line (20px). */}
             {PRACTICES.map((p) => (
               <li key={p.name} className="relative pb-8 last:pb-0">
                 <span
                   aria-hidden
                   className={
                     p.live
-                      ? "absolute -start-[2.4rem] top-1.5 size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
-                      : "absolute -start-[2.3rem] top-1.5 size-3 rounded-full bg-surface ring-2 ring-line-strong"
+                      ? "absolute -start-[39.5px] top-[3px] size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
+                      : "absolute -start-[38.5px] top-1 size-3 rounded-full bg-surface ring-2 ring-line-strong"
                   }
                 />
                 <p className="tabular text-sm text-ink-3">{p.when}</p>
