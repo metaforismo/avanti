@@ -8,6 +8,7 @@ import { isEmail, text } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
 import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 
@@ -95,7 +96,7 @@ export function PilotForm() {
   }
 
   return (
-    <form
+    <Form
       noValidate
       onSubmit={onSubmit}
       className="grid gap-5 rounded-xl bg-surface p-6 shadow-raised ring-1 ring-line sm:p-8"
@@ -195,6 +196,6 @@ export function PilotForm() {
         </Button>
         <p className="text-sm text-ink-3">Nessun impegno: prima ci parliamo.</p>
       </div>
-    </form>
+    </Form>
   );
 }

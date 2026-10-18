@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { EARLY_SUBMIT_SCRIPT } from "@/lib/early-submit";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
@@ -28,6 +29,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="it" className={fontVariables}>
+      <head>
+        {/* Before any form on the page can be submitted: see lib/early-submit. */}
+        <script dangerouslySetInnerHTML={{ __html: EARLY_SUBMIT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh">{children}</body>
     </html>
   );
