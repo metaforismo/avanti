@@ -122,6 +122,9 @@ function ReuseForm({
   // Documents of people who left the household stay behind.
   const eligible = documents.filter((d) => !d.memberId || keptIds.has(d.memberId));
   const defaultYear = (dossier.practiceYear ?? new Date().getFullYear()) + 1;
+  // Until the list arrives (or if it fails) the current practice is still a valid choice: an
+  // empty select would send no practice and get a bare «Controlla i dati inseriti».
+  const choices = practices.length > 0 ? practices : dossier.practice ? [dossier.practice] : [];
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -167,10 +170,10 @@ function ReuseForm({
             <Select
               {...p}
               name="practiceId"
-              defaultValue={dossier.practice?.id ?? practices[0]?.id}
-              key={practices.length}
+              defaultValue={dossier.practice?.id ?? choices[0]?.id}
+              key={choices.length}
             >
-              {practices.map((practice) => (
+              {choices.map((practice) => (
                 <option key={practice.id} value={practice.id}>
                   {practice.name}
                 </option>
@@ -390,7 +393,7 @@ function ReuseForm({
       />
 
       {error && <Notice tone="danger">{error}</Notice>}
-      <Button type="submit" size="lg" loading={pending}>
+      <Button type="submit" size="lg" loading={pending} disabled={choices.length === 0}>
         Crea la nuova pratica
       </Button>
     </form>
