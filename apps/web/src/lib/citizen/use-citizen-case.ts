@@ -123,10 +123,15 @@ export function useCitizenCase(token: string) {
   const base = casePath(token);
   const inFlight = useRef(0);
   const uploadSlots = useRef(createLimiter(PARALLEL_UPLOADS));
-  // The original files, so a failed upload can be retried without picking the photo again. The
-  // key travels with the file: a retry after a lost response must not store the document twice.
+  // The files, so a failed upload can be retried without picking the photo again. Once resized,
+  // the file kept is the one sent: resizing again gives different bytes, which the server would
+  // refuse under the same key (and a slow phone would redo the work). The key travels with the
+  // file: a retry after a lost response must not store the document twice.
   const uploadFiles = useRef(
-    new Map<string, { file: File; checklistItemId: string | null; key: string }>(),
+    new Map<
+      string,
+      { file: File; checklistItemId: string | null; key: string; prepared: boolean }
+    >(),
   );
   const keys = useRef(createRetryKeys());
 
@@ -283,14 +288,28 @@ export function useCitizenCase(token: string) {
         withRetryKey(keys.current, "submit", input, (headers) =>
           apiFetch<CitizenCase>(`${base}/submit`, { method: "POST", body: input, headers }),
         ),
-      ).then(apply),
+      ).then((data) => {
+        // A sent case takes no more files: a failed one left in the list must not go out later,
+        // after the office reopens the case for something else.
+        if (data)
+          setUploads((list) => {
+            for (const failed of list.filter((u) => u.error)) uploadFiles.current.delete(failed.id);
+            return list.filter((u) => !u.error);
+          });
+        return apply(data);
+      }),
     [apply, base, run],
   );
 
   const upload = useCallback(
-    async (file: File, checklistItemId: string | null, key = newIdempotencyKey()) => {
+    async (
+      file: File,
+      checklistItemId: string | null,
+      key = newIdempotencyKey(),
+      prepared = false,
+    ) => {
       const id = crypto.randomUUID();
-      uploadFiles.current.set(id, { file, checklistItemId, key });
+      uploadFiles.current.set(id, { file, checklistItemId, key, prepared });
       const patch = (update: Partial<PendingUpload>) =>
         setUploads((list) => list.map((u) => (u.id === id ? { ...u, ...update } : u)));
       setUploads((list) => [
@@ -301,13 +320,15 @@ export function useCitizenCase(token: string) {
       // Several photos at once wait in line: resizing them all together strains older phones,
       // and the server accepts a few uploads per case at a time.
       await uploadSlots.current(async () => {
-        const prepared = await prepareUpload(file);
-        if (!prepared.ok) {
-          patch({ error: prepared.reason });
+        const ready = prepared ? { ok: true as const, file } : await prepareUpload(file);
+        if (!ready.ok) {
+          patch({ error: ready.reason });
           return;
         }
+        if (uploadFiles.current.has(id))
+          uploadFiles.current.set(id, { file: ready.file, checklistItemId, key, prepared: true });
         const body = new FormData();
-        body.append("file", prepared.file);
+        body.append("file", ready.file);
         if (checklistItemId) body.append("checklistItemId", checklistItemId);
         inFlight.current += 1;
         try {
@@ -339,7 +360,8 @@ export function useCitizenCase(token: string) {
     (id: string) => {
       const original = uploadFiles.current.get(id);
       dismissUpload(id);
-      if (original) void upload(original.file, original.checklistItemId, original.key);
+      if (original)
+        void upload(original.file, original.checklistItemId, original.key, original.prepared);
     },
     [dismissUpload, upload],
   );
