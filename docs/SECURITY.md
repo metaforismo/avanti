@@ -561,8 +561,20 @@ proprio account (personale o Business) e i trasferimenti del fornitore della cha
   come `citizen.checklist_printed` anche nel registro attività. Lettura e registrazione
   hanno limiti propri (export 20/minuto; eventi 30/minuto e 300/ora per operatore).
 
-Il link condiviso alla creazione della pratica (`share-citizen-link`) usa ancora WhatsApp/SMS
-con il link nell'URL, come prima di questa modifica: da rivedere con lo stesso criterio.
+Dal 18 ottobre 2026 vale lo stesso criterio per il link consegnato alla creazione della
+pratica, alla nuova pratica per una famiglia già seguita e alla rigenerazione
+(`share-citizen-link`): solo QR e copia (messaggio o link), nessun pulsante WhatsApp/SMS;
+la console spiega di incollare il messaggio nella chat del cittadino. Il link personale non
+entra mai in un indirizzo `wa.me`/`sms:`.
+
+**Rischio residuo accettato — numero in cronologia.** Gli avvisi senza link aprono ancora
+`wa.me/<numero>?text=…` (e `sms:+<numero>`): il **numero di telefono** del cittadino e il
+testo dell'avviso (riferimento pratica, nome del CAF, titoli di catalogo) restano nella
+cronologia del browser e nella sua sincronizzazione. Lo accettiamo perché il messaggio non
+dà accesso al fascicolo e aprire la chat giusta è lo scopo del pulsante. Mitigazioni: sui
+PC condivisi dello sportello usare un profilo del browser per operatore senza
+sincronizzazione con account personali, oppure la sola copia; cancellare la cronologia a
+fine turno è a carico del CAF e non è verificato da Avanti.
 
 ## Guard del runtime AI
 

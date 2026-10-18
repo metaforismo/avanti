@@ -1,12 +1,9 @@
 "use client";
 
-import { MessageCircle, Smartphone } from "lucide-react";
 import type { Language } from "@avanti/contracts";
-import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { FullscreenQr } from "@/components/ui/fullscreen-qr";
 import { QrCode } from "@/components/ui/qr-code";
-import { smsHref, whatsappHref } from "@/lib/console/citizen-notice";
 
 /**
  * Messages sent with the link: Italian always, plus the citizen's language so they understand
@@ -41,7 +38,11 @@ export function shareMessage(kind: keyof typeof MESSAGES, language: Language, li
   return `${lines.join("\n")}\n${link}`;
 }
 
-/** QR, link and ready-made messages to hand a citizen their personal link. */
+/**
+ * QR, link and a ready-made message to hand a citizen their personal link. Only by QR or copy:
+ * a link inside a `wa.me/?text=` or `sms:` address stays in the browser history (and its sync)
+ * of a desk PC that colleagues share, so WhatsApp and SMS get the message pasted by the operator.
+ */
 export function ShareCitizenLink({
   link,
   reference,
@@ -81,20 +82,31 @@ export function ShareCitizenLink({
           </p>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <CopyButton value={link} showValueOnFailure={false} className="w-full" />
-        <Button variant="secondary" asChild>
-          <a href={whatsappHref(phone, message)} target="_blank" rel="noopener noreferrer">
-            <MessageCircle className="size-4" />
-            WhatsApp
-          </a>
-        </Button>
-        <Button variant="secondary" asChild>
-          <a href={smsHref(phone, message)}>
-            <Smartphone className="size-4" />
-            SMS
-          </a>
-        </Button>
+      <div className="grid gap-2">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <CopyButton
+            value={message}
+            showValueOnFailure={false}
+            variant="primary"
+            className="w-full"
+            labels={{
+              copy: "Copia il messaggio",
+              copied: "Messaggio copiato",
+              failed: "Copia non riuscita: seleziona il link e copialo a mano.",
+            }}
+          />
+          <CopyButton
+            value={link}
+            showValueOnFailure={false}
+            variant="secondary"
+            className="w-full"
+          />
+        </div>
+        <p className="text-sm text-ink-3">
+          Per WhatsApp o SMS copia il messaggio e incollalo nella chat del cittadino
+          {phone ? <span translate="no"> ({phone})</span> : null}. Un link personale non passa da
+          indirizzi WhatsApp o SMS, che restano nella cronologia del browser.
+        </p>
       </div>
     </div>
   );
