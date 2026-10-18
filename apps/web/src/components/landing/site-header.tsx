@@ -38,12 +38,14 @@ export function SiteHeader() {
       className={cn(
         "sticky top-0 z-40 transition-[background-color,box-shadow] duration-200",
         scrolled || open
-          ? "bg-paper/85 shadow-[0_1px_0_var(--line)] backdrop-blur-md"
+          ? "bg-paper/92 shadow-[0_1px_0_var(--line)] backdrop-blur-md backdrop-saturate-150"
           : "bg-transparent",
       )}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
-        <Link href="/" aria-label="Avanti, pagina iniziale" className="rounded-sm">
+      {/* Three columns from lg: the section links sit on the page's centre line, whatever the
+          widths of the logo and the actions. */}
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+        <Link href="/" aria-label="Avanti, pagina iniziale" className="w-fit rounded-sm">
           <Logo />
         </Link>
         <nav aria-label="Sezioni" className="hidden lg:block">
@@ -60,7 +62,7 @@ export function SiteHeader() {
             ))}
           </ul>
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 lg:justify-self-end">
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link href="/console/accedi">Accedi</Link>
           </Button>

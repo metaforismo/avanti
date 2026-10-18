@@ -59,9 +59,7 @@ const BEFORE_REAL_DATA = [
 export default function SecurityPage() {
   return (
     <article className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-24">
-      <h1 className="max-w-2xl font-display text-[clamp(2.25rem,5vw,3.5rem)] leading-none font-bold tracking-[-0.03em] [font-stretch:90%]">
-        Sicurezza e dati
-      </h1>
+      <h1 className="max-w-2xl font-display type-page">Sicurezza e dati</h1>
       <p className="mt-5 max-w-2xl text-lg text-ink-2">
         Allo sportello arrivano documenti d&apos;identità, redditi, conti correnti. Ecco come li
         trattiamo, in concreto. Non usiamo parole come «certificato» o «garantito» dove non c&apos;è

@@ -37,9 +37,7 @@ const CHECKS = [
 export default function AccessibilityPage() {
   return (
     <article className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-24">
-      <h1 className="max-w-2xl font-display text-[clamp(2.25rem,5vw,3.5rem)] leading-none font-bold tracking-[-0.03em] [font-stretch:90%]">
-        Accessibilità
-      </h1>
+      <h1 className="max-w-2xl font-display type-page">Accessibilità</h1>
       <p className="mt-5 max-w-2xl text-lg text-ink-2">
         Allo sportello arriva chiunque. Avanti è pensato prima di tutto per chi fa più fatica con la
         burocrazia: chi è arrivato da poco, chi non vede bene, chi ha solo il telefono.
