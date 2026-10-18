@@ -6,11 +6,21 @@ const ADMIN = { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" };
 
 /** The queue filtered to the test's own cases, by assignee; "" is everyone. */
 async function showQueue(page: Page, assignee: string) {
-  const loaded = page.waitForResponse(
-    (response) => /\/api\/cases\?/.test(response.url()) && response.ok(),
-  );
+  // The list of this filter, not a reload or the previous filter's answer still on its way:
+  // both show the same two cases, and a box ticked on the old list is dropped with it.
+  const loaded = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/cases" &&
+      (url.searchParams.get("assignee") ?? "") === assignee &&
+      response.ok()
+    );
+  });
   await page.getByLabel("Filtra per operatore").selectOption(assignee);
   await loaded;
+  await expect(page).toHaveURL(
+    assignee ? new RegExp(`[?&]assegnatario=${assignee}`) : /^(?!.*assegnatario=)/,
+  );
   await expect(
     page.getByRole("status").filter({ hasText: /pratic(?:a|he): da revisionare/ }),
   ).toBeAttached();
