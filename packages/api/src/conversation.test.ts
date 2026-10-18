@@ -446,3 +446,73 @@ it("applies retention to pending proposals and dialogue through the maintenance 
   expect(await db.select().from(cases).where(eq(cases.id, item.id))).toEqual([]);
   expect(await db.select().from(messages).where(eq(messages.caseId, item.id))).toEqual([]);
 });
+
+it("tags the question only on replies that ask it, and asks again after a language switch", async () => {
+  const { token } = await start();
+  const target = app();
+  const prompt = (language: Language) =>
+    getQuestions("isee_ordinario", {}, language).find((q) => q.id === "household_count")!.prompt;
+  // An off-topic reply need not restate the question: the card under it keeps its own.
+  generated = { proposals: [], reply: "Parliamo della tua pratica.", intent: "off_topic" };
+  let state = await converse(token, "Che tempo fa a Milano?", target);
+  expect(state.turns.at(-1)).toMatchObject({ kind: "message", questionId: null });
+  generated = { proposals: [], reply: "Quante persone vivono con te?", intent: "question" };
+  state = await converse(token, "Cosa vuol dire nucleo?", target);
+  expect(state.turns.at(-1)).toMatchObject({ kind: "question", questionId: "household_count" });
+  // The bubble asking it is in Italian: switching to English asks again in English.
+  const switchTo = (language: Language) =>
+    target.request(`/api/c/${token}/language`, {
+      method: "PUT",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({ language }),
+    });
+  expect((await switchTo("en")).status).toBe(200);
+  state = ConversationState.parse(await (await request(`/c/${token}/conversation`)).json());
+  expect(state.turns.at(-1)).toMatchObject({
+    role: "assistant",
+    text: prompt("en"),
+    kind: "question",
+    questionId: "household_count",
+  });
+  const turns = state.turns.length;
+  expect((await switchTo("en")).status).toBe(200);
+  state = ConversationState.parse(await (await request(`/c/${token}/conversation`)).json());
+  expect(state.turns).toHaveLength(turns);
+});
+
+it("falls back to the deterministic reply when every proposal of the model is refused", async () => {
+  const { token } = await start();
+  generated = {
+    proposals: [{ questionId: "household_count", value: -3, confidence: 1, evidence: "tre" }],
+    reply: "Ho capito: siete in tre. Controlla qui sotto e conferma.",
+    intent: "answer",
+  };
+  const state = await converse(token, "Siamo in tre");
+  expect(state.proposals).toEqual([]);
+  expect(state.turns.at(-1)).toMatchObject({
+    text: getQuestions("isee_ordinario", {}, "it").find((q) => q.id === "household_count")!.prompt,
+    kind: "question",
+    questionId: "household_count",
+  });
+});
+
+it("with a card still waiting, a message with nothing new points to it instead of asking", async () => {
+  const target = createApp({
+    ...appOptions(),
+    ai: {
+      intake: local.intake.bind(local),
+      analyze: local.analyze.bind(local),
+      translate: local.translate.bind(local),
+    },
+  });
+  const { token } = await start("it", target);
+  let state = await converse(token, "Siamo in quattro", target);
+  expect(state.proposals).toHaveLength(1);
+  state = await converse(token, "non lo so", target);
+  expect(state.proposals).toHaveLength(1);
+  expect(state.turns.at(-1)).toMatchObject({
+    text: t("it", "checkProposals"),
+    kind: "message",
+    questionId: null,
+  });
+});

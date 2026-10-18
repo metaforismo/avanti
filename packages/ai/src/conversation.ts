@@ -27,6 +27,8 @@ export const ConverseInput = z.object({
   askNext: z.array(Question).max(2),
   answered: z.record(z.string(), AnswerValue),
   turns: z.array(ConversationTurn).max(8),
+  /** Proposals from earlier messages still wait in the card: the next question comes after them. */
+  proposalsPending: z.boolean().optional(),
 });
 export type ConverseInput = z.infer<typeof ConverseInput>;
 export const ConverseOutput = z.object({
@@ -72,9 +74,9 @@ const done = {
   bn: "তালিকার নথিগুলো আপলোড করতে পারেন।",
 };
 /**
- * The reply when the model's cannot be used. With proposals waiting, the card under it asks to
- * confirm them: asking the next question as well would ask the same thing twice («Quante persone
- * vivono…» above a card that already says 3).
+ * The reply used when the model's reply cannot be. With proposals waiting, the card under it asks
+ * to confirm them: asking the next question as well would ask the same thing twice («Quante
+ * persone vivono…» above a card that already says 3).
  */
 export function deterministicReply(
   input: Pick<ConverseInput, "askNext" | "language">,
@@ -106,6 +108,7 @@ export const converseTask: Task<ConverseInput, ConverseOutput> = {
     context: {
       open_questions: i.openQuestions,
       ask_next: i.askNext.map((q) => q.id),
+      proposals_pending: i.proposalsPending ?? false,
       answered: i.answered,
     },
     untrusted: [
@@ -141,7 +144,7 @@ export const converseTask: Task<ConverseInput, ConverseOutput> = {
     });
     return {
       proposals,
-      reply: deterministicReply(i, proposals.length > 0),
+      reply: deterministicReply(i, proposals.length > 0 || i.proposalsPending === true),
       intent: "answer",
     };
   },

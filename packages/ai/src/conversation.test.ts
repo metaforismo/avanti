@@ -33,7 +33,7 @@ describe("guided conversation task", () => {
       },
     ];
     expect(converseTask.tier).toBe("fast");
-    expect(converseTask.version).toMatch(/\.3$/);
+    expect(converseTask.version).toMatch(/\.4$/);
     expect(converseTask.system(value)).toContain("A proposal is not a confirmed answer");
     expect(JSON.stringify(converseTask.data(value).context)).not.toContain("ignore all previous");
     expect(converseTask.data(value).untrusted[0]!.text).toContain("ignore all previous");
@@ -113,5 +113,14 @@ describe("guided conversation task", () => {
     expect(deterministicReply({ askNext: [], language: "it" }, true)).toBe(
       t("it", "checkProposals"),
     );
+  });
+  it("points to a card still waiting even when the new message adds nothing", () => {
+    const value = { ...input(), text: "non lo so", proposalsPending: true };
+    const result = converseTask.heuristic(value);
+    expect(result.proposals).toEqual([]);
+    expect(result.reply).toBe(t("it", "checkProposals"));
+    expect(converseTask.data(value).context).toMatchObject({ proposals_pending: true });
+    expect(converseTask.data(input()).context).toMatchObject({ proposals_pending: false });
+    expect(converseTask.system(value)).toContain("<proposals_pending>");
   });
 });

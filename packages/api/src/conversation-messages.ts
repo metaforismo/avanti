@@ -1,6 +1,8 @@
-import { and, desc, eq, gt, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, notInArray } from "drizzle-orm";
 import { messages, type Database } from "@avanti/db";
 import type { ConversationTurn } from "@avanti/contracts";
+import { askNext, openQuestions } from "./conversation-state";
+import type { CaseRow } from "./dossier";
 
 /** Caller holds the case lock: ties in the wall clock must not reorder the dialogue. */
 export async function appendConversationTurns(
@@ -57,4 +59,35 @@ export async function turnStillLatest(
     )
     .limit(1);
   return !later;
+}
+
+/**
+ * When the assistant's last bubble asks a question, that bubble is the question on screen. After a
+ * language switch it is in the language the citizen just left: ask again in the new one.
+ */
+export async function reaskInLanguage(
+  db: Database,
+  before: Pick<CaseRow, "language">,
+  after: Pick<CaseRow, "id" | "practiceId" | "answers" | "editingQuestion" | "language">,
+  now: Date,
+) {
+  if (before.language === after.language || !after.practiceId) return;
+  const [last] = await db
+    .select({ role: messages.role, questionId: messages.questionId })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.caseId, after.id),
+        inArray(messages.role, ["citizen", "assistant"]),
+        notInArray(messages.kind, ["citizen_assistant", "citizen_question"]),
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(1);
+  if (last?.role !== "assistant" || !last.questionId) return;
+  const [question] = askNext(openQuestions(after));
+  if (!question) return;
+  await appendConversationTurns(db, after.id, now, [
+    { role: "assistant", text: question.prompt, kind: "question", questionId: question.id },
+  ]);
 }

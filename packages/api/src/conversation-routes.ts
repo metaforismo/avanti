@@ -115,6 +115,7 @@ export function mountConversationRoutes(app: App, s: Services) {
       askNext: askNext(openQuestions(initial)),
       answered: confirmedContext(initial),
       turns: view.conversation!.turns.slice(-8),
+      proposalsPending: pendingProposals(initial, s.clock()).length > 0,
     };
     const [policy] = await s.db
       .select({ enabled: settings.aiCitizenAssistant })
@@ -136,11 +137,24 @@ export function mountConversationRoutes(app: App, s: Services) {
       ];
       const proposals = validateProposals(current, result.proposals, citizenTexts, s.clock());
       const pending = mergeProposals(pendingProposals(current, s.clock()), proposals);
-      const reply =
+      // The model's reply goes with its proposals: with all of them dropped it would point to a
+      // card that is not there, or to values that were refused.
+      const modelReply =
         result.reply &&
+        !(result.proposals.length > 0 && proposals.length === 0) &&
         !outputViolations(result.reply, citizenTexts.join("\n"), current.language).length
           ? result.reply
-          : deterministicReply(input, pending.length > 0);
+          : null;
+      const reply = modelReply ?? deterministicReply(input, pending.length > 0);
+      // Only a reply that really asks the question is tagged with it: the page then shows the
+      // question once, in the bubble. Off-topic, operator, safety and manipulation replies may
+      // not restate it, and with proposals waiting the question comes after the card.
+      const asks =
+        !pending.length &&
+        (!modelReply ||
+          result.engine === "heuristic" ||
+          result.intent === "answer" ||
+          result.intent === "question");
       const [updated] = await tx
         .update(cases)
         .set({
@@ -155,15 +169,14 @@ export function mountConversationRoutes(app: App, s: Services) {
       const now = s.clock();
       const [turnId] = await appendConversationTurns(tx, current.id, now, [
         { role: "citizen", text, kind: "message", questionId: null },
-        // With proposals to confirm the reply points to the card: the question comes after.
-        pending.length
-          ? { role: "assistant", text: reply, kind: "message", questionId: null }
-          : {
+        asks
+          ? {
               role: "assistant",
               text: reply,
               kind: input.askNext.length ? "question" : "summary",
               questionId: input.askNext[0]?.id ?? null,
-            },
+            }
+          : { role: "assistant", text: reply, kind: "message", questionId: null },
       ]);
       await audit(tx, updated, "citizen", "conversation.updated", now, null, {
         proposalsCount: proposals.length,
@@ -267,13 +280,22 @@ export function mountConversationRoutes(app: App, s: Services) {
         });
       }
       const ask = askNext(openQuestions(updated));
+      // Cards left unanswered come first, as after a message.
+      const waiting = pendingProposals(updated, s.clock()).length > 0;
       await appendConversationTurns(tx, current.id, s.clock(), [
-        {
-          role: "assistant",
-          text: deterministicReply({ askNext: ask, language: current.language }),
-          kind: ask.length ? "question" : "summary",
-          questionId: ask[0]?.id ?? null,
-        },
+        waiting
+          ? {
+              role: "assistant",
+              text: deterministicReply({ askNext: ask, language: current.language }, true),
+              kind: "message",
+              questionId: null,
+            }
+          : {
+              role: "assistant",
+              text: deterministicReply({ askNext: ask, language: current.language }),
+              kind: ask.length ? "question" : "summary",
+              questionId: ask[0]?.id ?? null,
+            },
       ]);
       await remember(tx, action, s.clock());
       return updated;

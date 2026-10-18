@@ -32,9 +32,11 @@ export function ConversationStep(props: StepProps) {
   const bottom = useRef<HTMLDivElement>(null);
 
   // Answers given with the buttons go through the classic turn: refresh the conversation after.
+  // A language switch too: the server asks the question again in the new language.
+  const { language } = data;
   useEffect(() => {
     void load();
-  }, [load, questionsAnswered]);
+  }, [load, questionsAnswered, language]);
 
   const turns = state?.turns ?? [];
   const list = useRef<HTMLOListElement>(null);
@@ -73,9 +75,19 @@ export function ConversationStep(props: StepProps) {
           >
             {data.practice?.name ?? m.steps.interview}
           </h1>
-          <RemainingQuestions progress={data.progress} language={data.language} m={m} />
+          <RemainingQuestions
+            progress={data.progress}
+            language={data.language}
+            m={m}
+            section={question?.section}
+          />
         </div>
-        <InterviewProgressBar progress={data.progress} language={data.language} m={m} />
+        <InterviewProgressBar
+          progress={data.progress}
+          language={data.language}
+          m={m}
+          section={question?.section}
+        />
       </div>
 
       <RenewalNotice data={data} />
