@@ -10,7 +10,7 @@ import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/page-header";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { officePlace } from "@/lib/office-place";
-import { useOperator } from "@/lib/console/operator-context";
+import { useOperator, useReplaceOperator } from "@/lib/console/operator-context";
 import { useHashTarget, useOpenOnHash } from "@/lib/console/use-hash-target";
 import { focusFirstError, text } from "@/lib/validation";
 
@@ -18,14 +18,8 @@ import { focusFirstError, text } from "@/lib/validation";
 export function OfficesSection({ onChanged }: { onChanged: () => void }) {
   const operator = useOperator();
   const [editing, setEditing] = useState<Office | "new" | null>(null);
-  // What the server answered to a save, until the reloaded profile brings it: opening the
-  // office again before then would show, and save back, the values from before the change.
-  const [saved, setSaved] = useState<{ base: Office[]; byId: Map<string, Office> }>(() => ({
-    base: operator.offices,
-    byId: new Map(),
-  }));
-  const fresh = saved.base === operator.offices ? saved.byId : null;
-  const offices = fresh ? operator.offices.map((o) => fresh.get(o.id) ?? o) : operator.offices;
+  const replaceOperator = useReplaceOperator();
+  const offices = operator.offices;
   const section = useRef<HTMLElement>(null);
   useHashTarget(["#sportelli"], section);
   // From «Completa lo sportello»: with a single office there is nothing to choose, open it.
@@ -91,9 +85,14 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
             office={editing === "new" ? null : editing}
             onSaved={(office) => {
               setEditing(null);
-              setSaved({
-                base: operator.offices,
-                byId: new Map(fresh ?? []).set(office.id, office),
+              // The saved office goes into the profile now, not when the reload below answers:
+              // reopened before then, the form showed (and saved back) the old values, and the
+              // name check ran against the old names.
+              replaceOperator({
+                ...operator,
+                offices: offices.some((o) => o.id === office.id)
+                  ? offices.map((o) => (o.id === office.id ? office : o))
+                  : [...offices, office],
               });
               onChanged();
             }}
