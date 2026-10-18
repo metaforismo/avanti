@@ -138,7 +138,11 @@ export function askedBefore(
   return answered.find((item) => item.questionId === turn.questionId)?.question ?? null;
 }
 
-/** The last thing the assistant said is this question: the card under it need not repeat it. */
+/**
+ * The last thing the assistant said is tagged with this question: the card under it shows the
+ * official prompt in a compact line instead of a second title. It may have been the model's own
+ * wording, so the card never drops the prompt.
+ */
 export function justAsked(turns: ConversationTurn[], questionId: string) {
   const last = turns.at(-1);
   return last?.role === "assistant" && last.questionId === questionId;

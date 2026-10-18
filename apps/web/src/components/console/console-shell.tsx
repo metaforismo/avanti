@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch, onAuthFailure } from "@/lib/api";
 import { OperatorProvider } from "@/lib/console/operator-context";
+import { announceSignOut, onSignOutElsewhere } from "@/lib/console/session-broadcast";
 import { clearResourceCache, useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 import { PasswordForm } from "./admin/password-form";
@@ -134,6 +135,16 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
       setExpired(true);
     });
   }, [reloadMe, shown]);
+
+  // «Esci» in another tab ended this session too: leave its data, as that tab did.
+  useEffect(
+    () =>
+      onSignOutElsewhere(() => {
+        clearResourceCache();
+        router.replace("/console/accedi");
+      }),
+    [router],
+  );
 
   // «?» lists the shortcuts, as in most work tools; never while typing a question mark.
   useEffect(() => {
@@ -430,6 +441,7 @@ function RecentCases({ operatorId }: { operatorId: string }) {
 async function signOut(router: ReturnType<typeof useRouter>) {
   clearResourceCache();
   await apiFetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+  announceSignOut();
   router.replace("/console/accedi");
 }
 

@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, inArray, notInArray } from "drizzle-orm";
 import { messages, type Database } from "@avanti/db";
-import type { ConversationTurn } from "@avanti/contracts";
+import { LANGUAGES, type ConversationTurn } from "@avanti/contracts";
 import { askNext, openQuestions } from "./conversation-state";
 import type { CaseRow } from "./dossier";
 
@@ -63,7 +63,9 @@ export async function turnStillLatest(
 
 /**
  * When the assistant's last bubble asks a question, that bubble is the question on screen. After a
- * language switch it is in the language the citizen just left: ask again in the new one.
+ * language switch it is in the language the citizen just left: ask again in the new one. A bubble
+ * that is just the official question (in any language) is rewritten in place, so switching back
+ * and forth never grows the dialogue, the dossier or the AI context.
  */
 export async function reaskInLanguage(
   db: Database,
@@ -73,7 +75,13 @@ export async function reaskInLanguage(
 ) {
   if (before.language === after.language || !after.practiceId) return;
   const [last] = await db
-    .select({ role: messages.role, questionId: messages.questionId })
+    .select({
+      id: messages.id,
+      role: messages.role,
+      kind: messages.kind,
+      questionId: messages.questionId,
+      text: messages.text,
+    })
     .from(messages)
     .where(
       and(
@@ -87,6 +95,17 @@ export async function reaskInLanguage(
   if (last?.role !== "assistant" || !last.questionId) return;
   const [question] = askNext(openQuestions(after));
   if (!question) return;
+  const official =
+    last.kind === "question" &&
+    last.questionId === question.id &&
+    LANGUAGES.some(
+      (language) =>
+        openQuestions(after, language).find((q) => q.id === question.id)?.prompt === last.text,
+    );
+  if (official) {
+    await db.update(messages).set({ text: question.prompt }).where(eq(messages.id, last.id));
+    return;
+  }
   await appendConversationTurns(db, after.id, now, [
     { role: "assistant", text: question.prompt, kind: "question", questionId: question.id },
   ]);

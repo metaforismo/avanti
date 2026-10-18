@@ -186,7 +186,12 @@ test("a ready case opens the DSU sheet, ready to copy into the CAF's software", 
   await expect(sheet.getByText("Manca", { exact: true })).toHaveCount(0);
 });
 
-test("a lost citizen link is replaced and the old one stops working", async ({ page, browser }) => {
+test("a lost citizen link is replaced and the old one stops working", async ({
+  page,
+  browser,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/console/accedi");
   await logIn(page, DEMO);
   await page.getByRole("button", { name: "Nuova pratica" }).click();
@@ -200,10 +205,15 @@ test("a lost citizen link is replaced and the old one stops working", async ({ p
   const issued = page.getByRole("dialog", { name: "Nuovo link creato" });
   const newLink = (await issued.locator("[translate=no]").innerText()).trim();
   expect(newLink).not.toBe(oldLink);
-  await expect(issued.getByRole("link", { name: "WhatsApp" })).toHaveAttribute(
-    "href",
-    /nuovo%20link/,
-  );
+  // A personal link leaves only by QR or copy: never inside a wa.me or sms: address that
+  // stays in the desk PC's history.
+  await expect(issued.getByRole("link", { name: /WhatsApp|SMS/ })).toHaveCount(0);
+  await expect(issued.locator('a[href^="https://wa.me"], a[href^="sms:"]')).toHaveCount(0);
+  await issued.getByRole("button", { name: "Copia il messaggio" }).click();
+  await expect(issued.getByRole("button", { name: "Messaggio copiato" })).toBeVisible();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("nuovo link");
+  expect(copied).toContain(newLink);
 
   const citizen = await (await browser.newContext({ locale: "it-IT" })).newPage();
   await citizen.goto(oldLink);

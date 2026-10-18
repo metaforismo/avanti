@@ -24,9 +24,10 @@ type Props = {
   /** Move focus to the question when it replaces a previous one (not on first page load). */
   autoFocus?: boolean;
   /**
-   * The conversation just asked this question in the bubble above. Said twice, it pushed the
-   * answers under the composer on small phones: the card then keeps the prompt for screen readers
-   * only and starts from the answers.
+   * The conversation just asked this question in the bubble above. Said twice in full, it pushed
+   * the answers under the composer on small phones: the card then shows the prompt in one small
+   * line. Never hidden: the bubble may be the model's own words (a paraphrase, another question),
+   * and the citizen must see the official question the answer is recorded for.
    */
   askedAbove?: boolean;
 };
@@ -81,7 +82,7 @@ export function QuestionCard({
         tabIndex={-1}
         className={
           askedAbove
-            ? "sr-only"
+            ? "text-sm font-medium text-ink-2 outline-none"
             : "mt-1 font-display text-2xl leading-tight font-semibold tracking-[-0.015em] outline-none"
         }
       >
@@ -89,7 +90,7 @@ export function QuestionCard({
       </h2>
       {!askedAbove && helpers}
 
-      <div className={askedAbove ? undefined : "mt-5"}>
+      <div className={askedAbove ? "mt-3" : "mt-5"}>
         {(question.kind === "single_choice" || question.kind === "yes_no") && (
           <ChoiceList
             options={

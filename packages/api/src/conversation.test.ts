@@ -5,6 +5,7 @@ import {
   organizations,
   offices,
   cases,
+  events,
   messages,
   settings,
   type Database,
@@ -478,6 +479,42 @@ it("tags the question only on replies that ask it, and asks again after a langua
   expect((await switchTo("en")).status).toBe(200);
   state = ConversationState.parse(await (await request(`/c/${token}/conversation`)).json());
   expect(state.turns).toHaveLength(turns);
+  // Back and forth rewrites the question it asked again instead of stacking one per switch,
+  // and the model's own reply above it stays as it was.
+  for (const language of ["it", "en", "it", "en"] as const) {
+    expect((await switchTo(language)).status).toBe(200);
+    state = ConversationState.parse(await (await request(`/c/${token}/conversation`)).json());
+    expect(state.turns).toHaveLength(turns);
+    expect(state.turns.at(-1)).toMatchObject({
+      text: prompt(language),
+      questionId: "household_count",
+    });
+    expect(state.turns.at(-2)).toMatchObject({ text: "Quante persone vivono con te?" });
+  }
+});
+
+it("limits language switches per link and audits only real changes", async () => {
+  const { token, case: created } = await start();
+  const target = app();
+  const switchTo = (language: Language) =>
+    target.request(`/api/c/${token}/language`, {
+      method: "PUT",
+      headers: { origin, "content-type": "application/json" },
+      body: JSON.stringify({ language }),
+    });
+  const audited = async () =>
+    (
+      await db.select({ type: events.type }).from(events).where(eq(events.caseId, created.id))
+    ).filter((e) => e.type === "language.updated").length;
+  // The language already in use: nothing written.
+  expect((await switchTo("it")).status).toBe(200);
+  expect(await audited()).toBe(0);
+  for (let i = 0; i < 9; i++) expect((await switchTo(i % 2 ? "it" : "en")).status).toBe(200);
+  expect(await audited()).toBe(9);
+  const limited = await switchTo("fr");
+  expect(limited.status).toBe(429);
+  expect(Number(limited.headers.get("retry-after"))).toBeGreaterThan(0);
+  expect(await audited()).toBe(9);
 });
 
 it("falls back to the deterministic reply when every proposal of the model is refused", async () => {

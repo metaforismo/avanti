@@ -146,8 +146,9 @@ export function mountConversationRoutes(app: App, s: Services) {
           ? result.reply
           : null;
       const reply = modelReply ?? deterministicReply(input, pending.length > 0);
-      // Only a reply that really asks the question is tagged with it: the page then shows the
-      // question once, in the bubble. Off-topic, operator, safety and manipulation replies may
+      // Only a reply that asks the question is tagged with it: the card under it then shows the
+      // official prompt in one small line instead of a second title (never hidden, since the
+      // model's wording may differ). Off-topic, operator, safety and manipulation replies may
       // not restate it, and with proposals waiting the question comes after the card.
       const asks =
         !pending.length &&
