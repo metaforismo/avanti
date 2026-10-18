@@ -3,6 +3,7 @@
 import { AlertTriangle, Pencil } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { documentsProgress, format, plural } from "@/lib/citizen/messages";
@@ -49,7 +50,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (api.pending === "submit") return;
+    if (api.pending === "submit" || counts.checking > 0) return;
     const form = new FormData(event.currentTarget);
     const raw = {
       firstName: values.firstName.trim(),
@@ -222,7 +223,22 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
 
         <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
 
-        <Button type="submit" size="lg" loading={api.pending === "submit"} className="w-full">
+        {/* The server refuses a case with files still being read: say so before, in their
+            language, and the button comes back on its own when the reading ends. */}
+        {counts.checking > 0 && (
+          <p id="submit-wait" className="flex items-center gap-2 text-sm text-ink-2">
+            <Spinner className="size-4 shrink-0" />
+            {plural(data.language, counts.checking, m.review.waitChecking)}
+          </p>
+        )}
+        <Button
+          type="submit"
+          size="lg"
+          loading={api.pending === "submit"}
+          disabled={counts.checking > 0}
+          aria-describedby={counts.checking > 0 ? "submit-wait" : undefined}
+          className="w-full"
+        >
           {data.status === "needs_citizen" ? m.request.resend : m.review.submit}
         </Button>
       </form>

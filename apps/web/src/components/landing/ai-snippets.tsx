@@ -16,7 +16,7 @@ export function CitizenSnippet() {
       <div className="mt-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-stamp/25">
         <p className="flex items-center gap-2 text-sm font-semibold">
           <Sparkles className="size-4 text-stamp" aria-hidden />
-          Ho capito così: controlla
+          Ho capito così
         </p>
         <dl className="mt-2 divide-y divide-line text-sm">
           {(

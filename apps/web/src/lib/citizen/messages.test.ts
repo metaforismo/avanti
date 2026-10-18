@@ -46,6 +46,7 @@ const INVARIANT: Record<(typeof LANGUAGES)[number], readonly string[]> = {
     "done.bringMore",
     "docs.inCheck",
     "docs.allUploaded",
+    "review.waitChecking",
   ],
 };
 
@@ -165,7 +166,7 @@ describe("documents counter", () => {
 
   it("names the documents still being read next to the ready ones", () => {
     const counts = { required: 7, ready: 2, checking: 1, todo: 4 };
-    expect(documentsProgress("it", counts, MESSAGES.it)).toBe("2 di 7 pronti · 1 in controllo");
+    expect(documentsProgress("it", counts, MESSAGES.it)).toBe("2 di 7 pronti · 1 in lettura");
     expect(documentsProgress("it", { ...counts, checking: 0 }, MESSAGES.it)).toBe("2 di 7 pronti");
     expect(plural("it", 1, MESSAGES.it.docs.allUploaded)).toBe(
       "Hai caricato tutto: sto ancora controllando un documento.",

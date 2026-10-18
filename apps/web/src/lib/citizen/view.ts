@@ -1,4 +1,5 @@
-import type { ChecklistItem, CitizenCase, ConversationTurn } from "@avanti/contracts";
+import type { ChecklistItem, CitizenCase, ConversationTurn, Language } from "@avanti/contracts";
+import { format, plural, type CitizenMessages, type Widen } from "./messages";
 import { documentCounts, itemReadiness } from "@avanti/core/readiness";
 import { splitRequestLabels } from "@avanti/core/request-labels";
 
@@ -67,6 +68,35 @@ export function interviewEstimate(progress: CitizenCase["progress"]): InterviewE
   }
   const middle = (range.min + range.max) / 2;
   return { remaining: range, percent: (answered / (answered + middle)) * 100 };
+}
+
+/**
+ * A floor this high reads as a long road and says little: what lies behind «at least 16» can be
+ * 16 questions or 400 (one per person, per account). Until it gets small the line says where the
+ * citizen is instead; the bar still shows the way done.
+ */
+export const OPEN_FLOOR = 8;
+
+/** What the step header says about the questions left, or null when there is nothing to say. */
+export function remainingText(
+  remaining: InterviewEstimate["remaining"],
+  language: Language,
+  m: Widen<CitizenMessages>,
+  section?: string,
+) {
+  if (!remaining) return null;
+  if (remaining.atLeast && remaining.min > OPEN_FLOOR)
+    return section ? format(m.interview.remainingOpen, { section }) : m.interview.remainingSteps;
+  if (remaining.atLeast) return plural(language, remaining.min, m.interview.remainingAtLeast);
+  // In a range the noun agrees with the last number.
+  if (remaining.min !== remaining.max)
+    return plural(language, remaining.max, m.interview.remainingRange, {
+      min: remaining.min,
+      max: remaining.max,
+    });
+  return remaining.max === 1
+    ? m.interview.remainingOne
+    : format(m.interview.remainingMany, { n: remaining.max });
 }
 
 /**

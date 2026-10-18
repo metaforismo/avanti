@@ -10,8 +10,8 @@ import type { ChecklistItem, ChecklistStatus, DocumentSummary } from "@avanti/co
  * - `ready`: nothing more is needed. The desk verified or waived it, or a document is attached and
  *   was read without blocking problems. Read, not verified: the desk still checks it, but the
  *   citizen is done with it.
- * - `checking`: a document is attached and still being read. The citizen has nothing to do, but it
- *   is not ready yet: the reading can still find a problem.
+ * - `checking`: an attached document is still being read (the back of a card, a second page).
+ *   The citizen has nothing to do, but it is not ready yet: the reading can still find a problem.
  * - `todo`: the citizen has to act. Nothing uploaded, a blocking problem, or the desk asked for it
  *   again.
  *
@@ -48,9 +48,11 @@ export function itemReadiness(item: Item, documents: readonly Document[]): Readi
       return "todo";
     case "uploaded": {
       const linked = documents.filter((document) => document.checklistItemId === item.id);
-      if (linked.some((document) => document.status === "analyzed" && document.analysis))
-        return "ready";
-      return linked.some((document) => document.status === "processing") ? "checking" : "todo";
+      // The back of a card still being read can still find a problem with the item.
+      if (linked.some((document) => document.status === "processing")) return "checking";
+      return linked.some((document) => document.status === "analyzed" && document.analysis)
+        ? "ready"
+        : "todo";
     }
   }
 }

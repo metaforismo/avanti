@@ -31,10 +31,13 @@ describe("itemReadiness", () => {
     expect(itemReadiness(item("a", "uploaded"), [doc("a", "processing")])).toBe("checking");
   });
 
-  it("is ready as soon as one attached file was read, even if another is still being read", () => {
+  it("waits for every attached file: the back of a card can still show a problem", () => {
     expect(
-      itemReadiness(item("a", "uploaded"), [doc("a", "processing"), doc("a", "analyzed")]),
-    ).toBe("ready");
+      itemReadiness(item("a", "uploaded"), [doc("a", "analyzed"), doc("a", "processing")]),
+    ).toBe("checking");
+    expect(itemReadiness(item("a", "uploaded"), [doc("a", "analyzed"), doc("a", "analyzed")])).toBe(
+      "ready",
+    );
   });
 
   it("ignores files attached to other items", () => {

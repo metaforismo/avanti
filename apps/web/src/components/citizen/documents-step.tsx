@@ -293,11 +293,20 @@ function groupByMember(data: CitizenCase, m: M) {
   }));
 }
 
+/**
+ * The badge follows readiness: an optional item whose only file could not be read has no blocking
+ * finding, so it stays «uploaded», yet the citizen still has something to look at.
+ */
+function shownStatus(item: ChecklistItem, readiness: Readiness) {
+  return readiness === "todo" && item.status === "uploaded" ? "issue" : item.status;
+}
+
 function StatusBadge({ item, readiness, m }: { item: ChecklistItem; readiness: Readiness; m: M }) {
   // Pops when an upload or the operator changes it, not on every badge when the page opens.
-  const shown = readiness === "checking" ? "checking" : item.status;
+  const status = shownStatus(item, readiness);
+  const shown = readiness === "checking" ? "checking" : status;
   const changed = useChanged(shown);
-  const warn = item.status === "issue" || item.status === "rejected";
+  const warn = status === "issue" || status === "rejected";
   const tone = readiness === "ready" ? "ok" : warn ? "warn" : "neutral";
   return (
     <Pill key={shown} tone={tone} size="sm" className={changed ? "animate-pop" : undefined}>
@@ -310,7 +319,7 @@ function StatusBadge({ item, readiness, m }: { item: ChecklistItem; readiness: R
       ) : (
         <CircleDashed aria-hidden />
       )}
-      {readiness === "checking" ? m.docs.statusChecking : m.docs.status[item.status]}
+      {readiness === "checking" ? m.docs.statusChecking : m.docs.status[status]}
     </Pill>
   );
 }
@@ -349,7 +358,7 @@ function ChecklistCard({
       aria-labelledby={`${itemId(item.id)}-title`}
       className={cn(
         "rounded-lg bg-surface p-4 ring-1 transition-shadow outline-none data-jumped:ring-2 data-jumped:ring-stamp sm:p-5",
-        item.status === "rejected" || item.status === "issue" ? "ring-warn/40" : "ring-line",
+        ["rejected", "issue"].includes(shownStatus(item, readiness)) ? "ring-warn/40" : "ring-line",
         done && "bg-surface/70",
       )}
     >

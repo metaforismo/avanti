@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { ChecklistItem, ConversationTurn } from "@avanti/contracts";
-import { askedBefore, resolveView, splitRequest } from "./view";
+import { MESSAGES } from "./messages";
+import {
+  askedBefore,
+  justAsked,
+  OPEN_FLOOR,
+  remainingText,
+  resolveView,
+  splitRequest,
+} from "./view";
 
 describe("resolveView", () => {
   it("follows the server step when the citizen has not navigated", () => {
@@ -72,5 +80,36 @@ describe("splitRequest", () => {
     const { body, items } = splitRequest("Rifalla.\nDocumento d'identità · Ana", checklist);
     expect(body).toBe("Rifalla.");
     expect(items.map((i) => i.id)).toEqual(["rejected"]);
+  });
+});
+
+describe("justAsked", () => {
+  it("is true only when the assistant's last bubble asks this very question", () => {
+    expect(justAsked([turn("assistant", "question", "q1")], "q1")).toBe(true);
+    expect(justAsked([turn("assistant", "question", "q1")], "q2")).toBe(false);
+    // A tapped answer comes after: the next question was not asked in the chat.
+    expect(
+      justAsked([turn("assistant", "question", "q1"), turn("citizen", "confirmation", "q1")], "q1"),
+    ).toBe(false);
+    expect(justAsked([turn("assistant", "message", null)], "q1")).toBe(false);
+    expect(justAsked([], "q1")).toBe(false);
+  });
+});
+
+describe("remainingText", () => {
+  const m = MESSAGES.it;
+  it("says where the citizen is while the floor is high and vague", () => {
+    const high = { min: OPEN_FLOOR + 1, max: OPEN_FLOOR + 1, atLeast: true };
+    expect(remainingText(high, "it", m, "Nucleo familiare")).toBe("Ora: Nucleo familiare");
+    expect(remainingText(high, "it", m)).toBe("Solo le domande che servono, passo dopo passo");
+  });
+
+  it("counts again once the floor is small, the range tight or the count exact", () => {
+    expect(
+      remainingText({ min: OPEN_FLOOR, max: OPEN_FLOOR, atLeast: true }, "it", m, "Casa"),
+    ).toBe(`Ancora almeno ${OPEN_FLOOR} domande`);
+    expect(remainingText({ min: 3, max: 5 }, "it", m)).toBe("Ancora 3–5 domande");
+    expect(remainingText({ min: 1, max: 1 }, "it", m)).toBe("Ultima domanda");
+    expect(remainingText(null, "it", m)).toBeNull();
   });
 });

@@ -258,7 +258,7 @@ export async function exportPdf(dossier: CaseDossier): Promise<Uint8Array> {
     mutedColor,
   );
   printer.paragraph(
-    `Documenti richiesti acquisiti: ${dossier.progress.documentsDone} di ${dossier.progress.documentsRequired}`,
+    `Documenti richiesti pronti: ${dossier.progress.documentsDone} di ${dossier.progress.documentsRequired}`,
     11,
   );
   const citizen = [dossier.citizen.firstName, dossier.citizen.lastName].filter(Boolean).join(" ");

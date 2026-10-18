@@ -151,6 +151,8 @@ export function QuestionCard({
         </p>
       )}
 
+      {askedAbove && <div className="mt-1">{helpers}</div>}
+
       {!question.required && (
         <button
           type="button"
@@ -162,7 +164,6 @@ export function QuestionCard({
           {api.pending === "skip" && <Spinner className="size-4" />}
         </button>
       )}
-      {askedAbove && <div className="mt-1">{helpers}</div>}
     </section>
   );
 }
