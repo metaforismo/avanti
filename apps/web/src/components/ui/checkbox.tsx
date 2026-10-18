@@ -21,7 +21,7 @@ export function Checkbox({
       className={cn(
         "flex cursor-pointer items-start gap-3 has-[:disabled]:cursor-not-allowed",
         look === "card" &&
-          "rounded-md bg-surface p-4 ring-1 ring-line-strong ring-inset has-[:checked]:ring-stamp/50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
+          "rounded-md bg-surface p-4 ring-1 ring-line-strong ring-inset has-[:checked]:ring-stamp/50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp has-[[aria-invalid=true]]:bg-danger-wash has-[[aria-invalid=true]]:ring-2 has-[[aria-invalid=true]]:ring-danger",
         className,
       )}
     >
