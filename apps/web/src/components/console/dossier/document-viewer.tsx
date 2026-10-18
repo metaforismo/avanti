@@ -306,9 +306,14 @@ export function DocumentViewer({
                         <div>
                           <dt className="text-sm text-ink-3">Leggibilità</dt>
                           <dd className="mt-1 flex flex-wrap gap-1.5">
-                            <Pill tone={analysis.legible ? "ok" : "danger"}>
-                              {analysis.legible ? "Leggibile" : "Poco leggibile"}
-                            </Pill>
+                            {/* Without AI nothing was read: "not legible" would be a false alarm. */}
+                            {analysis.engine === "heuristic" ? (
+                              <Pill tone="muted">Da controllare a vista</Pill>
+                            ) : (
+                              <Pill tone={analysis.legible ? "ok" : "danger"}>
+                                {analysis.legible ? "Leggibile" : "Poco leggibile"}
+                              </Pill>
+                            )}
                             {analysis.pagesComplete === false && (
                               <Pill tone="warn">Pagine mancanti</Pill>
                             )}

@@ -2,7 +2,7 @@
 
 import { ArrowRight, Check, FileText, Image as ImageIcon, RotateCcw, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import type { CaseDossier, ChecklistItem, DocumentReuseAssessment } from "@avanti/contracts";
+import type { CaseDossier, ChecklistItem, DocumentSummary } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
@@ -98,12 +98,7 @@ export function ChecklistSection({
             <ul className="flex flex-wrap gap-2 rounded-lg bg-surface p-3 ring-1 ring-line">
               {unmatched.map((doc) => (
                 <li key={doc.id} className="max-w-full min-w-0">
-                  <DocChip
-                    name={doc.analysis?.detectedLabel ?? doc.fileName}
-                    mime={doc.mimeType}
-                    reuse={doc.reuse}
-                    onClick={() => actions.openDocument(doc)}
-                  />
+                  <DocChip doc={doc} onClick={() => actions.openDocument(doc)} />
                 </li>
               ))}
             </ul>
@@ -172,14 +167,7 @@ function ChecklistRow({
           {docs.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {docs.map((doc) => (
-                <DocChip
-                  key={doc.id}
-                  name={doc.analysis?.detectedLabel ?? doc.fileName}
-                  mime={doc.mimeType}
-                  confidence={doc.analysis?.confidence}
-                  reuse={doc.reuse}
-                  onClick={() => actions.openDocument(doc)}
-                />
+                <DocChip key={doc.id} doc={doc} onClick={() => actions.openDocument(doc)} />
               ))}
             </div>
           )}
@@ -296,21 +284,30 @@ const REUSE = {
   da_verificare: { label: "da verificare", tone: "text-warn" },
 } as const;
 
-function DocChip({
-  name,
-  mime,
-  confidence,
-  reuse,
-  onClick,
-}: {
-  name: string;
-  mime: string;
-  confidence?: number;
-  /** Carried over from an earlier practice of the same family, with its check. */
-  reuse?: DocumentReuseAssessment | null;
-  onClick: () => void;
-}) {
-  const Icon = mime.startsWith("image/") ? ImageIcon : FileText;
+/**
+ * How sure the type on a chip is. Only a type read from the analysis needs qualifying: a chip
+ * showing the file name claims nothing. Without AI the type comes from the file name alone.
+ */
+function recognition(doc: DocumentSummary) {
+  const analysis = doc.analysis;
+  if (!analysis?.detectedLabel || analysis.confidence >= 0.6) return null;
+  return analysis.engine === "heuristic"
+    ? {
+        label: "dal nome file",
+        detail: "Tipo dedotto dal nome del file, senza AI: controlla a vista",
+      }
+    : {
+        label: "incerto",
+        detail: `Tipo riconosciuto dall'AI con certezza ${Math.round(analysis.confidence * 100)}%: controlla a vista`,
+      };
+}
+
+function DocChip({ doc, onClick }: { doc: DocumentSummary; onClick: () => void }) {
+  const Icon = doc.mimeType.startsWith("image/") ? ImageIcon : FileText;
+  const name = doc.analysis?.detectedLabel ?? doc.fileName;
+  const guess = recognition(doc);
+  // Carried over from an earlier practice of the same family, with its check.
+  const reuse = doc.reuse;
   return (
     <button
       type="button"
@@ -318,13 +315,13 @@ function DocChip({
       className="inline-flex max-w-full items-center gap-1.5 rounded-sm bg-paper px-2 py-1 text-sm text-ink-2 ring-1 ring-line ring-inset hover:bg-sunk hover:text-ink"
     >
       <Icon className="size-3.5 shrink-0" aria-hidden />
-      <span className="truncate" title={name}>
+      <span className="truncate" title={name === doc.fileName ? name : `${name} (${doc.fileName})`}>
         {name}
       </span>
-      {confidence !== undefined && confidence < 0.6 && (
-        <span className="shrink-0 text-xs text-warn" title="Riconoscimento incerto">
-          <span aria-hidden>?</span>
-          <span className="sr-only">(riconoscimento incerto)</span>
+      {guess && (
+        <span className="shrink-0 text-xs text-warn" title={guess.detail}>
+          · {guess.label}
+          <span className="sr-only">: {guess.detail}</span>
         </span>
       )}
       {reuse && (

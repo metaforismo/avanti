@@ -43,6 +43,8 @@ import {
   dossierSummary,
   timelineLabel,
   answeredQuestions,
+  documentTypeLabel,
+  referenceYearFor,
 } from "@avanti/core";
 import { visibleToCitizen } from "./document-visibility";
 import { reuseNotice } from "./reuse-copy";
@@ -131,6 +133,7 @@ function evaluateCase(
   const checklist = row.practiceId
     ? buildChecklist(row.practiceId, row.answers, household, language)
     : [];
+  const year = row.practiceId ? referenceYearFor(row.practiceId, row.answers) : null;
   const docViews: DocumentSummary[] = storedDocs.map((d) => ({
     id: d.id,
     fileName: d.fileName,
@@ -141,7 +144,10 @@ function evaluateCase(
     checklistItemId: checklist.some((i) => i.id === d.checklistItemId) ? d.checklistItemId : null,
     memberId: household.some((m) => m.id === d.memberId) ? d.memberId : null,
     status: d.status,
-    analysis: d.analysis,
+    analysis: d.analysis && {
+      ...d.analysis,
+      detectedLabel: documentTypeLabel(d.analysis, language, year),
+    },
     reuse:
       d.reusedFromYear !== null && row.practiceId
         ? assessDocumentReuse({

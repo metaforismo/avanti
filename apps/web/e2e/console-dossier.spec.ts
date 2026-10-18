@@ -10,7 +10,11 @@ const PNG = Buffer.from(
 );
 
 /** A submitted case of its own with two files: these tests never change the demo cases. */
-async function caseWithTwoFiles(page: Page, lastName: string) {
+async function caseWithTwoFiles(
+  page: Page,
+  lastName: string,
+  names = ["documento-1.png", "documento-2.png"],
+) {
   const token = await startCase(page, "Devo fare l'ISEE, vivo da solo.");
   await finishInterview(page, token);
   const citizen = await (await page.request.get(`/api/c/${token}`)).json();
@@ -18,7 +22,7 @@ async function caseWithTwoFiles(page: Page, lastName: string) {
     const uploaded = await page.request.post(`/api/c/${token}/documents`, {
       headers: origin(),
       multipart: {
-        file: { name: `documento-${index + 1}.png`, mimeType: "image/png", buffer: PNG },
+        file: { name: names[index]!, mimeType: "image/png", buffer: PNG },
         checklistItemId: item.id,
       },
     });
@@ -86,6 +90,28 @@ test("at 1024px the action bar stays on one row and in reach", async ({ page }) 
   await expect(ready).toBeInViewport();
   const after = (await ready.boundingBox())!;
   expect(after.y).toBeLessThan(40);
+});
+
+test("a type guessed without AI has an Italian label and says where it comes from", async ({
+  page,
+}) => {
+  await logIn(page, DEMO);
+  // Without AI the type is guessed from the file name: the id behind it never shows.
+  await caseWithTwoFiles(page, "Etichetta", ["identity.png", "documento-2.png"]);
+  const checklist = page.locator("#checklist-section");
+  const chip = checklist.getByRole("button", { name: /^Documento d’identità · dal nome file/ });
+  await expect(chip).toBeVisible();
+  await expect(checklist.getByRole("button", { name: /^identity/ })).toHaveCount(0);
+  // A chip that only shows the file name claims nothing to qualify.
+  await expect(checklist.getByRole("button", { name: "documento-2.png" })).toBeVisible();
+
+  await chip.click();
+  const viewer = page.getByRole("dialog");
+  await expect(
+    viewer.getByRole("heading", { name: "Documento d’identità", exact: true }),
+  ).toBeVisible();
+  await expect(viewer.getByText("Da controllare a vista")).toBeVisible();
+  await expect(viewer.getByText("Poco leggibile")).toHaveCount(0);
 });
 
 test("checking the files one by one ends back on the dossier, from the keyboard", async ({

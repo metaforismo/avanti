@@ -22,7 +22,12 @@ export { buildChecklist, genericChecklistTitle, isRequirementId } from "./checkl
 export { buildDsuSheet, formatDsuDate, formatDsuAmount } from "./dsu-sheet";
 export { evaluateDossier, ownerMatches, type DossierInput } from "./evaluation";
 export { dossierSummary, timelineLabel } from "./summary";
-export { requirements, requirementText, type RequirementId } from "./requirements";
+export {
+  requirements,
+  requirementText,
+  documentTypeLabel,
+  type RequirementId,
+} from "./requirements";
 
 export { calendarDate, calendarYear, romeMidnight } from "./calendar";
 export * from "./queue-wait";

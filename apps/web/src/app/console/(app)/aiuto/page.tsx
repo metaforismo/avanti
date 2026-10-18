@@ -32,7 +32,7 @@ const FAQ = [
   ],
   [
     "Il controllo automatico dice una cosa sbagliata.",
-    "Può succedere: la decisione è tua. Il ? accanto a un documento indica un riconoscimento incerto.",
+    "Può succedere: la decisione è tua. «dal nome file» o «incerto» accanto a un documento indicano un tipo da confermare a vista.",
   ],
 ] as const;
 
