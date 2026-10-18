@@ -811,6 +811,24 @@ for (const language of Language.options) {
   });
 }
 
+it("names one requested document in the singular, two in the Arabic dual, more in the plural", () => {
+  const intro = (language: Language, titles: string[]) =>
+    citizenNotification("citizen_request", language, "CAF", titles).text.split("\n\n")[1];
+  // The same title twice is one document.
+  expect(intro("it", ["Doc A", "Doc A"])).toBe(
+    "Per proseguire con la tua pratica, lo sportello ti chiede questo documento:",
+  );
+  expect(intro("it", ["Doc A", "Doc B"])).toBe(
+    "Per proseguire con la tua pratica, lo sportello ti chiede questi documenti:",
+  );
+  expect(intro("ro", ["Doc A"])).toContain("acest document:");
+  expect(intro("ar", ["أ", "ب"])).toContain("هاتين الوثيقتين:");
+  expect(intro("ar", ["أ", "ب", "ج"])).toContain("هذه الوثائق:");
+  for (const language of Language.options) {
+    expect(intro(language, ["A"]), language).not.toBe(intro(language, ["A", "B"]));
+  }
+});
+
 it("Resend sends plain text with stable idempotency ID through injected HTTP only", async () => {
   const http = vi
     .fn<typeof fetch>()
