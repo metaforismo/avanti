@@ -136,6 +136,15 @@ function ChecklistRow({
   const busy = actions.pending === `review:${item.id}`;
   const statusChanged = useChanged(item.status);
   const decided = DECIDED.has(item.status);
+  const pill = (
+    <Pill
+      key={item.status}
+      tone={status.tone}
+      className={cn("sm:justify-self-start", statusChanged && "animate-pop")}
+    >
+      {status.label}
+    </Pill>
+  );
 
   async function reject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -173,35 +182,35 @@ function ChecklistRow({
           )}
         </div>
         {/* Fixed columns from sm: statuses line up down the list and read like a table column,
-            whatever actions each row offers. */}
+            whatever actions each row offers. A decision and its undo are one unit: the undo
+            sits right after the status instead of out in the actions column. */}
         <div
           className={cn(
             "flex items-center gap-1.5",
             !readOnly && "sm:grid sm:grid-cols-[7rem_minmax(10.5rem,auto)] sm:gap-2",
           )}
         >
-          <Pill
-            key={item.status}
-            tone={status.tone}
-            className={cn("sm:justify-self-start", statusChanged && "animate-pop")}
-          >
-            {status.label}
-          </Pill>
-          {!readOnly && (
-            <div className="flex items-center gap-1.5 sm:justify-end">
-              {decided ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Annulla la decisione su ${item.title}`}
-                  title="Annulla decisione"
-                  loading={busy}
-                  onClick={() => void actions.review(item.id, { decision: "reset" })}
-                >
-                  <RotateCcw className="size-4" />
-                </Button>
-              ) : (
-                <>
+          {decided && !readOnly ? (
+            <div className="flex items-center gap-1 sm:col-span-2">
+              {pill}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                // 44px hit area around the 32px icon, without making the row taller.
+                className="after:absolute after:-inset-1.5"
+                aria-label={`Annulla la decisione su ${item.title}`}
+                title="Annulla decisione"
+                loading={busy}
+                onClick={() => void actions.review(item.id, { decision: "reset" })}
+              >
+                <RotateCcw className="size-4" aria-hidden />
+              </Button>
+            </div>
+          ) : (
+            <>
+              {pill}
+              {!readOnly && (
+                <div className="flex items-center gap-1.5 sm:justify-end">
                   {docs.length > 0 ? (
                     <>
                       <Button
@@ -238,9 +247,9 @@ function ChecklistRow({
                       Non serve
                     </Button>
                   )}
-                </>
+                </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>

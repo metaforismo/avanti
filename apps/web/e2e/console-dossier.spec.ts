@@ -114,6 +114,40 @@ test("a type guessed without AI has an Italian label and says where it comes fro
   await expect(viewer.getByText("Poco leggibile")).toHaveCount(0);
 });
 
+test("a decision and its undo read as one unit at every width", async ({ page }) => {
+  await logIn(page, DEMO);
+  await caseWithTwoFiles(page, "Decisione");
+  const row = page
+    .locator("#checklist-section li")
+    .filter({ has: page.getByText("Documento d’identità", { exact: true }) });
+  await row.getByRole("button", { name: "Verifica" }).click();
+  const pill = row.getByText("Verificato", { exact: true });
+  const undo = row.getByRole("button", { name: /^Annulla la decisione su Documento d’identità/ });
+  const missing = page.locator("#checklist-section li").getByText("Mancante", { exact: true });
+
+  for (const width of [1024, 1280, 1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await undo.scrollIntoViewIfNeeded();
+    const [status, button] = [(await pill.boundingBox())!, (await undo.boundingBox())!];
+    const gap = button.x - (status.x + status.width);
+    expect(gap, `${width}px: undo right after the status`).toBeGreaterThanOrEqual(0);
+    expect(gap, `${width}px: undo right after the status`).toBeLessThan(12);
+    expect(Math.abs(button.y + button.height / 2 - (status.y + status.height / 2))).toBeLessThan(2);
+    // The 32px icon answers clicks over a 44px area.
+    const hit = await undo.evaluate(
+      (el, at) => {
+        const target = document.elementFromPoint(at.x, at.y);
+        return target === el || el.contains(target);
+      },
+      { x: button.x - 4, y: button.y + button.height / 2 },
+    );
+    expect(hit, `${width}px: 44px target`).toBe(true);
+    // Statuses still line up as a column from sm.
+    if (width >= 640)
+      expect(Math.abs((await missing.first().boundingBox())!.x - status.x)).toBeLessThan(1);
+  }
+});
+
 test("checking the files one by one ends back on the dossier, from the keyboard", async ({
   page,
 }) => {
