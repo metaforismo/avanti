@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { errorMessage } from "@/lib/citizen/messages";
 import { useConversation, type ConversationTurn } from "@/lib/citizen/conversation";
-import { initialAnswer, STEP_TITLE_ID } from "@/lib/citizen/view";
+import { askedBefore, initialAnswer, STEP_TITLE_ID } from "@/lib/citizen/view";
 import { RenewalNotice } from "./renewal-notice";
 import { ChatBubble, Thinking } from "./chat-bubble";
 import type { StepProps } from "./citizen-app";
@@ -88,8 +88,14 @@ export function ConversationStep(props: StepProps) {
         aria-relevant="additions"
         className="grid grid-cols-[minmax(0,1fr)] gap-6"
       >
-        {turns.map((turn) => (
-          <Turn key={turn.id} turn={turn} you={m.conversation.you} avanti={m.conversation.avanti} />
+        {turns.map((turn, index) => (
+          <Turn
+            key={turn.id}
+            turn={turn}
+            asked={askedBefore(turns, index, data.answered)}
+            you={m.conversation.you}
+            avanti={m.conversation.avanti}
+          />
         ))}
         {thinking && <Thinking label={m.conversation.avanti} text={m.conversation.reading} />}
       </ol>
@@ -177,13 +183,24 @@ export function ConversationStep(props: StepProps) {
   );
 }
 
-function Turn({ turn, you, avanti }: { turn: ConversationTurn; you: string; avanti: string }) {
+function Turn({
+  turn,
+  asked,
+  you,
+  avanti,
+}: {
+  turn: ConversationTurn;
+  asked: string | null;
+  you: string;
+  avanti: string;
+}) {
   const mine = turn.role === "citizen";
   return (
     <ChatBubble
       from={mine ? "citizen" : "assistant"}
       label={mine ? you : avanti}
       text={turn.text}
+      context={asked}
     />
   );
 }

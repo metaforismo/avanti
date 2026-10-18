@@ -1,4 +1,4 @@
-import type { ChecklistStatus, CitizenCase } from "@avanti/contracts";
+import type { ChecklistStatus, CitizenCase, ConversationTurn } from "@avanti/contracts";
 
 /** Checklist states that need nothing more from the citizen. */
 export const DONE_STATUSES: ReadonlySet<ChecklistStatus> = new Set([
@@ -81,4 +81,20 @@ export function initialAnswer(data: CitizenCase, questionId: string) {
       }),
     );
   return undefined;
+}
+
+/**
+ * The question a tapped or confirmed answer replies to, when the turn just before doesn't ask it:
+ * a history of bare «No», «No», «4» says nothing to someone scrolling back.
+ */
+export function askedBefore(
+  turns: ConversationTurn[],
+  index: number,
+  answered: CitizenCase["answered"],
+): string | null {
+  const turn = turns[index]!;
+  if (turn.role !== "citizen" || turn.kind !== "confirmation" || !turn.questionId) return null;
+  const previous = turns[index - 1];
+  if (previous?.role === "assistant" && previous.questionId === turn.questionId) return null;
+  return answered.find((item) => item.questionId === turn.questionId)?.question ?? null;
 }
