@@ -1,5 +1,11 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { EARLY_SUBMIT_SCRIPT, PENDING_KEY, READY_KEY } from "./early-submit";
+import {
+  EARLY_SUBMIT_SCRIPT,
+  EARLY_SUBMIT_SCRIPT_HASH,
+  PENDING_KEY,
+  READY_KEY,
+} from "./early-submit";
 
 type Listener = (event: FakeEvent) => void;
 type FakeEvent = {
@@ -71,5 +77,12 @@ describe("early submit script", () => {
     expect(PENDING_KEY in plain).toBe(false);
     expect(submit(listener, null).defaultPrevented).toBe(false);
     expect(submit(listener, {}).defaultPrevented).toBe(false);
+  });
+});
+
+describe("early submit script hash", () => {
+  it("is the CSP source of the script exactly as inlined", () => {
+    const digest = createHash("sha256").update(EARLY_SUBMIT_SCRIPT).digest("base64");
+    expect(EARLY_SUBMIT_SCRIPT_HASH).toBe(`'sha256-${digest}'`);
   });
 });

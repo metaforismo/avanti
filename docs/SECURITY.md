@@ -692,3 +692,11 @@ valori digitati nel frattempo: nessun campo finisce nell'URL e il clic non va pe
 questi moduli restano non controllati o vengono letti dal DOM all'invio. I moduli che compaiono
 solo dopo un caricamento lato client (verifica in due passaggi, cambio password, primo testo del
 cittadino) non hanno questa finestra. Verificato con e2e che trattengono gli script della pagina.
+
+Se lo script non parte (JavaScript disattivato, un'estensione, una CSP che lo blocca) `<Form>`
+resta un modulo `method="post"`: i campi viaggiano nel corpo, mai nell'URL, e Next risponde
+ripresentando la pagina senza leggere né riportare il corpo (verificato su accesso, avvio dal QR
+e landing). Una futura CSP senza `'unsafe-inline'` negli script deve elencare l'hash dello
+script, `EARLY_SUBMIT_SCRIPT_HASH` nello stesso file (fissato da un test Vitest), o dargli un
+nonce: altrimenti l'invio prima dell'idratazione torna a ricaricare la pagina, pur senza dati
+nell'URL.

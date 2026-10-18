@@ -13,6 +13,10 @@ import {
  * head script (see lib/early-submit) and sent again here, with what the person typed meanwhile.
  * Its fields must be uncontrolled, or read from the DOM on submit: before hydration only the DOM
  * knows what was typed.
+ *
+ * POST by default: if the script never runs (JavaScript off, blocked by a stricter CSP, an
+ * extension) the browser's own submission carries the fields in the body, never in the URL. Next
+ * renders the page again for a POST without a server action, ignoring the body.
  */
 export function Form(props: Omit<ComponentProps<"form">, "ref">) {
   const own = useRef<HTMLFormElement>(null);
@@ -39,5 +43,5 @@ export function Form(props: Omit<ComponentProps<"form">, "ref">) {
       form.requestSubmit(button ?? undefined);
     });
   }, []);
-  return <form {...props} {...{ [EARLY_SUBMIT_ATTRIBUTE]: "" }} ref={own} />;
+  return <form method="post" {...props} {...{ [EARLY_SUBMIT_ATTRIBUTE]: "" }} ref={own} />;
 }

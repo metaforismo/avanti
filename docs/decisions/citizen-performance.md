@@ -52,7 +52,8 @@ fuori finché non è misurato. Uno user agent indovinato male costa solo il vant
 preload: il client legge la pratica come prima. Scartato il passaggio con uno script inline
 che avvia la `fetch` e lascia la promessa all'app: funzionerebbe ovunque, ma non parte nella
 navigazione dallo sportello (gli script inline dell'RSC non vengono eseguiti) e legherebbe la
-pagina a `'unsafe-inline'` negli script, che la CSP oggi ha solo perché Next lo richiede.
+pagina a `'unsafe-inline'` negli script, che la CSP oggi ha per gli script di Next e per il
+listener dei moduli (`lib/early-submit.ts`, che ha già il suo hash per una CSP più stretta).
 
 Il token era già nell'URL e nell'HTML; `Referrer-Policy: no-referrer` resta. Il preload parte
 quando la rete è più occupata: se la prima lettura si perde per la rete, il client la riprova

@@ -24,3 +24,10 @@ export const EARLY_SUBMIT_SCRIPT =
   `addEventListener("submit",function(e){var f=e.target;` +
   `if(f&&f.hasAttribute&&f.hasAttribute("${EARLY_SUBMIT_ATTRIBUTE}")&&!f.${READY_KEY}){` +
   `e.preventDefault();f.${PENDING_KEY}=e.submitter||null}},true);`;
+
+/**
+ * The CSP source for the script above. A CSP without 'unsafe-inline' must list it (or give the
+ * script a nonce), or the listener stops running and forms fall back to a native POST. The unit
+ * test pins it: changing the script means updating this value.
+ */
+export const EARLY_SUBMIT_SCRIPT_HASH = "'sha256-RsD1Bl1O5gOFV9m7SkRH8uMjxaEqeOp5Wd7mXWyZJPg='";
