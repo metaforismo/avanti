@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  ArrowDown,
   Bookmark,
   Camera,
   Check,
@@ -14,7 +15,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ChecklistItem, CitizenCase, DocumentSummary, Finding } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -28,7 +29,7 @@ import { useChanged } from "@/components/ui/use-changed";
 import { errorMessage, plural, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
-import { DONE_STATUSES } from "@/lib/citizen/view";
+import { DONE_STATUSES, itemLabel, splitRequest } from "@/lib/citizen/view";
 import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
 import { PhotoTips } from "./photo-tips";
@@ -45,6 +46,20 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
   const unmatched = data.documents.filter((doc) => !doc.checklistItemId);
   const operatorMessage = data.status === "needs_citizen" ? lastOperatorMessage(data) : null;
   const sections = groupByMember(data.checklist, m);
+  const request = operatorMessage ? splitRequest(operatorMessage.text, data.checklist) : null;
+
+  // A waiting-room connection comes and goes: what failed for lack of it is sent again as soon
+  // as it is back, without a tap the citizen may not know they need.
+  const uploads = api.uploads;
+  const { retryUpload } = api;
+  useEffect(() => {
+    if (!uploads.some((upload) => upload.error === "network")) return;
+    const retry = () => {
+      for (const upload of uploads) if (upload.error === "network") retryUpload(upload.id);
+    };
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
+  }, [uploads, retryUpload]);
 
   return (
     // minmax(0, 1fr) on every grid down to the files: a long unbroken file name must truncate,
@@ -82,15 +97,35 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
         </div>
       </div>
 
-      {operatorMessage && (
+      {operatorMessage && request && (
         <section className="animate-rise rounded-lg bg-warn-wash p-5 ring-1 ring-warn/20">
           <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-warn">
             <MessageCircle className="size-5" aria-hidden />
             {m.request.title}
           </h2>
-          <p dir="auto" className="mt-2 text-lg whitespace-pre-line text-ink">
-            {operatorMessage.text}
-          </p>
+          {request.body && (
+            <p dir="auto" className="mt-2 text-lg whitespace-pre-line text-ink">
+              {request.body}
+            </p>
+          )}
+          {request.items.length > 0 && (
+            <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2">
+              {request.items.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => showItem(item.id)}
+                    className="flex min-h-12 w-full items-center gap-3 rounded-md bg-surface px-4 py-2.5 text-start font-semibold text-ink ring-1 ring-warn/30 transition-transform ring-inset active:scale-[0.98]"
+                  >
+                    <span dir="auto" className="min-w-0 flex-1">
+                      {itemLabel(item)}
+                    </span>
+                    <ArrowDown className="size-5 shrink-0 text-warn" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           {data.language !== "it" &&
             (operatorMessage.originalText === null ||
               operatorMessage.originalText === operatorMessage.text) && (
@@ -189,8 +224,10 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
               ? m.docs.allDone
               : plural(data.language, missingRequired, m.docs.missing)}
           </p>
+          {/* While documents are missing, uploading is the next step: the way on stays, quieter. */}
           <Button
             size="lg"
+            variant={missingRequired > 0 ? "secondary" : "primary"}
             className="w-full"
             onClick={() => goTo("review")}
             disabled={api.uploads.some((u) => !u.error)}
@@ -201,6 +238,16 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
       </div>
     </div>
   );
+}
+
+const itemId = (id: string) => `item-${id}`;
+
+function showItem(id: string) {
+  const card = document.getElementById(itemId(id));
+  if (!card) return;
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  card.scrollIntoView({ block: "start", behavior: still ? "auto" : "smooth" });
+  card.focus({ preventScroll: true });
 }
 
 function lastOperatorMessage(data: CitizenCase) {
@@ -276,8 +323,10 @@ function ChecklistCard({
 
   return (
     <li
+      id={itemId(item.id)}
+      tabIndex={-1}
       className={cn(
-        "rounded-lg bg-surface p-4 ring-1 transition-shadow sm:p-5",
+        "scroll-mt-36 rounded-lg bg-surface p-4 ring-1 transition-shadow outline-none focus:ring-2 focus:ring-stamp sm:p-5",
         item.status === "rejected" || item.status === "issue" ? "ring-warn/40" : "ring-line",
         done && "bg-surface/70",
       )}
