@@ -208,28 +208,12 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         title="Verifica in due passaggi"
         intro="Apri l'app di autenticazione sul telefono e scrivi il codice di Avanti."
       >
-        <MfaVerifyForm
-          onVerified={me.setData}
-          onCancel={() => {
-            clearResourceCache();
-            void apiFetch("/api/auth/logout", { method: "POST" })
-              .catch(() => undefined)
-              .finally(() => router.replace("/console/accedi"));
-          }}
-        />
+        <MfaVerifyForm onVerified={me.setData} onCancel={() => void signOut(router)} />
       </Gate>
     );
   }
 
   const operator = account;
-
-  // Someone else's account, or no time now: the way out of a gate is always on screen.
-  const signOut = () => {
-    clearResourceCache();
-    void apiFetch("/api/auth/logout", { method: "POST" })
-      .catch(() => undefined)
-      .finally(() => router.replace("/console/accedi"));
-  };
 
   if (operator.mustChangePassword) {
     return (
@@ -237,7 +221,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         <Gate
           title="Scegli la tua password"
           intro={`Per entrare nella console di ${operator.organization.name} scegli una password tua al posto di quella temporanea.`}
-          onSignOut={signOut}
+          onSignOut={() => void signOut(router)}
         >
           <PasswordForm submitLabel="Salva ed entra" onChanged={me.setData} temporary />
         </Gate>
@@ -251,7 +235,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         title="Attiva la verifica in due passaggi"
         intro={`${operator.organization.name} la richiede per entrare nella console: oltre alla password servirà un codice dall'app sul tuo telefono.`}
         wide
-        onSignOut={signOut}
+        onSignOut={() => void signOut(router)}
       >
         <MfaSetupFlow doneLabel="Entra nella console" onDone={() => void me.reload()} />
       </Gate>
@@ -442,19 +426,20 @@ function RecentCases({ operatorId }: { operatorId: string }) {
   );
 }
 
+/** Leaves even if the request fails: the session expires server-side anyway. */
+async function signOut(router: ReturnType<typeof useRouter>) {
+  clearResourceCache();
+  await apiFetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+  router.replace("/console/accedi");
+}
+
 function OperatorCard({ operator }: { operator: Operator }) {
   const router = useRouter();
   const [leaving, setLeaving] = useState(false);
 
   async function logout() {
     setLeaving(true);
-    try {
-      clearResourceCache();
-      await apiFetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      // Leave even if the request failed: the session expires server-side anyway.
-      router.replace("/console/accedi");
-    }
+    await signOut(router);
   }
 
   return (

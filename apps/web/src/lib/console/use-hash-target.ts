@@ -21,14 +21,13 @@ export function useOpenOnHash(hash: string, open: () => boolean) {
 }
 
 /**
- * Brings a link's target into view once it exists: settings arrive after the navigation, too
- * late for the browser's own jump to the anchor. Runs once, so later reloads of the data don't
- * pull the page back while the admin is working elsewhere on it.
+ * Brings a link's target into view once it is on screen: settings arrive after the navigation,
+ * too late for the browser's own jump to the anchor. Call it from the component that renders
+ * the target. Runs once, so later reloads of the data don't pull the page back.
  */
 export function useHashTarget(
   hashes: string[],
   ref: RefObject<HTMLElement | null>,
-  ready = true,
   focus?: () => HTMLElement | null | undefined,
 ) {
   const done = useRef(false);
@@ -37,7 +36,7 @@ export function useHashTarget(
     latest.current = { hashes, focus };
   });
   useEffect(() => {
-    if (done.current || !ready || !ref.current) return;
+    if (done.current || !ref.current) return;
     if (!latest.current.hashes.includes(window.location.hash)) return;
     done.current = true;
     const field = latest.current.focus?.();
@@ -47,5 +46,5 @@ export function useHashTarget(
     } else {
       ref.current.scrollIntoView({ block: "start" });
     }
-  }, [ready, ref]);
+  }, [ref]);
 }

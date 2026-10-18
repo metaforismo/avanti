@@ -21,9 +21,17 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
   const section = useRef<HTMLElement>(null);
   useHashTarget(["#sportelli"], section);
   // From «Completa lo sportello»: with a single office there is nothing to choose, open it.
+  // Opened from a link there is no opener: on close, focus goes to the office's own button.
+  const editButton = useRef<HTMLButtonElement>(null);
+  const [linked, setLinked] = useState(false);
+  const edit = (target: Office | "new") => {
+    setLinked(false);
+    setEditing(target);
+  };
   useOpenOnHash("#sportelli", () => {
     const [only, ...others] = operator.offices;
     if (!only || others.length) return false;
+    setLinked(true);
     setEditing(only);
     return true;
   });
@@ -35,7 +43,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
         title="Sportelli"
         lead="Ogni sportello ha il suo link pubblico e il suo cartello con QR."
         actions={
-          <Button variant="secondary" onClick={() => setEditing("new")}>
+          <Button variant="secondary" onClick={() => edit("new")}>
             <Plus className="size-4" aria-hidden />
             Aggiungi sportello
           </Button>
@@ -51,9 +59,10 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
               </p>
             </div>
             <Button
+              ref={operator.offices.length === 1 ? editButton : undefined}
               variant="ghost"
               size="sm"
-              onClick={() => setEditing(office)}
+              onClick={() => edit(office)}
               aria-label={`Modifica ${office.name}`}
             >
               <Pencil className="size-4" aria-hidden />
@@ -65,6 +74,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
       <Dialog
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}
+        returnFocusTo={linked ? editButton : undefined}
         title={editing === "new" ? "Nuovo sportello" : "Modifica sportello"}
         description="Nome, indirizzo e orari compaiono al cittadino all'inizio della pratica e sul cartello."
       >

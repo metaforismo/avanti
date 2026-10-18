@@ -24,6 +24,7 @@ import {
   whatsappNumber,
 } from "@/lib/console/citizen-notice";
 import { LANGUAGE_IT, timeAgo } from "@/lib/console/labels";
+import { useWarnBeforeUnload } from "@/lib/use-warn-before-unload";
 
 // Avanti only sees the button press: what it knows is that the message was prepared.
 const CHANNEL_IT: Record<Exclude<CitizenHandoffChannel, "print">, string> = {
@@ -146,12 +147,7 @@ export function CitizenNoticeDialog({
   const language = LANGUAGE_IT[dossier.language].toLowerCase();
 
   // Leaving the page would lose the only working link: the browser asks first.
-  useEffect(() => {
-    if (!link || link.sent) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [link]);
+  useWarnBeforeUnload(!!link && !link.sent);
 
   return (
     <Dialog

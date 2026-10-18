@@ -1,7 +1,7 @@
 "use client";
 
 import { KeyRound, ShieldOff, UserPlus } from "lucide-react";
-import { useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { OperatorSummary, TemporaryPasswordResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -71,6 +71,8 @@ export function OperatorsSection() {
   const list = useResource<OperatorSummary[]>("/api/operators");
   const [adding, setAdding] = useState(false);
   const section = useRef<HTMLElement>(null);
+  // Opened from a link or replaced by the password dialog, the form has no opener to go back to.
+  const addButton = useRef<HTMLButtonElement>(null);
   useHashTarget(["#operatori"], section);
   // «Aggiungi un collega» from the first steps lands with the form already open.
   useOpenOnHash("#nuovo-operatore", () => {
@@ -153,7 +155,7 @@ export function OperatorsSection() {
         title="Operatori"
         lead="Chi può accedere alla console di questo CAF."
         actions={
-          <Button variant="secondary" onClick={() => setAdding(true)}>
+          <Button ref={addButton} variant="secondary" onClick={() => setAdding(true)}>
             <UserPlus className="size-4" aria-hidden />
             Aggiungi operatore
           </Button>
@@ -251,6 +253,7 @@ export function OperatorsSection() {
       <Dialog
         open={adding}
         onOpenChange={setAdding}
+        returnFocusTo={addButton}
         title="Nuovo operatore"
         description="Riceverà una password temporanea da cambiare al primo accesso."
       >
@@ -305,11 +308,9 @@ export function OperatorsSection() {
   );
 }
 
-const subscribe = () => () => {};
-
 /**
- * Everything the colleague needs to sign in the first time: where, with which email and the
- * password. Without the address, «the password» alone leaves them asking where to type it.
+ * Everything the colleague needs to sign in: where, with which email and the password. Without
+ * the address, «the password» alone leaves them asking where to type it.
  */
 function IssuedAccess({
   issued,
@@ -318,12 +319,8 @@ function IssuedAccess({
   issued: TemporaryPasswordResponse;
   onDone: () => void;
 }) {
-  const origin = useSyncExternalStore(
-    subscribe,
-    () => window.location.origin,
-    () => "",
-  );
-  const address = origin ? `${origin}/console/accedi` : "";
+  // Rendered only in the browser, inside a dialog opened by a click.
+  const address = `${window.location.origin}/console/accedi`;
   return (
     <div className="grid gap-4">
       <p className="text-ink-2">
@@ -331,51 +328,62 @@ function IssuedAccess({
         servono questi tre dati.
       </p>
       <dl className="divide-y divide-line rounded-md ring-1 ring-line">
-        <div className="grid gap-1 px-4 py-3">
-          <dt className="text-sm text-ink-3">Indirizzo della console</dt>
-          <dd className="flex items-center justify-between gap-2">
-            <span className="notranslate min-w-0 font-mono text-sm break-all" dir="ltr">
-              {address}
-            </span>
-            <CopyButton
-              value={address}
-              iconOnly
-              labels={{
-                copy: "Copia indirizzo",
-                copied: "Indirizzo copiato",
-                failed: "Copia non riuscita: selezionalo a mano.",
-              }}
-            />
-          </dd>
-        </div>
-        <div className="grid gap-1 px-4 py-3">
-          <dt className="text-sm text-ink-3">Email</dt>
-          <dd className="font-semibold break-all">{issued.operator.email}</dd>
-        </div>
-        <div className="grid gap-2 px-4 py-3">
-          <dt className="text-sm text-ink-3">Password temporanea</dt>
-          <dd className="grid gap-2">
-            <p
-              className="rounded-md bg-sunk px-4 py-3 text-center font-mono text-xl tracking-wider select-all"
-              translate="no"
-            >
-              {issued.temporaryPassword}
-            </p>
-            <CopyButton
-              value={issued.temporaryPassword}
-              labels={{
-                copy: "Copia password",
-                copied: "Copiata",
-                failed: "Copia non riuscita: selezionala a mano.",
-              }}
-            />
-          </dd>
-        </div>
+        <AccessRow label="Indirizzo della console" value={address} copyLabel="indirizzo">
+          <span className="notranslate font-mono text-sm break-all" dir="ltr">
+            {address}
+          </span>
+        </AccessRow>
+        <AccessRow label="Email" value={issued.operator.email} copyLabel="email">
+          <span className="font-semibold break-all">{issued.operator.email}</span>
+        </AccessRow>
+        <AccessRow
+          label="Password temporanea"
+          value={issued.temporaryPassword}
+          copyLabel="password"
+        >
+          <span
+            className="inline-block rounded-sm bg-sunk px-2.5 py-1 font-mono text-xl tracking-wider select-all"
+            translate="no"
+          >
+            {issued.temporaryPassword}
+          </span>
+        </AccessRow>
       </dl>
       <p className="text-sm text-ink-3">
-        Vale 7 giorni. Al primo accesso {issued.operator.name} sceglie una password sua.
+        Vale 7 giorni. Al prossimo accesso {issued.operator.name} sceglie una password sua.
       </p>
       <Button onClick={onDone}>Fatto</Button>
+    </div>
+  );
+}
+
+function AccessRow({
+  label,
+  value,
+  copyLabel,
+  children,
+}: {
+  label: string;
+  value: string;
+  copyLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid gap-1 px-4 py-3">
+      <dt className="text-sm text-ink-3">{label}</dt>
+      <dd className="flex items-center justify-between gap-2">
+        <span className="min-w-0">{children}</span>
+        <CopyButton
+          value={value}
+          iconOnly
+          labels={{
+            copy: `Copia ${copyLabel}`,
+            copied: "Copiato",
+            announce: `Copiato negli appunti: ${label.toLowerCase()}.`,
+            failed: "Copia non riuscita: selezionalo a mano.",
+          }}
+        />
+      </dd>
     </div>
   );
 }

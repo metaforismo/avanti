@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Notice } from "@/components/ui/notice";
+import { useWarnBeforeUnload } from "@/lib/use-warn-before-unload";
 
 /** Recovery codes leave the server once: the operator must keep them before moving on. */
 export function RecoveryCodes({
@@ -25,12 +26,7 @@ export function RecoveryCodes({
   useEffect(() => heading.current?.focus(), []);
 
   // The new codes are already the only valid ones: leaving now would lose them for good.
-  useEffect(() => {
-    if (saved) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [saved]);
+  useWarnBeforeUnload(!saved);
 
   function download() {
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));

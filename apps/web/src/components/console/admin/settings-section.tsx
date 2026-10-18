@@ -12,6 +12,7 @@ import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { useHashTarget } from "@/lib/console/use-hash-target";
+import { useWarnBeforeUnload } from "@/lib/use-warn-before-unload";
 import { cn } from "@/lib/cn";
 import { focusFirstError } from "@/lib/validation";
 
@@ -22,6 +23,9 @@ const LIMITS = {
 } as const;
 
 type Key = keyof typeof LIMITS;
+
+const snapshotOf = (form: HTMLFormElement | null) =>
+  form ? JSON.stringify([...new FormData(form).entries()]) : null;
 
 export function SettingsSection() {
   const settings = useResource<OrganizationSettings>("/api/settings");
@@ -59,19 +63,21 @@ function SettingsForm({
   const [state, setState] = useState<"idle" | "dirty" | "saving" | "saved">("idle");
   const form = useRef<HTMLFormElement>(null);
   // Links from the first steps, the report and the metrics land on the field to fill in.
-  useHashTarget(["#baseline", "#quasi-pronta"], form, true, () =>
+  useHashTarget(["#baseline", "#quasi-pronta"], form, () =>
     window.location.hash === "#baseline"
       ? (form.current?.elements.namedItem("baselineMinutesPerCase") as HTMLInputElement | null)
       : (form.current?.elements.namedItem("nearReadyMode") as HTMLSelectElement | null),
   );
+  // What the server has, as the form would submit it: «non ancora salvate» compares with this,
+  // so typing a value back to what it was clears the warning.
+  const saved = useRef<string | null>(null);
+  const snapshot = () => snapshotOf(form.current);
+  useEffect(() => {
+    saved.current = snapshotOf(form.current);
+  }, []);
   // The save button is at the end of a long form: closing the tab must not drop changes silently.
   const dirty = state === "dirty";
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  useWarnBeforeUnload(dirty);
   const [formError, setFormError] = useState<string | null>(null);
   // Requiring it before having it would lock the admin out of the console until set up.
   const canRequireMfa = useOperator().mfaEnabled;
@@ -117,15 +123,18 @@ function SettingsForm({
     if (canRequireMfa) values.mfaRequired = data.get("mfaRequired") === "on";
     setErrors(next);
     if (focusFirstError(event.currentTarget, next)) return;
+    const submitted = snapshot();
     setState("saving");
     setFormError(null);
     try {
       onSaved(
         await apiFetch<OrganizationSettings>("/api/settings", { method: "PATCH", body: values }),
       );
-      setState("saved");
+      saved.current = submitted;
+      // Typed while saving: those edits are not on the server yet.
+      setState(snapshot() === submitted ? "saved" : "dirty");
     } catch (error) {
-      setState("dirty");
+      setState(snapshot() === saved.current ? "idle" : "dirty");
       setFormError(
         error instanceof ApiRequestError ? error.message : "Salvataggio non riuscito. Riprova.",
       );
@@ -137,7 +146,9 @@ function SettingsForm({
       ref={form}
       onSubmit={onSubmit}
       noValidate
-      onChange={() => state !== "saving" && setState("dirty")}
+      onChange={() => {
+        if (state !== "saving") setState(snapshot() === saved.current ? "idle" : "dirty");
+      }}
       className="mt-4 grid gap-5 rounded-lg bg-surface p-5 ring-1 ring-line"
     >
       <Field
@@ -339,7 +350,7 @@ function SettingsForm({
       </fieldset>
       {formError && <Notice tone="danger">{formError}</Notice>}
       {/* Sticky: with the form taller than the screen, saving is always one click away. */}
-      <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-b-lg border-t border-line bg-surface px-5 py-3">
+      <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-b-lg border-t border-line bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Button type="submit" loading={state === "saving"}>
           Salva parametri
         </Button>
