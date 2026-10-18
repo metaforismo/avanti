@@ -1,7 +1,7 @@
 "use client";
 
 import { Pencil, Plus } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import type { Office, OfficeInput } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -9,16 +9,27 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/page-header";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { officePlace } from "@/lib/office-place";
 import { useOperator } from "@/lib/console/operator-context";
+import { useHashTarget, useOpenOnHash } from "@/lib/console/use-hash-target";
 import { focusFirstError, text } from "@/lib/validation";
 
 /** Offices come with the operator profile; after a change the page reloads it. */
 export function OfficesSection({ onChanged }: { onChanged: () => void }) {
   const operator = useOperator();
   const [editing, setEditing] = useState<Office | "new" | null>(null);
+  const section = useRef<HTMLElement>(null);
+  useHashTarget(["#sportelli"], section);
+  // From «Completa lo sportello»: with a single office there is nothing to choose, open it.
+  useOpenOnHash("#sportelli", () => {
+    const [only, ...others] = operator.offices;
+    if (!only || others.length) return false;
+    setEditing(only);
+    return true;
+  });
 
   return (
-    <section aria-labelledby="offices-title">
+    <section ref={section} id="sportelli" aria-labelledby="offices-title" className="scroll-mt-20">
       <SectionHeader
         id="offices-title"
         title="Sportelli"
@@ -35,12 +46,8 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
           <li key={office.id} className="flex items-center gap-4 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{office.name}</p>
-              <p
-                className="truncate text-sm text-ink-3"
-                title={`${office.address}, ${office.city}${office.phone ? `, ${office.phone}` : ""}`}
-              >
-                {office.address}, {office.city}
-                {office.phone ? `, ${office.phone}` : ""}
+              <p className="truncate text-sm text-ink-3" title={officeDetails(office)}>
+                {officeDetails(office)}
               </p>
             </div>
             <Button
@@ -74,6 +81,9 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
     </section>
   );
 }
+
+const officeDetails = (office: Office) =>
+  [officePlace(office), office.phone, office.openingHours].filter(Boolean).join(" · ");
 
 function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () => void }) {
   const { offices } = useOperator();

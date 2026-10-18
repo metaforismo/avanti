@@ -46,7 +46,10 @@ export function NearReadyPilot() {
             <Notice tone="warn" role="none">
               Sospesa il {new Date(data.suspendedAt).toLocaleDateString("it-IT")} per un errore
               grave confermato. Si riattiva dalle{" "}
-              <Link href="/console/impostazioni" className="underline underline-offset-2">
+              <Link
+                href="/console/impostazioni#quasi-pronta"
+                className="underline underline-offset-2"
+              >
                 impostazioni
               </Link>
               .

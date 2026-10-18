@@ -41,6 +41,9 @@ test("an admin adds an operator, who must choose a password at first login", asy
   await form.getByRole("button", { name: /Crea/ }).click();
 
   const issued = page.getByRole("dialog", { name: "Password temporanea" });
+  // Everything the colleague needs to sign in: where, with which email, which password.
+  await expect(issued).toContainText(/\/console\/accedi/);
+  await expect(issued).toContainText(email);
   const temporary = (await issued.locator("[translate=no]").innerText()).trim();
   expect(temporary.length).toBeGreaterThanOrEqual(12);
   await issued.getByRole("button", { name: "Fatto" }).click();
@@ -52,7 +55,7 @@ test("an admin adds an operator, who must choose a password at first login", asy
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("heading", { name: "Scegli la tua password" })).toBeVisible();
 
-  await page.getByLabel("Password attuale").fill(temporary);
+  await page.getByLabel("Password temporanea").fill(temporary);
   await page.getByLabel("Nuova password", { exact: true }).fill("una frase lunga per e2e");
   await page.getByLabel("Ripeti la nuova password").fill("una frase lunga per e2e");
   await page.getByRole("button", { name: "Salva ed entra" }).click();
@@ -77,8 +80,43 @@ test("marking a case ready with missing documents asks first", async ({ page }) 
   await expect(page.getByRole("button", { name: "Segna come pronta" })).toBeFocused();
 });
 
-test("a CAF's first day shows how to get the first dossier", async ({ page }) => {
-  // An empty queue in every state, as right after the CAF is set up.
+test("a CAF's first day shows its setup steps until the first dossier arrives", async ({
+  page,
+}) => {
+  // Nothing has reached the CAF yet: only a test case is still being filled in.
+  await page.route(/\/api\/cases\?/, (route) =>
+    route.fulfill({
+      json: {
+        items: [],
+        nextCursor: null,
+        counts: { submitted: 0, in_review: 0, needs_citizen: 0, ready: 0, intake: 1, closed: 0 },
+      },
+    }),
+  );
+  await page.goto("/console/accedi");
+  await logIn(page, ADMIN);
+
+  const steps = page.getByRole("region", { name: "Per iniziare" });
+  await expect(steps.getByRole("listitem")).toHaveCount(6);
+  await expect(steps.getByRole("progressbar", { name: "Passi fatti" })).toBeVisible();
+  // The test case counts as done: the step now leads to it.
+  const trial = steps.getByRole("listitem").filter({ hasText: "Prova il percorso del cittadino" });
+  await expect(trial).toContainText("Fatto");
+  await expect(trial.getByRole("link", { name: "Apri «In compilazione»" })).toHaveAttribute(
+    "href",
+    "/console?stato=intake",
+  );
+
+  // A link to a setting lands on it, not at the top of a long page.
+  await steps
+    .getByRole("listitem")
+    .filter({ hasText: "Misura i tempi di oggi" })
+    .getByRole("link")
+    .click();
+  await expect(page.getByLabel("Minuti per pratica prima di Avanti")).toBeFocused();
+});
+
+test("an administrator adds a colleague straight from the first steps", async ({ page }) => {
   await page.route(/\/api\/cases\?/, (route) =>
     route.fulfill({
       json: {
@@ -90,11 +128,16 @@ test("a CAF's first day shows how to get the first dossier", async ({ page }) =>
   );
   await page.goto("/console/accedi");
   await logIn(page, ADMIN);
-
   const steps = page.getByRole("region", { name: "Per iniziare" });
-  await expect(steps.getByRole("listitem")).toHaveCount(5);
   await steps.getByRole("button", { name: "Crea una pratica di prova" }).click();
   await expect(page.getByRole("dialog", { name: "Nuova pratica" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.goto("/console/impostazioni#nuovo-operatore");
+  await expect(page.getByRole("dialog", { name: "Nuovo operatore" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  // Opened once: a reload shows the page, not the form again.
+  await expect(page).toHaveURL(/\/console\/impostazioni$/);
 });
 
 test("a ready case opens the DSU sheet, ready to copy into the CAF's software", async ({

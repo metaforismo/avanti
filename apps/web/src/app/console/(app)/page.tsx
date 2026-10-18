@@ -41,6 +41,7 @@ import {
   timeAgo,
   type Tone,
 } from "@/lib/console/labels";
+import { isFirstDay } from "@/lib/console/first-steps";
 import { useOperator } from "@/lib/console/operator-context";
 import { rememberQueue } from "@/lib/console/recent-cases";
 import { QUEUE_SEARCH_MAX, readQueueParams, uniqueById } from "@/lib/console/queue-params";
@@ -188,8 +189,7 @@ function Queue() {
     void list.reload();
   }
 
-  // No case in any state yet: a CAF's first day.
-  const firstDay = counts ? Object.values(counts).every((n) => n === 0) : false;
+  const firstDay = isFirstDay(counts);
 
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
@@ -432,8 +432,8 @@ function Queue() {
         ) : list.status === "loading" && !list.data ? (
           <QueueSkeleton />
         ) : items.length === 0 ? (
-          firstDay && !filtered ? (
-            <FirstSteps />
+          firstDay && counts && !filtered ? (
+            <FirstSteps counts={counts} />
           ) : (
             <EmptyQueue
               status={status}

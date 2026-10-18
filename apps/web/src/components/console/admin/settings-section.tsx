@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { OrganizationSettings } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
+import { useHashTarget } from "@/lib/console/use-hash-target";
+import { cn } from "@/lib/cn";
 import { focusFirstError } from "@/lib/validation";
 
 const LIMITS = {
@@ -25,7 +27,7 @@ export function SettingsSection() {
   const settings = useResource<OrganizationSettings>("/api/settings");
 
   return (
-    <section aria-labelledby="settings-title">
+    <section id="parametri" aria-labelledby="settings-title" className="scroll-mt-20">
       <SectionHeader
         id="settings-title"
         title="Parametri"
@@ -54,7 +56,22 @@ function SettingsForm({
   const [errors, setErrors] = useState<
     Partial<Record<Key | "nearReadyCriticalThreshold" | "nearReadyOtherThreshold", string>>
   >({});
-  const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
+  const [state, setState] = useState<"idle" | "dirty" | "saving" | "saved">("idle");
+  const form = useRef<HTMLFormElement>(null);
+  // Links from the first steps, the report and the metrics land on the field to fill in.
+  useHashTarget(["#baseline", "#quasi-pronta"], form, true, () =>
+    window.location.hash === "#baseline"
+      ? (form.current?.elements.namedItem("baselineMinutesPerCase") as HTMLInputElement | null)
+      : (form.current?.elements.namedItem("nearReadyMode") as HTMLSelectElement | null),
+  );
+  // The save button is at the end of a long form: closing the tab must not drop changes silently.
+  const dirty = state === "dirty";
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   const [formError, setFormError] = useState<string | null>(null);
   // Requiring it before having it would lock the admin out of the console until set up.
   const canRequireMfa = useOperator().mfaEnabled;
@@ -108,7 +125,7 @@ function SettingsForm({
       );
       setState("saved");
     } catch (error) {
-      setState("idle");
+      setState("dirty");
       setFormError(
         error instanceof ApiRequestError ? error.message : "Salvataggio non riuscito. Riprova.",
       );
@@ -117,9 +134,10 @@ function SettingsForm({
 
   return (
     <form
+      ref={form}
       onSubmit={onSubmit}
       noValidate
-      onChange={() => state === "saved" && setState("idle")}
+      onChange={() => state !== "saving" && setState("dirty")}
       className="mt-4 grid gap-5 rounded-lg bg-surface p-5 ring-1 ring-line"
     >
       <Field
@@ -254,7 +272,7 @@ function SettingsForm({
           hint="Riepilogo del fascicolo, controlli incrociati, importi letti dai documenti, bozze di messaggi e domande normative. Spento: restano i controlli con le regole."
         />
       </fieldset>
-      <fieldset className="grid gap-3">
+      <fieldset id="quasi-pronta" className="grid scroll-mt-20 gap-3">
         <legend className="mb-2 text-sm font-semibold">Pratica «quasi pronta»</legend>
         {initial.nearReadySuspendedAt && (
           <Notice tone="warn" role="none">
@@ -320,12 +338,13 @@ function SettingsForm({
         />
       </fieldset>
       {formError && <Notice tone="danger">{formError}</Notice>}
-      <div className="flex items-center gap-3">
+      {/* Sticky: with the form taller than the screen, saving is always one click away. */}
+      <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-b-lg border-t border-line bg-surface px-5 py-3">
         <Button type="submit" loading={state === "saving"}>
           Salva parametri
         </Button>
-        <span role="status" className="text-sm text-ok">
-          {state === "saved" ? "Salvati" : ""}
+        <span role="status" className={cn("text-sm", state === "saved" ? "text-ok" : "text-ink-2")}>
+          {state === "saved" ? "Salvati" : dirty ? "Modifiche non ancora salvate" : ""}
         </span>
       </div>
     </form>

@@ -488,7 +488,10 @@ function Totals({ group, report }: { group: PilotReportGroup; report: PilotRepor
             baseline === null ? (
               <>
                 Non impostato:{" "}
-                <Link href="/console/impostazioni" className="underline underline-offset-2">
+                <Link
+                  href="/console/impostazioni#baseline"
+                  className="underline underline-offset-2"
+                >
                   aggiungilo nelle impostazioni
                 </Link>
               </>
