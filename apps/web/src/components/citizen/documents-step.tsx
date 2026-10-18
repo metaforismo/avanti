@@ -46,6 +46,9 @@ import { STEP_TITLE_ID } from "@/lib/citizen/view";
 
 type M = Widen<CitizenMessages>;
 
+/** After «online», how long until a file that failed again is retried once more. */
+const ONLINE_RETRY_MS = [3_000, 10_000];
+
 const ACCEPT = "application/pdf,image/jpeg,image/png,image/webp,image/heic,.heic,.heif";
 
 export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
@@ -60,14 +63,25 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
   // it was away is sent again without a tap the citizen may not know they need. A stall on a Wi-Fi
   // that never dropped still needs «Riprova».
   // Listening from the start, not from the failure on: the connection can come back before an
-  // effect run after the failing render would have attached the listener.
+  // effect run after the failing render would have attached the listener. «online» can also come
+  // a moment before requests get through again: what fails once more is tried again shortly.
   const retryLost = useEffectEvent(() => {
     for (const upload of api.uploads) if (upload.error === "network") api.retryUpload(upload.id);
   });
   useEffect(() => {
-    const retry = () => retryLost();
+    let timers: number[] = [];
+    const retry = () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      retryLost();
+      timers = ONLINE_RETRY_MS.map((ms) =>
+        window.setTimeout(() => navigator.onLine && retryLost(), ms),
+      );
+    };
     window.addEventListener("online", retry);
-    return () => window.removeEventListener("online", retry);
+    return () => {
+      window.removeEventListener("online", retry);
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
   }, []);
 
   return (
