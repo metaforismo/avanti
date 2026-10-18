@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import type { Language } from "@avanti/contracts";
 
 /**
@@ -51,12 +51,33 @@ export async function logIn(page: Page, account: { email: string; password: stri
     await page.getByRole("button", { name: "Accedi" }).click();
     const result = await response;
     if (result.status() !== 429) return;
-    const wait = Number(result.headers()["retry-after"] ?? "60") * 1000 + 250;
-    // The other spec files spent the quota: the wait is the suite's, not this test's slowness,
-    // and must not eat its time budget (a minute of a 90-second test).
-    test.info().setTimeout(test.info().timeout + wait);
-    await page.waitForTimeout(wait);
+    await waitOutLoginLimit(page, result.headers()["retry-after"]);
   }
+}
+
+/** `logIn` without the UI, for an API context; it waits out the login limit the same way. */
+export async function apiLogIn(
+  api: APIRequestContext,
+  account: { email: string; password: string },
+) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const result = await api.post("/api/auth/login", { headers: origin(), data: account });
+    if (result.status() !== 429) {
+      expect(result.ok(), await result.text()).toBeTruthy();
+      return;
+    }
+    await waitOutLoginLimit(null, result.headers()["retry-after"]);
+  }
+  throw new Error("Login limit not lifted");
+}
+
+async function waitOutLoginLimit(page: Page | null, retryAfter: string | undefined) {
+  const wait = Number(retryAfter ?? "60") * 1000 + 250;
+  // The other spec files spent the quota: the wait is the suite's, not this test's slowness,
+  // and must not eat its time budget (a minute of a 90-second test).
+  test.info().setTimeout(test.info().timeout + wait);
+  if (page) await page.waitForTimeout(wait);
+  else await new Promise((resolve) => setTimeout(resolve, wait));
 }
 
 /** Browsers send Origin on every POST and production requires it; Playwright's API client doesn't. */

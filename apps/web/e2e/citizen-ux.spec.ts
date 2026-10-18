@@ -1,6 +1,6 @@
 import { expect, request, test, type Page } from "@playwright/test";
 import type { ConversationState } from "@avanti/contracts";
-import { finishInterview, origin, startCase } from "./helpers";
+import { apiLogIn, finishInterview, origin, startCase } from "./helpers";
 
 const PNG = {
   name: "documento.png",
@@ -28,10 +28,8 @@ async function requestItem(token: string, message: string) {
   };
   await citizen.dispose();
   const admin = await request.newContext({ baseURL, extraHTTPHeaders: origin() });
-  const login = await admin.post("/api/auth/login", {
-    data: { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" },
-  });
-  expect(login.ok(), await login.text()).toBeTruthy();
+  // The helper waits out the login limit the other spec files spend on the same account.
+  await apiLogIn(admin, { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" });
   type Case = { id: string; reference: string; updatedAt: string };
   const list = (await (await admin.get(`/api/cases?q=${reference}`)).json()) as { items: Case[] };
   const id = list.items.find((item) => item.reference === reference)!.id;

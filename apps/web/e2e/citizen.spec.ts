@@ -1,5 +1,5 @@
 import { expect, request, test, type Page } from "@playwright/test";
-import { finishInterview, origin, startCase } from "./helpers";
+import { apiLogIn, finishInterview, origin, startCase } from "./helpers";
 import { LANGUAGES } from "@avanti/contracts/constants";
 import { messagesFor } from "../src/lib/citizen/messages";
 
@@ -7,10 +7,8 @@ import { messagesFor } from "../src/lib/citizen/messages";
 async function setOfficeNextSteps(bookingUrl: string | null, citizenNote: string | null) {
   const baseURL = test.info().project.use.baseURL!;
   const admin = await request.newContext({ baseURL, extraHTTPHeaders: origin() });
-  const login = await admin.post("/api/auth/login", {
-    data: { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" },
-  });
-  expect(login.ok(), await login.text()).toBeTruthy();
+  // The helper waits out the login limit the other spec files spend on the same account.
+  await apiLogIn(admin, { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" });
   const office = (await (await admin.get("/api/offices/demo-milano-centro")).json()) as {
     office: { id: string };
   };
