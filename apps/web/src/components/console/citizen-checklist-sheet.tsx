@@ -14,6 +14,7 @@ import { directionOf } from "@/lib/citizen/document-language";
 import { HANDOFF_MESSAGES } from "@/lib/citizen/handoff-messages";
 import { format, messagesFor } from "@/lib/citizen/messages";
 import { LANGUAGE_IT } from "@/lib/console/labels";
+import { officePlace } from "@/lib/office-place";
 import { recordHandoff } from "./citizen-notice";
 
 type Load =
@@ -210,7 +211,7 @@ function Sheet({ handoff }: { handoff: CitizenHandoff }) {
           {office && (
             <p className="text-[10pt] text-ink-2">
               <bdi>
-                {office.name} · {[office.address, office.city].filter(Boolean).join(", ")}
+                {office.name} · {officePlace(office)}
               </bdi>
             </p>
           )}

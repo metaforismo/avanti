@@ -9,6 +9,7 @@ import type {
 import { directionOf } from "@/lib/citizen/document-language";
 import { HANDOFF_MESSAGES } from "@/lib/citizen/handoff-messages";
 import { format, messagesFor, plural } from "@/lib/citizen/messages";
+import { officePlace } from "@/lib/office-place";
 
 export type NoticeKind = "request" | "ready";
 
@@ -83,10 +84,7 @@ export function noticeText(handoff: CitizenHandoff, kind: NoticeKind, link?: str
   const office = handoff.office;
   if (kind === "ready" && office) {
     blocks.push(
-      [
-        `${office.name} · ${[office.address, office.city].filter(Boolean).join(", ")}`,
-        office.openingHours,
-      ]
+      [`${office.name} · ${officePlace(office)}`, office.openingHours]
         .filter(Boolean)
         .map((line) => mark("it") + line)
         .join("\n"),
