@@ -1,4 +1,8 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
+
+// See e2e/server-keep-alive.mjs; also pass it to a server started by hand for E2E_BASE_URL.
+const keepAlive = `--import=${fileURLToPath(new URL("./e2e/server-keep-alive.mjs", import.meta.url))}`;
 
 /**
  * End-to-end tests against a running app with the demo seed (`pnpm db:migrate && pnpm db:seed`).
@@ -37,6 +41,7 @@ export default defineConfig({
     ? undefined
     : {
         command: "pnpm dev",
+        env: { NODE_OPTIONS: [process.env.NODE_OPTIONS, keepAlive].filter(Boolean).join(" ") },
         url: "http://localhost:3400/api/health",
         reuseExistingServer: true,
         timeout: 180_000,
