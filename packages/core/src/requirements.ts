@@ -602,7 +602,7 @@ export function requirementText(id: RequirementId, language: Language, year: num
   };
 }
 
-const isRequirementId = (value: string): value is RequirementId =>
+export const isRequirementId = (value: string): value is RequirementId =>
   Object.hasOwn(requirements, value);
 
 /**

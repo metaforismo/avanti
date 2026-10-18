@@ -51,6 +51,12 @@ beforeAll(async () => {
       "saldo_conto_2025.pdf",
       heuristicAnalysis("saldo_conto_2025.pdf", Object.keys(requirements)),
     ],
+    // Last year's statement in this case: the label keeps the file's own year.
+    [
+      "older",
+      "saldo_conto_2024.pdf",
+      heuristicAnalysis("saldo_conto_2024.pdf", Object.keys(requirements)),
+    ],
     ["unknown", "ESEMPIO.pdf", heuristicAnalysis("ESEMPIO.pdf", Object.keys(requirements))],
     [
       "ai",
@@ -76,25 +82,31 @@ afterAll(async () => {
   await close?.();
 });
 
-async function labels(language: "it" | "ro") {
+async function labels(audience: "operator" | "citizen") {
   const [row] = await db.select().from(cases).where(eq(cases.id, "case"));
-  const view = await citizenView(db, row!, now, language, true);
+  const view =
+    audience === "operator"
+      ? await citizenView(db, row!, now, "it", true)
+      : await citizenView(db, row!, now);
   return Object.fromEntries(view.documents.map((d) => [d.id, d.analysis?.detectedLabel ?? null]));
 }
 
 it("labels detected types in Italian for the operator, never with the internal id", async () => {
-  expect(await labels("it")).toEqual({
+  expect(await labels("operator")).toEqual({
     legacy: "Documento d’identità",
     fresh: "Saldo al 31/12/2025 e dati del rapporto",
+    older: "Saldo al 31/12/2024 e dati del rapporto",
     unknown: null,
     ai: "Carta d'identità elettronica",
   });
 });
 
-it("labels detected types in the citizen's language, without the Italian AI reading", async () => {
-  expect(await labels("ro")).toEqual({
-    legacy: "Act de identitate",
-    fresh: "Sold la 31/12/2025 (saldo) și datele contului",
+it("shows the citizen only what was read, in their language", async () => {
+  // Without AI the type is a guess from the name the citizen gave the file: not shown back.
+  expect(await labels("citizen")).toEqual({
+    legacy: null,
+    fresh: null,
+    older: null,
     unknown: null,
     ai: "Act de identitate",
   });
