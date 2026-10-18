@@ -1,4 +1,4 @@
-import type { ChecklistGroup, Language } from "@avanti/contracts";
+import type { ChecklistGroup, DocumentAnalysis, Language } from "@avanti/contracts";
 import { localize, type Text } from "./i18n";
 
 export type Reference = "assets" | "income" | "current" | "none";
@@ -600,6 +600,32 @@ export function requirementText(id: RequirementId, language: Language, year: num
     description: documentDescription(id, language, year),
     howToGet: localize(language, sources[requirement.how], { year: year ?? "" }),
   };
+}
+
+export const isRequirementId = (value: string): value is RequirementId =>
+  Object.hasOwn(requirements, value);
+
+/**
+ * The document type as people read it. `detectedLabel` is the AI's Italian reading, but older
+ * heuristic analyses stored the catalog id there ("identity"): an id never reaches a screen. A
+ * known type gets its catalog title in the reader's language; an AI reading stays only for an
+ * Italian reader; anything else is null, so the caller shows the file name instead.
+ */
+export function documentTypeLabel(
+  analysis: Pick<DocumentAnalysis, "detectedRequirementId" | "detectedLabel"> | null,
+  language: Language,
+  year: number | null,
+): string | null {
+  if (!analysis) return null;
+  const label = analysis.detectedLabel?.trim() || null;
+  const internal =
+    label !== null &&
+    (isRequirementId(label) ||
+      label === analysis.detectedRequirementId ||
+      /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(label));
+  if (label && !internal && language === "it") return label;
+  const id = analysis.detectedRequirementId ?? (internal ? label : null);
+  return id && isRequirementId(id) ? requirementText(id, language, year).title : null;
 }
 
 const documentDetails: Record<

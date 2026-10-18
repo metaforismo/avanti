@@ -61,6 +61,12 @@ pratica l'upload risponde `409 case_full` (codice proprio, tradotto dal frontend
 intervista terminata; può contenere documenti mancanti, esplicitamente segnalati. La prima
 completezza è fotografata al primo invio e non riscritta da integrazioni successive.
 
+Nelle risposte `analysis.detectedLabel` è un'etichetta da mostrare, nella lingua di chi legge:
+titolo del catalogo per un tipo noto (anno del documento, altrimenti della pratica), lettura AI
+solo in italiano, mai un id interno; `null` se il tipo è sconosciuto e, nella vista del
+cittadino, quando l'analisi è euristica (dedotta dal nome che il cittadino ha dato al file).
+Il valore salvato nel database resta quello grezzo dell'analisi.
+
 `turn`: text classifica/estrae; sotto confidenza 0,75 rimane la scelta esplicita della
 pratica. answer valida tipi/opzioni/condizioni; edit rende prioritaria la domanda modificata e invalida dipendenze; skip ammesso solo
 per domande opzionali; choose_practice riparte con risposte vuote quando cambia pratica.

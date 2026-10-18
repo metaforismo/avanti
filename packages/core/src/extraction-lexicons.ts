@@ -10,18 +10,29 @@ export const HOUSEHOLD_RELATIONS = [
   "nonno",
   "nonna",
   "coinquilino",
+  // A cohabiting partner belongs to the household registry family, hence to the ISEE household.
+  "partner",
 ] as const;
 export type Relation = (typeof HOUSEHOLD_RELATIONS)[number];
 const OTHER_KIN_TERMS: Record<
   Language,
-  Record<"fratello" | "sorella" | "nonno" | "nonna" | "coinquilino", string[]>
+  Record<"fratello" | "sorella" | "nonno" | "nonna" | "coinquilino" | "partner", string[]>
 > = {
   it: {
     fratello: ["fratello", "fratelli"],
     sorella: ["sorella", "sorelle"],
     nonno: ["nonno"],
     nonna: ["nonna"],
-    coinquilino: ["coinquilino", "coinquilina", "coinquilini"],
+    coinquilino: [
+      "coinquilino",
+      "coinquilina",
+      "coinquilini",
+      "compagno di stanza",
+      "compagna di stanza",
+      "compagno di casa",
+      "compagna di casa",
+    ],
+    partner: ["compagno", "compagna", "convivente", "partner", "fidanzato", "fidanzata"],
   },
   en: {
     fratello: ["brother", "brothers"],
@@ -29,6 +40,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["grandfather", "grandpa"],
     nonna: ["grandmother", "grandma"],
     coinquilino: ["roommate", "flatmate", "roommates"],
+    partner: ["partner", "boyfriend", "girlfriend", "fiance", "fiancé", "fiancee", "fiancée"],
   },
   fr: {
     fratello: ["frère", "frères"],
@@ -36,6 +48,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["grand-père"],
     nonna: ["grand-mère"],
     coinquilino: ["colocataire", "colocataires"],
+    partner: ["compagnon", "compagne", "concubin", "concubine", "partenaire"],
   },
   es: {
     fratello: ["hermano", "hermanos"],
@@ -43,6 +56,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["abuelo"],
     nonna: ["abuela"],
     coinquilino: ["compañero de piso", "compañera de piso"],
+    partner: ["pareja", "novio", "novia", "compañero", "compañera"],
   },
   ro: {
     fratello: ["frate", "fratele", "frați"],
@@ -50,6 +64,15 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["bunic", "bunicul"],
     nonna: ["bunică", "bunica"],
     coinquilino: ["coleg de apartament", "colegă de apartament"],
+    partner: [
+      "partener",
+      "partenerul",
+      "parteneră",
+      "partenera",
+      "concubin",
+      "concubinul",
+      "concubina",
+    ],
   },
   uk: {
     fratello: ["брат", "братом", "брати"],
@@ -57,6 +80,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["дідусь", "дідусем"],
     nonna: ["бабуся", "бабусею"],
     coinquilino: ["співмешканець", "співмешканцем"],
+    partner: ["партнер", "партнером", "партнерка", "партнеркою"],
   },
   ar: {
     fratello: ["أخي", "اخي", "أخ", "اخ"],
@@ -64,6 +88,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["جدي"],
     nonna: ["جدتي"],
     coinquilino: ["زميل السكن"],
+    partner: ["شريكي", "شريكتي", "خطيبي", "خطيبتي"],
   },
   bn: {
     fratello: ["ভাই", "ভাইয়ের", "ভাইয়ের"],
@@ -71,6 +96,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["দাদা", "দাদার"],
     nonna: ["দাদি", "দাদির"],
     coinquilino: ["রুমমেট"],
+    partner: ["সঙ্গী", "সঙ্গীর", "পার্টনার", "পার্টনারের"],
   },
 };
 export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
@@ -79,7 +105,20 @@ export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
     madre: ["madre", "mamma"],
     padre: ["padre", "papà", "papa", "babbo"],
     coniuge: ["moglie", "marito"],
-    figlio: ["figlio", "figlia", "figli", "figlie", "bimbo", "bimba", "bimbi"],
+    figlio: [
+      "figlio",
+      "figlia",
+      "figli",
+      "figlie",
+      "bimbo",
+      "bimba",
+      "bimbi",
+      "bimbe",
+      "bambino",
+      "bambina",
+      "bambini",
+      "bambine",
+    ],
   },
   en: {
     ...OTHER_KIN_TERMS.en,
@@ -107,7 +146,19 @@ export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
     madre: ["mamă", "mama", "mamei"],
     padre: ["tată", "tata", "tatal", "tatăl"],
     coniuge: ["soție", "soția", "sotie", "sotia", "soț", "soțul", "sot", "sotul"],
-    figlio: ["fiu", "fiul", "fiica", "fiică", "copil", "copilul", "copii", "copiii"],
+    figlio: [
+      "fiu",
+      "fiul",
+      "fiii",
+      "fiica",
+      "fiică",
+      "fiice",
+      "fiicele",
+      "copil",
+      "copilul",
+      "copii",
+      "copiii",
+    ],
   },
   uk: {
     ...OTHER_KIN_TERMS.uk,
@@ -145,6 +196,8 @@ export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
       "أطفال",
       "اطفال",
       "طفل",
+      "طفلي",
+      "طفلتي",
       "طفلين",
       "ولدين",
       "ولدان",
@@ -163,7 +216,10 @@ export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
       "মেয়ের",
       "মেয়ে",
       "সন্তান",
+      "সন্তানের",
+      "সন্তানদের",
       "বাচ্চা",
+      "বাচ্চার",
       "বাচ্চাদের",
       "ছেলেমেয়ে",
     ],
@@ -287,7 +343,7 @@ export const CONJUNCTIONS: Record<Language, string[]> = {
   ro: ["și", "si", "dar"],
   uk: ["і", "й", "та", "але"],
   ar: ["و", "لكن"],
-  bn: ["আর", "এবং", "কিন্তু"],
+  bn: ["আর", "এবং", "ও", "কিন্তু"],
 };
 export const BANK_ALIASES = [
   { name: "Fineco", aliases: ["Fineco"] },
@@ -328,13 +384,15 @@ export const COLLECTIVE_PARENT_TERMS: Record<Language, string[]> = {
   ar: ["والدين", "والداي"],
   bn: ["বাবা-মা"],
 };
+// Words that may sit between relatives in a list after "vivo con": articles, "our", and the
+// repeated preposition ("e con i nostri due figli", "și cei doi copii ai noștri").
 export const RELATION_LIST_TERMS: Record<Language, string[]> = {
-  it: ["i", "il", "la", "le"],
-  en: [],
-  fr: ["les", "le", "la"],
-  es: ["los", "las"],
-  ro: [],
-  uk: [],
+  it: ["i", "il", "la", "le", "gli", "nostro", "nostra", "nostri", "nostre", "con"],
+  en: ["the", "our", "with"],
+  fr: ["les", "le", "la", "nos", "notre", "avec"],
+  es: ["los", "las", "nuestro", "nuestra", "nuestros", "nuestras", "con"],
+  ro: ["cei", "cele", "ai", "ale", "nostru", "noastră", "noștri", "noastre", "cu"],
+  uk: ["наш", "наша", "наші", "нашим", "нашою", "нашими", "наших", "моїми", "з", "із", "зі"],
   ar: [],
   bn: [],
 };
@@ -364,14 +422,14 @@ export const HOME_MORTGAGE_PATTERNS: Record<Language, string[]> = {
 };
 
 export const PLURAL_CHILD_TERMS: Record<Language, string[]> = {
-  it: ["figli", "figlie", "bimbi"],
+  it: ["figli", "figlie", "bimbi", "bimbe", "bambini", "bambine"],
   en: ["sons", "daughters", "children", "kids"],
   fr: ["enfants", "filles"],
   es: ["hijos", "hijas", "niños", "ninos"],
-  ro: ["copii", "copiii"],
+  ro: ["copii", "copiii", "fiii", "fiice", "fiicele"],
   uk: ["діти", "дітьми", "сини", "синами"],
   ar: ["أولادي", "أطفالي", "أطفال"],
-  bn: ["বাচ্চাদের", "ছেলেমেয়ে"],
+  bn: ["বাচ্চাদের", "ছেলেমেয়ে", "সন্তানদের"],
 };
 export const CLAUSE_START_PATTERNS: Record<Language, string[]> = {
   it: ["(?:non )?c e", "ci sono", "(?:io )?(?:non )?ho", "(?:noi )?(?:non )?abbiamo"],
@@ -450,6 +508,17 @@ export const ALONE_PATTERNS: Record<Language, string[]> = {
   bn: ["একা থাকি"],
 };
 export const BENGALI_SUBJECT_TERMS = ["আমি"];
+
+// Arabic puts the number after a possessed plural or dual: «أطفالي الثلاثة», «طفلي الاثنين».
+// Only these spelled-out numbers with the article count there: a digit after the noun is an
+// age («ابني 15 عاما») and «الاثنين» after a singular son is Monday.
+export const ARABIC_TRAILING_COUNTS: Record<string, number> = {
+  الاثنين: 2,
+  الاثنان: 2,
+  الثلاثة: 3,
+  الاربعة: 4,
+};
+export const ARABIC_COUNTABLE_CHILDREN = ["أطفالي", "اطفالي", "أولادي", "اولادي", "طفلي"];
 
 export const NUMBER_WORDS: Record<string, number> = {
   un: 1,

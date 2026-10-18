@@ -33,7 +33,9 @@ export function heuristicAnalysis(fileName: string, requirements: string[]): Doc
   return {
     engine: "heuristic",
     detectedRequirementId: detected,
-    detectedLabel: detected,
+    // Nothing was read, only the file name matched: the type is labelled for each reader from
+    // the requirement id (`documentTypeLabel`), never from the id itself.
+    detectedLabel: null,
     confidence: detected ? 0.45 : 0.1,
     ownerName: null,
     referenceYear: year

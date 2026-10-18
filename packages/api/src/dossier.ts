@@ -43,6 +43,8 @@ import {
   dossierSummary,
   timelineLabel,
   answeredQuestions,
+  documentTypeLabel,
+  referenceYearFor,
 } from "@avanti/core";
 import { visibleToCitizen } from "./document-visibility";
 import { reuseNotice } from "./reuse-copy";
@@ -126,11 +128,13 @@ function evaluateCase(
   reviews: ViewData["reviews"],
   now: Date,
   language: Language,
+  operatorView = true,
 ) {
   const household = buildHousehold(row.answers);
   const checklist = row.practiceId
     ? buildChecklist(row.practiceId, row.answers, household, language)
     : [];
+  const year = row.practiceId ? referenceYearFor(row.practiceId, row.answers) : null;
   const docViews: DocumentSummary[] = storedDocs.map((d) => ({
     id: d.id,
     fileName: d.fileName,
@@ -141,7 +145,14 @@ function evaluateCase(
     checklistItemId: checklist.some((i) => i.id === d.checklistItemId) ? d.checklistItemId : null,
     memberId: household.some((m) => m.id === d.memberId) ? d.memberId : null,
     status: d.status,
-    analysis: d.analysis,
+    analysis: d.analysis && {
+      ...d.analysis,
+      // The citizen named the file: a guess from that name is not shown back as a reading.
+      detectedLabel:
+        !operatorView && d.analysis.engine === "heuristic"
+          ? null
+          : documentTypeLabel(d.analysis, language, d.analysis.referenceYear ?? year),
+    },
     reuse:
       d.reusedFromYear !== null && row.practiceId
         ? assessDocumentReuse({
@@ -293,6 +304,7 @@ export async function citizenView(
     reviews,
     now,
     language,
+    operatorView,
   );
   const questions = row.practiceId ? getQuestions(row.practiceId, row.answers, language) : [];
   const question =

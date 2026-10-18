@@ -101,8 +101,10 @@ dare un'occhiata senza falsare i tempi.
 ### Controllo automatico dei documenti
 
 Aprendo un documento vedi a destra cosa ha rilevato Avanti: a quale voce l'ha abbinato,
-intestatario, anno, scadenza, pagine, leggibilità e con quanta certezza. Un **?** accanto al
-nome indica un riconoscimento incerto. Il controllo automatico può sbagliare: la decisione
+intestatario, anno, scadenza, pagine, leggibilità e con quanta certezza. Accanto al nome,
+_dal nome file_ indica un tipo dedotto solo dal nome del file (senza AI) e _incerto_ un
+riconoscimento AI poco sicuro. Senza AI nessuno ha letto il file: la leggibilità compare come
+_Da controllare a vista_. Il controllo automatico può sbagliare: la decisione
 finale è tua. Con le frecce ← → passi al documento precedente o successivo.
 
 Per controllare tutto in una passata usa **Controlla uno per uno** accanto a _Documenti_: si apre

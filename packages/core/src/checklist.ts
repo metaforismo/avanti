@@ -1,9 +1,6 @@
 import type { ChecklistItem, Language, Member, PracticeId } from "@avanti/contracts";
 import { boundedCount, catalog, referenceYearFor, type Answers } from "./catalog";
-import { requirements, requirementText, type RequirementId } from "./requirements";
-
-export const isRequirementId = (id: string): id is RequirementId =>
-  Object.prototype.hasOwnProperty.call(requirements, id);
+import { isRequirementId, requirements, requirementText, type RequirementId } from "./requirements";
 
 /**
  * The catalog title of a checklist item, without the bank or person that the answers append:

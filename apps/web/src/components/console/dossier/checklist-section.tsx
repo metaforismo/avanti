@@ -1,8 +1,13 @@
 "use client";
 
 import { ArrowRight, Check, FileText, Image as ImageIcon, RotateCcw, X } from "lucide-react";
-import { useState, type FormEvent } from "react";
-import type { CaseDossier, ChecklistItem, DocumentReuseAssessment } from "@avanti/contracts";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type {
+  CaseDossier,
+  ChecklistItem,
+  DocumentSummary,
+  ReviewChecklistItemRequest,
+} from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
@@ -98,12 +103,7 @@ export function ChecklistSection({
             <ul className="flex flex-wrap gap-2 rounded-lg bg-surface p-3 ring-1 ring-line">
               {unmatched.map((doc) => (
                 <li key={doc.id} className="max-w-full min-w-0">
-                  <DocChip
-                    name={doc.analysis?.detectedLabel ?? doc.fileName}
-                    mime={doc.mimeType}
-                    reuse={doc.reuse}
-                    onClick={() => actions.openDocument(doc)}
-                  />
+                  <DocChip doc={doc} onClick={() => actions.openDocument(doc)} />
                 </li>
               ))}
             </ul>
@@ -141,12 +141,36 @@ function ChecklistRow({
   const busy = actions.pending === `review:${item.id}`;
   const statusChanged = useChanged(item.status);
   const decided = DECIDED.has(item.status);
+  // Deciding swaps the row's controls: the keyboard moves to the replacement (undo, or the
+  // decision again after an undo) instead of falling back to <body>.
+  const undoRef = useRef<HTMLButtonElement>(null);
+  const decideRef = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    (decided ? undoRef : decideRef).current?.focus();
+  }, [decided]);
+  async function decide(input: ReviewChecklistItemRequest) {
+    refocus.current = true;
+    const result = await actions.review(item.id, input);
+    if (!result) refocus.current = false;
+    return result;
+  }
+  const pill = (
+    <Pill
+      key={item.status}
+      tone={status.tone}
+      className={cn("sm:justify-self-start", statusChanged && "animate-pop")}
+    >
+      {status.label}
+    </Pill>
+  );
 
   async function reject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const note = String(new FormData(event.currentTarget).get("note") ?? "").trim();
-    if (await actions.review(item.id, { decision: "rejected", note: note || undefined }))
-      setRejecting(false);
+    if (await decide({ decision: "rejected", note: note || undefined })) setRejecting(false);
   }
 
   return (
@@ -172,55 +196,50 @@ function ChecklistRow({
           {docs.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {docs.map((doc) => (
-                <DocChip
-                  key={doc.id}
-                  name={doc.analysis?.detectedLabel ?? doc.fileName}
-                  mime={doc.mimeType}
-                  confidence={doc.analysis?.confidence}
-                  reuse={doc.reuse}
-                  onClick={() => actions.openDocument(doc)}
-                />
+                <DocChip key={doc.id} doc={doc} onClick={() => actions.openDocument(doc)} />
               ))}
             </div>
           )}
         </div>
         {/* Fixed columns from sm: statuses line up down the list and read like a table column,
-            whatever actions each row offers. */}
+            whatever actions each row offers. A decision and its undo are one unit: the undo
+            sits right after the status instead of out in the actions column. */}
         <div
           className={cn(
             "flex items-center gap-1.5",
             !readOnly && "sm:grid sm:grid-cols-[7rem_minmax(10.5rem,auto)] sm:gap-2",
           )}
         >
-          <Pill
-            key={item.status}
-            tone={status.tone}
-            className={cn("sm:justify-self-start", statusChanged && "animate-pop")}
-          >
-            {status.label}
-          </Pill>
-          {!readOnly && (
-            <div className="flex items-center gap-1.5 sm:justify-end">
-              {decided ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Annulla la decisione su ${item.title}`}
-                  title="Annulla decisione"
-                  loading={busy}
-                  onClick={() => void actions.review(item.id, { decision: "reset" })}
-                >
-                  <RotateCcw className="size-4" />
-                </Button>
-              ) : (
-                <>
+          {decided && !readOnly ? (
+            <div className="flex items-center gap-1.5 sm:col-span-2">
+              {pill}
+              <Button
+                ref={undoRef}
+                variant="ghost"
+                size="icon-sm"
+                // 44px hit area around the 32px icon, without making the row taller.
+                className="after:absolute after:-inset-1.5"
+                aria-label={`Annulla la decisione su ${item.title}`}
+                title="Annulla decisione"
+                loading={busy}
+                onClick={() => void decide({ decision: "reset" })}
+              >
+                <RotateCcw className="size-4" aria-hidden />
+              </Button>
+            </div>
+          ) : (
+            <>
+              {pill}
+              {!readOnly && (
+                <div className="flex items-center gap-1.5 sm:justify-end">
                   {docs.length > 0 ? (
                     <>
                       <Button
+                        ref={decideRef}
                         variant="secondary"
                         size="sm"
                         loading={busy && !rejecting}
-                        onClick={() => void actions.review(item.id, { decision: "verified" })}
+                        onClick={() => void decide({ decision: "verified" })}
                       >
                         <Check className="size-4 text-ok" aria-hidden />
                         Verifica
@@ -236,12 +255,13 @@ function ChecklistRow({
                     </>
                   ) : (
                     <Button
+                      ref={decideRef}
                       variant="ghost"
                       size="sm"
                       loading={busy}
                       title="Segna la voce come non necessaria per questo nucleo"
                       onClick={() =>
-                        void actions.review(item.id, {
+                        void decide({
                           decision: "waived",
                           note: "Non necessario per questo nucleo",
                         })
@@ -250,9 +270,9 @@ function ChecklistRow({
                       Non serve
                     </Button>
                   )}
-                </>
+                </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -296,21 +316,30 @@ const REUSE = {
   da_verificare: { label: "da verificare", tone: "text-warn" },
 } as const;
 
-function DocChip({
-  name,
-  mime,
-  confidence,
-  reuse,
-  onClick,
-}: {
-  name: string;
-  mime: string;
-  confidence?: number;
-  /** Carried over from an earlier practice of the same family, with its check. */
-  reuse?: DocumentReuseAssessment | null;
-  onClick: () => void;
-}) {
-  const Icon = mime.startsWith("image/") ? ImageIcon : FileText;
+/**
+ * How sure the type on a chip is. Only a type read from the analysis needs qualifying: a chip
+ * showing the file name claims nothing. Without AI the type comes from the file name alone.
+ */
+function recognition(doc: DocumentSummary) {
+  const analysis = doc.analysis;
+  if (!analysis?.detectedLabel || analysis.confidence >= 0.6) return null;
+  return analysis.engine === "heuristic"
+    ? {
+        label: "dal nome file",
+        detail: "Tipo dedotto dal nome del file, senza AI: controlla a vista",
+      }
+    : {
+        label: "incerto",
+        detail: `Tipo riconosciuto dall'AI con certezza ${Math.round(analysis.confidence * 100)}%: controlla a vista`,
+      };
+}
+
+function DocChip({ doc, onClick }: { doc: DocumentSummary; onClick: () => void }) {
+  const Icon = doc.mimeType.startsWith("image/") ? ImageIcon : FileText;
+  const name = doc.analysis?.detectedLabel ?? doc.fileName;
+  const guess = recognition(doc);
+  // Carried over from an earlier practice of the same family, with its check.
+  const reuse = doc.reuse;
   return (
     <button
       type="button"
@@ -318,13 +347,14 @@ function DocChip({
       className="inline-flex max-w-full items-center gap-1.5 rounded-sm bg-paper px-2 py-1 text-sm text-ink-2 ring-1 ring-line ring-inset hover:bg-sunk hover:text-ink"
     >
       <Icon className="size-3.5 shrink-0" aria-hidden />
-      <span className="truncate" title={name}>
+      <span className="truncate" title={name === doc.fileName ? name : `${name} (${doc.fileName})`}>
         {name}
       </span>
-      {confidence !== undefined && confidence < 0.6 && (
-        <span className="shrink-0 text-xs text-warn" title="Riconoscimento incerto">
-          <span aria-hidden>?</span>
-          <span className="sr-only">(riconoscimento incerto)</span>
+      {guess && (
+        <span className="shrink-0 text-xs text-warn" title={guess.detail}>
+          <span aria-hidden>· </span>
+          {guess.label}
+          <span className="sr-only">: {guess.detail}</span>
         </span>
       )}
       {reuse && (
@@ -332,7 +362,8 @@ function DocChip({
           className={`shrink-0 text-xs font-semibold ${REUSE[reuse.status].tone}`}
           title={reuse.reason}
         >
-          · {REUSE[reuse.status].label}
+          <span aria-hidden>· </span>
+          {REUSE[reuse.status].label}
           <span className="sr-only">: {reuse.reason}</span>
         </span>
       )}

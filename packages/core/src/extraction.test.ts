@@ -523,3 +523,177 @@ it.each([
     household_relations: ["madre", "padre"],
   });
 });
+
+describe("children listed after the spouse, with articles, possessives or a repeated preposition", () => {
+  const family = (children: number) => ({
+    household_count: children + 2,
+    household_roles: ["richiedente", "coniuge", ...Array(children).fill("figlio")],
+    household_relations: ["coniuge", ...Array(children).fill("figlio")],
+  });
+  it("understands the Romanian story from the screenshot: me, husband, two children", () => {
+    const result = extractFacts(
+      "Trebuie să fac ISEE, locuiesc cu soțul și cei doi copii, avem un cont la bancă și o mașină.",
+      "ro",
+    );
+    expect(result.practiceId).toBe("isee_ordinario");
+    expect(result.answers).toEqual({
+      ...family(2),
+      accounts_count: 1,
+      account_type_0: "deposit",
+      vehicles_count: 1,
+    });
+    expect(result.facts.householdCount).toBe(4);
+  });
+  const STORIES: [Language, string, number][] = [
+    ["it", "vivo con mio marito e i miei due figli", 2],
+    ["it", "vivo con mio marito e con i miei due figli", 2],
+    ["it", "vivo con mia moglie e i nostri tre figli", 3],
+    ["it", "vivo con mio marito e i due bambini", 2],
+    ["en", "i live with my husband and my two kids", 2],
+    ["en", "i live with my wife and our three children", 3],
+    ["en", "i live with my husband and the two kids", 2],
+    ["en", "i live with my husband and with my two kids", 2],
+    ["fr", "je vis avec mon mari et mes deux enfants", 2],
+    ["fr", "je vis avec mon mari et nos deux enfants", 2],
+    ["fr", "je vis avec mon mari et avec mes deux enfants", 2],
+    ["es", "vivo con mi marido y mis dos hijos", 2],
+    ["es", "vivo con mi marido y nuestros dos hijos", 2],
+    ["es", "vivo con mi marido y con mis dos hijos", 2],
+    ["ro", "locuiesc cu soțul și cei doi copii", 2],
+    ["ro", "locuiesc cu soțul și cu cei doi copii", 2],
+    ["ro", "locuiesc cu soția și cele două fiice", 2],
+    ["ro", "locuiesc cu soțul meu și cei trei copii ai noștri", 3],
+    ["uk", "я живу з чоловіком і двоє дітей", 2],
+    ["uk", "я живу з чоловіком і нашими двома дітьми", 2],
+    ["uk", "я живу з чоловіком і з двома дітьми", 2],
+    ["ar", "أعيش مع زوجي وطفلين", 2],
+    ["ar", "أعيش مع زوجي وطفلي الاثنين", 2],
+    ["ar", "أعيش مع زوجي وأطفالي الثلاثة", 3],
+    ["bn", "আমি স্বামী ও দুই সন্তানের সাথে থাকি", 2],
+    ["bn", "আমি আমার স্বামী আর দুই সন্তানের সাথে থাকি", 2],
+    ["bn", "আমি আমার স্ত্রী ও তিন সন্তানের সঙ্গে থাকি", 3],
+  ];
+  it.each(STORIES)("%s: %s", (language, text, children) => {
+    const result = extractFacts(text, language, "isee_ordinario");
+    expect(result.answers).toEqual(family(children));
+    expect(result.facts.householdCount).toBe(children + 2);
+  });
+  it.each([
+    ["it", "vivo con i miei due figli"],
+    ["en", "i live with my two kids"],
+    ["fr", "je vis avec mes deux enfants"],
+    ["es", "vivo con mis dos hijos"],
+    ["ro", "locuiesc cu cei doi copii ai mei"],
+    ["uk", "живу з двома дітьми"],
+    ["ar", "أعيش مع طفلين"],
+    ["bn", "আমি আমার দুই সন্তানের সাথে থাকি"],
+  ] as const)("only children in %s: %s", (language, text) => {
+    expect(extractFacts(text, language, "isee_ordinario").answers).toEqual({
+      household_count: 3,
+      household_roles: ["richiedente", "figlio", "figlio"],
+      household_relations: ["figlio", "figlio"],
+    });
+  });
+  it.each([
+    ["it", "non ho figli, vivo con mio marito"],
+    ["it", "vivo con mio marito e i nostri due figli non vivono con noi"],
+    ["en", "i have no kids, i live with my husband"],
+    ["en", "i live with my wife and our son doesn't live with us"],
+    ["fr", "je n'ai pas d'enfants, je vis avec mon mari"],
+    ["fr", "je vis avec mon mari et avec nos deux enfants qui étudient à paris"],
+    ["es", "no tengo hijos, vivo con mi marido"],
+    ["ro", "nu am copii, locuiesc cu soțul"],
+    ["ro", "locuiesc cu soțul, cei doi copii nu locuiesc cu noi"],
+    ["uk", "у мене немає дітей, живу з чоловіком"],
+    ["uk", "я живу з чоловіком, наші двоє дітей живуть окремо"],
+    ["ar", "ليس لدي أطفال، أعيش مع زوجي"],
+    ["ar", "أعيش مع زوجي وأطفالي الثلاثة لا يعيشون معنا"],
+    ["bn", "আমার কোনো সন্তান নেই, আমি স্বামীর সাথে থাকি"],
+  ] as const)("children not living with the applicant stay out in %s: %s", (language, text) => {
+    expect(extractFacts(text, language, "isee_ordinario").answers).toEqual({
+      household_count: 2,
+      household_roles: ["richiedente", "coniuge"],
+      household_relations: ["coniuge"],
+    });
+  });
+  it("still does not invent a number for plural children with an article", () => {
+    expect(
+      extractFacts("locuiesc cu soțul și copiii mei", "ro", "isee_ordinario").answers,
+    ).toMatchObject({ household_count: 2, household_roles: ["richiedente", "coniuge"] });
+    expect(
+      extractFacts("vivo con mio marito e i bambini", "it", "isee_ordinario").answers,
+    ).toMatchObject({ household_count: 2, household_roles: ["richiedente", "coniuge"] });
+  });
+  it("splits Bengali lists on ও without merging an unrelated subject", () => {
+    expect(
+      extractFacts("আমি মায়ের সাথে থাকি ও আমার বাবা কাজ করেন", "bn", "isee_ordinario").answers,
+    ).toEqual(mother);
+    expect(extractFacts("আমার একটি গাড়ি ও একটি বাইক আছে", "bn", "isee_ordinario").answers).toEqual(
+      { vehicles_count: 2 },
+    );
+  });
+});
+
+describe("numbers after a child are not a count of children", () => {
+  const oneChild = {
+    household_count: 2,
+    household_roles: ["richiedente", "figlio"],
+    household_relations: ["figlio"],
+  };
+  it.each([
+    ["ar", "أعيش مع ابني 15 عاما"],
+    ["ar", "أعيش مع طفلي 7 سنوات"],
+    // «الاثنين» is also Monday: after a singular son it is not «two».
+    ["ar", "أعيش مع ابني الاثنين والخميس"],
+    ["it", "vivo con mio figlio 15 anni"],
+    ["it", "vivo con mio figlio di 15 anni"],
+    ["en", "i live with my son, 15"],
+    ["en", "i live with my son 15"],
+    ["fr", "je vis avec mon fils de 15 ans"],
+    ["es", "vivo con mi hijo de 15 años"],
+    ["ro", "locuiesc cu fiul meu de 15 ani"],
+    ["uk", "живу з сином 15 років"],
+    ["bn", "আমি আমার ছেলের সাথে থাকি, বয়স ১৫"],
+  ] as const)("%s: %s", (language, text) => {
+    expect(extractFacts(text, language, "isee_ordinario").answers).toEqual(oneChild);
+  });
+  it("counts the same named child once", () => {
+    expect(
+      extractFacts("vivo con mio figlio e mio figlio", "it", "isee_ordinario").answers,
+    ).toEqual(oneChild);
+  });
+});
+
+describe("a cohabiting partner is part of the household", () => {
+  const partner = (children: number) => ({
+    household_count: children + 2,
+    household_roles: ["richiedente", "altro", ...Array(children).fill("figlio")],
+    household_relations: ["partner", ...Array(children).fill("figlio")],
+  });
+  it.each([
+    ["it", "vivo con la mia compagna e due figli", 2],
+    ["it", "vivo con il mio convivente", 0],
+    ["en", "i live with my partner and our two kids", 2],
+    ["fr", "je vis avec mon compagnon", 0],
+    ["es", "vivo con mi pareja y mis dos hijos", 2],
+    ["ro", "locuiesc cu partenerul meu și cei doi copii", 2],
+    ["uk", "живу з партнером", 0],
+    ["ar", "أعيش مع شريكي", 0],
+    ["bn", "আমি আমার সঙ্গীর সাথে থাকি", 0],
+  ] as const)("%s: %s", (language, text, children) => {
+    expect(extractFacts(text, language, "isee_ordinario").answers).toEqual(partner(children));
+  });
+  it("keeps a roommate a roommate and a non-cohabiting parent out", () => {
+    expect(
+      extractFacts("vivo con un compagno di stanza", "it", "isee_ordinario").answers
+        .household_relations,
+    ).toEqual(["coinquilino"]);
+    expect(
+      extractFacts("vivo con mi compañero de piso", "es", "isee_ordinario").answers
+        .household_relations,
+    ).toEqual(["coinquilino"]);
+    expect(
+      extractFacts("vivo con mamma e mio padre non convivente", "it", "isee_ordinario").answers,
+    ).toEqual(mother);
+  });
+});
