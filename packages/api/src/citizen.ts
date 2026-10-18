@@ -447,6 +447,8 @@ export function mountCitizenRoutes(app: App, s: Services) {
     const input = await body(c, UpdateLanguageRequest);
     const row = await s.db.transaction(async (tx) => {
       const current = await lockCase(tx, c.get("citizen"), s.clock());
+      // Choosing the language already in use changes nothing: no write, no audit row.
+      if (current.language === input.language) return current;
       const [updated] = await tx
         .update(cases)
         .set({

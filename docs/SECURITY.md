@@ -60,7 +60,7 @@ Avanti prepara; il CAF verifica e utilizza il proprio gestionale per la pratica 
 | Input      | Schemi condivisi più validazione di dominio; errori italiani sicuri, niente stack/dettagli infrastrutturali al client                                                         |
 | Upload     | 4 MiB/file, 120 MiB e 60 documenti/pratica, contatore body, firma/MIME, PDF attivi e dimensioni immagini controllati; chiavi generate dal server                              |
 | Download   | Autorizzazione prima dello storage; allegato, `nosniff`, cache privata disabilitata. URL Blob privati non esposti al cittadino                                                |
-| Abusi      | Rate limit login/password/intake/turn/upload/leads/export/traduzioni, errore uniforme di login; origine IP derivata solo da proxy fidato                                      |
+| Abusi      | Rate limit login/password/intake/turn/lingua/upload/leads/export/traduzioni, errore uniforme di login; origine IP derivata solo da proxy fidato                               |
 | Audit      | Attore, categoria, istante, conteggi; niente messaggi, nomi, CF, contatti, nomi file o contenuto documenti nei metadati/log                                                   |
 
 Le firme riconoscono il contenitore; non sono antivirus né prova che tutte le pagine
@@ -82,8 +82,11 @@ detta; console e pagine pubbliche lo negano. Regole in `apps/web/src/lib/securit
 L'IP non identifica il cittadino: 40 persone possono condividere il Wi-Fi del CAF.
 Capability per pratica: turni 60/minuto + 400/ora (le risposte sono tocchi rapidi; solo il testo libero arriva all'AI), upload 30/minuto + 120/ora.
 IP fidato: turni 1.500/minuto + 15.000/ora, upload 400/minuto + 4.000/ora; avvii pubblici
-40/minuto + 60/ora. Login/password conservano 10/minuto per email (password anche per
-operatore), con tetto IP 100/minuto per non bloccare l'ingresso di 10 operatori.
+40/minuto + 60/ora. Cambio lingua 10/minuto + 60/ora per capability (IP 400/minuto +
+4.000/ora): scegliere la lingua già in uso non scrive né registra nulla, e la domanda
+ripetuta nella nuova lingua riscrive la bolla che era solo la domanda ufficiale invece di
+aggiungerne una a ogni cambio, così conversazione, fascicolo, export e contesto AI non
+crescono. Login/password conservano 10/minuto per email (password anche per operatore), con tetto IP 100/minuto per non bloccare l'ingresso di 10 operatori.
 I limiti identità precedono quelli IP; un abuso già fermato sulla capability non
 esaurisce il Wi-Fi. Le finestre fisse sono separate tramite HMAC categoria/durata;
 nessun token, email o IP in chiaro nei bucket. Messaggi 429 nelle otto lingue del

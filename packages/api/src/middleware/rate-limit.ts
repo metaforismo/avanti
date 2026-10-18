@@ -48,6 +48,13 @@ export const RATE_POLICIES = {
   // the AI; the IP ceiling assumes a full waiting room on one Wi-Fi, all tapping at once.
   turn: { category: "turn", primary: [minute(60), hour(400)], ip: [minute(1500), hour(15000)] },
   conversation: { category: "conversation", primary: [hour(60)], ip: [minute(1500), hour(15000)] },
+  // A person picks a language once or twice; each switch writes an audit row and may rewrite
+  // the question on screen, so a loop must stop long before it costs anything.
+  language: {
+    category: "language",
+    primary: [minute(10), hour(60)],
+    ip: [minute(400), hour(4000)],
+  },
   upload: { category: "upload", primary: [minute(30), hour(120)], ip: [minute(400), hour(4000)] },
   leads: { category: "leads", primary: [], ip: [minute(5)] },
   export: { category: "export", primary: [minute(20)], ip: [minute(200)] },
@@ -68,6 +75,7 @@ function policy(path: string, method: string): Policy | null {
     return RATE_POLICIES.link;
   if (method === "PUT" && /^\/api\/c\/[^/]+\/renewal-consent$/.test(path))
     return RATE_POLICIES.turn;
+  if (method === "PUT" && /^\/api\/c\/[^/]+\/language$/.test(path)) return RATE_POLICIES.language;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/ai\/(brief|consistency|dsu-prefill)$/.test(path))
     return RATE_POLICIES.copilotRead;
   if (method === "POST" && /^\/api\/cases\/[^/]+\/near-ready\/evaluate$/.test(path))
