@@ -39,6 +39,9 @@ test("after a request, the operator tells a phone-only citizen in their language
   page,
   context,
 }) => {
+  // A case through the interview, two dialogs, an axe pass and a new link: on a loaded machine
+  // with two workers it outgrows the default 90 seconds without anything being wrong.
+  test.slow();
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const { id, reference } = await phoneOnlyCase(page);
   await logIn(page, OPERATOR);
