@@ -101,7 +101,15 @@ export function MembersEditor({
   const [seenSaid, setSeenSaid] = useState(said);
   if (said !== seenSaid) {
     setSeenSaid(said);
-    if (!touched) setMembers(initialRows(initial, expected, expectedRoles));
+    // Rows keep their keys by position: a field the citizen has just focused, keyboard open,
+    // must not be swapped for a new one.
+    if (!touched)
+      setMembers(
+        initialRows(initial, expected, expectedRoles).map((row, index) => ({
+          ...row,
+          key: members[index]?.key ?? row.key,
+        })),
+      );
   }
   const [errors, setErrors] = useState<Record<string, RowErrors>>({});
   const currentYear = new Date().getFullYear();
