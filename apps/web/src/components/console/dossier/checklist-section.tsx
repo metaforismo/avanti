@@ -1,8 +1,13 @@
 "use client";
 
 import { ArrowRight, Check, FileText, Image as ImageIcon, RotateCcw, X } from "lucide-react";
-import { useState, type FormEvent } from "react";
-import type { CaseDossier, ChecklistItem, DocumentSummary } from "@avanti/contracts";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type {
+  CaseDossier,
+  ChecklistItem,
+  DocumentSummary,
+  ReviewChecklistItemRequest,
+} from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
@@ -136,6 +141,22 @@ function ChecklistRow({
   const busy = actions.pending === `review:${item.id}`;
   const statusChanged = useChanged(item.status);
   const decided = DECIDED.has(item.status);
+  // Deciding swaps the row's controls: the keyboard moves to the replacement (undo, or the
+  // decision again after an undo) instead of falling back to <body>.
+  const undoRef = useRef<HTMLButtonElement>(null);
+  const decideRef = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    (decided ? undoRef : decideRef).current?.focus();
+  }, [decided]);
+  async function decide(input: ReviewChecklistItemRequest) {
+    refocus.current = true;
+    const result = await actions.review(item.id, input);
+    if (!result) refocus.current = false;
+    return result;
+  }
   const pill = (
     <Pill
       key={item.status}
@@ -149,8 +170,7 @@ function ChecklistRow({
   async function reject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const note = String(new FormData(event.currentTarget).get("note") ?? "").trim();
-    if (await actions.review(item.id, { decision: "rejected", note: note || undefined }))
-      setRejecting(false);
+    if (await decide({ decision: "rejected", note: note || undefined })) setRejecting(false);
   }
 
   return (
@@ -191,9 +211,10 @@ function ChecklistRow({
           )}
         >
           {decided && !readOnly ? (
-            <div className="flex items-center gap-1 sm:col-span-2">
+            <div className="flex items-center gap-1.5 sm:col-span-2">
               {pill}
               <Button
+                ref={undoRef}
                 variant="ghost"
                 size="icon-sm"
                 // 44px hit area around the 32px icon, without making the row taller.
@@ -201,7 +222,7 @@ function ChecklistRow({
                 aria-label={`Annulla la decisione su ${item.title}`}
                 title="Annulla decisione"
                 loading={busy}
-                onClick={() => void actions.review(item.id, { decision: "reset" })}
+                onClick={() => void decide({ decision: "reset" })}
               >
                 <RotateCcw className="size-4" aria-hidden />
               </Button>
@@ -214,10 +235,11 @@ function ChecklistRow({
                   {docs.length > 0 ? (
                     <>
                       <Button
+                        ref={decideRef}
                         variant="secondary"
                         size="sm"
                         loading={busy && !rejecting}
-                        onClick={() => void actions.review(item.id, { decision: "verified" })}
+                        onClick={() => void decide({ decision: "verified" })}
                       >
                         <Check className="size-4 text-ok" aria-hidden />
                         Verifica
@@ -233,12 +255,13 @@ function ChecklistRow({
                     </>
                   ) : (
                     <Button
+                      ref={decideRef}
                       variant="ghost"
                       size="sm"
                       loading={busy}
                       title="Segna la voce come non necessaria per questo nucleo"
                       onClick={() =>
-                        void actions.review(item.id, {
+                        void decide({
                           decision: "waived",
                           note: "Non necessario per questo nucleo",
                         })
@@ -329,7 +352,8 @@ function DocChip({ doc, onClick }: { doc: DocumentSummary; onClick: () => void }
       </span>
       {guess && (
         <span className="shrink-0 text-xs text-warn" title={guess.detail}>
-          · {guess.label}
+          <span aria-hidden>· </span>
+          {guess.label}
           <span className="sr-only">: {guess.detail}</span>
         </span>
       )}
@@ -338,7 +362,8 @@ function DocChip({ doc, onClick }: { doc: DocumentSummary; onClick: () => void }
           className={`shrink-0 text-xs font-semibold ${REUSE[reuse.status].tone}`}
           title={reuse.reason}
         >
-          · {REUSE[reuse.status].label}
+          <span aria-hidden>· </span>
+          {REUSE[reuse.status].label}
           <span className="sr-only">: {reuse.reason}</span>
         </span>
       )}

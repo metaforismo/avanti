@@ -99,7 +99,7 @@ test("a type guessed without AI has an Italian label and says where it comes fro
   // Without AI the type is guessed from the file name: the id behind it never shows.
   await caseWithTwoFiles(page, "Etichetta", ["identity.png", "documento-2.png"]);
   const checklist = page.locator("#checklist-section");
-  const chip = checklist.getByRole("button", { name: /^Documento d’identità · dal nome file/ });
+  const chip = checklist.getByRole("button", { name: /^Documento d’identità\s*dal nome file/ });
   await expect(chip).toBeVisible();
   await expect(checklist.getByRole("button", { name: /^identity/ })).toHaveCount(0);
   // A chip that only shows the file name claims nothing to qualify.
@@ -123,6 +123,8 @@ test("a decision and its undo read as one unit at every width", async ({ page })
   await row.getByRole("button", { name: "Verifica" }).click();
   const pill = row.getByText("Verificato", { exact: true });
   const undo = row.getByRole("button", { name: /^Annulla la decisione su Documento d’identità/ });
+  // The keyboard follows the swap of controls instead of falling back to <body>.
+  await expect(undo).toBeFocused();
   const missing = page.locator("#checklist-section li").getByText("Mancante", { exact: true });
 
   for (const width of [1024, 1280, 1440, 390]) {
@@ -146,6 +148,9 @@ test("a decision and its undo read as one unit at every width", async ({ page })
     if (width >= 640)
       expect(Math.abs((await missing.first().boundingBox())!.x - status.x)).toBeLessThan(1);
   }
+
+  await undo.click();
+  await expect(row.getByRole("button", { name: "Verifica" })).toBeFocused();
 });
 
 test("checking the files one by one ends back on the dossier, from the keyboard", async ({
