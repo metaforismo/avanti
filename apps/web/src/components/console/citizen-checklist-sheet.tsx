@@ -14,6 +14,7 @@ import { directionOf } from "@/lib/citizen/document-language";
 import { HANDOFF_MESSAGES } from "@/lib/citizen/handoff-messages";
 import { format, messagesFor } from "@/lib/citizen/messages";
 import { LANGUAGE_IT } from "@/lib/console/labels";
+import { onSignOutElsewhere } from "@/lib/console/session-broadcast";
 import { officePlace } from "@/lib/office-place";
 import { recordHandoff } from "./citizen-notice";
 
@@ -55,11 +56,53 @@ export function CitizenChecklistSheet({ caseId }: { caseId: string }) {
   const [attempt, setAttempt] = useState(0);
   const [recordError, setRecordError] = useState<string | null>(null);
   const recorded = useRef(false);
+  const [closed, setClosed] = useState(false);
+  // Signed out from the start is the handoff's own 401 («La sessione è scaduta»), not a closing.
+  const shown = useRef(false);
 
+  // Outside the console shell, so nothing else ends this tab: «Esci» in another tab, or the
+  // session gone (or another operator signed in) while it sat behind other windows on a shared
+  // desk PC, blanks the sheet instead of leaving names and documents on screen.
   useEffect(() => {
     let live = true;
+    let operatorId: string | null = null;
+    const close = () => {
+      if (!live) return;
+      setClosed(true);
+      setLoad({ state: "loading" });
+    };
+    const check = () =>
+      apiFetch<{ id?: string }>("/api/auth/me").then(
+        (me) => {
+          if (operatorId && me.id !== operatorId) close();
+          operatorId ??= me.id ?? null;
+        },
+        (err: unknown) => {
+          if (shown.current && err instanceof ApiRequestError && err.status === 401) close();
+        },
+      );
+    void check();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const stop = onSignOutElsewhere(close);
+    return () => {
+      live = false;
+      stop();
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (closed) return;
+    let live = true;
     apiFetch<CitizenHandoff>(`/api/cases/${encodeURIComponent(caseId)}/citizen-handoff`)
-      .then((handoff) => live && setLoad({ state: "ready", handoff }))
+      .then((handoff) => {
+        if (!live) return;
+        shown.current = true;
+        setLoad({ state: "ready", handoff });
+      })
       .catch(
         (err: unknown) =>
           live &&
@@ -77,7 +120,7 @@ export function CitizenChecklistSheet({ caseId }: { caseId: string }) {
     return () => {
       live = false;
     };
-  }, [caseId, attempt]);
+  }, [caseId, attempt, closed]);
 
   // Ctrl+P prints as well as the button: both are recorded, once per page view.
   useEffect(() => {
@@ -93,6 +136,31 @@ export function CitizenChecklistSheet({ caseId }: { caseId: string }) {
 
   const dossierHref = `/console/pratiche/${encodeURIComponent(caseId)}` as Route;
 
+  if (closed)
+    return (
+      <div className="grid min-h-dvh place-items-center p-6">
+        <Notice
+          tone="info"
+          size="page"
+          role="alert"
+          className="max-w-md"
+          title="Sessione chiusa"
+          action={
+            <Button asChild>
+              <Link
+                href={
+                  `/console/accedi?next=${encodeURIComponent(`/console/stampa/${caseId}`)}` as Route
+                }
+              >
+                Accedi di nuovo
+              </Link>
+            </Button>
+          }
+        >
+          Per vedere o stampare l&apos;elenco accedi di nuovo.
+        </Notice>
+      </div>
+    );
   if (load.state === "loading")
     return (
       <div className="grid min-h-dvh place-items-center text-ink-3">

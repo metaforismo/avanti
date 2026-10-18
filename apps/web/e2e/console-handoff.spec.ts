@@ -154,3 +154,58 @@ test("the print page sends a signed-out operator to sign in and back", async ({ 
     "/console/accedi?motivo=sessione&next=%2Fconsole%2Fstampa%2Fnon-esiste",
   );
 });
+
+test("«Esci» in the console blanks the print sheet left open in another tab", async ({
+  page,
+  context,
+}) => {
+  const { id, reference } = await phoneOnlyCase(page);
+  await logIn(page, OPERATOR);
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+  const sheet = await context.newPage();
+  await sheet.goto(`/console/stampa/${id}`);
+  await expect(sheet.locator("article").getByText(reference)).toBeVisible();
+
+  await page.getByRole("button", { name: "Esci" }).click();
+  await page.waitForURL(/\/console\/accedi/);
+  await expect(sheet.getByText("Sessione chiusa")).toBeVisible();
+  await expect(sheet.locator("article")).toHaveCount(0);
+  await expect(sheet.getByText(reference)).toHaveCount(0);
+  await expect(sheet.getByRole("link", { name: "Accedi di nuovo" })).toHaveAttribute(
+    "href",
+    `/console/accedi?next=${encodeURIComponent(`/console/stampa/${id}`)}`,
+  );
+});
+
+test("without BroadcastChannel the sign-out still reaches the print tab", async ({
+  page,
+  context,
+}) => {
+  await context.addInitScript(() => Reflect.deleteProperty(window, "BroadcastChannel"));
+  const { id, reference } = await phoneOnlyCase(page);
+  await logIn(page, OPERATOR);
+  await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+  const sheet = await context.newPage();
+  await sheet.goto(`/console/stampa/${id}`);
+  await expect(sheet.locator("article").getByText(reference)).toBeVisible();
+  expect(await sheet.evaluate(() => "BroadcastChannel" in window)).toBe(false);
+  await page.getByRole("button", { name: "Esci" }).click();
+  await expect(sheet.getByText("Sessione chiusa")).toBeVisible();
+  await expect(sheet.locator("article")).toHaveCount(0);
+});
+
+test("a print sheet shown again after the session ended elsewhere is blanked", async ({
+  page,
+  context,
+}) => {
+  const { id, reference } = await phoneOnlyCase(page);
+  await logIn(page, OPERATOR);
+  await page.goto(`/console/stampa/${id}`);
+  await expect(page.locator("article").getByText(reference)).toBeVisible();
+  // The session ends without this tab hearing it (another browser window, expiry, an admin).
+  const out = await context.request.post("/api/auth/logout", { headers: origin() });
+  expect(out.ok()).toBeTruthy();
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect(page.getByText("Sessione chiusa")).toBeVisible();
+  await expect(page.locator("article")).toHaveCount(0);
+});
