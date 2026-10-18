@@ -17,17 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiFetch } from "@/lib/api";
 import { Notice } from "@/components/ui/notice";
-import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
+import { STEP_TITLE_ID, stillToDo } from "@/lib/citizen/view";
 import type { StepProps } from "./citizen-app";
 import { SaveLinkActions } from "./save-link";
 
 export function DoneStep({ api, data, m, token }: StepProps) {
   // Once sent, the citizen can no longer upload: what is still missing goes to the office, all of
   // it, since this list is what they take to the desk.
-  const missing =
-    data.status === "submitted" || data.status === "in_review"
-      ? data.checklist.filter((item) => item.required && !DONE_STATUSES.has(item.status))
-      : [];
+  const missing = data.status === "submitted" || data.status === "in_review" ? stillToDo(data) : [];
   const statusLine =
     data.status === "in_review"
       ? m.done.inReview

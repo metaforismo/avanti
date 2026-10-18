@@ -3,16 +3,23 @@ import {
   Id,
   RecordCitizenHandoffRequest,
   type ChecklistItem,
+  type DocumentSummary,
   type CitizenHandoffChannel,
   type CitizenHandoffItem,
   type Language,
 } from "@avanti/contracts";
-import { genericChecklistTitle, splitRequestLabels } from "@avanti/core";
+import { genericChecklistTitle, itemReadiness, splitRequestLabels } from "@avanti/core";
 import { body, parse, type App, type Services } from "./context";
 import { audit, caseById, citizenView, loadViewData, type CaseRow } from "./dossier";
 
-const toBring = (status: ChecklistItem["status"]): status is CitizenHandoffItem["status"] =>
-  status === "missing" || status === "rejected" || status === "issue";
+/** What the citizen still has to bring: the same «da fare» their page counts (core readiness). */
+function toBring(
+  item: ChecklistItem,
+  documents: DocumentSummary[],
+): CitizenHandoffItem["status"] | null {
+  if (itemReadiness(item, documents) !== "todo") return null;
+  return item.status === "missing" || item.status === "rejected" ? item.status : "issue";
+}
 
 /** Printing puts personal data on paper: it is in the activity log like a PDF export. */
 const EVENT: Record<CitizenHandoffChannel, string> = {
@@ -51,7 +58,10 @@ export async function citizenHandoff(
   const it = italian ?? local;
   const titlesIt = new Map(it.checklist.map((item) => [item.id, item.title]));
   const items: CitizenHandoffItem[] = local.checklist
-    .flatMap((item) => (toBring(item.status) ? [{ ...item, status: item.status }] : []))
+    .flatMap((item) => {
+      const status = toBring(item, local.documents);
+      return status ? [{ ...item, status }] : [];
+    })
     .map((item) => {
       const titleIt = titlesIt.get(item.id) ?? item.title;
       return {

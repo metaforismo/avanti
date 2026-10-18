@@ -3,44 +3,29 @@
 import { useState } from "react";
 import type { CitizenCase, Language } from "@avanti/contracts";
 import { ProgressBar } from "@/components/ui/progress";
-import { format, plural, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
-import { interviewEstimate } from "@/lib/citizen/view";
+import { format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
+import { interviewEstimate, remainingText } from "@/lib/citizen/view";
 
 /** The "questions left" line, for the step header. */
 export function RemainingQuestions({
   progress,
   language,
   m,
+  section,
 }: {
   progress: CitizenCase["progress"];
   language: Language;
   m: Widen<CitizenMessages>;
+  /** Section of the question on screen, said instead of a long and vague count. */
+  section?: string;
 }) {
-  const { remaining } = interviewEstimate(progress);
-  if (!remaining) return null;
+  const text = remainingText(interviewEstimate(progress).remaining, language, m, section);
+  if (!text) return null;
   return (
     <p aria-hidden className="text-sm text-ink-3">
-      {remaining.atLeast || remaining.min !== remaining.max
-        ? rangeText(remaining, language, m)
-        : remaining.max === 1
-          ? m.interview.remainingOne
-          : format(m.interview.remainingMany, { n: remaining.max })}
+      {text}
     </p>
   );
-}
-
-/** "At least 3" or "3–5" questions left. In a range the noun agrees with the last number. */
-function rangeText(
-  remaining: { min: number; max: number; atLeast?: boolean },
-  language: Language,
-  m: Widen<CitizenMessages>,
-) {
-  return remaining.atLeast
-    ? plural(language, remaining.min, m.interview.remainingAtLeast)
-    : plural(language, remaining.max, m.interview.remainingRange, {
-        min: remaining.min,
-        max: remaining.max,
-      });
 }
 
 /** The interview bar. While the citizen moves forward it never goes back, even when an answer
@@ -49,10 +34,12 @@ export function InterviewProgressBar({
   progress,
   language,
   m,
+  section,
 }: {
   progress: CitizenCase["progress"];
   language: Language;
   m: Widen<CitizenMessages>;
+  section?: string;
 }) {
   const { percent } = interviewEstimate(progress);
   const answered = progress.questionsAnswered;
@@ -69,9 +56,7 @@ export function InterviewProgressBar({
       label={
         progress.questionsTotal > 0
           ? format(m.interview.progressLabel, { n: answered, total: progress.questionsTotal })
-          : remaining
-            ? rangeText(remaining, language, m)
-            : ""
+          : (remainingText(remaining, language, m, section) ?? "")
       }
       className="mt-2"
     />

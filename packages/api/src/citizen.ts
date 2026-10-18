@@ -1,7 +1,7 @@
 import { enqueueUsageAlerts, logUsageAlerts } from "./commercial-usage";
 import { lockRenewalConsent, setRenewalConsent } from "./renewal-consent";
 import { turnAcknowledgement } from "./turn-acknowledgement";
-import { appendConversationTurns, turnStillLatest } from "./conversation-messages";
+import { appendConversationTurns, reaskInLanguage, turnStillLatest } from "./conversation-messages";
 import { readConversationText } from "./conversation-routes";
 import { validateProposals, mergeProposals, pendingProposals } from "./conversation-state";
 import { intakeEmergency, localIntakeIntent, readableAnswer } from "@avanti/core";
@@ -458,6 +458,7 @@ export function mountCitizenRoutes(app: App, s: Services) {
         .returning();
       if (!updated) throw notFound();
       await audit(tx, updated, "citizen", "language.updated", s.clock());
+      await reaskInLanguage(tx, current, updated, s.clock());
       return updated;
     });
     return c.json(await citizenView(s.db, row, s.clock()));

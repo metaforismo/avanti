@@ -45,6 +45,7 @@ import {
   answeredQuestions,
   documentTypeLabel,
   referenceYearFor,
+  checklistStatus,
 } from "@avanti/core";
 import { visibleToCitizen } from "./document-visibility";
 import { reuseNotice } from "./reuse-copy";
@@ -220,11 +221,12 @@ function evaluateCase(
     };
   }
   for (const item of checklist)
-    if (
-      item.status === "uploaded" &&
-      evaluation.findings.some((f) => f.checklistItemId === item.id && f.severity === "blocker")
-    )
-      item.status = "issue";
+    item.status = checklistStatus(item.status, {
+      attached: item.documentIds.length > 0,
+      blocked: evaluation.findings.some(
+        (f) => f.checklistItemId === item.id && f.severity === "blocker",
+      ),
+    });
   return { household, checklist, docViews, evaluation };
 }
 

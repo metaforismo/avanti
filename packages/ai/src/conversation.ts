@@ -7,7 +7,7 @@ import {
   Question,
   SafeText,
 } from "@avanti/contracts";
-import { extractFacts, readableAnswer, t } from "@avanti/core";
+import { extractFacts, t } from "@avanti/core";
 import { citizenCopyStyle } from "./style";
 import {
   interviewConversationPrompt,
@@ -27,6 +27,8 @@ export const ConverseInput = z.object({
   askNext: z.array(Question).max(2),
   answered: z.record(z.string(), AnswerValue),
   turns: z.array(ConversationTurn).max(8),
+  /** Proposals from earlier messages still wait in the card: the next question comes after them. */
+  proposalsPending: z.boolean().optional(),
 });
 export type ConverseInput = z.infer<typeof ConverseInput>;
 export const ConverseOutput = z.object({
@@ -71,31 +73,22 @@ const done = {
   ar: "يمكنك تحميل الوثائق في القائمة.",
   bn: "তালিকার নথিগুলো আপলোড করতে পারেন।",
 };
-const understoodCopy = {
-  it: "Ho capito",
-  en: "I understood",
-  fr: "J’ai compris",
-  es: "He entendido",
-  ro: "Am înțeles",
-  uk: "Зрозуміло",
-  ar: "فهمت",
-  bn: "বুঝেছি",
-};
+/**
+ * The reply used when the model's reply cannot be. With proposals waiting, the card under it asks
+ * to confirm them: asking the next question as well would ask the same thing twice («Quante
+ * persone vivono…» above a card that already says 3).
+ */
 export function deterministicReply(
   input: Pick<ConverseInput, "askNext" | "language">,
-  understood: string[] = [],
+  proposalsPending = false,
 ) {
-  return [
-    understood.length
-      ? `${understoodCopy[input.language]}${input.language === "fr" ? " : " : ": "}${understood.join("; ")}.`
-      : "",
+  if (proposalsPending) return t(input.language, "checkProposals");
+  return (
     input.askNext
       .slice(0, 1)
       .map((q) => q.prompt)
-      .join(" ") || done[input.language],
-  ]
-    .filter(Boolean)
-    .join(" ");
+      .join(" ") || done[input.language]
+  );
 }
 export const converseTask: Task<ConverseInput, ConverseOutput> = {
   id: "interview.converse",
@@ -115,6 +108,7 @@ export const converseTask: Task<ConverseInput, ConverseOutput> = {
     context: {
       open_questions: i.openQuestions,
       ask_next: i.askNext.map((q) => q.id),
+      proposals_pending: i.proposalsPending ?? false,
       answered: i.answered,
     },
     untrusted: [
@@ -150,16 +144,7 @@ export const converseTask: Task<ConverseInput, ConverseOutput> = {
     });
     return {
       proposals,
-      reply: deterministicReply(
-        i,
-        proposals.map((p) =>
-          readableAnswer(
-            p.value,
-            i.openQuestions.find((q) => q.id === p.questionId)!,
-            i.language,
-          ),
-        ),
-      ),
+      reply: deterministicReply(i, proposals.length > 0 || i.proposalsPending === true),
       intent: "answer",
     };
   },

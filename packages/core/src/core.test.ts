@@ -26,6 +26,7 @@ import {
   type Answers,
 } from "./index";
 import { validDate } from "./interview";
+import { checklistStatus, documentCounts } from "./readiness";
 
 const now = new Date("2027-01-01T10:00:00Z");
 const members: MemberInput[] = [
@@ -473,6 +474,25 @@ describe("dossier findings and progress", () => {
         [document(items[0]!, { status: "failed", analysis: null })],
       ).findings.some((finding) => finding.code === "document.failed"),
     ).toBe(true);
+  });
+
+  it("counts as ready exactly what the citizen's page counts", () => {
+    const [item] = checklist().filter((entry) => entry.requirementId === "income");
+    const reading = evaluate([item!], [document(item!, { status: "processing", analysis: null })]);
+    expect(reading.progress.documentsDone).toBe(0);
+    expect(reading.findings.some((finding) => finding.code === "checklist.missing")).toBe(false);
+    // A good file next to a failed one: the item shows «Da controllare», so it is not ready.
+    const mixed = [
+      document(item!),
+      document(item!, { id: "doc_two", status: "failed", analysis: null }),
+    ];
+    expect(evaluate([item!], mixed).progress.documentsDone).toBe(0);
+    expect(
+      documentCounts(
+        [{ ...item!, status: checklistStatus("missing", { attached: true, blocked: true }) }],
+        mixed,
+      ).todo,
+    ).toBe(1);
   });
 
   it("keeps heuristic analysis explicitly unverified and flags wrong-practice files", () => {

@@ -152,6 +152,17 @@ documenti e annulla le revisioni relative. Download sempre attachment, `filename
 UTF-8 e `nosniff`. Storage key e URL Blob mai esposti.
 Timeout/OOM del parser PDF restituiscono 503 con invito a riprovare, file non valido 415.
 
+«Pronto» ha un solo significato, in `@avanti/core/readiness`, per `progress.documentsDone`,
+la coda della console e ogni conteggio della pagina del cittadino. Contano solo le voci
+obbligatorie, ognuna in uno di tre stati che sommati danno `documentsRequired`:
+**pronta** (verificata o non necessaria per lo sportello, oppure con un file letto senza
+problemi bloccanti: letto, non ancora verificato), **in lettura** (almeno un file allegato
+ancora `processing`, per esempio il retro di una tessera: il cittadino non deve fare nulla, ma la
+lettura può trovare un problema),
+**da fare** (`missing`, `issue`, `rejected`). Lo stato `issue` vale per tutta la voce: un file
+buono accanto a uno fallito non la rende pronta. Il «X di Y verificati» del dossier conta
+invece le decisioni dell'operatore su tutte le voci.
+
 L'invio restituisce 409 se esistono upload attivi o documenti ancora `processing`.
 Una reservation persistita prima di consumare il body impedisce l'invio anche
 tra istanze API. Il lease dura 10 minuti; upload tardivi sono rifiutati e i file

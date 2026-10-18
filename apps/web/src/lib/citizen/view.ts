@@ -1,17 +1,21 @@
-import type {
-  ChecklistItem,
-  ChecklistStatus,
-  CitizenCase,
-  ConversationTurn,
-} from "@avanti/contracts";
+import type { ChecklistItem, CitizenCase, ConversationTurn, Language } from "@avanti/contracts";
+import { format, plural, type CitizenMessages, type Widen } from "./messages";
+import { documentCounts, itemReadiness } from "@avanti/core/readiness";
 import { splitRequestLabels } from "@avanti/core/request-labels";
 
-/** Checklist states that need nothing more from the citizen. */
-export const DONE_STATUSES: ReadonlySet<ChecklistStatus> = new Set([
-  "uploaded",
-  "verified",
-  "waived",
-]);
+/** «Pronto» means the same here as in the console: see `@avanti/core/readiness`. */
+export function readinessOf(item: ChecklistItem, data: Pick<CitizenCase, "documents">) {
+  return itemReadiness(item, data.documents);
+}
+
+export function documentCountsOf(data: Pick<CitizenCase, "checklist" | "documents">) {
+  return documentCounts(data.checklist, data.documents);
+}
+
+/** Required items the citizen still has to do something about: what they bring to the desk. */
+export function stillToDo(data: Pick<CitizenCase, "checklist" | "documents">) {
+  return data.checklist.filter((item) => item.required && readinessOf(item, data) === "todo");
+}
 
 export type View = "need" | "interview" | "documents" | "review" | "submitted";
 
@@ -67,6 +71,35 @@ export function interviewEstimate(progress: CitizenCase["progress"]): InterviewE
 }
 
 /**
+ * A floor this high reads as a long road and says little: what lies behind «at least 16» can be
+ * 16 questions or 400 (one per person, per account). Until it gets small the line says where the
+ * citizen is instead; the bar still shows the way done.
+ */
+export const OPEN_FLOOR = 8;
+
+/** What the step header says about the questions left, or null when there is nothing to say. */
+export function remainingText(
+  remaining: InterviewEstimate["remaining"],
+  language: Language,
+  m: Widen<CitizenMessages>,
+  section?: string,
+) {
+  if (!remaining) return null;
+  if (remaining.atLeast && remaining.min > OPEN_FLOOR)
+    return section ? format(m.interview.remainingOpen, { section }) : m.interview.remainingSteps;
+  if (remaining.atLeast) return plural(language, remaining.min, m.interview.remainingAtLeast);
+  // In a range the noun agrees with the last number.
+  if (remaining.min !== remaining.max)
+    return plural(language, remaining.max, m.interview.remainingRange, {
+      min: remaining.min,
+      max: remaining.max,
+    });
+  return remaining.max === 1
+    ? m.interview.remainingOne
+    : format(m.interview.remainingMany, { n: remaining.max });
+}
+
+/**
  * What a question starts from. A renewal asks to confirm last year's household: the people
  * are already in `household` (with their ids, so documents stay with the right person)
  * before any answer exists.
@@ -103,6 +136,12 @@ export function askedBefore(
   const previous = turns[index - 1];
   if (previous?.role === "assistant" && previous.questionId === turn.questionId) return null;
   return answered.find((item) => item.questionId === turn.questionId)?.question ?? null;
+}
+
+/** The last thing the assistant said is this question: the card under it need not repeat it. */
+export function justAsked(turns: ConversationTurn[], questionId: string) {
+  const last = turns.at(-1);
+  return last?.role === "assistant" && last.questionId === questionId;
 }
 
 /**

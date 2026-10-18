@@ -1,5 +1,6 @@
 import type { ChecklistStatus, ErrorCode, Language, MemberRole } from "@avanti/contracts";
-import type { PluralForms } from "@avanti/core/plural";
+import { plural, type PluralForms } from "@avanti/core/plural";
+import type { DocumentCounts } from "@avanti/core/readiness";
 import { ar, bn, es, fr, ro, uk } from "./messages-extra";
 
 /**
@@ -33,7 +34,7 @@ const it = {
     send: "Invia",
     reading: "Sto leggendo…",
     slow: "Ci vuole un po' più del solito. Resta su questa pagina: non serve inviare di nuovo.",
-    understoodTitle: "Ho capito così: controlla",
+    understoodTitle: "Ho capito così",
     understoodHint: "Diventa una risposta solo quando confermi.",
     confirmAll: "Sì, è giusto",
     confirmOne: "Conferma",
@@ -137,6 +138,8 @@ const it = {
     remainingOne: "Ultima domanda",
     remainingMany: "Ancora circa {n} domande",
     remainingRange: { other: "Ancora {min}–{max} domande" },
+    remainingOpen: "Ora: {section}",
+    remainingSteps: "Solo le domande che servono, passo dopo passo",
     remainingAtLeast: { one: "Ancora almeno una domanda", other: "Ancora almeno {n} domande" },
     assistant: "Assistente automatico",
     known: "Abbiamo capito",
@@ -226,6 +229,12 @@ const it = {
       one: "Ne manca 1. Puoi inviare lo stesso: lo sportello te lo chiederà.",
       other: "Ne mancano {n}. Puoi inviare lo stesso: lo sportello te li chiederà.",
     },
+    statusChecking: "In lettura",
+    inCheck: { one: "{n} in lettura", other: "{n} in lettura" },
+    allUploaded: {
+      one: "Hai caricato tutto: sto ancora controllando un documento.",
+      other: "Hai caricato tutto: sto ancora controllando {n} documenti.",
+    },
     toReview: "Vai al riepilogo",
     groupOther: "Altri documenti",
     operatorNote: "Nota dello sportello",
@@ -264,6 +273,10 @@ const it = {
     renewalConsentHint: "Una volta l'anno, dal CAF. Puoi cambiare idea quando vuoi.",
     editAnswers: "Modifica risposte",
     editDocuments: "Modifica documenti",
+    waitChecking: {
+      one: "Sto ancora controllando un documento: potrai inviare tra poco.",
+      other: "Sto ancora controllando {n} documenti: potrai inviare tra poco.",
+    },
   },
   done: {
     share: "Condividi",
@@ -359,7 +372,7 @@ const en: Widen<CitizenMessages> = {
     send: "Send",
     reading: "Reading…",
     slow: "This is taking a little longer than usual. Stay on this page: there's no need to send it again.",
-    understoodTitle: "This is what I understood: please check",
+    understoodTitle: "This is what I understood",
     understoodHint: "It becomes an answer only when you confirm.",
     confirmAll: "Yes, that's right",
     confirmOne: "Confirm",
@@ -462,6 +475,8 @@ const en: Widen<CitizenMessages> = {
     remainingOne: "Last question",
     remainingMany: "About {n} questions left",
     remainingRange: { other: "{min}–{max} questions left" },
+    remainingOpen: "Now: {section}",
+    remainingSteps: "Only the questions you need, step by step",
     remainingAtLeast: { one: "At least 1 question left", other: "At least {n} questions left" },
     assistant: "Automated assistant",
     known: "What we understood",
@@ -551,6 +566,12 @@ const en: Widen<CitizenMessages> = {
       one: "1 still missing. You can send anyway: the desk will ask you for it.",
       other: "{n} still missing. You can send anyway: the desk will ask you for them.",
     },
+    statusChecking: "Being read",
+    inCheck: { one: "{n} being read", other: "{n} being read" },
+    allUploaded: {
+      one: "You've uploaded everything: one document is still being checked.",
+      other: "You've uploaded everything: {n} documents are still being checked.",
+    },
     toReview: "Go to summary",
     groupOther: "Other documents",
     operatorNote: "Note from the desk",
@@ -589,6 +610,10 @@ const en: Widen<CitizenMessages> = {
     renewalConsentHint: "Once a year, from the CAF. You can change your mind at any time.",
     editAnswers: "Edit answers",
     editDocuments: "Edit documents",
+    waitChecking: {
+      one: "I'm still checking one document: you can send shortly.",
+      other: "I'm still checking {n} documents: you can send shortly.",
+    },
   },
   done: {
     share: "Share",
@@ -659,7 +684,25 @@ export const MESSAGES: Record<Language, Widen<CitizenMessages>> = {
   bn,
 };
 export type { Widen };
-export { plural } from "@avanti/core/plural";
+export { plural };
+
+/**
+ * «2 di 7 pronti · 1 in controllo»: with the documents still being read named, the counts here
+ * and «Ne mancano …» above the button add up to the same total.
+ */
+export function documentsProgress(
+  language: Language,
+  counts: DocumentCounts,
+  m: Widen<CitizenMessages>,
+) {
+  const ready = plural(language, counts.required, m.docs.progress, {
+    done: counts.ready,
+    total: counts.required,
+  });
+  return counts.checking
+    ? `${ready} · ${plural(language, counts.checking, m.docs.inCheck)}`
+    : ready;
+}
 
 export function messagesFor(language: Language) {
   return MESSAGES[language] ?? it;
