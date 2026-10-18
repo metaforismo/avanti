@@ -10,18 +10,29 @@ export const HOUSEHOLD_RELATIONS = [
   "nonno",
   "nonna",
   "coinquilino",
+  // A cohabiting partner belongs to the household registry family, hence to the ISEE household.
+  "partner",
 ] as const;
 export type Relation = (typeof HOUSEHOLD_RELATIONS)[number];
 const OTHER_KIN_TERMS: Record<
   Language,
-  Record<"fratello" | "sorella" | "nonno" | "nonna" | "coinquilino", string[]>
+  Record<"fratello" | "sorella" | "nonno" | "nonna" | "coinquilino" | "partner", string[]>
 > = {
   it: {
     fratello: ["fratello", "fratelli"],
     sorella: ["sorella", "sorelle"],
     nonno: ["nonno"],
     nonna: ["nonna"],
-    coinquilino: ["coinquilino", "coinquilina", "coinquilini"],
+    coinquilino: [
+      "coinquilino",
+      "coinquilina",
+      "coinquilini",
+      "compagno di stanza",
+      "compagna di stanza",
+      "compagno di casa",
+      "compagna di casa",
+    ],
+    partner: ["compagno", "compagna", "convivente", "partner", "fidanzato", "fidanzata"],
   },
   en: {
     fratello: ["brother", "brothers"],
@@ -29,6 +40,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["grandfather", "grandpa"],
     nonna: ["grandmother", "grandma"],
     coinquilino: ["roommate", "flatmate", "roommates"],
+    partner: ["partner", "boyfriend", "girlfriend", "fiance", "fiancé", "fiancee", "fiancée"],
   },
   fr: {
     fratello: ["frère", "frères"],
@@ -36,6 +48,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["grand-père"],
     nonna: ["grand-mère"],
     coinquilino: ["colocataire", "colocataires"],
+    partner: ["compagnon", "compagne", "concubin", "concubine", "partenaire"],
   },
   es: {
     fratello: ["hermano", "hermanos"],
@@ -43,6 +56,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["abuelo"],
     nonna: ["abuela"],
     coinquilino: ["compañero de piso", "compañera de piso"],
+    partner: ["pareja", "novio", "novia", "compañero", "compañera"],
   },
   ro: {
     fratello: ["frate", "fratele", "frați"],
@@ -50,6 +64,15 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["bunic", "bunicul"],
     nonna: ["bunică", "bunica"],
     coinquilino: ["coleg de apartament", "colegă de apartament"],
+    partner: [
+      "partener",
+      "partenerul",
+      "parteneră",
+      "partenera",
+      "concubin",
+      "concubinul",
+      "concubina",
+    ],
   },
   uk: {
     fratello: ["брат", "братом", "брати"],
@@ -57,6 +80,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["дідусь", "дідусем"],
     nonna: ["бабуся", "бабусею"],
     coinquilino: ["співмешканець", "співмешканцем"],
+    partner: ["партнер", "партнером", "партнерка", "партнеркою"],
   },
   ar: {
     fratello: ["أخي", "اخي", "أخ", "اخ"],
@@ -64,6 +88,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["جدي"],
     nonna: ["جدتي"],
     coinquilino: ["زميل السكن"],
+    partner: ["شريكي", "شريكتي", "خطيبي", "خطيبتي"],
   },
   bn: {
     fratello: ["ভাই", "ভাইয়ের", "ভাইয়ের"],
@@ -71,6 +96,7 @@ const OTHER_KIN_TERMS: Record<
     nonno: ["দাদা", "দাদার"],
     nonna: ["দাদি", "দাদির"],
     coinquilino: ["রুমমেট"],
+    partner: ["সঙ্গী", "সঙ্গীর", "পার্টনার", "পার্টনারের"],
   },
 };
 export const KIN_TERMS: Record<Language, Record<Relation, string[]>> = {
@@ -483,6 +509,17 @@ export const ALONE_PATTERNS: Record<Language, string[]> = {
 };
 export const BENGALI_SUBJECT_TERMS = ["আমি"];
 
+// Arabic puts the number after a possessed plural or dual: «أطفالي الثلاثة», «طفلي الاثنين».
+// Only these spelled-out numbers with the article count there: a digit after the noun is an
+// age («ابني 15 عاما») and «الاثنين» after a singular son is Monday.
+export const ARABIC_TRAILING_COUNTS: Record<string, number> = {
+  الاثنين: 2,
+  الاثنان: 2,
+  الثلاثة: 3,
+  الاربعة: 4,
+};
+export const ARABIC_COUNTABLE_CHILDREN = ["أطفالي", "اطفالي", "أولادي", "اولادي", "طفلي"];
+
 export const NUMBER_WORDS: Record<string, number> = {
   un: 1,
   uno: 1,
@@ -529,11 +566,6 @@ export const NUMBER_WORDS: Record<string, number> = {
   واحدة: 1,
   اثنان: 2,
   اثنين: 2,
-  // Arabic puts the number after a possessed noun: «أطفالي الثلاثة».
-  الاثنين: 2,
-  الاثنان: 2,
-  الثلاثة: 3,
-  الاربعة: 4,
   طفلين: 2,
   سيارتين: 2,
   حسابين: 2,

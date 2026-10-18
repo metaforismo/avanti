@@ -633,3 +633,67 @@ describe("children listed after the spouse, with articles, possessives or a repe
     );
   });
 });
+
+describe("numbers after a child are not a count of children", () => {
+  const oneChild = {
+    household_count: 2,
+    household_roles: ["richiedente", "figlio"],
+    household_relations: ["figlio"],
+  };
+  it.each([
+    ["ar", "أعيش مع ابني 15 عاما"],
+    ["ar", "أعيش مع طفلي 7 سنوات"],
+    // «الاثنين» is also Monday: after a singular son it is not «two».
+    ["ar", "أعيش مع ابني الاثنين والخميس"],
+    ["it", "vivo con mio figlio 15 anni"],
+    ["it", "vivo con mio figlio di 15 anni"],
+    ["en", "i live with my son, 15"],
+    ["en", "i live with my son 15"],
+    ["fr", "je vis avec mon fils de 15 ans"],
+    ["es", "vivo con mi hijo de 15 años"],
+    ["ro", "locuiesc cu fiul meu de 15 ani"],
+    ["uk", "живу з сином 15 років"],
+    ["bn", "আমি আমার ছেলের সাথে থাকি, বয়স ১৫"],
+  ] as const)("%s: %s", (language, text) => {
+    expect(extractFacts(text, language, "isee_ordinario").answers).toEqual(oneChild);
+  });
+  it("counts the same named child once", () => {
+    expect(
+      extractFacts("vivo con mio figlio e mio figlio", "it", "isee_ordinario").answers,
+    ).toEqual(oneChild);
+  });
+});
+
+describe("a cohabiting partner is part of the household", () => {
+  const partner = (children: number) => ({
+    household_count: children + 2,
+    household_roles: ["richiedente", "altro", ...Array(children).fill("figlio")],
+    household_relations: ["partner", ...Array(children).fill("figlio")],
+  });
+  it.each([
+    ["it", "vivo con la mia compagna e due figli", 2],
+    ["it", "vivo con il mio convivente", 0],
+    ["en", "i live with my partner and our two kids", 2],
+    ["fr", "je vis avec mon compagnon", 0],
+    ["es", "vivo con mi pareja y mis dos hijos", 2],
+    ["ro", "locuiesc cu partenerul meu și cei doi copii", 2],
+    ["uk", "живу з партнером", 0],
+    ["ar", "أعيش مع شريكي", 0],
+    ["bn", "আমি আমার সঙ্গীর সাথে থাকি", 0],
+  ] as const)("%s: %s", (language, text, children) => {
+    expect(extractFacts(text, language, "isee_ordinario").answers).toEqual(partner(children));
+  });
+  it("keeps a roommate a roommate and a non-cohabiting parent out", () => {
+    expect(
+      extractFacts("vivo con un compagno di stanza", "it", "isee_ordinario").answers
+        .household_relations,
+    ).toEqual(["coinquilino"]);
+    expect(
+      extractFacts("vivo con mi compañero de piso", "es", "isee_ordinario").answers
+        .household_relations,
+    ).toEqual(["coinquilino"]);
+    expect(
+      extractFacts("vivo con mamma e mio padre non convivente", "it", "isee_ordinario").answers,
+    ).toEqual(mother);
+  });
+});

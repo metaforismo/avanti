@@ -32,6 +32,8 @@ import {
   HOUSEHOLD_COUNT_PATTERNS,
   ALONE_PATTERNS,
   BENGALI_SUBJECT_TERMS,
+  ARABIC_TRAILING_COUNTS,
+  ARABIC_COUNTABLE_CHILDREN,
   type Relation,
 } from "./extraction-lexicons";
 
@@ -98,6 +100,7 @@ function compileExtraction(language: Language) {
         ...RELATION_LIST_TERMS[language],
         ...Object.keys(NUMBER_WORDS),
         ...(language === "bn" ? BENGALI_SUBJECT_TERMS : []),
+        ...(language === "ar" ? Object.keys(ARABIC_TRAILING_COUNTS) : []),
       ],
       "gu",
     ),
@@ -206,6 +209,10 @@ function countNoun(text: string): number | undefined {
   }
   return result;
 }
+const arabicCountableChildren = new Set(ARABIC_COUNTABLE_CHILDREN.map(normalize));
+function arabicTrailingCount(noun: string, following: string): number | undefined {
+  return arabicCountableChildren.has(noun) ? ARABIC_TRAILING_COUNTS[following] : undefined;
+}
 function hasPositive(text: string, expression: RegExp): boolean {
   const matches = text.matchAll(expression);
   for (const match of matches) {
@@ -282,6 +289,7 @@ function extractHousehold(
     }
   }
   const relations: Relation[] = [];
+  const namedChildren = new Set<string>();
   let sharedLiving = false;
   for (const [index, clause] of clauses.entries()) {
     const absent =
@@ -306,14 +314,27 @@ function extractHousehold(
         (clause.coordinated && sharedLiving && isRelationList(clause)));
     sharedLiving = cohabiting;
     if (!cohabiting) continue;
-    const mentioned = [
+    const found = [
       ...patterns.relations.flatMap(({ relation, pattern }) =>
         Array.from(clause.text.matchAll(pattern), (match) => ({ relation, match })),
       ),
       ...Array.from(clause.text.matchAll(patterns.collectiveParents)).flatMap((match) =>
         (["madre", "padre"] as const).map((relation) => ({ relation, match })),
       ),
-    ].sort((a, b) => a.match.index - b.match.index);
+    ];
+    const end = (entry: (typeof found)[number]) => entry.match.index + entry.match[0].length;
+    // A longer term wins over a shorter one inside it: «compagno di stanza» is a roommate.
+    const mentioned = found
+      .filter(
+        (entry) =>
+          !found.some(
+            (other) =>
+              other.match[0].length > entry.match[0].length &&
+              other.match.index <= entry.match.index &&
+              end(other) >= end(entry),
+          ),
+      )
+      .sort((a, b) => a.match.index - b.match.index);
     // A bare list can omit punctuation. Additional predicates instead introduce
     // unrelated subjects, which must not become household members.
     const bareList = isRelationList({ ...clause, text: clause.text.replace(living, "") });
@@ -332,10 +353,17 @@ function extractHousehold(
           .trim()
           .split(/\s+/u)[0] ?? "";
       const pluralChildren = patterns.pluralChildren;
-      const count =
+      const stated =
         numericWord(previous) ??
-        (language === "ar" ? (numericWord(match[0]) ?? numericWord(following)) : undefined) ??
-        (pluralChildren.test(match[0]) ? 0 : 1);
+        (language === "ar"
+          ? (numericWord(match[0]) ?? arabicTrailingCount(match[0], following))
+          : undefined);
+      const count = stated ?? (pluralChildren.test(match[0]) ? 0 : 1);
+      // «vivo con mio figlio … mio figlio» is one child, not two.
+      if (stated === undefined && count === 1) {
+        if (namedChildren.has(match[0])) continue;
+        namedChildren.add(match[0]);
+      }
       if (count > 0 && count < 20) relations.push(...Array.from({ length: count }, () => relation));
     }
   }

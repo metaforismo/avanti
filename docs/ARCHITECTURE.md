@@ -101,7 +101,9 @@ Solo la convivenza dichiarata produce ruoli: citare un parente che lavora non lo
 aggiunge al nucleo. Una lista di parenti può proseguire dopo virgole o congiunzioni,
 anche con articoli, possessivi plurali e la preposizione ripetuta («și cei doi copii»,
 «e con i nostri due figli», «and our two kids»); in arabo il numero può seguire il nome
-(«أطفالي الثلاثة»). Un genitore negato resta fuori. Il genitore non convivente del richiedente produce
+(«أطفالي الثلاثة», solo numeri scritti con l'articolo: una cifra dopo il nome è un'età).
+Il partner convivente (compagno/a, convivente, partner, …) entra nel nucleo come «altro»;
+lo stesso figlio nominato due volte conta una volta. Un genitore negato resta fuori. Il genitore non convivente del richiedente produce
 `applicant_parent_nonresident`, distinto da `nonresident_parent`, riservato agli indizi
 su un figlio minorenne e il suo genitore. Nessun indizio sostituisce la conferma
 nell’intervista o la valutazione dell’operatore.
