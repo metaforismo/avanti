@@ -306,6 +306,41 @@
   }
 }
 
+/*
+ * Editorial headings (site pages), set with font-display. Bricolage at these sizes already
+ * draws its tight display cut: tracking past about -0.022em makes letters touch ("rr", "fa").
+ * Leading opens a little as the size drops, so two-line headings don't lock descenders.
+ */
+@utility type-hero {
+  font-size: clamp(2.875rem, 7vw, 5.25rem);
+  line-height: 0.98;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  font-stretch: 88%;
+}
+@utility type-section {
+  font-size: clamp(2rem, 4.2vw, 3.25rem);
+  line-height: 1.04;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-stretch: 90%;
+}
+/* Page titles of the secondary site pages, and a section that closes a larger one. */
+@utility type-page {
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-stretch: 90%;
+}
+@utility type-subsection {
+  font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  font-stretch: 90%;
+}
+
 @layer utilities {
   /* Highlighter stroke behind inline text, slightly irregular like a real marker. */
   .marker {

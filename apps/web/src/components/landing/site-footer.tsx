@@ -4,8 +4,8 @@ import { Logo } from "@/components/brand/logo";
 export function SiteFooter() {
   return (
     <footer className="border-t border-line">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div>
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-14 pb-12 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="col-span-2 md:col-span-1">
           <Logo />
           <p className="mt-4 max-w-sm text-ink-2">
             Il front office AI per CAF e patronati. Prepara il lavoro, non sostituisce chi lo fa.
@@ -62,8 +62,10 @@ export function SiteFooter() {
           </ul>
         </nav>
       </div>
-      <div className="mx-auto max-w-6xl px-4 pb-10 text-sm text-ink-3 sm:px-6">
-        Avanti non è un servizio della Pubblica Amministrazione e non è un CAF.
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <p className="border-t border-line py-6 text-sm text-ink-3">
+          Avanti non è un servizio della Pubblica Amministrazione e non è un CAF.
+        </p>
       </div>
     </footer>
   );

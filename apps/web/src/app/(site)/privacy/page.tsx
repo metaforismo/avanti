@@ -46,9 +46,7 @@ const SECTIONS = [
 export default function PrivacyPage() {
   return (
     <article className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:py-24">
-      <h1 className="font-display text-[clamp(2.25rem,5vw,3.5rem)] leading-none font-bold tracking-[-0.03em] [font-stretch:90%]">
-        Informativa privacy
-      </h1>
+      <h1 className="font-display type-page">Informativa privacy</h1>
       <p className="mt-5 text-lg text-ink-2">
         In breve: i dati servono a preparare la tua pratica e restano sotto il controllo del CAF che
         hai scelto.

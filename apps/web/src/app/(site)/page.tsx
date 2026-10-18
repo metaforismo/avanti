@@ -179,9 +179,7 @@ export default function HomePage() {
             <span className="size-1.5 rounded-full bg-ok" aria-hidden />
             Pilota ISEE con i CAF, gennaio 2027
           </p>
-          <h1 className="font-display text-[clamp(2.75rem,7vw,5.25rem)] leading-[0.95] font-bold tracking-[-0.035em] [font-stretch:88%]">
-            Il fascicolo arriva pronto.
-          </h1>
+          <h1 className="font-display type-hero">Il fascicolo arriva pronto.</h1>
           <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-ink-2 sm:text-xl">
             Avanti è il front office AI per CAF e patronati. Ascolta il cittadino nella sua lingua,
             prepara la checklist, ordina i documenti e segnala cosa va verificato. L&apos;operatore
@@ -214,10 +212,7 @@ export default function HomePage() {
       <section aria-labelledby="sportello-title" className="border-y border-line bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
           <div className="max-w-2xl">
-            <h2
-              id="sportello-title"
-              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-            >
+            <h2 id="sportello-title" className="font-display type-section">
               Prima di aprire la pratica, lo sportello fa domande. Sempre le stesse.
             </h2>
             <p className="mt-5 text-lg text-ink-2">
@@ -249,10 +244,7 @@ export default function HomePage() {
         aria-labelledby="come-title"
         className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
       >
-        <h2
-          id="come-title"
-          className="max-w-2xl font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-        >
+        <h2 id="come-title" className="max-w-2xl font-display type-section">
           Dal «devo fare l&apos;ISEE» al fascicolo, in quattro passaggi.
         </h2>
         <ol className="mt-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
@@ -279,10 +271,7 @@ export default function HomePage() {
       <section aria-labelledby="ai-title" className="border-y border-line bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
           <div className="max-w-2xl">
-            <h2
-              id="ai-title"
-              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-            >
+            <h2 id="ai-title" className="font-display type-section">
               L&apos;intelligenza artificiale, dove fa risparmiare tempo.
             </h2>
             <p className="mt-5 text-lg text-ink-2">
@@ -291,16 +280,20 @@ export default function HomePage() {
               servizio: niente chiavi da configurare né costi a consumo.
             </p>
           </div>
-          <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2">
+          {/* Subgrid: the two examples share one row height, so the lists under them start on
+              the same line. */}
+          <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-y-0">
             {(
               [
                 ["Per il cittadino", AI_CITIZEN],
                 ["Per l'operatore", AI_OPERATOR],
               ] as const
             ).map(([title, items], index) => (
-              <div key={title}>
+              <div key={title} className="lg:row-span-3 lg:grid lg:grid-rows-subgrid">
                 <h3 className="font-display text-2xl font-semibold tracking-[-0.015em]">{title}</h3>
-                <div className="mt-6">{index === 0 ? <CitizenSnippet /> : <OperatorSnippet />}</div>
+                <div className="mt-6 grid">
+                  {index === 0 ? <CitizenSnippet /> : <OperatorSnippet />}
+                </div>
                 <dl className="mt-8 grid gap-6">
                   {items.map(([term, text]) => (
                     <div key={term}>
@@ -337,10 +330,7 @@ export default function HomePage() {
       >
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
           <div>
-            <h2
-              id="operatori-title"
-              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-            >
+            <h2 id="operatori-title" className="font-display type-section">
               L&apos;operatore apre il fascicolo e sa già dove guardare.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-on-contrast/75">
@@ -380,23 +370,25 @@ export default function HomePage() {
       {/* Handoff to the CAF's software */}
       <section aria-labelledby="gestionale-title" className="border-b border-line bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-          <h2
-            id="gestionale-title"
-            className="font-display text-[clamp(1.75rem,3.4vw,2.5rem)] leading-[1.05] font-bold tracking-[-0.025em] [font-stretch:90%]"
-          >
+          <h2 id="gestionale-title" className="font-display type-subsection">
             Il lavoro prosegue nel vostro gestionale.
           </h2>
-          <ol className="mt-8 grid gap-6 md:grid-cols-3">
+          {/* Ruled columns, not a second row of blue discs: the four steps above are the
+              citizen's journey, these are what happens after it, at the desk. */}
+          <ol className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">
             {[
               "L'operatore verifica documenti e mancanti, voce per voce.",
               "Consulta il prospetto DSU nell'ordine del modello: le risposte del cittadino, e gli importi letti dai documenti che ha confermato. Scarica il riepilogo PDF o i dati JSON.",
               "Copia i dati e carica gli originali nel software del CAF, con la procedura provata insieme durante l'avvio.",
             ].map((text, i) => (
-              <li key={text} className="flex gap-4">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-stamp font-display font-bold text-on-stamp">
-                  {i + 1}
+              <li key={text} className="border-t border-line-strong pt-4">
+                <span
+                  aria-hidden
+                  className="tabular block font-display text-sm font-bold tracking-[0.02em] text-stamp"
+                >
+                  {String(i + 1).padStart(2, "0")}
                 </span>
-                <p className="text-ink-2">{text}</p>
+                <p className="mt-2 leading-relaxed text-ink-2">{text}</p>
               </li>
             ))}
           </ol>
@@ -415,10 +407,7 @@ export default function HomePage() {
         className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
       >
         <div className="max-w-2xl">
-          <h2
-            id="lingue-title"
-            className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-          >
+          <h2 id="lingue-title" className="font-display type-section">
             Ognuno risponde nella sua lingua. Lo sportello legge in italiano.
           </h2>
           <p className="mt-5 text-lg text-ink-2">
@@ -442,10 +431,7 @@ export default function HomePage() {
       >
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
           <div>
-            <h2
-              id="pratiche-title"
-              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-            >
+            <h2 id="pratiche-title" className="font-display type-section">
               Si parte dall&apos;ISEE. Il resto segue il calendario dei CAF.
             </h2>
             <p className="mt-5 text-lg text-ink-2">
@@ -456,7 +442,7 @@ export default function HomePage() {
               {FACTS.map((fact) => (
                 <div key={fact.value} className="border-t-2 border-ink pt-3">
                   <dt className="sr-only">{fact.label}</dt>
-                  <dd className="tabular font-display text-5xl font-bold tracking-[-0.03em]">
+                  <dd className="tabular font-display text-5xl font-bold tracking-[-0.02em]">
                     {fact.value}
                   </dd>
                   <dd className="mt-1 text-ink-2">{fact.label}</dd>
@@ -475,14 +461,15 @@ export default function HomePage() {
             </dl>
           </div>
           <ol className="relative grid gap-0 border-s border-line-strong ps-8">
+            {/* Dots centred on the 1px rule (ps-8 + border) and on the date line (20px). */}
             {PRACTICES.map((p) => (
               <li key={p.name} className="relative pb-8 last:pb-0">
                 <span
                   aria-hidden
                   className={
                     p.live
-                      ? "absolute -start-[2.4rem] top-1.5 size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
-                      : "absolute -start-[2.3rem] top-1.5 size-3 rounded-full bg-surface ring-2 ring-line-strong"
+                      ? "absolute -start-[39.5px] top-[3px] size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
+                      : "absolute -start-[38.5px] top-1 size-3 rounded-full bg-surface ring-2 ring-line-strong"
                   }
                 />
                 <p className="tabular text-sm text-ink-3">{p.when}</p>
@@ -503,10 +490,7 @@ export default function HomePage() {
         aria-labelledby="limiti-title"
         className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
       >
-        <h2
-          id="limiti-title"
-          className="max-w-2xl font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-        >
+        <h2 id="limiti-title" className="max-w-2xl font-display type-section">
           Cosa Avanti non fa, di proposito.
         </h2>
         <div className="mt-12 grid gap-10 md:grid-cols-3">
@@ -549,10 +533,7 @@ export default function HomePage() {
       >
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:py-28">
           <div>
-            <h2
-              id="pilota-title"
-              className="font-display text-[clamp(2rem,4.2vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-            >
+            <h2 id="pilota-title" className="font-display type-section">
               Cerchiamo tre sportelli per il picco ISEE di gennaio.
             </h2>
             <p className="mt-5 text-lg text-ink-2">
@@ -587,10 +568,7 @@ export default function HomePage() {
         aria-labelledby="faq-title"
         className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:py-28"
       >
-        <h2
-          id="faq-title"
-          className="font-display text-[clamp(2rem,4.2vw,3rem)] leading-[1.02] font-bold tracking-[-0.03em] [font-stretch:90%]"
-        >
+        <h2 id="faq-title" className="font-display type-section">
           Domande dei CAF
         </h2>
         <div className="mt-10 divide-y divide-line border-y border-line">
@@ -646,14 +624,14 @@ function DossierPreview() {
       </div>
       <ul className="divide-y divide-line">
         {rows.map((row) => (
-          <li key={row.label} className="flex items-center gap-3 px-5 py-3.5 sm:px-6">
+          <li key={row.label} className="flex items-start gap-3 px-5 py-3.5 sm:px-6">
             <span
               className={
                 row.state === "ok"
-                  ? "grid size-6 shrink-0 place-items-center rounded-full bg-ok-wash text-ok"
+                  ? "mt-px grid size-6 shrink-0 place-items-center rounded-full bg-ok-wash text-ok"
                   : row.state === "warn"
-                    ? "grid size-6 shrink-0 place-items-center rounded-full bg-warn-wash text-warn"
-                    : "grid size-6 shrink-0 place-items-center rounded-full bg-danger-wash text-danger"
+                    ? "mt-px grid size-6 shrink-0 place-items-center rounded-full bg-warn-wash text-warn"
+                    : "mt-px grid size-6 shrink-0 place-items-center rounded-full bg-danger-wash text-danger"
               }
               role="img"
               aria-label={
@@ -667,7 +645,7 @@ function DossierPreview() {
               )}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold">{row.label}</span>
+              <span className="block font-semibold">{row.label}</span>
               <span className="block text-sm text-ink-3">{row.note}</span>
             </span>
           </li>

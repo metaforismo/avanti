@@ -61,9 +61,11 @@ export function Dialog({
                 <Primitive.Description className="sr-only">{title}</Primitive.Description>
               )}
             </div>
+            {/* 44px target, the same minimum as every other control on the citizen's phone;
+                the negative margin keeps the icon where it was. */}
             {dismissible && (
               <Primitive.Close
-                className="-m-1 rounded-sm p-2 text-ink-3 transition-[background-color,color,transform] duration-150 ease-(--ease-out) hover:bg-sunk hover:text-ink active:scale-[0.94]"
+                className="-m-2 shrink-0 rounded-sm p-3 text-ink-3 transition-[background-color,color,transform] duration-150 ease-(--ease-out) hover:bg-sunk hover:text-ink active:scale-[0.94]"
                 aria-label={closeLabel}
               >
                 <X className="size-5" aria-hidden />

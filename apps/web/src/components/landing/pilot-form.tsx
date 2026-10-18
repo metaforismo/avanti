@@ -190,7 +190,7 @@ export function PilotForm() {
       {formError && <Notice tone="danger">{formError}</Notice>}
 
       <div className="flex flex-wrap items-center gap-4">
-        <Button type="submit" size="lg" loading={status === "sending"}>
+        <Button type="submit" size="lg" loading={status === "sending"} className="w-full sm:w-auto">
           Candida il tuo sportello
         </Button>
         <p className="text-sm text-ink-3">Nessun impegno: prima ci parliamo.</p>

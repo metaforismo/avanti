@@ -7,13 +7,13 @@ import { Check, FileSearch, Sparkles, X } from "lucide-react";
 export function CitizenSnippet() {
   return (
     <figure
-      className="rounded-xl bg-paper p-4 ring-1 ring-line sm:p-5"
+      className="flex flex-col rounded-xl bg-paper p-4 ring-1 ring-line sm:p-5"
       aria-label="Esempio: il cittadino conferma quello che Avanti ha capito"
     >
       <p className="ms-auto w-fit max-w-[85%] rounded-3xl bg-sunk px-4 py-2.5 text-body-sm">
         Siamo in quattro, viviamo in affitto e ho un conto alla Fineco.
       </p>
-      <div className="mt-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-stamp/30">
+      <div className="mt-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-stamp/25">
         <p className="flex items-center gap-2 text-sm font-semibold">
           <Sparkles className="size-4 text-stamp" aria-hidden />
           Ho capito così: controlla
@@ -37,7 +37,7 @@ export function CitizenSnippet() {
           Sì, è giusto
         </p>
       </div>
-      <figcaption className="mt-3 text-xs text-ink-3">
+      <figcaption className="mt-auto pt-3 text-xs text-ink-3">
         Diventano risposte solo se le conferma. Dati inventati.
       </figcaption>
     </figure>
@@ -47,7 +47,7 @@ export function CitizenSnippet() {
 export function OperatorSnippet() {
   return (
     <figure
-      className="rounded-xl bg-paper p-4 ring-1 ring-line sm:p-5"
+      className="flex flex-col rounded-xl bg-paper p-4 ring-1 ring-line sm:p-5"
       aria-label="Esempio: l'operatore conferma un importo letto dall'AI"
     >
       <div className="overflow-hidden rounded-lg bg-surface ring-1 ring-stamp/25">
@@ -82,7 +82,7 @@ export function OperatorSnippet() {
           </div>
         </div>
       </div>
-      <figcaption className="mt-3 text-xs text-ink-3">
+      <figcaption className="mt-auto pt-3 text-xs text-ink-3">
         Nel prospetto entra solo ciò che l&apos;operatore conferma sul file. Dati inventati.
       </figcaption>
     </figure>
