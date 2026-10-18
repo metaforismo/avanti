@@ -2,7 +2,7 @@
 
 import { Check, ChevronDown, Globe, MessageCircleQuestion, WifiOff } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { CitizenCase } from "@avanti/contracts";
 import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { Spinner } from "@/components/ui/spinner";
@@ -53,8 +53,24 @@ export function CitizenHeader({
   const activeIndex = view === "need" ? -1 : STEPS.findIndex((s) => s.view === view);
   const switching = api.pending === "language";
 
+  // Its height changes with the language and the offline line: what scrolls under it reads it.
+  const header = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const element = header.current;
+    if (!element) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() =>
+      root.style.setProperty("--citizen-header", `${element.offsetHeight}px`),
+    );
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--citizen-header");
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-surface">
+    <header ref={header} className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex max-w-xl items-center gap-3 px-4 pt-3 pb-2.5">
         <div className="min-w-0 flex-1">
           <p

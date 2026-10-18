@@ -22,7 +22,7 @@ import {
   gte,
   inArray,
 } from "drizzle-orm";
-import { queueWaitCutoff, queueWaitDays } from "@avanti/core";
+import { queueWaitCutoff, queueWaitDays, withRequestLabels } from "@avanti/core";
 import { enqueueCitizen, scheduleNotificationDelivery } from "./notifications";
 import { observeAi } from "./operational-telemetry";
 import {
@@ -588,19 +588,15 @@ export function mountOperatorRoutes(app: App, s: Services) {
               reviewedAt: s.clock().toISOString(),
             },
           });
-      const labels = selected
-        .map((item) => `${item.title}${item.memberName ? ` · ${item.memberName}` : ""}`)
-        .join("\n");
-      const italianLabels = view.checklist
-        .filter((item) => input.checklistItemIds.includes(item.id))
-        .map((item) => `${item.title}${item.memberName ? ` · ${item.memberName}` : ""}`)
-        .join("\n");
       await tx.insert(messages).values({
         id: crypto.randomUUID(),
         caseId: current.id,
         role: "operator",
-        text: [translated.text, labels].filter(Boolean).join("\n"),
-        originalText: [input.message, italianLabels].filter(Boolean).join("\n"),
+        text: withRequestLabels(translated.text, selected),
+        originalText: withRequestLabels(
+          input.message,
+          view.checklist.filter((item) => input.checklistItemIds.includes(item.id)),
+        ),
         createdAt: s.clock().toISOString(),
       });
       // Optional items or a bare message do not make the delivered dossier incomplete.

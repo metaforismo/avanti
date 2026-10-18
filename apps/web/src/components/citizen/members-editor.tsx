@@ -46,6 +46,30 @@ function toDraft(member: MemberInput): Draft {
   };
 }
 
+function initialRows(
+  initial: MemberInput[],
+  expected: number | undefined,
+  expectedRoles: MemberRole[],
+): Draft[] {
+  const list = initial.map(toDraft);
+  // The applicant is always part of the household, first.
+  if (!list.some((member) => member.role === "richiedente")) {
+    list.unshift({ key: newKey(), role: "richiedente", firstName: "", yearText: "" });
+  }
+  // Relatives the citizen already mentioned get a row with the right role…
+  if (initial.length === 0) {
+    for (const role of expectedRoles.filter((r) => r !== "richiedente")) {
+      if (list.length < MAX_MEMBERS)
+        list.push({ key: newKey(), role, firstName: "", yearText: "" });
+    }
+  }
+  // …and the household size they stated decides how many rows to offer.
+  while (expected && list.length < Math.min(expected, MAX_MEMBERS)) {
+    list.push({ key: newKey(), role: "altro", firstName: "", yearText: "" });
+  }
+  return list;
+}
+
 function validYear(text: string, currentYear: number) {
   if (!/^\d{4}$/.test(text)) return null;
   const year = Number(text);
@@ -67,29 +91,31 @@ export function MembersEditor({
   expectedRoles?: MemberRole[];
   onSubmit: (members: MemberInput[]) => void;
 }) {
-  const [members, setMembers] = useState<Draft[]>(() => {
-    const list = initial.map(toDraft);
-    // The applicant is always part of the household, first.
-    if (!list.some((member) => member.role === "richiedente")) {
-      list.unshift({ key: newKey(), role: "richiedente", firstName: "", yearText: "" });
-    }
-    // Relatives the citizen already mentioned get a row with the right role…
-    if (initial.length === 0) {
-      for (const role of expectedRoles.filter((r) => r !== "richiedente")) {
-        if (list.length < MAX_MEMBERS)
-          list.push({ key: newKey(), role, firstName: "", yearText: "" });
-      }
-    }
-    // …and the household size they stated decides how many rows to offer.
-    while (expected && list.length < Math.min(expected, MAX_MEMBERS)) {
-      list.push({ key: newKey(), role: "altro", firstName: "", yearText: "" });
-    }
-    return list;
-  });
+  const [members, setMembers] = useState<Draft[]>(() =>
+    initialRows(initial, expected, expectedRoles),
+  );
+  // In the conversation this form can appear a moment before the household size just confirmed
+  // reaches the page: until the citizen touches a row, it follows what they said.
+  const [touched, setTouched] = useState(false);
+  const said = `${expected ?? ""}:${expectedRoles.join(",")}`;
+  const [seenSaid, setSeenSaid] = useState(said);
+  if (said !== seenSaid) {
+    setSeenSaid(said);
+    // Rows keep their keys by position: a field the citizen has just focused, keyboard open,
+    // must not be swapped for a new one.
+    if (!touched)
+      setMembers(
+        initialRows(initial, expected, expectedRoles).map((row, index) => ({
+          ...row,
+          key: members[index]?.key ?? row.key,
+        })),
+      );
+  }
   const [errors, setErrors] = useState<Record<string, RowErrors>>({});
   const currentYear = new Date().getFullYear();
 
   const update = (key: string, patch: Partial<Draft>) => {
+    setTouched(true);
     setErrors(({ [key]: _cleared, ...rest }) => rest);
     setMembers((list) =>
       list.map((member) => (member.key === key ? { ...member, ...patch } : member)),
@@ -97,6 +123,7 @@ export function MembersEditor({
   };
 
   const remove = (key: string) => {
+    setTouched(true);
     setMembers((list) => list.filter((item) => item.key !== key));
     // The removed row took focus with it: hand it to a stable control.
     requestAnimationFrame(() => document.getElementById(ADD_BUTTON_ID)?.focus());
@@ -155,6 +182,7 @@ export function MembersEditor({
           className="w-full border-dashed"
           onClick={() => {
             const key = newKey();
+            setTouched(true);
             setMembers((list) => [...list, { key, role: "figlio", firstName: "", yearText: "" }]);
             requestAnimationFrame(() => document.getElementById(`member-${key}`)?.focus());
           }}

@@ -17,20 +17,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { apiFetch } from "@/lib/api";
 import { Notice } from "@/components/ui/notice";
 import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
-import { plural } from "@/lib/citizen/messages";
 import type { StepProps } from "./citizen-app";
 import { SaveLinkActions } from "./save-link";
 
-const MAX_SHOWN = 6;
-
 export function DoneStep({ api, data, m, token }: StepProps) {
-  // Once sent, the citizen can no longer upload: what is still missing goes to the office.
+  // Once sent, the citizen can no longer upload: what is still missing goes to the office, all of
+  // it, since this list is what they take to the desk.
   const missing =
     data.status === "submitted" || data.status === "in_review"
       ? data.checklist.filter((item) => item.required && !DONE_STATUSES.has(item.status))
       : [];
-  // «e altri 1» hides a line to save a line: show it instead.
-  const shown = missing.length === MAX_SHOWN + 1 ? missing.length : MAX_SHOWN;
   const statusLine =
     data.status === "in_review"
       ? m.done.inReview
@@ -90,7 +86,7 @@ export function DoneStep({ api, data, m, token }: StepProps) {
             {m.done.bringMissing}
           </h2>
           <ul className="mt-2 grid gap-1.5">
-            {missing.slice(0, shown).map((item) => (
+            {missing.map((item) => (
               <li key={item.id} className="flex gap-2">
                 <span aria-hidden>•</span>
                 <span dir="auto">
@@ -100,11 +96,6 @@ export function DoneStep({ api, data, m, token }: StepProps) {
               </li>
             ))}
           </ul>
-          {missing.length > shown && (
-            <p className="mt-1.5 ps-4 text-ink-2">
-              {plural(data.language, missing.length - shown, m.done.bringMore)}
-            </p>
-          )}
         </section>
       )}
 

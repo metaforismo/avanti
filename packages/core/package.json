@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./demo-stories": "./src/demo-stories.ts",
-    "./plural": "./src/plural.ts"
+    "./plural": "./src/plural.ts",
+    "./request-labels": "./src/request-labels.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit",
