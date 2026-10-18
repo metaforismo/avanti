@@ -159,7 +159,7 @@ function StatusBody({ data }: { data: SystemStatus }) {
           <p className="font-display text-xl font-semibold">{overall.headline}</p>
           <p className="text-sm text-ink-2">
             {onlyNotStarted(data) &&
-              "Nessun guasto: alcune attività non sono ancora partite, è normale nei primi giorni. "}
+              "Alcune attività non sono ancora partite: nei primi giorni è normale. Se resta così per più di un giorno, contatta il supporto. "}
             Controllato il {formatDateTime(data.generatedAt)}
           </p>
         </div>
@@ -247,9 +247,8 @@ function StatusBody({ data }: { data: SystemStatus }) {
   );
 }
 
-function lastRun(iso: string | null) {
-  return iso ? `Ultima: ${formatDateTime(iso)}` : "Non ancora eseguita";
-}
+// Never run: the row's own explanation already says so.
+const lastRun = (iso: string | null) => (iso ? `Ultima: ${formatDateTime(iso)}` : null);
 
 function ComponentRow({
   name,

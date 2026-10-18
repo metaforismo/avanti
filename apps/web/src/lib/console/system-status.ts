@@ -1,7 +1,7 @@
 import type { SystemStatus } from "@avanti/contracts";
 
-// Nothing broken, just nothing happened yet: the daily jobs haven't had their first run, no
-// citizen has used the AI. On a CAF's first day the page would otherwise read as a fault.
+// Nothing happened yet: the daily jobs haven't had their first run, no citizen has used the AI.
+// Normal on a CAF's first day, but also what a broken scheduler looks like: the page says both.
 const NOT_STARTED = new Set<string>(["never_run", "no_observations"]);
 
 /** True when every warning on the page only says "not started yet". */
