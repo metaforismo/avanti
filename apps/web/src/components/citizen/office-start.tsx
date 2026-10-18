@@ -9,6 +9,7 @@ import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Form } from "@/components/ui/form";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
@@ -20,6 +21,15 @@ import { browserLanguage, directionOf, useDocumentLanguage } from "@/lib/citizen
 import { ErrorScreen } from "./error-screen";
 
 const NON_LATIN = new Set<Language>(["ar", "bn"]);
+
+/**
+ * The language radio checked in the page. Before hydration only the DOM knows what the citizen
+ * picked (see components/ui/form): React's state still says Italian.
+ */
+function checkedLanguage(root: ParentNode) {
+  const value = root.querySelector<HTMLInputElement>('input[name="language"]:checked')?.value;
+  return (LANGUAGES as readonly string[]).includes(value ?? "") ? (value as Language) : null;
+}
 
 /** Data Saver (Chromium only): the citizen asked for nothing beyond what the page needs. */
 function saveData() {
@@ -40,7 +50,6 @@ export function OfficeStart({
   const router = useRouter();
   const [info, setInfo] = useState<OfficeInfo | "missing" | "error" | null>(initial);
   const [language, setLanguage] = useState<Language>("it");
-  const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -65,7 +74,9 @@ export function OfficeStart({
   // Client-only values (browser language, local storage) are read after hydration.
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setLanguage(browserLanguage());
+      // A language other than the default, checked already, was the citizen's own choice.
+      const picked = checkedLanguage(document);
+      setLanguage(picked && picked !== "it" ? picked : browserLanguage());
       setResumeToken(recallCase(officeSlug));
     }, 0);
     return () => window.clearTimeout(timer);
@@ -99,8 +110,15 @@ export function OfficeStart({
   const dir = directionOf(language);
   useDocumentLanguage(language);
 
-  async function start(event: FormEvent) {
+  async function start(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    // Read from the form, not from state: a box ticked before hydration is only in the DOM.
+    const consent = (form.elements.namedItem("consent") as HTMLInputElement | null)?.checked;
+    const chosen = checkedLanguage(form) ?? language;
+    // A language picked before hydration lives only in the DOM until now: the page follows it,
+    // so a refused or failed start is explained in it and the next attempt keeps it.
+    if (chosen !== language) setLanguage(chosen);
     if (!consent) {
       setConsentError(true);
       document.getElementById("consent")?.focus();
@@ -111,7 +129,7 @@ export function OfficeStart({
     try {
       const result = await apiFetch<StartIntakeResponse>("/api/intake", {
         method: "POST",
-        body: { officeSlug, language, privacyAccepted: true },
+        body: { officeSlug, language: chosen, privacyAccepted: true },
       });
       rememberCase(officeSlug, result.token);
       const path = `/pratica/${result.token}` as const;
@@ -124,7 +142,7 @@ export function OfficeStart({
       setStarting(false);
       setStartError(
         errorMessage(
-          m,
+          messagesFor(chosen),
           error instanceof ApiRequestError
             ? error.status === 0
               ? "network"
@@ -210,7 +228,7 @@ export function OfficeStart({
           {m.start.time} {m.start.noAccount}
         </p>
 
-        <form onSubmit={start} className="mt-10 grid gap-8">
+        <Form onSubmit={start} className="mt-10 grid gap-8">
           <fieldset>
             <legend className="mb-3 text-lg font-semibold">{m.start.chooseLanguage}</legend>
             <div className="grid grid-cols-2 gap-2">
@@ -278,11 +296,7 @@ export function OfficeStart({
               look="card"
               id="consent"
               label={m.start.consent}
-              checked={consent}
-              onChange={(e) => {
-                setConsent(e.target.checked);
-                setConsentError(false);
-              }}
+              onChange={() => setConsentError(false)}
               aria-invalid={consentError || undefined}
               aria-describedby={consentError ? "consent-error" : undefined}
             />
@@ -302,7 +316,7 @@ export function OfficeStart({
           <Button type="submit" size="lg" loading={starting} disabled={!info} className="w-full">
             {m.start.cta}
           </Button>
-        </form>
+        </Form>
 
         {info && (info.office.address || info.office.phone) && (
           <address className="mt-12 grid gap-2 border-t border-line pt-6 text-ink-2 not-italic">

@@ -1,13 +1,16 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { finishInterview, logIn, origin, startCase } from "./helpers";
+import { animationsSettled, finishInterview, logIn, origin, startCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const OPERATOR = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
 
 async function seriousViolations(page: Page) {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+  // A dev server under load can take longer than an assertion's 15 s to answer (the system
+  // status runs its checks): what is measured is the settled page, however long it takes.
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 45_000 });
+  await animationsSettled(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
     .analyze();
@@ -39,6 +42,9 @@ test("after a request, the operator tells a phone-only citizen in their language
   page,
   context,
 }) => {
+  // A case through the interview, two dialogs, an axe pass and a new link: on a loaded machine
+  // with two workers it outgrows the default 90 seconds without anything being wrong.
+  test.slow();
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const { id, reference } = await phoneOnlyCase(page);
   await logIn(page, OPERATOR);

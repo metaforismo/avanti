@@ -1,12 +1,18 @@
 import { expect, test } from "@playwright/test";
-import { logIn, openFirstReadyCase } from "./helpers";
+import { logIn, openCase, submittedCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const ADMIN = { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" };
 
 test("a returning family starts next year's practice from the previous one", async ({ page }) => {
   await logIn(page, ADMIN);
-  await openFirstReadyCase(page);
+  // Its own family: a new practice for a demo family would move it out of the renewals to send.
+  const { id } = await submittedCase(
+    page,
+    { firstName: "Famiglia", lastName: "Ritorno" },
+    { files: 0 },
+  );
+  await openCase(page, id);
   await page.getByRole("button", { name: /Altro/ }).click();
   await page.getByRole("menuitem", { name: "Nuova pratica per questa famiglia…" }).click();
 
@@ -34,7 +40,13 @@ test("the new practice can be created before the list of practices arrives", asy
     await route.fallback();
   });
   await logIn(page, ADMIN);
-  await openFirstReadyCase(page);
+  // Its own family, as in the test above.
+  const { id } = await submittedCase(
+    page,
+    { firstName: "Famiglia", lastName: "Senza elenco" },
+    { files: 0 },
+  );
+  await openCase(page, id);
   await page.getByRole("button", { name: /Altro/ }).click();
   await page.getByRole("menuitem", { name: "Nuova pratica per questa famiglia…" }).click();
 

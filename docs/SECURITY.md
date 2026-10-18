@@ -667,7 +667,8 @@ pratica può confermarla, durante le fasi modificabili. Nessuna nuova trasmissio
   gli upload restano limitati a 4 MB.
 - Rimandate, con motivo: cookie `__Host-` (richiederebbe `Path=/` e cambierebbe il perimetro del
   cookie; il dominio di produzione sarà dedicato, senza sottodomini di terzi); CSP con nonce
-  (renderebbe dinamiche tutte le pagine; oggi gli script inline sono solo quelli di Next);
+  (renderebbe dinamiche tutte le pagine; oggi gli script inline sono quelli di Next e il
+  listener costante dei moduli descritto sotto);
   email unica tra CAF (un admin può scoprire che un'email è già usata altrove: accettato, perché
   l'email è l'identità di accesso); GET dell'AI richiamabili da un link esterno (cookie Lax,
   limite per operatore e id della pratica necessario; i risultati sono in cache per versione).
@@ -675,3 +676,27 @@ pratica può confermarla, durante le fasi modificabili. Nessuna nuova trasmissio
   600 all'ora per operatore, perché sono quasi sempre in cache e l'AI riparte solo quando
   cambia il contenuto, dentro il budget mensile; le azioni esplicite (ricontrollo, domande,
   rigenera) restano a 60 all'ora. Con 60 per tutto, un operatore si fermava a ~20 fascicoli.
+
+## Moduli inviati prima dell'idratazione (18 ottobre 2026)
+
+Su un PC o un telefono lento la pagina di accesso compare secondi prima che React la gestisca.
+Un clic su «Accedi» (o Invio) in quella finestra faceva l'invio nativo del `<form>`: una GET
+alla stessa pagina con `email` e `password` nell'URL, quindi nella cronologia del browser e nei
+log di accesso di proxy e hosting, e la pagina si ricaricava vuota perdendo `next`. Lo stesso
+valeva per la candidatura pilota (nome, email, telefono) e per l'avvio dal QR, dove in più
+consenso e lingua scelti prima dell'idratazione restavano visibili ma ignorati.
+
+Ora un listener inline in `<head>` (`apps/web/src/lib/early-submit.ts`, testo costante) trattiene
+l'invio dei moduli `<Form>` non ancora idratati e `<Form>` lo ripete appena React è pronto, con i
+valori digitati nel frattempo: nessun campo finisce nell'URL e il clic non va perso. I campi di
+questi moduli restano non controllati o vengono letti dal DOM all'invio. I moduli che compaiono
+solo dopo un caricamento lato client (verifica in due passaggi, cambio password, primo testo del
+cittadino) non hanno questa finestra. Verificato con e2e che trattengono gli script della pagina.
+
+Se lo script non parte (JavaScript disattivato, un'estensione, una CSP che lo blocca) `<Form>`
+resta un modulo `method="post"`: i campi viaggiano nel corpo, mai nell'URL, e Next risponde
+ripresentando la pagina senza leggere né riportare il corpo (verificato su accesso, avvio dal QR
+e landing). Una futura CSP senza `'unsafe-inline'` negli script deve elencare l'hash dello
+script, `EARLY_SUBMIT_SCRIPT_HASH` nello stesso file (fissato da un test Vitest), o dargli un
+nonce: altrimenti l'invio prima dell'idratazione torna a ricaricare la pagina, pur senza dati
+nell'URL.

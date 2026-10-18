@@ -6,6 +6,7 @@ import type { LoginResponse } from "@avanti/contracts";
 import { isEmail, text } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Field, Input, PasswordInput } from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
 import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { safeNext } from "@/lib/console/safe-next";
@@ -86,7 +87,7 @@ export function LoginForm({ nextPath, expired }: { nextPath: string | null; expi
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-8 grid gap-5">
+    <Form onSubmit={onSubmit} noValidate className="mt-8 grid gap-5">
       <Field label="Email" error={fieldErrors.email}>
         {(p) => (
           <Input
@@ -116,6 +117,6 @@ export function LoginForm({ nextPath, expired }: { nextPath: string | null; expi
       <p className="text-sm text-ink-3">
         Password dimenticata? Chiedi al responsabile del tuo CAF di reimpostarla.
       </p>
-    </form>
+    </Form>
   );
 }

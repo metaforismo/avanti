@@ -1,45 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { finishInterview, logIn, openFirstCaseInReview, origin, startCase } from "./helpers";
+import { logIn, openCase, openFirstCaseInReview, origin, submittedCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
 
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-  "base64",
-);
-
-/** A submitted case of its own with two files: these tests never change the demo cases. */
-async function caseWithTwoFiles(
-  page: Page,
-  lastName: string,
-  names = ["documento-1.png", "documento-2.png"],
-) {
-  const token = await startCase(page, "Devo fare l'ISEE, vivo da solo.");
-  await finishInterview(page, token);
-  const citizen = await (await page.request.get(`/api/c/${token}`)).json();
-  for (const [index, item] of (citizen.checklist as { id: string }[]).slice(0, 2).entries()) {
-    const uploaded = await page.request.post(`/api/c/${token}/documents`, {
-      headers: origin(),
-      multipart: {
-        file: { name: names[index]!, mimeType: "image/png", buffer: PNG },
-        checklistItemId: item.id,
-      },
-    });
-    expect(uploaded.ok(), await uploaded.text()).toBeTruthy();
-  }
-  await expect(async () => {
-    const sent = await page.request.post(`/api/c/${token}/submit`, {
-      headers: origin(),
-      data: { contact: { firstName: "Fascicolo", lastName }, confirmed: true },
-    });
-    expect(sent.ok(), await sent.text()).toBeTruthy();
-  }).toPass({ timeout: 30_000 });
-  const found = await (
-    await page.request.get(`/api/cases?q=${citizen.reference}&status=submitted`)
-  ).json();
-  await page.goto(`/console/pratiche/${found.items[0].id}`);
-  await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+/** A submitted case of its own with two files, opened: these tests never change the demo cases. */
+async function caseWithTwoFiles(page: Page, lastName: string, fileNames?: string[]) {
+  const { id } = await submittedCase(page, { firstName: "Fascicolo", lastName }, { fileNames });
+  await openCase(page, id);
 }
 
 const backToQueue = (page: Page) =>

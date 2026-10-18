@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import type { ChecklistItem, CitizenCase, DocumentSummary, Finding } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -42,6 +42,7 @@ import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
 import { PhotoTips } from "./photo-tips";
 import { SaveLinkActions } from "./save-link";
+import { onlineRetries } from "@/lib/citizen/online-retry";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 
 type M = Widen<CitizenMessages>;
@@ -59,16 +60,22 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
   // A waiting-room connection comes and goes: when the browser says it is back, what failed while
   // it was away is sent again without a tap the citizen may not know they need. A stall on a Wi-Fi
   // that never dropped still needs «Riprova».
-  const uploads = api.uploads;
-  const { retryUpload } = api;
+  // Listening from the start, not from the failure on: the connection can come back before an
+  // effect run after the failing render would have attached the listener.
+  const retryLost = useEffectEvent(() => {
+    for (const upload of api.uploads) if (upload.error === "network") api.retryUpload(upload.id);
+  });
   useEffect(() => {
-    if (!uploads.some((upload) => upload.error === "network")) return;
-    const retry = () => {
-      for (const upload of uploads) if (upload.error === "network") retryUpload(upload.id);
+    const retries = onlineRetries(
+      () => retryLost(),
+      () => navigator.onLine,
+    );
+    window.addEventListener("online", retries.onOnline);
+    return () => {
+      window.removeEventListener("online", retries.onOnline);
+      retries.cancel();
     };
-    window.addEventListener("online", retry);
-    return () => window.removeEventListener("online", retry);
-  }, [uploads, retryUpload]);
+  }, []);
 
   return (
     // minmax(0, 1fr) on every grid down to the files: a long unbroken file name must truncate,

@@ -1,9 +1,24 @@
-import { expect, test } from "@playwright/test";
-import { logIn, openFirstReadyCase } from "./helpers";
+import { expect, test, type Page } from "@playwright/test";
+import { logIn, openCase, openFirstReadyCase, submittedCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
 const ADMIN = { email: "admin@demo.avanti.local", password: DEMO.password };
+
+/**
+ * Sends the wrong password and waits for its refusal. A click before hydration is held and sent
+ * once the page is ready: retyping before that answer would send the new values instead.
+ */
+async function wrongLogin(page: Page) {
+  const refused = page.waitForResponse(
+    (r) => r.url().endsWith("/api/auth/login") && r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Accedi" }).click();
+  expect([401, 429]).toContain((await refused).status());
+  await expect(
+    page.getByRole("alert").filter({ hasText: /non corrette|limite di richieste/ }),
+  ).toBeVisible();
+}
 
 test("an operator logs in, opens a dossier and sees what to check", async ({ page }) => {
   await page.goto("/console");
@@ -11,11 +26,11 @@ test("an operator logs in, opens a dossier and sees what to check", async ({ pag
 
   await page.getByLabel("Email").fill(DEMO.email);
   await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
-  await page.getByRole("button", { name: "Accedi" }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
-
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  await wrongLogin(page);
+  // The email stays: only the password is typed again (the helper waits out the login limit
+  // the other spec files spend on the same demo account).
+  await expect(page.getByLabel("Email")).toHaveValue(DEMO.email);
+  await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
 
   await openFirstReadyCase(page);
@@ -147,6 +162,9 @@ test("an administrator adds a colleague straight from the first steps", async ({
   await expect(page.getByRole("button", { name: "Aggiungi operatore" })).toBeFocused();
   // Opened once: a reload shows the page, not the form again.
   await expect(page).toHaveURL(/\/console\/impostazioni$/);
+  // The settings page may still be loading its operators: a handler cut short by the end of
+  // the test fails the next test in the worker.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
 for (const gate of [
@@ -167,7 +185,8 @@ for (const gate of [
     await expect(page.getByRole("heading", { name: gate.heading })).toBeVisible();
     await page.getByRole("button", { name: "Esci" }).click();
     await expect(page).toHaveURL(/\/console\/accedi/);
-    await page.unroute(/\/api\/auth\/me$/);
+    // Waits for a reload of the profile still in flight, or its handler outlives the test.
+    await page.unrouteAll({ behavior: "wait" });
     expect((await page.request.get("/api/auth/me")).status()).toBe(401);
   });
 }
@@ -234,11 +253,10 @@ test("two operators on the same case: the second one sees the change instead of 
   const first = await login(DEMO.email);
   const second = await login(ADMIN.email);
 
-  // Both open the same case.
-  await first.getByRole("link", { name: /Persona Esempio 8/ }).click();
-  await expect(first.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
-  await second.goto(first.url());
-  await expect(second.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+  // Both open the same case: one of the test's own, since the verification below stays.
+  const { id } = await submittedCase(first, { firstName: "Due", lastName: "Operatori" });
+  await openCase(first, id);
+  await openCase(second, id);
 
   // The first operator verifies an item; the second still has the old version on screen.
   await first.getByRole("button", { name: "Verifica", exact: true }).first().click();
@@ -258,8 +276,7 @@ test("the activity log shows a failed login to the administrator only", async ({
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(DEMO.email);
   await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
-  await page.getByRole("button", { name: "Accedi" }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  await wrongLogin(page);
   // The helper waits out the per-email login limit the rest of the suite also spends.
   await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();

@@ -10,7 +10,7 @@ import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/page-header";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { officePlace } from "@/lib/office-place";
-import { useOperator } from "@/lib/console/operator-context";
+import { useOperator, useReplaceOperator } from "@/lib/console/operator-context";
 import { useHashTarget, useOpenOnHash } from "@/lib/console/use-hash-target";
 import { focusFirstError, text } from "@/lib/validation";
 
@@ -18,6 +18,8 @@ import { focusFirstError, text } from "@/lib/validation";
 export function OfficesSection({ onChanged }: { onChanged: () => void }) {
   const operator = useOperator();
   const [editing, setEditing] = useState<Office | "new" | null>(null);
+  const replaceOperator = useReplaceOperator();
+  const offices = operator.offices;
   const section = useRef<HTMLElement>(null);
   useHashTarget(["#sportelli"], section);
   // From «Completa lo sportello»: with a single office there is nothing to choose, open it.
@@ -29,7 +31,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
     setEditing(target);
   };
   useOpenOnHash("#sportelli", () => {
-    const [only, ...others] = operator.offices;
+    const [only, ...others] = offices;
     if (!only || others.length) return false;
     setLinked(true);
     setEditing(only);
@@ -50,7 +52,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
         }
       />
       <ul className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
-        {operator.offices.map((office) => (
+        {offices.map((office) => (
           <li key={office.id} className="flex items-center gap-4 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{office.name}</p>
@@ -59,7 +61,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
               </p>
             </div>
             <Button
-              ref={operator.offices.length === 1 ? editButton : undefined}
+              ref={offices.length === 1 ? editButton : undefined}
               variant="ghost"
               size="sm"
               onClick={() => edit(office)}
@@ -81,8 +83,17 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
         {editing !== null && (
           <OfficeForm
             office={editing === "new" ? null : editing}
-            onSaved={() => {
+            onSaved={(office) => {
               setEditing(null);
+              // The saved office goes into the profile now, not when the reload below answers:
+              // reopened before then, the form showed (and saved back) the old values, and the
+              // name check ran against the old names.
+              replaceOperator({
+                ...operator,
+                offices: offices.some((o) => o.id === office.id)
+                  ? offices.map((o) => (o.id === office.id ? office : o))
+                  : [...offices, office],
+              });
               onChanged();
             }}
           />
@@ -95,7 +106,13 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
 const officeDetails = (office: Office) =>
   [officePlace(office), office.phone, office.openingHours].filter(Boolean).join(" · ");
 
-function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () => void }) {
+function OfficeForm({
+  office,
+  onSaved,
+}: {
+  office: Office | null;
+  onSaved: (office: Office) => void;
+}) {
   const { offices } = useOperator();
   // Citizens pick their office by name: two with the same one would be indistinguishable.
   const takenNames = new Set(
@@ -133,11 +150,12 @@ function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () =>
     setPending(true);
     setFormError(null);
     try {
-      await apiFetch(office ? `/api/offices/${office.id}` : "/api/offices", {
-        method: office ? "PATCH" : "POST",
-        body: input,
-      });
-      onSaved();
+      onSaved(
+        await apiFetch<Office>(office ? `/api/offices/${office.id}` : "/api/offices", {
+          method: office ? "PATCH" : "POST",
+          body: input,
+        }),
+      );
     } catch (error) {
       setFormError(
         error instanceof ApiRequestError ? error.message : "Salvataggio non riuscito. Riprova.",

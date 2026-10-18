@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { finishInterview, startCase } from "./helpers";
+import { finishInterview, holdScripts, loseReply, startCase } from "./helpers";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
@@ -69,8 +69,7 @@ test("sending again after a lost reply opens the sent case", async ({ page }) =>
   let attempts = 0;
   await page.route(/\/submit$/, async (route) => {
     if (++attempts > 1) return route.fallback();
-    await route.fetch();
-    await route.abort("internetdisconnected");
+    await loseReply(route);
   });
   await sendCase(page);
   await expect(page.getByText("Connessione assente. Controlla la rete e riprova.")).toBeVisible();
@@ -89,8 +88,7 @@ test("confirming again after a lost reply does not leave the card stuck", async 
   let attempts = 0;
   await page.route(/\/conversation\/confirm$/, async (route) => {
     if (++attempts > 1) return route.fallback();
-    await route.fetch();
-    await route.abort("internetdisconnected");
+    await loseReply(route);
   });
   await confirm.click();
   await expect(page.getByText("Connessione assente. Controlla la rete e riprova.")).toBeVisible();
@@ -182,4 +180,44 @@ test("trying again after a failed first load shows that it is loading", async ({
   await expect(page.getByRole("status").filter({ hasText: "Caricamento…" })).toBeAttached();
   release();
   await expect(page.getByLabel("Cosa devi fare?")).toBeVisible();
+});
+
+test("choices made before the page is interactive are kept, and «Inizia» still starts", async ({
+  page,
+}) => {
+  const release = await holdScripts(page);
+  await page.goto("/s/demo-milano-centro", { waitUntil: "domcontentloaded" });
+  // Chosen and sent while only the server's HTML is there: React's state still says Italian
+  // and no consent.
+  await page.getByText("English", { exact: true }).click();
+  await page.getByLabel(/Ho letto l'informativa/).check();
+  await page.getByRole("button", { name: "Inizia" }).click();
+
+  const started = page.waitForRequest((r) => r.url().endsWith("/api/intake"), { timeout: 30_000 });
+  release();
+  expect((await started).postDataJSON()).toMatchObject({ language: "en", privacyAccepted: true });
+  await page.waitForURL(/\/pratica\//);
+});
+
+test("a language picked before the page is interactive survives a start that fails", async ({
+  page,
+}) => {
+  const release = await holdScripts(page);
+  let attempts = 0;
+  await page.route(/\/api\/intake$/, (route) =>
+    ++attempts === 1 ? route.abort("internetdisconnected") : route.fallback(),
+  );
+  await page.goto("/s/demo-milano-centro", { waitUntil: "domcontentloaded" });
+  await page.getByText("English", { exact: true }).click();
+  await page.getByLabel(/Ho letto l'informativa/).check();
+  await page.getByRole("button", { name: "Inizia" }).click();
+  release();
+
+  // The failure is told in English and the page stays in English for the second try.
+  await expect(page.getByText("No connection. Check your network and try again.")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  const started = page.waitForRequest((r) => r.url().endsWith("/api/intake"));
+  await page.getByRole("button", { name: "Start" }).click();
+  expect((await started).postDataJSON()).toMatchObject({ language: "en" });
+  await page.waitForURL(/\/pratica\//);
 });

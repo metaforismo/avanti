@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { logIn, openFirstCaseInReview } from "./helpers";
+import { logIn, openCase, submittedCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -46,7 +46,13 @@ test("a new link for an invited family asks first", async ({ page }) => {
 
 test("the desk withdraws a family's renewal reminder from the dossier", async ({ page }) => {
   await logIn(page, DEMO);
-  await openFirstCaseInReview(page);
+  // Its own case: withdrawing a demo family's reminder would change the renewals other tests read.
+  const { id } = await submittedCase(
+    page,
+    { firstName: "Avviso", lastName: "Revocato" },
+    { files: 0 },
+  );
+  await openCase(page, id);
   await page.getByRole("button", { name: /Altro/ }).click();
   await page.getByRole("menuitem", { name: "Revoca l'avviso di rinnovo…" }).click();
   const ask = page.getByRole("dialog", { name: "Revocare l'avviso di rinnovo?" });
