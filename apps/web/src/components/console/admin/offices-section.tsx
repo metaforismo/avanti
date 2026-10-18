@@ -18,6 +18,14 @@ import { focusFirstError, text } from "@/lib/validation";
 export function OfficesSection({ onChanged }: { onChanged: () => void }) {
   const operator = useOperator();
   const [editing, setEditing] = useState<Office | "new" | null>(null);
+  // What the server answered to a save, until the reloaded profile brings it: opening the
+  // office again before then would show, and save back, the values from before the change.
+  const [saved, setSaved] = useState<{ base: Office[]; byId: Map<string, Office> }>(() => ({
+    base: operator.offices,
+    byId: new Map(),
+  }));
+  const fresh = saved.base === operator.offices ? saved.byId : null;
+  const offices = fresh ? operator.offices.map((o) => fresh.get(o.id) ?? o) : operator.offices;
   const section = useRef<HTMLElement>(null);
   useHashTarget(["#sportelli"], section);
   // From «Completa lo sportello»: with a single office there is nothing to choose, open it.
@@ -29,7 +37,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
     setEditing(target);
   };
   useOpenOnHash("#sportelli", () => {
-    const [only, ...others] = operator.offices;
+    const [only, ...others] = offices;
     if (!only || others.length) return false;
     setLinked(true);
     setEditing(only);
@@ -50,7 +58,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
         }
       />
       <ul className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
-        {operator.offices.map((office) => (
+        {offices.map((office) => (
           <li key={office.id} className="flex items-center gap-4 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{office.name}</p>
@@ -59,7 +67,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
               </p>
             </div>
             <Button
-              ref={operator.offices.length === 1 ? editButton : undefined}
+              ref={offices.length === 1 ? editButton : undefined}
               variant="ghost"
               size="sm"
               onClick={() => edit(office)}
@@ -81,8 +89,12 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
         {editing !== null && (
           <OfficeForm
             office={editing === "new" ? null : editing}
-            onSaved={() => {
+            onSaved={(office) => {
               setEditing(null);
+              setSaved({
+                base: operator.offices,
+                byId: new Map(fresh ?? []).set(office.id, office),
+              });
               onChanged();
             }}
           />
@@ -95,7 +107,13 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
 const officeDetails = (office: Office) =>
   [officePlace(office), office.phone, office.openingHours].filter(Boolean).join(" · ");
 
-function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () => void }) {
+function OfficeForm({
+  office,
+  onSaved,
+}: {
+  office: Office | null;
+  onSaved: (office: Office) => void;
+}) {
   const { offices } = useOperator();
   // Citizens pick their office by name: two with the same one would be indistinguishable.
   const takenNames = new Set(
@@ -133,11 +151,12 @@ function OfficeForm({ office, onSaved }: { office: Office | null; onSaved: () =>
     setPending(true);
     setFormError(null);
     try {
-      await apiFetch(office ? `/api/offices/${office.id}` : "/api/offices", {
-        method: office ? "PATCH" : "POST",
-        body: input,
-      });
-      onSaved();
+      onSaved(
+        await apiFetch<Office>(office ? `/api/offices/${office.id}` : "/api/offices", {
+          method: office ? "PATCH" : "POST",
+          body: input,
+        }),
+      );
     } catch (error) {
       setFormError(
         error instanceof ApiRequestError ? error.message : "Salvataggio non riuscito. Riprova.",
