@@ -148,6 +148,9 @@ test("an administrator adds a colleague straight from the first steps", async ({
   await expect(page.getByRole("button", { name: "Aggiungi operatore" })).toBeFocused();
   // Opened once: a reload shows the page, not the form again.
   await expect(page).toHaveURL(/\/console\/impostazioni$/);
+  // The settings page may still be loading its operators: a handler cut short by the end of
+  // the test fails the next test in the worker.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
 for (const gate of [
@@ -168,7 +171,8 @@ for (const gate of [
     await expect(page.getByRole("heading", { name: gate.heading })).toBeVisible();
     await page.getByRole("button", { name: "Esci" }).click();
     await expect(page).toHaveURL(/\/console\/accedi/);
-    await page.unroute(/\/api\/auth\/me$/);
+    // Waits for a reload of the profile still in flight, or its handler outlives the test.
+    await page.unrouteAll({ behavior: "wait" });
     expect((await page.request.get("/api/auth/me")).status()).toBe(401);
   });
 }
