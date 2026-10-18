@@ -29,12 +29,20 @@ export function RemainingQuestions({
   );
 }
 
+/**
+ * A floor this high reads as a long road and says little: what lies behind «at least 16» can be
+ * 16 questions or 400 (one per person, per account). Until it gets small the line says how the
+ * questions come instead; the bar still shows the way done.
+ */
+const OPEN_FLOOR = 8;
+
 /** "At least 3" or "3–5" questions left. In a range the noun agrees with the last number. */
 function rangeText(
   remaining: { min: number; max: number; atLeast?: boolean },
   language: Language,
   m: Widen<CitizenMessages>,
 ) {
+  if (remaining.atLeast && remaining.min > OPEN_FLOOR) return m.interview.remainingOpen;
   return remaining.atLeast
     ? plural(language, remaining.min, m.interview.remainingAtLeast)
     : plural(language, remaining.max, m.interview.remainingRange, {
