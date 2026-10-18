@@ -40,7 +40,13 @@ test("the new practice can be created before the list of practices arrives", asy
     await route.fallback();
   });
   await logIn(page, ADMIN);
-  await openFirstReadyCase(page);
+  // Its own family, as in the test above.
+  const { id } = await submittedCase(
+    page,
+    { firstName: "Famiglia", lastName: "Senza elenco" },
+    { files: 0 },
+  );
+  await openCase(page, id);
   await page.getByRole("button", { name: /Altro/ }).click();
   await page.getByRole("menuitem", { name: "Nuova pratica per questa famiglia…" }).click();
 
