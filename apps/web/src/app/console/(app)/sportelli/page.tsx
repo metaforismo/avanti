@@ -9,6 +9,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { PageContainer, PageHeader } from "@/components/ui/page-header";
 import { QrCode } from "@/components/ui/qr-code";
 import { Skeleton } from "@/components/ui/skeleton";
+import { markFirstStep } from "@/lib/console/first-steps";
 import { officePlace } from "@/lib/office-place";
 import { useOperator } from "@/lib/console/operator-context";
 
@@ -56,7 +57,11 @@ export default function OfficesPage() {
                 <p className="mt-2 truncate font-mono text-xs text-ink-3">{link}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <Link href={`/stampa/${office.slug}`} target="_blank">
+                    <Link
+                      href={`/stampa/${office.slug}`}
+                      target="_blank"
+                      onClick={() => markFirstStep(operator.id, "poster")}
+                    >
                       <Printer className="size-4" aria-hidden />
                       Stampa il cartello
                     </Link>

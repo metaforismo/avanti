@@ -170,7 +170,7 @@ function MetricsView() {
                     href="/console/impostazioni#baseline"
                     className="font-semibold text-stamp underline underline-offset-2"
                   >
-                    Imposta la baseline
+                    Scrivi i minuti per pratica
                   </Link>
                 ) : (
                   "La imposta un amministratore del CAF."

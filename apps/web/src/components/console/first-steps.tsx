@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import type { ReactNode } from "react";
 import type { Route } from "next";
 import type { CaseStatus, OperatorSummary, OrganizationSettings } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,13 @@ import { ProgressBar } from "@/components/ui/progress";
 import {
   firstSteps,
   markFirstStep,
+  showFirstSteps,
   useMarkedFirstSteps,
   type FirstStepKey,
 } from "@/lib/console/first-steps";
 import { useOperator } from "@/lib/console/operator-context";
-import { useResource } from "@/lib/console/use-resource";
+import { useResource, type Resource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
-import { NewCaseDialog } from "./new-case-dialog";
 
 type Action = { label: string; href: Route } | { label: string; onClick: () => void };
 
@@ -41,14 +41,26 @@ type Step = {
   doneAction?: Action;
 };
 
+/** Loading is `undefined`, a failed load `null`: the step then shows as still to do. */
+const loaded = <T, R>(resource: Resource<T>, pick: (data: T) => R) =>
+  resource.data !== null ? pick(resource.data) : resource.status === "error" ? null : undefined;
+
 /**
- * A CAF's first day: nothing has reached the queue yet, so it shows how to set up the office and
- * get the first dossier, with what is already done ticked off and the next step in front.
+ * A CAF's first day: nothing is waiting in the queue yet, so it shows how to set up the office
+ * and get the first dossier, with what is already done ticked off and the next step in front.
+ * When the first day is over it shows `fallback`, the queue's ordinary empty state.
  */
-export function FirstSteps({ counts }: { counts: Partial<Record<CaseStatus, number>> }) {
+export function FirstSteps({
+  counts,
+  onNewCase,
+  fallback,
+}: {
+  counts: Partial<Record<CaseStatus, number>>;
+  onNewCase: () => void;
+  fallback: ReactNode;
+}) {
   const operator = useOperator();
   const admin = operator.role === "admin";
-  const [creating, setCreating] = useState(false);
   const marked = useMarkedFirstSteps(operator.id);
   const operators = useResource<OperatorSummary[]>(admin ? "/api/operators" : null);
   const settings = useResource<OrganizationSettings>(admin ? "/api/settings" : null);
@@ -58,11 +70,11 @@ export function FirstSteps({ counts }: { counts: Partial<Record<CaseStatus, numb
     offices: operator.offices,
     mfaEnabled: operator.mfaEnabled,
     counts,
-    operators: operators.data?.length,
-    baselineSet: settings.data ? settings.data.baselineMinutesPerCase !== null : undefined,
+    operators: loaded(operators, (list) => list),
+    baselineSet: loaded(settings, (data) => data.baselineMinutesPerCase !== null),
     marked,
   });
-  const mark = (key: FirstStepKey) => () => markFirstStep(operator.id, key);
+  if (!showFirstSteps(counts, progress)) return fallback;
 
   const STEPS: Record<FirstStepKey, Step> = {
     office: {
@@ -76,7 +88,7 @@ export function FirstSteps({ counts }: { counts: Partial<Record<CaseStatus, numb
       icon: Printer,
       title: "Appendi il cartello in sala d'attesa",
       body: "Un A4 con il QR dello sportello e il titolo in otto lingue.",
-      action: { label: "Stampa il cartello", href: "/console/sportelli" },
+      action: { label: "Vai al cartello", href: "/console/sportelli" },
       doneAction: { label: "Ristampa", href: "/console/sportelli" },
     },
     trial: {
@@ -85,7 +97,7 @@ export function FirstSteps({ counts }: { counts: Partial<Record<CaseStatus, numb
       body: "Crea una pratica di prova e aprila dal tuo telefono: in dieci minuti vedi quello che vedranno i cittadini.",
       doneBody:
         "La pratica di prova è in «In compilazione»: inviala dal telefono per vedere come arriva il fascicolo.",
-      action: { label: "Crea una pratica di prova", onClick: () => setCreating(true) },
+      action: { label: "Crea una pratica di prova", onClick: onNewCase },
       doneAction: { label: "Apri «In compilazione»", href: "/console?stato=intake" },
     },
     colleagues: {
@@ -99,7 +111,7 @@ export function FirstSteps({ counts }: { counts: Partial<Record<CaseStatus, numb
       icon: Timer,
       title: "Misura i tempi di oggi",
       body: "Quanti minuti richiede una pratica senza Avanti? Serve alle metriche per confrontare.",
-      action: { label: "Imposta la baseline", href: "/console/impostazioni#baseline" },
+      action: { label: "Scrivi i minuti per pratica", href: "/console/impostazioni#baseline" },
       doneAction: { label: "Modifica", href: "/console/impostazioni#baseline" },
     },
     mfa: {
@@ -116,26 +128,23 @@ export function FirstSteps({ counts }: { counts: Partial<Record<CaseStatus, numb
       doneAction: { label: "Riapri", href: "/console/aiuto" },
     },
   };
-  // Marked on click: printing and reading leave no trace Avanti could check.
+  // Reading leaves no trace Avanti could check. The sign is ticked by the print link itself.
   const onFollow: Partial<Record<FirstStepKey, () => void>> = {
-    poster: mark("poster"),
-    guide: mark("guide"),
+    guide: () => markFirstStep(operator.id, "guide"),
   };
 
-  const next = progress.steps.find((step) => !step.done)?.key;
-  const total = progress.steps.length;
+  const { next, total } = progress;
+  const lead = !progress.known
+    ? "I fascicoli inviati dai cittadini arriveranno qui."
+    : !next
+      ? "Tutto pronto. I fascicoli arriveranno qui appena un cittadino li invia."
+      : admin
+        ? "I fascicoli inviati dai cittadini arriveranno qui. Intanto prepara lo sportello, un passo alla volta."
+        : "I fascicoli inviati dai cittadini arriveranno qui. Intanto, quattro passi per partire.";
 
   return (
     <section aria-labelledby="first-steps" className="rounded-lg bg-surface p-6 ring-1 ring-line">
-      <SectionHeader
-        id="first-steps"
-        title="Per iniziare"
-        lead={
-          next
-            ? "I fascicoli inviati dai cittadini arriveranno qui. Intanto prepara lo sportello, un passo alla volta."
-            : "Tutto pronto. I fascicoli arriveranno qui appena un cittadino li invia."
-        }
-      />
+      <SectionHeader id="first-steps" title="Per iniziare" lead={lead} />
       {/* Hidden while a fact is loading: a count that jumps reads as an error. */}
       <div className={cn("mt-4 flex items-center gap-3", !progress.known && "invisible")}>
         <ProgressBar
@@ -207,7 +216,6 @@ export function FirstSteps({ counts }: { counts: Partial<Record<CaseStatus, numb
           oppure premi <kbd className="font-sans font-semibold">?</kbd> per le scorciatoie.
         </p>
       )}
-      <NewCaseDialog open={creating} onOpenChange={setCreating} />
     </section>
   );
 }

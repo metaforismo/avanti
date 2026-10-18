@@ -23,6 +23,7 @@ import type {
 } from "@avanti/contracts";
 import { ASSIGN_CASES_MAX, PRACTICE_IDS } from "@avanti/contracts/constants";
 import { FirstSteps } from "@/components/console/first-steps";
+import { NewCaseDialog } from "@/components/console/new-case-dialog";
 import { casesLabel, QueueAssign } from "@/components/console/queue-assign";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -41,7 +42,7 @@ import {
   timeAgo,
   type Tone,
 } from "@/lib/console/labels";
-import { isFirstDay } from "@/lib/console/first-steps";
+import { queueIsIdle } from "@/lib/console/first-steps";
 import { useOperator } from "@/lib/console/operator-context";
 import { rememberQueue } from "@/lib/console/recent-cases";
 import { QUEUE_SEARCH_MAX, readQueueParams, uniqueById } from "@/lib/console/queue-params";
@@ -122,6 +123,8 @@ function Queue() {
     cursor: string | null;
   } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Owned here, not by the first steps: the panel may give way while the dialog is open.
+  const [creatingTrial, setCreatingTrial] = useState(false);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
   // Tied to the query: changing tab or filter drops a selection the admin can no longer see.
   const [selection, setSelection] = useState<{ query: string; ids: Set<string> }>({
@@ -189,7 +192,19 @@ function Queue() {
     void list.reload();
   }
 
-  const firstDay = isFirstDay(counts);
+  const emptyQueue = (
+    <EmptyQueue
+      status={status}
+      filtered={filtered}
+      onClearFilters={() => {
+        setSearch("");
+        router.replace(
+          (status === "submitted" ? "/console" : `/console?stato=${status}`) as Route,
+          { scroll: false },
+        );
+      }}
+    />
+  );
 
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
@@ -432,20 +447,14 @@ function Queue() {
         ) : list.status === "loading" && !list.data ? (
           <QueueSkeleton />
         ) : items.length === 0 ? (
-          firstDay && counts && !filtered ? (
-            <FirstSteps counts={counts} />
-          ) : (
-            <EmptyQueue
-              status={status}
-              filtered={filtered}
-              onClearFilters={() => {
-                setSearch("");
-                router.replace(
-                  (status === "submitted" ? "/console" : `/console?stato=${status}`) as Route,
-                  { scroll: false },
-                );
-              }}
+          queueIsIdle(counts) && counts && !filtered ? (
+            <FirstSteps
+              counts={counts}
+              onNewCase={() => setCreatingTrial(true)}
+              fallback={emptyQueue}
             />
+          ) : (
+            emptyQueue
           )
         ) : (
           <>
@@ -526,6 +535,7 @@ function Queue() {
           onDone={assignmentDone}
         />
       )}
+      <NewCaseDialog open={creatingTrial} onOpenChange={setCreatingTrial} />
     </PageContainer>
   );
 }
