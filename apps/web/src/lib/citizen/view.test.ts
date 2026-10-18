@@ -64,40 +64,13 @@ describe("askedBefore", () => {
 });
 
 describe("splitRequest", () => {
-  const item = (id: string, title: string, memberName: string | null = null) =>
-    ({ id, title, memberName }) as ChecklistItem;
-  const checklist = [
-    item("a", "Documento d'identità", "Maria"),
-    item("b", "Documento d'identità", "Luca"),
-    item("c", "Contratto d'affitto"),
-  ];
+  const item = (id: string, status: ChecklistItem["status"]) =>
+    ({ id, title: "Documento d'identità", memberName: "Ana", status }) as ChecklistItem;
 
-  it("turns the trailing item lines into links, in order", () => {
-    const { body, items } = splitRequest(
-      "La foto è sfocata.\nContratto d'affitto\nDocumento d'identità · Luca",
-      checklist,
-    );
-    expect(body).toBe("La foto è sfocata.");
-    expect(items.map((i) => i.id)).toEqual(["c", "b"]);
-  });
-
-  it("keeps a message that names no item as it is", () => {
-    expect(splitRequest("Passa allo sportello.\nGrazie", checklist)).toEqual({
-      body: "Passa allo sportello.\nGrazie",
-      items: [],
-    });
-  });
-
-  it("does not take an item named in the middle of the message", () => {
-    const { body, items } = splitRequest("Contratto d'affitto\nmanca la seconda pagina", checklist);
-    expect(body).toBe("Contratto d'affitto\nmanca la seconda pagina");
-    expect(items).toEqual([]);
-  });
-
-  it("handles a request made only of items", () => {
-    expect(splitRequest("Contratto d'affitto", checklist)).toEqual({
-      body: "",
-      items: [checklist[2]],
-    });
+  it("links a line two relatives share to the card the office rejected", () => {
+    const checklist = [item("verified", "verified"), item("rejected", "rejected")];
+    const { body, items } = splitRequest("Rifalla.\nDocumento d'identità · Ana", checklist);
+    expect(body).toBe("Rifalla.");
+    expect(items.map((i) => i.id)).toEqual(["rejected"]);
   });
 });

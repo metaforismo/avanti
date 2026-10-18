@@ -4,6 +4,7 @@ import type {
   CitizenCase,
   ConversationTurn,
 } from "@avanti/contracts";
+import { splitRequestLabels } from "@avanti/core/request-labels";
 
 /** Checklist states that need nothing more from the citizen. */
 export const DONE_STATUSES: ReadonlySet<ChecklistStatus> = new Set([
@@ -104,24 +105,10 @@ export function askedBefore(
   return answered.find((item) => item.questionId === turn.questionId)?.question ?? null;
 }
 
-/** How a checklist item is named in an office request: «Documento d'identità · Maria». */
-export function itemLabel(item: Pick<ChecklistItem, "title" | "memberName">) {
-  return item.memberName ? `${item.title} · ${item.memberName}` : item.title;
-}
-
 /**
  * An office request ends with one line per item it asks for: those lines become links to the
  * item, so the citizen does not hunt for it among the others. Lines that name no item stay text.
  */
 export function splitRequest(text: string, checklist: ChecklistItem[]) {
-  const lines = text.split("\n");
-  const items: ChecklistItem[] = [];
-  while (lines.length > 0) {
-    const line = lines.at(-1)!.trim();
-    const item = checklist.find((candidate) => itemLabel(candidate) === line);
-    if (!item || items.includes(item)) break;
-    items.unshift(item);
-    lines.pop();
-  }
-  return { body: lines.join("\n").trim(), items };
+  return splitRequestLabels(text, checklist, (item) => item.status === "rejected");
 }

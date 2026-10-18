@@ -211,8 +211,9 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
-    /* Sticky headers (citizen: header + steps + offline banner) and the fixed documents bar. */
-    scroll-padding-top: 9rem;
+    /* Sticky headers and the fixed documents bar. The citizen header publishes its height, which
+       changes with the language and the offline line. */
+    scroll-padding-top: calc(var(--citizen-header, 8rem) + 1rem);
     scroll-padding-bottom: 8rem;
     -webkit-tap-highlight-color: transparent;
   }

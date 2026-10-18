@@ -7,7 +7,7 @@ import {
   type CitizenHandoffItem,
   type Language,
 } from "@avanti/contracts";
-import { genericChecklistTitle } from "@avanti/core";
+import { genericChecklistTitle, splitRequestLabels } from "@avanti/core";
 import { body, parse, type App, type Services } from "./context";
 import { audit, caseById, citizenView, loadViewData, type CaseRow } from "./dossier";
 
@@ -28,15 +28,10 @@ function catalogTitle(row: CaseRow, item: ChecklistItem, language: Language) {
     : null;
 }
 
-/** As the request route appends them to the message, one per line. */
-const label = (item: ChecklistItem) =>
-  `${item.title}${item.memberName ? ` · ${item.memberName}` : ""}`;
-
 /** The message without the item list appended under it: the sheet prints the items itself. */
-function withoutLabels(text: string, labels: Set<string>) {
-  const lines = text.split("\n");
-  while (lines.length > 1 && labels.has(lines.at(-1)!.trim())) lines.pop();
-  return lines.join("\n").trim();
+function withoutLabels(text: string, checklist: ChecklistItem[]) {
+  // A request made only of items keeps its first line rather than printing nothing.
+  return splitRequestLabels(text, checklist).body || text.split("\n")[0]!.trim();
 }
 
 /**
@@ -78,11 +73,11 @@ export async function citizenHandoff(
     row.status === "needs_citizen"
       ? local.messages.findLast((m) => m.role === "operator")
       : undefined;
-  const labels = new Set([...local.checklist, ...it.checklist].map(label));
+  const labelled = [...local.checklist, ...it.checklist];
   const request = asked
     ? {
-        text: withoutLabels(asked.text, labels),
-        textIt: withoutLabels(asked.originalText ?? asked.text, labels),
+        text: withoutLabels(asked.text, labelled),
+        textIt: withoutLabels(asked.originalText ?? asked.text, labelled),
       }
     : null;
   return CitizenHandoff.parse({

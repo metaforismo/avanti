@@ -29,7 +29,8 @@ import { useChanged } from "@/components/ui/use-changed";
 import { errorMessage, plural, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
-import { DONE_STATUSES, itemLabel, splitRequest } from "@/lib/citizen/view";
+import { DONE_STATUSES, splitRequest } from "@/lib/citizen/view";
+import { requestLabel } from "@avanti/core/request-labels";
 import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
 import { PhotoTips } from "./photo-tips";
@@ -48,8 +49,9 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
   const sections = groupByMember(data.checklist, m);
   const request = operatorMessage ? splitRequest(operatorMessage.text, data.checklist) : null;
 
-  // A waiting-room connection comes and goes: what failed for lack of it is sent again as soon
-  // as it is back, without a tap the citizen may not know they need.
+  // A waiting-room connection comes and goes: when the browser says it is back, what failed while
+  // it was away is sent again without a tap the citizen may not know they need. A stall on a Wi-Fi
+  // that never dropped still needs «Riprova».
   const uploads = api.uploads;
   const { retryUpload } = api;
   useEffect(() => {
@@ -118,9 +120,13 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
                     className="flex min-h-12 w-full items-center gap-3 rounded-md bg-surface px-4 py-2.5 text-start font-semibold text-ink ring-1 ring-warn/30 transition-transform ring-inset active:scale-[0.98]"
                   >
                     <span dir="auto" className="min-w-0 flex-1">
-                      {itemLabel(item)}
+                      {requestLabel(item)}
                     </span>
-                    <ArrowDown className="size-5 shrink-0 text-warn" aria-hidden />
+                    {DONE_STATUSES.has(item.status) ? (
+                      <Check className="size-5 shrink-0 text-ok" aria-hidden />
+                    ) : (
+                      <ArrowDown className="size-5 shrink-0 text-warn" aria-hidden />
+                    )}
                   </button>
                 </li>
               ))}
@@ -242,9 +248,23 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
 
 const itemId = (id: string) => `item-${id}`;
 
+/**
+ * Brings a card under the sticky header and gives it focus, so a screen reader reads it next.
+ * The card is focusable only for this jump: a card that always is would show a ring on every tap.
+ */
 function showItem(id: string) {
   const card = document.getElementById(itemId(id));
   if (!card) return;
+  card.tabIndex = -1;
+  card.dataset.jumped = "";
+  card.addEventListener(
+    "blur",
+    () => {
+      card.removeAttribute("tabindex");
+      delete card.dataset.jumped;
+    },
+    { once: true },
+  );
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   card.scrollIntoView({ block: "start", behavior: still ? "auto" : "smooth" });
   card.focus({ preventScroll: true });
@@ -324,9 +344,9 @@ function ChecklistCard({
   return (
     <li
       id={itemId(item.id)}
-      tabIndex={-1}
+      aria-labelledby={`${itemId(item.id)}-title`}
       className={cn(
-        "scroll-mt-36 rounded-lg bg-surface p-4 ring-1 transition-shadow outline-none focus:ring-2 focus:ring-stamp sm:p-5",
+        "rounded-lg bg-surface p-4 ring-1 transition-shadow outline-none data-jumped:ring-2 data-jumped:ring-stamp sm:p-5",
         item.status === "rejected" || item.status === "issue" ? "ring-warn/40" : "ring-line",
         done && "bg-surface/70",
       )}
@@ -334,7 +354,9 @@ function ChecklistCard({
       {/* On narrow phones the badge drops below the title instead of squeezing it. */}
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="min-w-0 grow basis-52">
-          <h3 className="text-lg leading-snug font-semibold">{item.title}</h3>
+          <h3 id={`${itemId(item.id)}-title`} className="text-lg leading-snug font-semibold">
+            {item.title}
+          </h3>
           {!item.required && <p className="mt-0.5 text-sm text-ink-3">{m.docs.optional}</p>}
         </div>
         <StatusBadge item={item} m={m} />

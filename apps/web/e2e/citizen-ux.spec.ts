@@ -101,13 +101,24 @@ test("an office request links to the document it asks for", async ({ page }) => 
   await page.reload();
   const message = page.getByText("Serve anche il retro, con più luce.", { exact: true });
   await expect(message).toBeVisible();
-  const link = page.getByRole("button", { name: new RegExp(`^${item.title}`) }).first();
+  const escaped = item.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const link = page.getByRole("button", { name: new RegExp(`^${escaped}`) }).first();
   await expect(link).toBeVisible();
   await link.click();
-  // The item's card comes into view and takes focus, below the sticky header.
+  // The item's card comes into view and takes focus (named by its title), below the sticky
+  // header, and stops being focusable once the citizen moves on.
   const target = page.locator(":focus");
-  await expect(target).toContainText(item.title);
+  await expect(target).toHaveAccessibleName(item.title);
   await expect(target).toBeInViewport();
+  await expect
+    .poll(async () => {
+      const header = await page.getByRole("banner").boundingBox();
+      const card = await target.boundingBox();
+      return card && header ? card.y - (header.y + header.height) : -1;
+    })
+    .toBeGreaterThanOrEqual(0);
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(page.locator("li[tabindex]")).toHaveCount(0);
 });
 
 test("an upload lost with the connection is sent again once it is back", async ({

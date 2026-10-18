@@ -3,6 +3,7 @@
 import { Check, CheckCheck, ChevronDown, Eye, FileSearch, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import type { CaseDossier } from "@avanti/contracts";
+import { requestLabel } from "@avanti/core/request-labels";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
@@ -271,10 +272,7 @@ function Accepted({
                   <span className="tabular grid size-5 shrink-0 place-items-center rounded-full bg-sunk text-xs font-semibold text-ink-2">
                     {index + 1}
                   </span>
-                  <span
-                    className="min-w-0 flex-1 truncate"
-                    title={item.memberName ? `${item.title} · ${item.memberName}` : item.title}
-                  >
+                  <span className="min-w-0 flex-1 truncate" title={requestLabel(item)}>
                     {item.title}
                     {item.memberName && <span className="text-ink-3"> · {item.memberName}</span>}
                   </span>
