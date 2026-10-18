@@ -1,7 +1,16 @@
 "use client";
 
-import { ArrowRight, Check, FileText, Image as ImageIcon, RotateCcw, X } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  ArrowRight,
+  Check,
+  Download,
+  FileText,
+  Image as ImageIcon,
+  RotateCcw,
+  X,
+} from "lucide-react";
+import { plural } from "@avanti/core/plural";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type {
   CaseDossier,
   ChecklistItem,
@@ -11,7 +20,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
-import { CHECKLIST_STATUS, DECIDED } from "@/lib/console/labels";
+import { CHECKLIST_STATUS, DECIDED, formatBytes } from "@/lib/console/labels";
 import { useChanged } from "@/components/ui/use-changed";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
@@ -70,6 +79,8 @@ export function ChecklistSection({
                 <ArrowRight className="rtl-flip size-4" aria-hidden />
               </Button>
             )}
+            {/* Quieter while there is still something to check: verifying comes first. */}
+            <ArchiveButton archive={actions.archive} quiet={firstToCheck !== undefined} />
           </>
         }
       />
@@ -111,6 +122,52 @@ export function ChecklistSection({
         )}
       </div>
     </section>
+  );
+}
+
+/** What the ZIP will hold, said before the download so nobody is surprised by what is missing. */
+function archiveSummary({ plan }: DossierActions["archive"]) {
+  const parts = [
+    `${plural("it", plan.entries.length, { one: "{n} documento", other: "{n} documenti" })} in un file ZIP (${formatBytes(plan.totalBytes)}), nell'ordine del fascicolo`,
+  ];
+  if (plan.unverified)
+    parts.push(
+      plural("it", plan.unverified, {
+        one: "{n} non ancora verificato",
+        other: "{n} non ancora verificati",
+      }),
+    );
+  if (plan.excluded)
+    parts.push(
+      plural("it", plan.excluded, {
+        one: "escluso {n} rifiutato o non necessario",
+        other: "esclusi {n} rifiutati o non necessari",
+      }),
+    );
+  return `${parts.join(". ")}.`;
+}
+
+function ArchiveButton({ archive, quiet }: { archive: DossierActions["archive"]; quiet: boolean }) {
+  const id = useId();
+  if (!archive.plan.entries.length) return null;
+  const summary = archiveSummary(archive);
+  return (
+    <>
+      <Button
+        variant={quiet ? "ghost" : "secondary"}
+        size="sm"
+        loading={archive.pending}
+        title={summary}
+        aria-describedby={id}
+        onClick={() => void archive.download()}
+      >
+        <Download className="size-4" aria-hidden />
+        Scarica tutti
+      </Button>
+      <span id={id} hidden>
+        {summary}
+      </span>
+    </>
   );
 }
 

@@ -29,6 +29,7 @@ const QUESTIONS: { label: string; action?: AuditAction }[] = [
   { label: "Elenchi documenti stampati", action: "citizen.checklist_printed" },
   { label: "Rapporti del pilota", action: "pilot_report.exported" },
   { label: "Documenti scaricati", action: "document.downloaded" },
+  { label: "Documenti scaricati in ZIP", action: "documents.archive_downloaded" },
   { label: "Link rigenerati", action: "case.link_regenerated" },
   { label: "Promemoria ai cittadini", action: "citizen.reminder_sent" },
   { label: "Cancellazioni definitive", action: "case.deleted" },

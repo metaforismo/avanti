@@ -195,9 +195,26 @@ anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è ac
 | POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`   | `CaseDossier`                                     |
 | GET    | `/cases/:id/export?format=json`          | `ExportFormat` json o pdf     | allegato completo, evento audit di accesso        |
 | GET    | `/cases/:id/documents/:docId/file`       | —                             | allegato autorizzato, evento audit di accesso     |
+| GET    | `/cases/:id/documents/archive`           | `Id`                          | ZIP degli originali, audit senza dati personali   |
 | GET    | `/metrics?from=2027-01-01&to=2027-01-31` | `MetricsQuery`                | `Metrics`                                         |
 
 Una password temporanea scaduta (7 giorni dalla creazione o dal reset) dà 401 con il messaggio «La password temporanea è scaduta…», solo se la password è corretta; altrimenti il messaggio resta quello uniforme. Le richieste JSON oltre 256 KB ricevono 413 «Richiesta troppo grande.».
+
+`GET /cases/:id/documents/archive` restituisce tutti gli originali della pratica in un solo
+ZIP (`application/zip`, `Cache-Control: no-store`), per caricarli nel gestionale del CAF.
+Ordine e nomi vengono da `documentArchivePlan` in `@avanti/core/document-archive`, lo
+stesso che la console usa per dire cosa conterrà: persona per persona come nel fascicolo,
+`NN Persona - Documento (k di n).ext`, al massimo 200 byte UTF-8, senza separatori di
+percorso né caratteri di controllo; i file non abbinati chiudono l'elenco come «Altri
+documenti». Restano fuori i documenti delle voci rifiutate o segnate «non serve». Le voci
+sono «stored» (PDF e foto sono già compressi), nomi UTF-8 (bit 11), date in ora di Roma.
+L'archivio si scrive mentre parte, un file alla volta (al massimo 4 MB in memoria), e non
+viene mai salvato: dopo cancellazione o fine conservazione non c'è nulla da rimuovere. Un
+file illeggibile interrompe il download (meglio di uno ZIP incompleto) e scrive nel log solo
+`op`, ID pratica, ID documento e nome dell'errore. Nessun documento: 404 «In questa pratica
+non ci sono documenti da scaricare.». Audit `documents.archive_downloaded` con `documents`
+e `bytes`, registrato prima del primo byte. Limite: 6/minuto e 60/ora per operatore,
+60/minuto per IP fidato.
 
 Ogni accesso è filtrato per organizzazione della sessione. Sedi, assegnatari e documenti
 di altri tenant restituiscono 404. Operatore vede sempre italiano nei testi di dominio;

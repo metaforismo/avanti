@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMinutes, timeAgo } from "./labels";
+import { formatBytes, formatMinutes, timeAgo } from "./labels";
 
 describe("formatMinutes", () => {
   it.each([
@@ -11,6 +11,20 @@ describe("formatMinutes", () => {
     [95, "1 h 35 min"],
   ])("%s → %s", (input, expected) => {
     expect(formatMinutes(input)).toBe(expected);
+  });
+});
+
+describe("formatBytes", () => {
+  it.each([
+    [0, "0 byte"],
+    [999, "999 byte"],
+    [1499, "1 kB"],
+    [999_499, "999 kB"],
+    [1_000_000, "1 MB"],
+    [12_449_000, "12,4 MB"],
+    [120_000_000, "120 MB"],
+  ])("%s → %s", (input, expected) => {
+    expect(formatBytes(input)).toBe(expected);
   });
 });
 

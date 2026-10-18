@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./demo-stories": "./src/demo-stories.ts",
+    "./document-archive": "./src/document-archive.ts",
     "./plural": "./src/plural.ts",
     "./readiness": "./src/readiness.ts",
     "./request-labels": "./src/request-labels.ts"

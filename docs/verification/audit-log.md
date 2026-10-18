@@ -73,55 +73,56 @@ non è stato modificato da questa attività backend.
 
 ## Testi delle azioni
 
-| Codice                      | Testo italiano                                     |
-| --------------------------- | -------------------------------------------------- |
-| `privacy.accepted`          | Presa visione dell’informativa registrata          |
-| `case.created`              | Fascicolo aperto                                   |
-| `case.viewed`               | Fascicolo consultato dall’operatore                |
-| `case.link_created`         | Link cittadino creato dall'operatore               |
-| `case.link_regenerated`     | Link cittadino rigenerato dall'operatore           |
-| `answer.updated`            | Risposte aggiornate dal cittadino                  |
-| `answer.edited`             | Risposta precedente modificata                     |
-| `language.updated`          | Lingua aggiornata                                  |
-| `review.started`            | Revisione iniziata                                 |
-| `review.completed`          | Revisione completata dall'operatore                |
-| `citizen.requested`         | Integrazione richiesta al cittadino                |
-| `document.uploaded`         | Documento caricato                                 |
-| `document.analyzed`         | Analisi documento completata                       |
-| `document.reassigned`       | Abbinamento documento modificato                   |
-| `document.deleted`          | Documento eliminato                                |
-| `document.downloaded`       | Documento consultato                               |
-| `case.submitted`            | Fascicolo inviato al CAF                           |
-| `checklist.reviewed`        | Voce della checklist revisionata                   |
-| `case.requested`            | Integrazione richiesta al cittadino                |
-| `case.in_review`            | Fascicolo in revisione                             |
-| `case.needs_citizen`        | In attesa del cittadino                            |
-| `case.reopened`             | Fascicolo riaperto                                 |
-| `case.assigned`             | Assegnazione aggiornata                            |
-| `case.note_updated`         | Nota interna aggiornata                            |
-| `checklist.verified`        | Documento verificato                               |
-| `checklist.rejected`        | Nuovo documento richiesto                          |
-| `checklist.waived`          | Documento non necessario: motivo registrato        |
-| `checklist.reset`           | Verifica annullata                                 |
-| `case.ready`                | Fascicolo pronto per il gestionale                 |
-| `case.closed`               | Fascicolo chiuso                                   |
-| `case.exported`             | Fascicolo esportato                                |
-| `dsu_sheet.viewed`          | Prospetto DSU consultato                           |
-| `case.deleted`              | Fascicolo cancellato dall’amministratore           |
-| `case.retention_deleted`    | Fascicolo cancellato per fine conservazione        |
-| `auth.login_succeeded`      | Accesso operatore riuscito                         |
-| `auth.login_failed`         | Tentativo di accesso operatore fallito             |
-| `auth.password_changed`     | Password modificata dall’operatore                 |
-| `auth.logged_out`           | Sessione operatore terminata                       |
-| `operator.created`          | Account operatore creato                           |
-| `operator.updated`          | Account operatore aggiornato                       |
-| `operator.deactivated`      | Account operatore disattivato                      |
-| `operator.activated`        | Account operatore riattivato                       |
-| `operator.password_reset`   | Password operatore reimpostata dall’amministratore |
-| `settings.updated`          | Impostazioni dell’organizzazione aggiornate        |
-| `office.created`            | Sportello creato                                   |
-| `office.updated`            | Sportello aggiornato                               |
-| `organization.bootstrapped` | Organizzazione e primo amministratore creati       |
-| `organization.exported`     | Dati dell’organizzazione esportati                 |
-| `audit.exported`            | Registro attività esportato in CSV                 |
-| `activity.recorded`         | Attività registrata                                |
+| Codice                         | Testo italiano                                     |
+| ------------------------------ | -------------------------------------------------- |
+| `privacy.accepted`             | Presa visione dell’informativa registrata          |
+| `case.created`                 | Fascicolo aperto                                   |
+| `case.viewed`                  | Fascicolo consultato dall’operatore                |
+| `case.link_created`            | Link cittadino creato dall'operatore               |
+| `case.link_regenerated`        | Link cittadino rigenerato dall'operatore           |
+| `answer.updated`               | Risposte aggiornate dal cittadino                  |
+| `answer.edited`                | Risposta precedente modificata                     |
+| `language.updated`             | Lingua aggiornata                                  |
+| `review.started`               | Revisione iniziata                                 |
+| `review.completed`             | Revisione completata dall'operatore                |
+| `citizen.requested`            | Integrazione richiesta al cittadino                |
+| `document.uploaded`            | Documento caricato                                 |
+| `document.analyzed`            | Analisi documento completata                       |
+| `document.reassigned`          | Abbinamento documento modificato                   |
+| `document.deleted`             | Documento eliminato                                |
+| `document.downloaded`          | Documento consultato                               |
+| `documents.archive_downloaded` | Documenti scaricati in un unico ZIP                |
+| `case.submitted`               | Fascicolo inviato al CAF                           |
+| `checklist.reviewed`           | Voce della checklist revisionata                   |
+| `case.requested`               | Integrazione richiesta al cittadino                |
+| `case.in_review`               | Fascicolo in revisione                             |
+| `case.needs_citizen`           | In attesa del cittadino                            |
+| `case.reopened`                | Fascicolo riaperto                                 |
+| `case.assigned`                | Assegnazione aggiornata                            |
+| `case.note_updated`            | Nota interna aggiornata                            |
+| `checklist.verified`           | Documento verificato                               |
+| `checklist.rejected`           | Nuovo documento richiesto                          |
+| `checklist.waived`             | Documento non necessario: motivo registrato        |
+| `checklist.reset`              | Verifica annullata                                 |
+| `case.ready`                   | Fascicolo pronto per il gestionale                 |
+| `case.closed`                  | Fascicolo chiuso                                   |
+| `case.exported`                | Fascicolo esportato                                |
+| `dsu_sheet.viewed`             | Prospetto DSU consultato                           |
+| `case.deleted`                 | Fascicolo cancellato dall’amministratore           |
+| `case.retention_deleted`       | Fascicolo cancellato per fine conservazione        |
+| `auth.login_succeeded`         | Accesso operatore riuscito                         |
+| `auth.login_failed`            | Tentativo di accesso operatore fallito             |
+| `auth.password_changed`        | Password modificata dall’operatore                 |
+| `auth.logged_out`              | Sessione operatore terminata                       |
+| `operator.created`             | Account operatore creato                           |
+| `operator.updated`             | Account operatore aggiornato                       |
+| `operator.deactivated`         | Account operatore disattivato                      |
+| `operator.activated`           | Account operatore riattivato                       |
+| `operator.password_reset`      | Password operatore reimpostata dall’amministratore |
+| `settings.updated`             | Impostazioni dell’organizzazione aggiornate        |
+| `office.created`               | Sportello creato                                   |
+| `office.updated`               | Sportello aggiornato                               |
+| `organization.bootstrapped`    | Organizzazione e primo amministratore creati       |
+| `organization.exported`        | Dati dell’organizzazione esportati                 |
+| `audit.exported`               | Registro attività esportato in CSV                 |
+| `activity.recorded`            | Attività registrata                                |

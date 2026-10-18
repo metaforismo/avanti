@@ -1300,6 +1300,7 @@ export const AuditAction = z.enum([
   "document.reassigned",
   "document.deleted",
   "document.downloaded",
+  "documents.archive_downloaded",
   "case.submitted",
   "checklist.reviewed",
   "case.requested",

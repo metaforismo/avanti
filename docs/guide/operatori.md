@@ -173,6 +173,13 @@ indicato. La responsabilità della DSU resta del CAF.
   problemi bloccanti, Avanti chiede conferma e propone prima _Chiedi integrazione_: finché manca
   qualcosa è quello il pulsante principale.
 - _Altro_ → _Scarica fascicolo PDF_ o _Scarica dati JSON_ per il gestionale.
+- **Scarica tutti** accanto a _Documenti_ (o _Altro_ → _Scarica tutti i documenti (ZIP)_):
+  un solo file ZIP con gli originali, nell'ordine del fascicolo e già rinominati per persona
+  e documento, per esempio «03 Mario Rossi - Saldo al 31-12-2025 · Fineco.pdf». Il numero
+  davanti tiene l'ordine nella finestra di scelta del gestionale. Restano fuori i documenti
+  che hai rifiutato o segnato «non serve»; passando sul pulsante vedi quanti file, quanto pesa
+  e quanti non hai ancora verificato. Lo scaricamento entra nel registro attività: lo ZIP
+  contiene documenti d'identità e redditi, cancellalo dal PC quando li hai caricati.
 - _Altro_ → _Chiudi e archivia_ chiede conferma; una pratica chiusa si può riaprire.
 
 ## Rinnovi ISEE
