@@ -5,8 +5,8 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Textarea } from "@/components/ui/field";
-import { format, plural } from "@/lib/citizen/messages";
-import { DONE_STATUSES, STEP_TITLE_ID } from "@/lib/citizen/view";
+import { documentsProgress, format, plural } from "@/lib/citizen/messages";
+import { documentCountsOf, STEP_TITLE_ID, stillToDo } from "@/lib/citizen/view";
 import { isEmail } from "@/lib/validation";
 import { ActionErrorNotice } from "./action-error";
 import type { ContactDraft, StepProps } from "./citizen-app";
@@ -20,7 +20,8 @@ const FOLD_AFTER = MAX_SHOWN + 2;
 export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
   const [errors, setErrors] = useState<Errors>({});
   const [showAllMissing, setShowAllMissing] = useState(false);
-  const missing = data.checklist.filter((item) => item.required && !DONE_STATUSES.has(item.status));
+  const missing = stillToDo(data);
+  const counts = documentCountsOf(data);
   const folded = !showAllMissing && missing.length > FOLD_AFTER;
   const shownMissing = folded ? missing.slice(0, MAX_SHOWN) : missing;
 
@@ -110,10 +111,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
         )}
         <SummaryRow
           label={m.review.documents}
-          value={plural(data.language, data.progress.documentsRequired, m.docs.progress, {
-            done: data.progress.documentsDone,
-            total: data.progress.documentsRequired,
-          })}
+          value={documentsProgress(data.language, counts, m)}
           onEdit={() => goTo("documents")}
           editLabel={m.review.editDocuments}
         />

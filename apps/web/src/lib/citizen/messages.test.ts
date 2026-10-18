@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { LANGUAGES } from "@avanti/contracts/constants";
 import { integerCategories, isPluralForms, type PluralForms } from "@avanti/core/plural";
-import { format, MESSAGES, plural } from "./messages";
+import { documentsProgress, format, MESSAGES, plural } from "./messages";
 
 function leaves(value: unknown, prefix = ""): string[] {
   if (typeof value === "string") return [prefix];
@@ -44,6 +44,8 @@ const INVARIANT: Record<(typeof LANGUAGES)[number], readonly string[]> = {
     "docs.missing",
     "docs.pages",
     "done.bringMore",
+    "docs.inCheck",
+    "docs.allUploaded",
   ],
 };
 
@@ -159,5 +161,16 @@ describe("documents counter", () => {
     expect(plural(language, total, MESSAGES[language].docs.progress, { done, total })).toBe(
       expected,
     );
+  });
+
+  it("names the documents still being read next to the ready ones", () => {
+    const counts = { required: 7, ready: 2, checking: 1, todo: 4 };
+    expect(documentsProgress("it", counts, MESSAGES.it)).toBe("2 di 7 pronti · 1 in controllo");
+    expect(documentsProgress("it", { ...counts, checking: 0 }, MESSAGES.it)).toBe("2 di 7 pronti");
+    expect(plural("it", 1, MESSAGES.it.docs.allUploaded)).toBe(
+      "Hai caricato tutto: sto ancora controllando un documento.",
+    );
+    expect(plural("uk", 5, MESSAGES.uk.docs.allUploaded)).toMatch(/5 документів\.$/);
+    expect(plural("ar", 2, MESSAGES.ar.docs.allUploaded)).toMatch(/وثيقتين\.$/);
   });
 });

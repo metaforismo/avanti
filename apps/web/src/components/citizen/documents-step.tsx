@@ -26,10 +26,17 @@ import { Pill } from "@/components/ui/pill";
 import { ProgressBar } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { useChanged } from "@/components/ui/use-changed";
-import { errorMessage, plural, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
+import {
+  documentsProgress,
+  errorMessage,
+  plural,
+  type CitizenMessages,
+  type Widen,
+} from "@/lib/citizen/messages";
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
-import { DONE_STATUSES, splitRequest } from "@/lib/citizen/view";
+import { documentCountsOf, readinessOf, splitRequest } from "@/lib/citizen/view";
+import type { Readiness } from "@avanti/core/readiness";
 import { requestLabel } from "@avanti/core/request-labels";
 import { ActionErrorNotice } from "./action-error";
 import type { StepProps } from "./citizen-app";
@@ -42,11 +49,11 @@ type M = Widen<CitizenMessages>;
 const ACCEPT = "application/pdf,image/jpeg,image/png,image/webp,image/heic,.heic,.heif";
 
 export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
-  const required = data.checklist.filter((item) => item.required);
-  const missingRequired = required.filter((item) => !DONE_STATUSES.has(item.status)).length;
+  const counts = documentCountsOf(data);
+  const progressLabel = documentsProgress(data.language, counts, m);
   const unmatched = data.documents.filter((doc) => !doc.checklistItemId);
   const operatorMessage = data.status === "needs_citizen" ? lastOperatorMessage(data) : null;
-  const sections = groupByMember(data.checklist, m);
+  const sections = groupByMember(data, m);
   const request = operatorMessage ? splitRequest(operatorMessage.text, data.checklist) : null;
 
   // A waiting-room connection comes and goes: when the browser says it is back, what failed while
@@ -76,26 +83,16 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
           {m.docs.title}
         </h1>
         <p className="mt-2 text-lg text-ink-2">{m.docs.lead}</p>
-        <div className="mt-4 flex items-center gap-3">
+        {/* With documents still being read the label grows: on a narrow phone it drops under the
+            bar instead of squeezing it. */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
           <ProgressBar
-            value={
-              data.progress.documentsRequired
-                ? (data.progress.documentsDone / data.progress.documentsRequired) * 100
-                : 100
-            }
-            label={plural(data.language, data.progress.documentsRequired, m.docs.progress, {
-              done: data.progress.documentsDone,
-              total: data.progress.documentsRequired,
-            })}
-            tone={missingRequired === 0 ? "ok" : "stamp"}
-            className="flex-1"
+            value={counts.required ? (counts.ready / counts.required) * 100 : 100}
+            label={progressLabel}
+            tone={counts.ready === counts.required ? "ok" : "stamp"}
+            className="min-w-24 flex-1"
           />
-          <span className="tabular shrink-0 text-sm font-semibold text-ink-2">
-            {plural(data.language, data.progress.documentsRequired, m.docs.progress, {
-              done: data.progress.documentsDone,
-              total: data.progress.documentsRequired,
-            })}
-          </span>
+          <span className="tabular text-sm font-semibold text-ink-2">{progressLabel}</span>
         </div>
       </div>
 
@@ -122,7 +119,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
                     <span dir="auto" className="min-w-0 flex-1">
                       {requestLabel(item)}
                     </span>
-                    {DONE_STATUSES.has(item.status) ? (
+                    {readinessOf(item, data) !== "todo" ? (
                       <Check className="size-5 shrink-0 text-ok" aria-hidden />
                     ) : (
                       <ArrowDown className="size-5 shrink-0 text-warn" aria-hidden />
@@ -204,7 +201,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
         <UploadButtons api={api} m={m} checklistItemId={null} className="mt-4" />
       </section>
 
-      {missingRequired > 0 && (
+      {counts.todo > 0 && (
         <section
           aria-labelledby="resume-later"
           className="rounded-lg bg-surface p-4 ring-1 ring-line"
@@ -223,17 +220,19 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
           <p
             className={cn(
               "text-sm",
-              missingRequired === 0 ? "font-semibold text-ok" : "text-ink-2",
+              counts.todo + counts.checking === 0 ? "font-semibold text-ok" : "text-ink-2",
             )}
           >
-            {missingRequired === 0
-              ? m.docs.allDone
-              : plural(data.language, missingRequired, m.docs.missing)}
+            {counts.todo > 0
+              ? plural(data.language, counts.todo, m.docs.missing)
+              : counts.checking > 0
+                ? plural(data.language, counts.checking, m.docs.allUploaded)
+                : m.docs.allDone}
           </p>
           {/* While documents are missing, uploading is the next step: the way on stays, quieter. */}
           <Button
             size="lg"
-            variant={missingRequired > 0 ? "secondary" : "primary"}
+            variant={counts.todo > 0 ? "secondary" : "primary"}
             className="w-full"
             onClick={() => goTo("review")}
             disabled={api.uploads.some((u) => !u.error)}
@@ -277,9 +276,9 @@ function lastOperatorMessage(data: CitizenCase) {
   return null;
 }
 
-function groupByMember(items: ChecklistItem[], m: M) {
+function groupByMember(data: CitizenCase, m: M) {
   const sections = new Map<string, { key: string; title: string; items: ChecklistItem[] }>();
-  for (const item of items) {
+  for (const item of data.checklist) {
     const key = item.memberId ?? "household";
     const title = item.memberId ? (item.memberName ?? m.members.title) : m.docs.household;
     if (!sections.has(key)) sections.set(key, { key, title, items: [] });
@@ -287,30 +286,31 @@ function groupByMember(items: ChecklistItem[], m: M) {
   }
   // Required and unfinished first: what still needs doing is what people look for.
   const rank = (item: ChecklistItem) =>
-    (item.required ? 0 : 2) + (DONE_STATUSES.has(item.status) ? 1 : 0);
+    (item.required ? 0 : 2) + (readinessOf(item, data) === "todo" ? 0 : 1);
   return [...sections.values()].map((section) => ({
     ...section,
     items: [...section.items].sort((a, b) => rank(a) - rank(b)),
   }));
 }
 
-function StatusBadge({ item, m }: { item: ChecklistItem; m: M }) {
+function StatusBadge({ item, readiness, m }: { item: ChecklistItem; readiness: Readiness; m: M }) {
   // Pops when an upload or the operator changes it, not on every badge when the page opens.
-  const changed = useChanged(item.status);
-  const tone = DONE_STATUSES.has(item.status)
-    ? "ok"
-    : item.status === "issue" || item.status === "rejected"
-      ? "warn"
-      : "neutral";
-  const Icon = DONE_STATUSES.has(item.status)
-    ? Check
-    : item.status === "issue" || item.status === "rejected"
-      ? AlertTriangle
-      : CircleDashed;
+  const shown = readiness === "checking" ? "checking" : item.status;
+  const changed = useChanged(shown);
+  const warn = item.status === "issue" || item.status === "rejected";
+  const tone = readiness === "ready" ? "ok" : warn ? "warn" : "neutral";
   return (
-    <Pill key={item.status} tone={tone} size="sm" className={changed ? "animate-pop" : undefined}>
-      <Icon aria-hidden />
-      {m.docs.status[item.status]}
+    <Pill key={shown} tone={tone} size="sm" className={changed ? "animate-pop" : undefined}>
+      {readiness === "checking" ? (
+        <Spinner className="size-3.5" />
+      ) : readiness === "ready" ? (
+        <Check aria-hidden />
+      ) : warn ? (
+        <AlertTriangle aria-hidden />
+      ) : (
+        <CircleDashed aria-hidden />
+      )}
+      {readiness === "checking" ? m.docs.statusChecking : m.docs.status[item.status]}
     </Pill>
   );
 }
@@ -339,7 +339,9 @@ function ChecklistCard({
       f.code !== "checklist.missing",
   );
   const uploads = api.uploads.filter((u) => u.checklistItemId === item.id);
-  const done = DONE_STATUSES.has(item.status);
+  const readiness = readinessOf(item, data);
+  // Ready or being read: nothing for the citizen to do, so the card stops explaining.
+  const done = readiness !== "todo";
 
   return (
     <li
@@ -359,7 +361,7 @@ function ChecklistCard({
           </h3>
           {!item.required && <p className="mt-0.5 text-sm text-ink-3">{m.docs.optional}</p>}
         </div>
-        <StatusBadge item={item} m={m} />
+        <StatusBadge item={item} readiness={readiness} m={m} />
       </div>
       {!done && <p className="mt-2 text-ink-2">{item.description}</p>}
 

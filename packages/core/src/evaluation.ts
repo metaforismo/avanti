@@ -1,4 +1,5 @@
 import { renewalPending } from "./renewal";
+import { checklistStatus, documentCounts } from "./readiness";
 import type {
   ChecklistItem,
   DocumentSummary,
@@ -457,35 +458,26 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
     )
       if (item?.status !== "verified") finding("document.unchecked", "warning", document, item);
   }
-  let documentsDone = 0;
   const requiredItems = checklist.filter((item) => item.required);
-  for (const item of checklist) {
-    if (!item.required) continue;
-    if (item.status === "waived") {
-      documentsDone++;
-      continue;
-    }
-    if (item.status === "rejected") {
-      finding("checklist.rejected", "blocker", null, item);
-      continue;
-    }
-    const linked = documents.filter((document) => document.checklistItemId === item.id);
-    const usable = linked.some(
-      (document) =>
-        document.status === "analyzed" &&
-        document.analysis !== null &&
-        !findings.some((issue) => issue.documentId === document.id && issue.severity === "blocker"),
-    );
-    if (
-      usable ||
-      (item.status === "verified" &&
-        !findings.some(
-          (issue) => issue.checklistItemId === item.id && issue.severity === "blocker",
-        ))
+  for (const item of requiredItems) {
+    if (item.status === "rejected") finding("checklist.rejected", "blocker", null, item);
+    else if (
+      !["waived", "verified"].includes(item.status) &&
+      !documents.some((document) => document.checklistItemId === item.id)
     )
-      documentsDone++;
-    else if (!linked.length) finding("checklist.missing", "blocker", null, item);
+      finding("checklist.missing", "blocker", null, item);
   }
+  // The statuses the citizen sees, so «pronti» here is the count every page shows.
+  const shown = requiredItems.map((item) => ({
+    ...item,
+    status: checklistStatus(item.status, {
+      attached: documents.some((document) => document.checklistItemId === item.id),
+      blocked: findings.some(
+        (issue) => issue.checklistItemId === item.id && issue.severity === "blocker",
+      ),
+    }),
+  }));
+  const documentsDone = documentCounts(shown, documents).ready;
   if (practiceId === "isee_ordinario" || practiceId === "modello_730") {
     finding("practice.provisional_year", "warning");
     if (calendarYear(now) > 2027 || practiceYear(answers) !== 2027)

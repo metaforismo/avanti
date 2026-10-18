@@ -1,17 +1,20 @@
-import type {
-  ChecklistItem,
-  ChecklistStatus,
-  CitizenCase,
-  ConversationTurn,
-} from "@avanti/contracts";
+import type { ChecklistItem, CitizenCase, ConversationTurn } from "@avanti/contracts";
+import { documentCounts, itemReadiness } from "@avanti/core/readiness";
 import { splitRequestLabels } from "@avanti/core/request-labels";
 
-/** Checklist states that need nothing more from the citizen. */
-export const DONE_STATUSES: ReadonlySet<ChecklistStatus> = new Set([
-  "uploaded",
-  "verified",
-  "waived",
-]);
+/** «Pronto» means the same here as in the console: see `@avanti/core/readiness`. */
+export function readinessOf(item: ChecklistItem, data: Pick<CitizenCase, "documents">) {
+  return itemReadiness(item, data.documents);
+}
+
+export function documentCountsOf(data: Pick<CitizenCase, "checklist" | "documents">) {
+  return documentCounts(data.checklist, data.documents);
+}
+
+/** Required items the citizen still has to do something about: what they bring to the desk. */
+export function stillToDo(data: Pick<CitizenCase, "checklist" | "documents">) {
+  return data.checklist.filter((item) => item.required && readinessOf(item, data) === "todo");
+}
 
 export type View = "need" | "interview" | "documents" | "review" | "submitted";
 

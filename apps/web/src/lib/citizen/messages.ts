@@ -1,5 +1,6 @@
 import type { ChecklistStatus, ErrorCode, Language, MemberRole } from "@avanti/contracts";
-import type { PluralForms } from "@avanti/core/plural";
+import { plural, type PluralForms } from "@avanti/core/plural";
+import type { DocumentCounts } from "@avanti/core/readiness";
 import { ar, bn, es, fr, ro, uk } from "./messages-extra";
 
 /**
@@ -225,6 +226,12 @@ const it = {
     missing: {
       one: "Ne manca 1. Puoi inviare lo stesso: lo sportello te lo chiederà.",
       other: "Ne mancano {n}. Puoi inviare lo stesso: lo sportello te li chiederà.",
+    },
+    statusChecking: "In controllo",
+    inCheck: { one: "{n} in controllo", other: "{n} in controllo" },
+    allUploaded: {
+      one: "Hai caricato tutto: sto ancora controllando un documento.",
+      other: "Hai caricato tutto: sto ancora controllando {n} documenti.",
     },
     toReview: "Vai al riepilogo",
     groupOther: "Altri documenti",
@@ -551,6 +558,12 @@ const en: Widen<CitizenMessages> = {
       one: "1 still missing. You can send anyway: the desk will ask you for it.",
       other: "{n} still missing. You can send anyway: the desk will ask you for them.",
     },
+    statusChecking: "Being checked",
+    inCheck: { one: "{n} being checked", other: "{n} being checked" },
+    allUploaded: {
+      one: "Everything is uploaded: one document is still being checked.",
+      other: "Everything is uploaded: {n} documents are still being checked.",
+    },
     toReview: "Go to summary",
     groupOther: "Other documents",
     operatorNote: "Note from the desk",
@@ -659,7 +672,25 @@ export const MESSAGES: Record<Language, Widen<CitizenMessages>> = {
   bn,
 };
 export type { Widen };
-export { plural } from "@avanti/core/plural";
+export { plural };
+
+/**
+ * «2 di 7 pronti · 1 in controllo»: with the documents still being read named, the counts here
+ * and «Ne mancano …» above the button add up to the same total.
+ */
+export function documentsProgress(
+  language: Language,
+  counts: DocumentCounts,
+  m: Widen<CitizenMessages>,
+) {
+  const ready = plural(language, counts.required, m.docs.progress, {
+    done: counts.ready,
+    total: counts.required,
+  });
+  return counts.checking
+    ? `${ready} · ${plural(language, counts.checking, m.docs.inCheck)}`
+    : ready;
+}
 
 export function messagesFor(language: Language) {
   return MESSAGES[language] ?? it;
