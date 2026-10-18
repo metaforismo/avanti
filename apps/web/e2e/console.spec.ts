@@ -1,9 +1,24 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { logIn, openCase, openFirstReadyCase, submittedCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
 const ADMIN = { email: "admin@demo.avanti.local", password: DEMO.password };
+
+/**
+ * Sends the wrong password and waits for its refusal. A click before hydration is held and sent
+ * once the page is ready: retyping before that answer would send the new values instead.
+ */
+async function wrongLogin(page: Page) {
+  const refused = page.waitForResponse(
+    (r) => r.url().endsWith("/api/auth/login") && r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Accedi" }).click();
+  expect([401, 429]).toContain((await refused).status());
+  await expect(
+    page.getByRole("alert").filter({ hasText: /non corrette|limite di richieste/ }),
+  ).toBeVisible();
+}
 
 test("an operator logs in, opens a dossier and sees what to check", async ({ page }) => {
   await page.goto("/console");
@@ -11,8 +26,7 @@ test("an operator logs in, opens a dossier and sees what to check", async ({ pag
 
   await page.getByLabel("Email").fill(DEMO.email);
   await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
-  await page.getByRole("button", { name: "Accedi" }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  await wrongLogin(page);
   // The email stays: only the password is typed again (the helper waits out the login limit
   // the other spec files spend on the same demo account).
   await expect(page.getByLabel("Email")).toHaveValue(DEMO.email);
@@ -262,8 +276,7 @@ test("the activity log shows a failed login to the administrator only", async ({
   await page.goto("/console/accedi");
   await page.getByLabel("Email").fill(DEMO.email);
   await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
-  await page.getByRole("button", { name: "Accedi" }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  await wrongLogin(page);
   // The helper waits out the per-email login limit the rest of the suite also spends.
   await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();

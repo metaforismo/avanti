@@ -50,9 +50,14 @@ export async function logIn(page: Page, account: { email: string; password: stri
     );
     await page.getByRole("button", { name: "Accedi" }).click();
     const result = await response;
-    if (result.status() !== 429) return;
+    if (result.status() !== 429) {
+      // Say why here, not as a missing heading fifteen seconds later.
+      expect(result.ok(), `login ${result.status()}: ${await result.text()}`).toBeTruthy();
+      return;
+    }
     await waitOutLoginLimit(page, result.headers()["retry-after"]);
   }
+  throw new Error("Login limit not lifted");
 }
 
 /** `logIn` without the UI, for an API context; it waits out the login limit the same way. */
