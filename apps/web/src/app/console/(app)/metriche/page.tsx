@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo } from "react";
 import type { Route } from "next";
@@ -163,7 +164,17 @@ function MetricsView() {
             {data.baselineMinutesPerCase === null && (
               <p className="mt-5 border-t border-line pt-4 text-sm text-ink-3">
                 Senza una baseline misurata prima di Avanti non è possibile calcolare il tempo
-                risparmiato.
+                risparmiato.{" "}
+                {operator.role === "admin" ? (
+                  <Link
+                    href="/console/impostazioni#baseline"
+                    className="font-semibold text-stamp underline underline-offset-2"
+                  >
+                    Scrivi i minuti per pratica
+                  </Link>
+                ) : (
+                  "La imposta un amministratore del CAF."
+                )}
               </p>
             )}
           </section>

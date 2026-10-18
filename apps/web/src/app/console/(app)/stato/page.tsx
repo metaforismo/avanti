@@ -13,6 +13,7 @@ import { formatDateTime } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
+import { onlyNotStarted } from "@/lib/console/system-status";
 
 type SystemStatusCode =
   SystemStatus["components"]["database"]["code"] | SystemStatus["components"]["email"]["code"];
@@ -43,12 +44,13 @@ const CODES: Record<SystemStatusCode, string> = {
   probe_unavailable: "Il controllo non è disponibile in questo ambiente.",
   not_configured:
     "Non attiva in questo ambiente: si usano le regole e i documenti vanno controllati a vista. Se succede nel vostro servizio, contatta il supporto di Avanti.",
-  no_observations: "Nessuna attività nelle ultime 24 ore.",
+  no_observations:
+    "Nessuna attività nelle ultime 24 ore: è normale finché i cittadini non iniziano a usarla.",
   ai_fallback:
     "L'AI non risponde e si usano le regole: le pratiche procedono, i documenti vanno controllati a vista.",
   ai_errors: "Errori recenti dell'AI: alcune analisi sono passate alle regole.",
   never_run:
-    "Mai eseguita. La pianifica Avanti: se resta così per più di un giorno, contatta il supporto.",
+    "Non ancora eseguita: parte da sola una volta al giorno. Se dopo un giorno è ancora così, contatta il supporto.",
   running: "In corso adesso.",
   stale: "Non eseguita da troppo tempo: documenti bloccati e pulizie possono accumularsi.",
   failed: "L'ultima esecuzione non è riuscita; riproverà da sola.",
@@ -155,7 +157,11 @@ function StatusBody({ data }: { data: SystemStatus }) {
         <overall.icon className={cn("size-7 shrink-0", overall.tone)} aria-hidden />
         <div>
           <p className="font-display text-xl font-semibold">{overall.headline}</p>
-          <p className="text-sm text-ink-2">Controllato il {formatDateTime(data.generatedAt)}</p>
+          <p className="text-sm text-ink-2">
+            {onlyNotStarted(data) &&
+              "Alcune attività non sono ancora partite: nei primi giorni è normale. Se resta così per più di un giorno, contatta il supporto. "}
+            Controllato il {formatDateTime(data.generatedAt)}
+          </p>
         </div>
       </section>
 
@@ -241,9 +247,8 @@ function StatusBody({ data }: { data: SystemStatus }) {
   );
 }
 
-function lastRun(iso: string | null) {
-  return iso ? `Ultima: ${formatDateTime(iso)}` : "Mai eseguita";
-}
+// Never run: the row's own explanation already says so.
+const lastRun = (iso: string | null) => (iso ? `Ultima: ${formatDateTime(iso)}` : null);
 
 function ComponentRow({
   name,

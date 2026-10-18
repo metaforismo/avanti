@@ -38,7 +38,7 @@ export function MfaAccountSection() {
   };
 
   return (
-    <section className="mt-10" aria-labelledby="mfa-title">
+    <section id="verifica" className="mt-10 scroll-mt-20" aria-labelledby="mfa-title">
       <h2
         id="mfa-title"
         ref={title}

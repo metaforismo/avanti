@@ -1,7 +1,7 @@
 "use client";
 
 import { KeyRound, ShieldOff, UserPlus } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { OperatorSummary, TemporaryPasswordResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -15,6 +15,7 @@ import { apiFetch, ApiRequestError } from "@/lib/api";
 import { timeAgo } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
+import { useHashTarget, useOpenOnHash } from "@/lib/console/use-hash-target";
 import { focusFirstError, isEmail, text } from "@/lib/validation";
 
 type Risky = "password" | "mfa" | "deactivate" | "promote" | "demote";
@@ -69,6 +70,15 @@ export function OperatorsSection() {
   const me = useOperator();
   const list = useResource<OperatorSummary[]>("/api/operators");
   const [adding, setAdding] = useState(false);
+  const section = useRef<HTMLElement>(null);
+  // Opened from a link or replaced by the password dialog, the form has no opener to go back to.
+  const addButton = useRef<HTMLButtonElement>(null);
+  useHashTarget(["#operatori"], section);
+  // «Aggiungi un collega» from the first steps lands with the form already open.
+  useOpenOnHash("#nuovo-operatore", () => {
+    setAdding(true);
+    return true;
+  });
   const [issued, setIssued] = useState<TemporaryPasswordResponse | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ kind: Risky; operator: OperatorSummary } | null>(
@@ -134,13 +144,18 @@ export function OperatorsSection() {
     );
 
   return (
-    <section aria-labelledby="operators-title">
+    <section
+      ref={section}
+      id="operatori"
+      aria-labelledby="operators-title"
+      className="scroll-mt-20"
+    >
       <SectionHeader
         id="operators-title"
         title="Operatori"
         lead="Chi può accedere alla console di questo CAF."
         actions={
-          <Button variant="secondary" onClick={() => setAdding(true)}>
+          <Button ref={addButton} variant="secondary" onClick={() => setAdding(true)}>
             <UserPlus className="size-4" aria-hidden />
             Aggiungi operatore
           </Button>
@@ -238,6 +253,7 @@ export function OperatorsSection() {
       <Dialog
         open={adding}
         onOpenChange={setAdding}
+        returnFocusTo={addButton}
         title="Nuovo operatore"
         description="Riceverà una password temporanea da cambiare al primo accesso."
       >
@@ -284,33 +300,91 @@ export function OperatorsSection() {
         onOpenChange={(open) => !open && setIssued(null)}
         dismissible={false}
         title="Password temporanea"
-        description="Comunicala di persona o per telefono, non per email. Non la vedrai più e vale 7 giorni: al primo accesso l'operatore dovrà sceglierne una nuova."
+        description="Non la vedrai più: comunicala di persona o per telefono, non per email."
       >
-        {issued && (
-          <div className="grid gap-4">
-            <p className="text-ink-2">
-              Per <span className="font-semibold text-ink">{issued.operator.name}</span> (
-              {issued.operator.email})
-            </p>
-            <p
-              className="rounded-md bg-sunk px-4 py-3 text-center font-mono text-xl tracking-wider select-all"
-              translate="no"
-            >
-              {issued.temporaryPassword}
-            </p>
-            <CopyButton
-              value={issued.temporaryPassword}
-              labels={{
-                copy: "Copia password",
-                copied: "Copiata",
-                failed: "Copia non riuscita: selezionala a mano.",
-              }}
-            />
-            <Button onClick={() => setIssued(null)}>Fatto</Button>
-          </div>
-        )}
+        {issued && <IssuedAccess issued={issued} onDone={() => setIssued(null)} />}
       </Dialog>
     </section>
+  );
+}
+
+/**
+ * Everything the colleague needs to sign in: where, with which email and the password. Without
+ * the address, «the password» alone leaves them asking where to type it.
+ */
+function IssuedAccess({
+  issued,
+  onDone,
+}: {
+  issued: TemporaryPasswordResponse;
+  onDone: () => void;
+}) {
+  // Rendered only in the browser, inside a dialog opened by a click.
+  const address = `${window.location.origin}/console/accedi`;
+  return (
+    <div className="grid gap-4">
+      <p className="text-ink-2">
+        Per <span className="font-semibold text-ink">{issued.operator.name}</span>: per entrare
+        servono questi tre dati.
+      </p>
+      <dl className="divide-y divide-line rounded-md ring-1 ring-line">
+        <AccessRow label="Indirizzo della console" value={address} copyLabel="indirizzo">
+          <span className="notranslate font-mono text-sm break-all" dir="ltr">
+            {address}
+          </span>
+        </AccessRow>
+        <AccessRow label="Email" value={issued.operator.email} copyLabel="email">
+          <span className="font-semibold break-all">{issued.operator.email}</span>
+        </AccessRow>
+        <AccessRow
+          label="Password temporanea"
+          value={issued.temporaryPassword}
+          copyLabel="password"
+        >
+          <span
+            className="inline-block rounded-sm bg-sunk px-2.5 py-1 font-mono text-xl tracking-wider select-all"
+            translate="no"
+          >
+            {issued.temporaryPassword}
+          </span>
+        </AccessRow>
+      </dl>
+      <p className="text-sm text-ink-3">
+        Vale 7 giorni. Al prossimo accesso {issued.operator.name} sceglie una password sua.
+      </p>
+      <Button onClick={onDone}>Fatto</Button>
+    </div>
+  );
+}
+
+function AccessRow({
+  label,
+  value,
+  copyLabel,
+  children,
+}: {
+  label: string;
+  value: string;
+  copyLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid gap-1 px-4 py-3">
+      <dt className="text-sm text-ink-3">{label}</dt>
+      <dd className="flex items-center justify-between gap-2">
+        <span className="min-w-0">{children}</span>
+        <CopyButton
+          value={value}
+          iconOnly
+          labels={{
+            copy: `Copia ${copyLabel}`,
+            copied: "Copiato",
+            announce: `Copiato negli appunti: ${label.toLowerCase()}.`,
+            failed: "Copia non riuscita: selezionalo a mano.",
+          }}
+        />
+      </dd>
+    </div>
   );
 }
 

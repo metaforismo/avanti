@@ -39,13 +39,19 @@ può consegnare a ciascun interessato. Non inviarlo in chat o email non protetta
 - **Stampa il cartello**: _Sportelli e QR_ → _Stampa il cartello_. Un A4 con il QR e il titolo
   in otto lingue, da mettere in sala d'attesa.
 - **Accesso**: entri da `/console/accedi` con l'email e la password temporanea che ti ha dato
-  il responsabile. Al primo accesso scegli la tua (almeno 12 caratteri; una frase è più facile
-  da ricordare). Puoi cambiarla quando vuoi cliccando sul tuo nome in basso a sinistra. La
-  sessione scade dopo alcune ore di inattività.
+  il responsabile. Al primo accesso riscrivi la password temporanea e scegli la tua (almeno 12
+  caratteri; una frase è più facile da ricordare). Puoi cambiarla quando vuoi cliccando sul tuo
+  nome in basso a sinistra. La sessione scade dopo 30 minuti di inattività (al massimo 12 ore
+  dall'accesso): se succede, Avanti te lo dice e ti riporta alla pagina dove eri.
 
-Il primo giorno, quando la coda è ancora vuota, la pagina _Pratiche_ mostra **Per iniziare**:
-cartello, una pratica di prova da aprire sul telefono, colleghi e baseline (per gli
-amministratori), guida.
+Finché nessun fascicolo aspetta lo sportello, la pagina _Pratiche_ mostra **Per iniziare**, con i
+passi già fatti spuntati e il prossimo in evidenza. Per gli amministratori: dati dello sportello
+(orari, telefono, prenotazione), cartello, colleghi, minuti per pratica prima di Avanti, verifica
+in due passaggi e, per ultima, una pratica di prova da aprire sul telefono; per gli operatori:
+guida, cartello, verifica in due passaggi e pratica di prova. Ogni pulsante porta dritto al campo
+da compilare. Una pratica di prova inviata compare in coda come le altre; archiviata, non chiude
+**Per iniziare** finché i passi non sono tutti fatti. Il cartello risulta fatto quando premi
+_Stampa il cartello_, la guida quando la apri, da questo browser.
 
 ## Creare una pratica per un cittadino
 
@@ -187,8 +193,9 @@ verificati come sempre.
 
 _Impostazioni_ compare solo agli amministratori.
 
-- **Operatori**: _Aggiungi operatore_ crea l'accesso e mostra una password temporanea, una
-  volta sola. Comunicala di persona o per telefono, non per email. _Nuova password_ ne genera
+- **Operatori**: _Aggiungi operatore_ crea l'accesso e mostra, una volta sola, i tre dati per
+  entrare: indirizzo della console, email e password temporanea. Comunicali di persona o per
+  telefono, non per email. _Nuova password_ ne genera
   un'altra se qualcuno l'ha dimenticata; _Disattiva_ blocca subito l'accesso senza perdere la
   cronologia delle sue azioni.
 - **Sportelli**: nome, indirizzo e orari che il cittadino vede all'inizio e sul cartello. Ogni

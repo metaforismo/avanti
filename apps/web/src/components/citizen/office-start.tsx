@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
+import { officePlace } from "@/lib/office-place";
 import { forgetCase, recallCase, rememberCase } from "@/lib/citizen/local-cases";
 import { errorMessage, format, LANGUAGE_NAMES, messagesFor } from "@/lib/citizen/messages";
 import { cn } from "@/lib/cn";
@@ -307,9 +308,7 @@ export function OfficeStart({
           <address className="mt-12 grid gap-2 border-t border-line pt-6 text-ink-2 not-italic">
             <span className="flex items-start gap-2">
               <MapPin className="mt-0.5 size-4 shrink-0 text-ink-3" aria-hidden />
-              <span dir="ltr">
-                {info.office.address}, {info.office.city}
-              </span>
+              <span dir="ltr">{officePlace(info.office)}</span>
             </span>
             {info.office.phone && (
               <a

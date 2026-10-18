@@ -162,7 +162,7 @@ test("an admin demoted while on an admin page sees it at the next action", async
   ).json();
 
   await logIn(page, { email, password: created.temporaryPassword });
-  await page.getByLabel("Password attuale").fill(created.temporaryPassword);
+  await page.getByLabel("Password temporanea").fill(created.temporaryPassword);
   await page.getByLabel("Nuova password", { exact: true }).fill("una frase lunga per e2e");
   await page.getByLabel("Ripeti la nuova password").fill("una frase lunga per e2e");
   await page.getByRole("button", { name: "Salva ed entra" }).click();

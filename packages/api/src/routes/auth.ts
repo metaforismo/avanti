@@ -172,7 +172,7 @@ export function mountAuthRoutes(app: App, services: Services) {
       )
         throw new ApiFailure("unauthorized", 401, "Accedi per continuare.");
       if (!(await verifyPassword(input.currentPassword, current.passwordHash)))
-        throw new ApiFailure("unauthorized", 401, "Password attuale non corretta.");
+        throw new ApiFailure("unauthorized", 401, "La password non è corretta.");
       if (input.newPassword === input.currentPassword)
         throw new ApiFailure("bad_request", 400, "Scegli una password diversa da quella attuale.");
       const [updated] = await tx
