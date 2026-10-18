@@ -1,6 +1,6 @@
 # Stato e roadmap
 
-Aggiornato al 17 ottobre 2026. Obiettivo: 2–3 CAF pilota in uso reale durante il picco ISEE di
+Aggiornato al 18 ottobre 2026. Obiettivo: 2–3 CAF pilota in uso reale durante il picco ISEE di
 gennaio 2027, misure condivise entro marzo, campagna 730 da aprile.
 
 ## Cosa c'è
@@ -54,6 +54,25 @@ nelle PR.
   Hobby con manutenzione giornaliera).
 - Decisioni commerciali del fondatore in `docs/gtm/README.md` (sedi, budget pilota, soglie,
   prezzo da testare, promesse in landing).
+
+## Fatto di recente (18 ottobre)
+
+- Fascicolo dell'operatore: azioni sempre a portata in una barra fissa, il nome del cittadino
+  come titolo, ritorno alla coda filtrata, verifica dei documenti uno per uno da tastiera.
+- Plurali giusti nelle 8 lingue (`plural()` su `Intl.PluralRules`), nei messaggi del server e
+  in console.
+- Il cittadino arriva alla prima domanda in metà tempo su un telefono lento (preload della
+  pratica, font, anticipo del codice dallo sportello; `docs/decisions/citizen-performance.md`).
+- Ritentativi: una chiave vale solo finché il suo effetto è ancora l'ultimo; impronta HMAC.
+- Percorso del cittadino: la risposta data con un tocco mostra la sua domanda, il nucleo segue
+  le persone confermate, la richiesta dello sportello porta alla scheda da rifare, un
+  caricamento perso riparte al ritorno della rete; «pronto» ha un solo significato in ogni
+  conteggio, la domanda non si ripete, «Ora: Nucleo familiare» al posto di «almeno 16 domande».
+- Primo giorno di un CAF: «Per iniziare» con passi spuntati e collegamenti diretti, parametri
+  con modifiche non salvate in vista, accesso del collega con indirizzo/email/password, stato
+  del sistema senza falsi allarmi.
+- Il tipo di documento si legge in italiano (mai l'id interno); il nucleo si capisce anche con
+  «i nostri due figli» nelle 8 lingue; resa grafica della landing e dei componenti condivisi.
 
 ## Fatto di recente (17 ottobre)
 
