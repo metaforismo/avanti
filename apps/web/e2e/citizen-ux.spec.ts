@@ -166,4 +166,6 @@ test("the card keeps the official question when the bubble above words it differ
   const box = await title.boundingBox();
   expect(box?.height ?? 0).toBeGreaterThan(12);
   expect(box?.width ?? 0).toBeGreaterThan(40);
+  // A refresh of the conversation may still be in the handler: it must not outlive the test.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
