@@ -1,9 +1,13 @@
 import type { Language, PilotLeadRequest } from "@avanti/contracts";
+import { plural, type PluralForms } from "@avanti/core/plural";
 
 const copy = {
   it: {
     requestSubject: "Lo sportello ti chiede un'integrazione",
-    request: "Per proseguire con la tua pratica, lo sportello ti chiede questi documenti:",
+    request: {
+      "=1": "Per proseguire con la tua pratica, lo sportello ti chiede questo documento:",
+      other: "Per proseguire con la tua pratica, lo sportello ti chiede questi documenti:",
+    },
     generic:
       "Lo sportello ti chiede un'integrazione. Leggi la richiesta nel link della tua pratica.",
     link: "Apri il link che hai salvato; se l'hai perso chiedi allo sportello un nuovo link.",
@@ -13,7 +17,10 @@ const copy = {
   },
   en: {
     requestSubject: "The desk needs more documents",
-    request: "To continue with your application, the desk needs these documents:",
+    request: {
+      "=1": "To continue with your application, the desk needs this document:",
+      other: "To continue with your application, the desk needs these documents:",
+    },
     generic: "The desk needs more information. Read the request using your saved application link.",
     link: "Open the link you saved; if you have lost it, ask the desk for a new link.",
     readySubject: "You can book an appointment at the desk",
@@ -21,7 +28,10 @@ const copy = {
   },
   fr: {
     requestSubject: "Le guichet vous demande des documents complémentaires",
-    request: "Pour poursuivre votre demande, le guichet vous demande ces documents :",
+    request: {
+      "=1": "Pour poursuivre votre demande, le guichet vous demande ce document :",
+      other: "Pour poursuivre votre demande, le guichet vous demande ces documents :",
+    },
     generic:
       "Le guichet vous demande un complément. Lisez le message dans le lien de votre demande.",
     link: "Ouvrez le lien que vous avez enregistré ; si vous l'avez perdu, demandez un nouveau lien au guichet.",
@@ -31,7 +41,10 @@ const copy = {
   },
   es: {
     requestSubject: "La ventanilla te pide documentos adicionales",
-    request: "Para continuar con tu trámite, la ventanilla te pide estos documentos:",
+    request: {
+      "=1": "Para continuar con tu trámite, la ventanilla te pide este documento:",
+      other: "Para continuar con tu trámite, la ventanilla te pide estos documentos:",
+    },
     generic:
       "La ventanilla te pide información adicional. Lee el mensaje en el enlace de tu trámite.",
     link: "Abre el enlace que has guardado; si lo has perdido, pide uno nuevo en la ventanilla.",
@@ -41,7 +54,10 @@ const copy = {
   },
   ro: {
     requestSubject: "Ghișeul îți cere documente suplimentare",
-    request: "Pentru a continua cu cererea ta, ghișeul îți cere aceste documente:",
+    request: {
+      "=1": "Pentru a continua cu cererea ta, ghișeul îți cere acest document:",
+      other: "Pentru a continua cu cererea ta, ghișeul îți cere aceste documente:",
+    },
     generic: "Ghișeul îți cere informații suplimentare. Citește mesajul în linkul cererii tale.",
     link: "Deschide linkul pe care l-ai salvat; dacă l-ai pierdut, cere un link nou la ghișeu.",
     readySubject: "Poți face o programare la ghișeu",
@@ -49,7 +65,10 @@ const copy = {
   },
   uk: {
     requestSubject: "Вікно обслуговування просить додаткові документи",
-    request: "Щоб продовжити роботу з Вашою заявою, вікно обслуговування просить ці документи:",
+    request: {
+      "=1": "Щоб продовжити роботу з Вашою заявою, вікно обслуговування просить цей документ:",
+      other: "Щоб продовжити роботу з Вашою заявою, вікно обслуговування просить ці документи:",
+    },
     generic:
       "Вікно обслуговування просить додаткову інформацію. Прочитайте повідомлення за посиланням на Вашу заяву.",
     link: "Відкрийте збережене посилання; якщо Ви його втратили, попросіть нове у вікні обслуговування.",
@@ -59,7 +78,11 @@ const copy = {
   },
   ar: {
     requestSubject: "شباك الخدمة يطلب وثائق إضافية",
-    request: "لمتابعة طلبك، يطلب شباك الخدمة هذه الوثائق:",
+    request: {
+      "=1": "لمتابعة طلبك، يطلب شباك الخدمة هذه الوثيقة:",
+      two: "لمتابعة طلبك، يطلب شباك الخدمة هاتين الوثيقتين:",
+      other: "لمتابعة طلبك، يطلب شباك الخدمة هذه الوثائق:",
+    },
     generic: "شباك الخدمة يطلب معلومات إضافية. اقرأ الرسالة عبر رابط طلبك.",
     link: "افتح الرابط الذي حفظته؛ إذا فقدته، اطلب رابطًا جديدًا من شباك الخدمة.",
     readySubject: "يمكنك حجز موعد في شباك الخدمة",
@@ -67,7 +90,10 @@ const copy = {
   },
   bn: {
     requestSubject: "সেবা কাউন্টার অতিরিক্ত নথি চেয়েছে",
-    request: "আপনার আবেদন এগিয়ে নিতে সেবা কাউন্টার এই নথিগুলি চেয়েছে:",
+    request: {
+      "=1": "আপনার আবেদন এগিয়ে নিতে সেবা কাউন্টার এই নথিটি চেয়েছে:",
+      other: "আপনার আবেদন এগিয়ে নিতে সেবা কাউন্টার এই নথিগুলি চেয়েছে:",
+    },
     generic: "সেবা কাউন্টার অতিরিক্ত তথ্য চেয়েছে। আপনার আবেদনের লিঙ্কে বার্তাটি পড়ুন।",
     link: "আপনার সংরক্ষিত লিঙ্কটি খুলুন; হারিয়ে গেলে সেবা কাউন্টার থেকে নতুন লিঙ্ক চান।",
     readySubject: "আপনি সেবা কাউন্টারে সাক্ষাতের সময় বুক করতে পারেন",
@@ -78,7 +104,8 @@ const copy = {
   Language,
   {
     requestSubject: string;
-    request: string;
+    /** No number in the sentence: one document or several (and the Arabic dual for two). */
+    request: PluralForms;
     generic: string;
     link: string;
     readySubject: string;
@@ -93,12 +120,17 @@ export function citizenNotification(
   titles: string[] = [],
 ) {
   const text = copy[language];
+  const listed = [...new Set(titles)];
   return {
     subject: kind === "citizen_request" ? text.requestSubject : text.readySubject,
     text: [
       caf,
-      kind === "citizen_ready" ? text.ready : titles.length ? text.request : text.generic,
-      ...new Set(titles.map((title) => `• ${title}`)),
+      kind === "citizen_ready"
+        ? text.ready
+        : listed.length
+          ? plural(language, listed.length, text.request)
+          : text.generic,
+      ...listed.map((title) => `• ${title}`),
       text.link,
     ].join("\n\n"),
   };

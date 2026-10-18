@@ -160,23 +160,25 @@ login/logout e modifiche operatore. Se Next normalizza il nome host dell’URL, 
 anche l’header Host effettivo con lo stesso protocollo. Se manca Origin, è accettato soltanto
 `Sec-Fetch-Site: same-origin`; un Origin presente e diverso resta rifiutato.
 
-| Metodo | Percorso                                 | Input                        | Risposta                                          |
-| ------ | ---------------------------------------- | ---------------------------- | ------------------------------------------------- |
-| POST   | `/auth/login`                            | `LoginRequest`               | `Operator` + cookie                               |
-| POST   | `/auth/logout`                           | —                            | `{ok:true}`, sessione revocata                    |
-| GET    | `/auth/me`                               | —                            | `Operator`                                        |
-| GET    | `/cases`                                 | `CaseListQuery`              | `CaseListResponse`                                |
-| POST   | `/cases`                                 | `CreateCaseRequest`          | 201 `CreateCaseResponse`, link mostrato una volta |
-| POST   | `/cases/:id/link`                        | `Id` (path), nessun body     | `RegenerateLinkResponse`, URL mostrato una volta  |
-| GET    | `/cases/:id`                             | —                            | `CaseDossier`, senza transizione di stato         |
-| GET    | `/cases/:id/dsu-sheet`                   | `Id`                         | `DsuSheet` o `null`, audit `dsu_sheet.viewed`     |
-| PATCH  | `/cases/:id`                             | `UpdateCaseRequest`          | `CaseDossier`                                     |
-| POST   | `/cases/assign`                          | `AssignCasesRequest`         | `AssignCasesResponse`, solo admin                 |
-| POST   | `/cases/:id/checklist/:itemId/review`    | `ReviewChecklistItemRequest` | `CaseDossier`                                     |
-| POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`  | `CaseDossier`                                     |
-| GET    | `/cases/:id/export?format=json`          | `ExportFormat` json o pdf    | allegato completo, evento audit di accesso        |
-| GET    | `/cases/:id/documents/:docId/file`       | —                            | allegato autorizzato, evento audit di accesso     |
-| GET    | `/metrics?from=2027-01-01&to=2027-01-31` | `MetricsQuery`               | `Metrics`                                         |
+| Metodo | Percorso                                 | Input                         | Risposta                                          |
+| ------ | ---------------------------------------- | ----------------------------- | ------------------------------------------------- |
+| POST   | `/auth/login`                            | `LoginRequest`                | `Operator` + cookie                               |
+| POST   | `/auth/logout`                           | —                             | `{ok:true}`, sessione revocata                    |
+| GET    | `/auth/me`                               | —                             | `Operator`                                        |
+| GET    | `/cases`                                 | `CaseListQuery`               | `CaseListResponse`                                |
+| POST   | `/cases`                                 | `CreateCaseRequest`           | 201 `CreateCaseResponse`, link mostrato una volta |
+| POST   | `/cases/:id/link`                        | `Id` (path), nessun body      | `RegenerateLinkResponse`, URL mostrato una volta  |
+| GET    | `/cases/:id`                             | —                             | `CaseDossier`, senza transizione di stato         |
+| GET    | `/cases/:id/dsu-sheet`                   | `Id`                          | `DsuSheet` o `null`, audit `dsu_sheet.viewed`     |
+| GET    | `/cases/:id/citizen-handoff`             | `Id`                          | `CitizenHandoff`, documenti da portare bilingue   |
+| POST   | `/cases/:id/citizen-handoff/events`      | `RecordCitizenHandoffRequest` | 204, evento in cronologia senza testo             |
+| PATCH  | `/cases/:id`                             | `UpdateCaseRequest`           | `CaseDossier`                                     |
+| POST   | `/cases/assign`                          | `AssignCasesRequest`          | `AssignCasesResponse`, solo admin                 |
+| POST   | `/cases/:id/checklist/:itemId/review`    | `ReviewChecklistItemRequest`  | `CaseDossier`                                     |
+| POST   | `/cases/:id/requests`                    | `RequestFromCitizenRequest`   | `CaseDossier`                                     |
+| GET    | `/cases/:id/export?format=json`          | `ExportFormat` json o pdf     | allegato completo, evento audit di accesso        |
+| GET    | `/cases/:id/documents/:docId/file`       | —                             | allegato autorizzato, evento audit di accesso     |
+| GET    | `/metrics?from=2027-01-01&to=2027-01-31` | `MetricsQuery`                | `Metrics`                                         |
 
 Una password temporanea scaduta (7 giorni dalla creazione o dal reset) dà 401 con il messaggio «La password temporanea è scaduta…», solo se la password è corretta; altrimenti il messaggio resta quello uniforme. Le richieste JSON oltre 256 KB ricevono 413 «Richiesta troppo grande.».
 
@@ -261,6 +263,32 @@ lettura: non toccata, `updatedAt` attuale per ricontrollare), `not_found` (inesi
 un altro CAF, indistinguibili). Scelta motivata: nel picco la coda cambia di continuo e un
 lotto tutto-o-niente fallirebbe per una sola pratica; nessuna pratica cambiata viene
 sovrascritta. Limite 20/minuto e 200/ora per admin, 200/minuto per IP.
+
+### Avviso e elenco per il cittadino
+
+Chi lascia solo il telefono non riceve email di integrazione o di pratica pronta; chi non ha
+uno smartphone non apre il link. `GET /cases/:id/citizen-handoff` restituisce ciò che
+l'operatore consegna a queste persone: riferimento, sportello (indirizzo, orari, link di
+prenotazione), nome della pratica e le voci ancora `missing`, `rejected` o `issue`, prima le
+obbligatorie. Ogni voce ha il titolo come lo vede il cittadino nella sua lingua (`title`, può
+contenere nomi e banche dalle risposte), lo stesso in italiano (`titleIt`), il titolo di
+catalogo senza dati personali in entrambe le lingue (`genericTitle`, `genericTitleIt`: è quello
+che la console mette nei messaggi WhatsApp/SMS, come fanno già le email), «dove lo trovo» e la
+nota dello sportello. I titoli seguono l'anno della pratica (`practice_year`), come la checklist e
+le email: entrambi usano `genericChecklistTitle` di `@avanti/core`. `interviewComplete:false`
+avvisa che l'elenco può ancora crescere. In `needs_citizen`, `request` porta l'ultima richiesta
+dello sportello senza l'elenco delle voci aggiunto in coda: `text` è ciò che il cittadino ha
+letto (la traduzione, oppure senza AI l'avviso localizzato che rimanda all'originale) e `textIt`
+l'originale italiano; negli altri stati è `null`. Stesso CAF della sessione,
+altrimenti 404; limite degli export (20/minuto per operatore).
+
+`POST /cases/:id/citizen-handoff/events` con `{channel}` (`whatsapp`, `sms`, `copy`, `print`)
+registra che un avviso o una stampa sono stati preparati: eventi `citizen.notice_whatsapp`,
+`citizen.notice_sms`, `citizen.notice_copied` in cronologia, `citizen.checklist_printed` anche nel
+registro attività perché mette dati personali su carta. Nessun testo, nessun metadato; non
+modifica `updatedAt` (un collega con il fascicolo aperto non riceve un conflitto). Non certifica
+l'invio: il messaggio parte dall'app dell'operatore. Body con campi in più: 400. Limite proprio
+(`handoff`): 30/minuto e 300/ora per operatore, 300/minuto per IP; la console mostra il 429.
 
 ## Metriche e limiti
 

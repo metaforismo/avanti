@@ -27,6 +27,7 @@ export function CopyButton({
   labels = ITALIAN,
   showValueOnFailure = true,
   iconOnly = false,
+  onCopied,
   ...props
 }: Omit<ButtonProps, "onClick" | "value"> & {
   value: string;
@@ -34,6 +35,8 @@ export function CopyButton({
   showValueOnFailure?: boolean;
   /** Just the icon, named by `labels.copy`: for values in tables and dense rows. */
   iconOnly?: boolean;
+  /** Only after the clipboard accepted the value, never on the fallback. */
+  onCopied?: () => void;
 }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const fallbackId = useId();
@@ -42,6 +45,7 @@ export function CopyButton({
     try {
       await navigator.clipboard.writeText(value);
       setState("copied");
+      onCopied?.();
       window.setTimeout(() => setState("idle"), 2400);
     } catch {
       setState("failed");

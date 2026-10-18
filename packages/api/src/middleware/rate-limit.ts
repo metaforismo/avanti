@@ -54,6 +54,8 @@ export const RATE_POLICIES = {
   assign: { category: "assign", primary: [minute(20), hour(200)], ip: [minute(200)] },
   link: { category: "link", primary: [minute(20)], ip: [minute(200)] },
   translate: { category: "translate", primary: [minute(30)], ip: [minute(300)] },
+  // Recording a WhatsApp, SMS, copy or print: a few per case, never a burst.
+  handoff: { category: "handoff", primary: [minute(30), hour(300)], ip: [minute(300)] },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
   if (path === "/api/renewals")
@@ -81,6 +83,9 @@ function policy(path: string, method: string): Policy | null {
     return RATE_POLICIES.export;
   if (method === "GET" && path === "/api/audit/export.csv") return RATE_POLICIES.export;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/export$/.test(path)) return RATE_POLICIES.export;
+  // The handoff carries the checklist in two languages: an export by another name.
+  if (method === "GET" && /^\/api\/cases\/[^/]+\/citizen-handoff$/.test(path))
+    return RATE_POLICIES.export;
   if (method !== "POST") return null;
   if (path === "/api/cases/assign") return RATE_POLICIES.assign;
   if (/^\/api\/cases\/[^/]+\/(reuse|documents\/[^/]+\/reuse-check)$/.test(path))
@@ -90,6 +95,7 @@ function policy(path: string, method: string): Policy | null {
   if (/^\/api\/c\/[^/]+\/assistant\/ask-desk$/.test(path)) return RATE_POLICIES.askDesk;
   if (/^\/api\/c\/[^/]+\/transcribe$/.test(path)) return RATE_POLICIES.transcribe;
   if (/^\/api\/cases\/[^/]+\/link$/.test(path)) return RATE_POLICIES.link;
+  if (/^\/api\/cases\/[^/]+\/citizen-handoff\/events$/.test(path)) return RATE_POLICIES.handoff;
   if (/^\/api\/cases\/[^/]+\/requests$/.test(path)) return RATE_POLICIES.translate;
   if (path.startsWith("/api/auth/mfa/")) return RATE_POLICIES.mfa;
   if (["/api/auth/login", "/api/auth/password"].includes(path)) return RATE_POLICIES.login;
@@ -133,9 +139,16 @@ export function rateLimit(services: Services): MiddlewareHandler<ApiEnv> {
       return next();
     if (
       rule &&
-      (!["export", "link", "translate", "copilot", "renewals", "renewalsRead", "assign"].includes(
-        rule.category,
-      ) ||
+      (![
+        "export",
+        "link",
+        "translate",
+        "copilot",
+        "renewals",
+        "renewalsRead",
+        "assign",
+        "handoff",
+      ].includes(rule.category) ||
         context.get("operator"))
     ) {
       const identities: string[] = [];

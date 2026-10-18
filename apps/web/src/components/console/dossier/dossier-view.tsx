@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Download,
   FileJson,
+  Printer,
   Send,
   Sparkles,
   UserCheck,
@@ -53,6 +54,7 @@ import { ReuseDialog } from "./reuse-dialog";
 import { FindingsSummary } from "./findings-summary";
 import { RequestDialog, type ReplyContext } from "./request-dialog";
 import { CitizenQuestions } from "./citizen-questions";
+import { CitizenNoticeDialog, printPath, type IssuedLink } from "../citizen-notice";
 import { AnswersSection, AssistantTurnsSection, ConversationSection } from "./secondary-sections";
 
 const CONFLICT_MESSAGE =
@@ -90,6 +92,8 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmReady, setConfirmReady] = useState(false);
   const [newLink, setNewLink] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [issuedLink, setIssuedLink] = useState<IssuedLink | null>(null);
   const [reuse, setReuse] = useState(false);
   const [eraseFamily, setEraseFamily] = useState(false);
   const readyButton = useRef<HTMLButtonElement>(null);
@@ -467,6 +471,14 @@ export function DossierView({ caseId }: { caseId: string }) {
                     <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
                     Scarica dati JSON
                   </MenuItem>
+                  {data.practice && data.status !== "closed" && (
+                    <MenuItem
+                      onSelect={() => window.open(printPath(data.id), "_blank", "noopener")}
+                    >
+                      <Printer className="me-2.5 size-4 text-ink-3" aria-hidden />
+                      Stampa i documenti da portare
+                    </MenuItem>
+                  )}
                   <DropdownMenu.Separator className="my-1 h-px bg-line" />
                   {data.status === "closed" ? (
                     <MenuItem onSelect={() => void setStatus("in_review")}>
@@ -606,7 +618,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           <ConversationSection dossier={data} />
           <AssistantTurnsSection dossier={data} />
         </div>
-        <DossierAside dossier={data} actions={actions} />
+        <DossierAside dossier={data} actions={actions} onNotify={() => setNotifying(true)} />
       </div>
 
       <DocumentViewer
@@ -777,8 +789,18 @@ export function DossierView({ caseId }: { caseId: string }) {
         onSent={(result) => {
           if (result) dossier.setData(result);
           else void dossier.reload();
+          // Without an email nothing reaches the citizen: offer the message right away.
+          if (!reply && !data.citizen.email) setNotifying(true);
         }}
         onConflict={() => void dossier.reload()}
+      />
+      <CitizenNoticeDialog
+        open={notifying}
+        onOpenChange={setNotifying}
+        dossier={data}
+        link={issuedLink}
+        onLinkChange={setIssuedLink}
+        onClosedAfterChanges={() => void dossier.reload()}
       />
     </PageContainer>
   );

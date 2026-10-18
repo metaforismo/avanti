@@ -112,6 +112,37 @@ invia. Il cittadino lo trova nel suo link, nella sua lingua; la pratica passa in
 cittadino_. Se la traduzione automatica non è disponibile, il cittadino vede il testo italiano
 e un avviso.
 
+### Avvisare chi non ha l'email
+
+Le email partono solo verso chi ha lasciato l'indirizzo. Molti cittadini lasciano solo il
+telefono: se chiedi un'integrazione a uno di loro, Avanti apre subito **Avvisa il cittadino**
+con un messaggio già scritto nella sua lingua e, sotto, in italiano. Scegli **WhatsApp** (si
+apre il tuo WhatsApp o WhatsApp Web con il numero e il testo pronti) oppure **Copia il
+messaggio**; dal telefono o dal tablet c'è anche **SMS**. Il messaggio nomina i documenti che hai
+selezionato nella richiesta, senza banche o nomi delle persone, e rimanda al link della pratica.
+Se il numero non sembra completo, WhatsApp si apre sul solo testo e scegli tu la chat.
+
+- Se il cittadino ha perso il link, premi _Il cittadino ha perso il link? Aggiungine uno nuovo_:
+  il nuovo link entra in fondo al messaggio e quello vecchio smette subito di funzionare. Un
+  messaggio con il link personale si può solo **copiare** e incollare nella chat: così il link
+  non resta nella cronologia del browser, che sui PC dello sportello vedono anche i colleghi.
+  Il nuovo link resta nella finestra finché non lasci la pagina.
+- Quando la pratica è **pronta**, lo stesso pulsante prepara il messaggio «pratica pronta» con
+  il link di prenotazione dello sportello, gli orari e il promemoria del documento d'identità.
+- Nella scheda **Cittadino** a destra vedi «Avviso preparato su WhatsApp da …» o «Messaggio
+  copiato da …», con quando: un collega che apre la pratica non lo avvisa due volte. Avanti
+  registra solo che hai preparato l'avviso, non il testo, e non può sapere se l'hai inviato.
+
+### Stampare i documenti da portare
+
+Per chi non ha lo smartphone, o preferisce la carta: _Altro_ → **Stampa i documenti da
+portare** (o il pulsante nella scheda Cittadino). Si apre un A4 con i documenti ancora mancanti o
+da rifare, divisi per persona, nella lingua del cittadino con l'italiano sotto ogni voce, «dove
+lo trovo», la tua ultima richiesta (una volta, in alto), il codice pratica, gli orari e il link di
+prenotazione. Ogni voce ha una casella da spuntare. Si stampa anche quando non manca niente,
+per esempio per consegnare a chi ha la pratica pronta orari e cosa portare. Se le domande non sono finite la pagina te lo dice: l'elenco può ancora
+cambiare. La stampa compare nel registro attività, perché porta dati personali su carta.
+
 ### Prospetto DSU: copiare nel gestionale
 
 Quando la pratica è pronta, il fascicolo apre da solo il **Prospetto DSU**: gli stessi dati,
@@ -185,7 +216,8 @@ risparmi.
 "non valido", probabilmente non l'ha copiato per intero.
 
 **Il cittadino non ha lo smartphone o non se la sente.** Apri il suo link sul tuo computer e
-compilalo insieme a lui, oppure lavora come sempre: Avanti non è obbligatorio.
+compilalo insieme a lui, poi stampagli i documenti da portare (_Altro_ → _Stampa i documenti da
+portare_). Oppure lavora come sempre: Avanti non è obbligatorio.
 
 **Ho sbagliato a rifiutare un documento.** Premi ↺ sulla voce per annullare la decisione.
 

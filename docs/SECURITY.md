@@ -527,6 +527,40 @@ Gli altri avvisi al cittadino
 restano collegati all'azione dell'operatore; i promemoria richiedono una sua
 precedente richiesta di integrazione.
 
+## Avvisi WhatsApp/SMS e elenco stampato (17 ottobre 2026)
+
+Per i cittadini senza email la console prepara un messaggio che **parte dall'app
+dell'operatore**: WhatsApp (o WhatsApp Web), l'app SMS del telefono, oppure gli appunti.
+Avanti non invia nulla e non integra fornitori di messaggistica: non c'è un nuovo
+responsabile del trattamento lato Avanti, ma il canale è del CAF. L'informativa del CAF
+deve coprire il contatto via WhatsApp/SMS al numero lasciato dal cittadino, l'uso del
+proprio account (personale o Business) e i trasferimenti del fornitore della chat.
+
+- **Contenuto**: riferimento della pratica, nome del CAF e dello sportello, titoli di
+  catalogo dei documenti richiesti (gli stessi delle email: senza banche, nomi o altre
+  risposte), indicazioni generiche, link di prenotazione e orari dello sportello. Non
+  contiene il testo libero dell'operatore, importi o note.
+- **URL**: con WhatsApp e SMS il testo viaggia dentro l'indirizzo `wa.me/…?text=` o
+  `sms:…?&body=`, che resta nella cronologia del browser e, con la sincronizzazione attiva,
+  nell'account del browser. Sui PC condivisi dello sportello va considerato visibile ai
+  colleghi. Per questo un messaggio con un **link personale** (nuovo link rigenerato)
+  si può solo **copiare**: il link non passa mai da un URL e compare una volta sola, in
+  fondo. Gli SMS passano anche dall'operatore telefonico; il pulsante SMS compare solo sui
+  dispositivi touch.
+- **Numero**: normalizzato senza indovinare (prefisso 39 solo per cellulari italiani che
+  iniziano per 3 e fissi che iniziano per 0, `00` e `+` riconosciuti, 8–15 cifre). Un numero
+  non valido non viene usato: WhatsApp si apre sul solo testo e l'operatore sceglie la chat.
+- **Registro**: Avanti registra solo il canale (`citizen.notice_whatsapp`,
+  `citizen.notice_sms`, `citizen.notice_copied`) quando l'operatore preme il pulsante o la
+  copia riesce; nessun testo, numero o metadato. Non attesta invio né lettura.
+- **Stampa**: l'A4 dei documenti da portare contiene nomi delle persone del nucleo e titoli
+  completi. Va consegnato al cittadino, non lasciato alla stampante; la stampa è registrata
+  come `citizen.checklist_printed` anche nel registro attività. Lettura e registrazione
+  hanno limiti propri (export 20/minuto; eventi 30/minuto e 300/ora per operatore).
+
+Il link condiviso alla creazione della pratica (`share-citizen-link`) usa ancora WhatsApp/SMS
+con il link nell'URL, come prima di questa modifica: da rivedere con lo stesso criterio.
+
 ## Guard del runtime AI
 
 Il runtime provider-agnostico delimita testo cittadino, messaggi operatore e contesto con
