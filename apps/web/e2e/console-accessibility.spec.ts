@@ -22,7 +22,9 @@ async function seriousViolations(page: Page) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   // And settled data: axe reads the DOM over several ticks, and a button that stops loading
   // halfway through is reported as unnamed although it never is.
-  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+  // A dev server under load can take longer than an assertion's 15 s to answer (the system
+  // status runs its checks): what is measured is the settled page, however long it takes.
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 45_000 });
   await animationsSettled(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
