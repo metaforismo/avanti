@@ -513,6 +513,18 @@ export const CitizenCase = z.object({
   submittedAt: IsoDateTime.nullable(),
   /** Link stops working after this instant (retention policy). */
   expiresAt: IsoDateTime,
+  /** What the citizen may do with their own data from the link (GDPR artt. 15–17). */
+  privacy: z
+    .object({
+      /** Days the case survives the link's expiry or closure before the automatic purge. */
+      retentionDays: z.number().int().positive(),
+      /** Latest automatic deletion if nobody reopens or renews the link. */
+      deleteBy: IsoDateTime,
+      /** Never sent to the desk: the citizen erases it alone. Once sent, they ask the CAF. */
+      canDelete: z.boolean(),
+      erasureRequestedAt: IsoDateTime.nullable(),
+    })
+    .optional(),
 });
 export type CitizenCase = z.infer<typeof CitizenCase>;
 
@@ -568,6 +580,10 @@ export const SubmitCaseRequest = z.object({
 export type SubmitCaseRequest = z.infer<typeof SubmitCaseRequest>;
 
 /** Multipart fields alongside `file` for POST /api/c/:token/documents. */
+/** DELETE /api/c/:token: a case never sent to the desk, erased by the citizen. */
+export const DeleteOwnCaseRequest = z.object({ confirmed: z.literal(true) }).strict();
+export type DeleteOwnCaseRequest = z.infer<typeof DeleteOwnCaseRequest>;
+
 export const UploadDocumentFields = z.object({
   checklistItemId: Id.optional(),
 });
@@ -674,6 +690,8 @@ export const CaseListItem = z.object({
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
   submittedAt: IsoDateTime.nullable(),
+  /** The citizen asked the CAF to erase this case from their link; cleared if the CAF declines. */
+  erasureRequestedAt: IsoDateTime.nullable().default(null),
   /**
    * Queue only: set while the case is submitted and nobody has taken it. `since` is the first
    * submission, `days` Italian calendar days since then, `overdue` past the working-day threshold.
@@ -1336,6 +1354,10 @@ export const AuditAction = z.enum([
   "case.reused",
   "document.reuse_checked",
   "family.erased",
+  "citizen.data_exported",
+  "case.citizen_deleted",
+  "citizen.erasure_requested",
+  "case.erasure_declined",
   "auth.login_succeeded",
   "auth.login_failed",
   "auth.password_changed",

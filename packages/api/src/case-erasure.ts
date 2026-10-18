@@ -7,14 +7,19 @@ import type { CaseRow } from "./dossier";
 
 export const RETENTION_BATCH_SIZE = 25;
 
+/** Who erases: an operator (by ID), the citizen from their own link, or the retention job. */
+export type Eraser = string | "citizen" | null;
+
 // Caller holds the case row lock. All DB effects commit together, before any storage I/O.
 export async function eraseCase(
   db: Database,
   row: CaseRow,
   now: Date,
-  actorId: string | null,
+  by: Eraser,
   retention = false,
 ) {
+  const citizen = by === "citizen";
+  const actorId = citizen ? null : by;
   if (retention) await preserveRenewalReminder(db, row, now);
   else await withdrawRenewalConsent(db, row, now);
   const files = await db.select().from(documents).where(eq(documents.caseId, row.id));
@@ -44,9 +49,9 @@ export async function eraseCase(
     caseReference: row.reference,
     organizationId: row.organizationId,
     officeId: row.officeId,
-    actor: actorId ? "operator" : "system",
+    actor: citizen ? "citizen" : actorId ? "operator" : "system",
     actorId,
-    type: actorId ? "case.deleted" : "case.retention_deleted",
+    type: citizen ? "case.citizen_deleted" : actorId ? "case.deleted" : "case.retention_deleted",
     at: now.toISOString(),
     metadata: {},
   });

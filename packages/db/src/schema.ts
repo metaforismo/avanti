@@ -179,6 +179,8 @@ export const cases = pgTable(
     renewalContactConsentAt: instant("renewal_contact_consent_at"),
     renewalContactConsentVersion: text("renewal_contact_consent_version"),
     renewalContactRevokedAt: instant("renewal_contact_revoked_at"),
+    // Erasure the citizen asked for after sending: the CAF, as controller, decides and answers.
+    erasureRequestedAt: instant("erasure_requested_at"),
     language: text("language").$type<Language>().notNull(),
     practiceId: text("practice_id").$type<PracticeId>(),
     status: text("status").$type<CaseStatus>().notNull().default("intake"),

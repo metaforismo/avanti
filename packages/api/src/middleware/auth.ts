@@ -102,7 +102,8 @@ export function authenticateCitizen(services: Services): MiddlewareHandler<ApiEn
     context.set("citizen", row);
     await next();
     // Reads and response assembly can overlap a rotation after initial authentication.
-    if (context.res.ok) await currentCitizenLink(services.db, row, services.clock());
+    if (context.res.ok && !context.get("citizenErased"))
+      await currentCitizenLink(services.db, row, services.clock());
   };
 }
 
