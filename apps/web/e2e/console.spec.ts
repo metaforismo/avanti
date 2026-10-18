@@ -126,6 +126,13 @@ test("an administrator adds a colleague straight from the first steps", async ({
       },
     }),
   );
+  // A CAF where the administrator is still alone (the demo has colleagues).
+  await page.route(/\/api\/operators$/, async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const response = await route.fetch();
+    const list = (await response.json()) as { email: string }[];
+    await route.fulfill({ response, json: list.filter((o) => o.email === ADMIN.email) });
+  });
   await page.goto("/console/accedi");
   await logIn(page, ADMIN);
   const steps = page.getByRole("region", { name: "Per iniziare" });
@@ -133,12 +140,37 @@ test("an administrator adds a colleague straight from the first steps", async ({
   await expect(page.getByRole("dialog", { name: "Nuova pratica" })).toBeVisible();
   await page.keyboard.press("Escape");
 
-  await page.goto("/console/impostazioni#nuovo-operatore");
+  // A client navigation, as an administrator would click it.
+  await steps.getByRole("link", { name: "Aggiungi un collega" }).click();
   await expect(page.getByRole("dialog", { name: "Nuovo operatore" })).toBeVisible();
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Aggiungi operatore" })).toBeFocused();
   // Opened once: a reload shows the page, not the form again.
   await expect(page).toHaveURL(/\/console\/impostazioni$/);
 });
+
+for (const gate of [
+  { flag: "mustChangePassword", heading: "Scegli la tua password" },
+  { flag: "mustSetupMfa", heading: "Attiva la verifica in due passaggi" },
+]) {
+  test(`«${gate.heading}» always offers a way out`, async ({ page }) => {
+    await page.goto("/console/accedi");
+    await logIn(page, DEMO);
+    await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+    // The gate is the server's call: only its flag is forced here.
+    await page.route(/\/api\/auth\/me$/, async (route) => {
+      const response = await route.fetch();
+      if (!response.ok()) return route.fulfill({ response });
+      await route.fulfill({ response, json: { ...(await response.json()), [gate.flag]: true } });
+    });
+    await page.reload();
+    await expect(page.getByRole("heading", { name: gate.heading })).toBeVisible();
+    await page.getByRole("button", { name: "Esci" }).click();
+    await expect(page).toHaveURL(/\/console\/accedi/);
+    await page.unroute(/\/api\/auth\/me$/);
+    expect((await page.request.get("/api/auth/me")).status()).toBe(401);
+  });
+}
 
 test("a ready case opens the DSU sheet, ready to copy into the CAF's software", async ({
   page,
