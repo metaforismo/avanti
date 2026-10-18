@@ -25,6 +25,28 @@ test("a returning family starts next year's practice from the previous one", asy
   await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
 });
 
+test("the new practice can be created before the list of practices arrives", async ({ page }) => {
+  // The list is held back until after the click: an empty choice used to send no practice.
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/api\/practices\?lang=it$/, async (route) => {
+    await held;
+    await route.fallback();
+  });
+  await logIn(page, ADMIN);
+  await openFirstReadyCase(page);
+  await page.getByRole("button", { name: /Altro/ }).click();
+  await page.getByRole("menuitem", { name: "Nuova pratica per questa famiglia…" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Nuova pratica per questa famiglia" });
+  await dialog.getByLabel(/Ho verificato con il cittadino/).check();
+  await dialog.getByRole("button", { name: "Crea la nuova pratica" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Pratica creata" }).getByRole("img", { name: /QR code/ }),
+  ).toBeVisible();
+  release();
+});
+
 test("family search asks for a full identity and says when nobody matches", async ({ page }) => {
   await logIn(page, ADMIN);
   await page.getByRole("button", { name: "Nuova pratica" }).click();
