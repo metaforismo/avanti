@@ -313,7 +313,7 @@ function DeskForm({
         tone="ok"
         size="md"
         action={
-          <Button variant="secondary" size="sm" onClick={onCancel}>
+          <Button variant="secondary" size="touch" onClick={onCancel}>
             {m.common.back}
           </Button>
         }

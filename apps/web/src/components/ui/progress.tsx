@@ -21,12 +21,14 @@ export function ProgressBar({
       aria-valuenow={clamped}
       className={cn("h-1.5 overflow-hidden rounded-full bg-sunk", className)}
     >
+      {/* Slid in from the start edge rather than scaled: scaleX squashed the rounded end into
+          a flat stub at low values. Still transform-only (see docs/DESIGN.md). */}
       <div
         className={cn(
-          "h-full origin-left rounded-full transition-transform duration-300 ease-(--ease-out) rtl:origin-right",
+          "h-full rounded-full transition-transform duration-300 ease-(--ease-out)",
           tone === "ok" ? "bg-ok" : "bg-stamp",
         )}
-        style={{ transform: `scaleX(${clamped / 100})` }}
+        style={{ transform: `translateX(calc(${clamped - 100}% * var(--inline-sign, 1)))` }}
       />
     </div>
   );
