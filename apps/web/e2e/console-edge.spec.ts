@@ -1,57 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { finishInterview, logIn, origin, startCase } from "./helpers";
+import { holdScripts, logIn, openCase, origin, submittedCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
 const ADMIN = { email: "admin@demo.avanti.local", password: DEMO.password };
-
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-  "base64",
-);
-
-/**
- * A submitted case of its own, so these tests never change the demo cases other tests read.
- * `files` documents are attached to the first checklist items, ready for «Verifica».
- */
-async function submittedCase(
-  page: Page,
-  contact: { firstName: string; lastName: string },
-  files = 2,
-  language: "it" | "ar" = "it",
-) {
-  const token = await startCase(page, "Devo fare l'ISEE, vivo da solo.", language);
-  await finishInterview(page, token);
-  const citizen = await (await page.request.get(`/api/c/${token}`)).json();
-  const items = (citizen.checklist as { id: string }[]).slice(0, files);
-  for (const [index, item] of items.entries()) {
-    const uploaded = await page.request.post(`/api/c/${token}/documents`, {
-      headers: origin(),
-      multipart: {
-        file: { name: `documento-${index + 1}.png`, mimeType: "image/png", buffer: PNG },
-        checklistItemId: item.id,
-      },
-    });
-    expect(uploaded.ok(), await uploaded.text()).toBeTruthy();
-  }
-  // Submitting waits for the background analysis of the uploads.
-  await expect(async () => {
-    const sent = await page.request.post(`/api/c/${token}/submit`, {
-      headers: origin(),
-      data: { contact, confirmed: true },
-    });
-    expect(sent.ok(), await sent.text()).toBeTruthy();
-  }).toPass({ timeout: 30_000 });
-  return citizen.reference as string;
-}
-
-async function openCase(page: Page, reference: string) {
-  const found = await (await page.request.get(`/api/cases?q=${reference}&status=submitted`)).json();
-  const id = found.items[0].id as string;
-  await page.goto(`/console/pratiche/${id}`);
-  await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
-  return id;
-}
 
 /** What an idle timeout, a deactivation or a password reset does to the open console. */
 async function endSession(page: Page) {
@@ -64,8 +16,8 @@ test("a session that ends mid-review keeps the page and brings the operator back
 }) => {
   await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
-  const reference = await submittedCase(page, { firstName: "Sessione", lastName: "Scaduta" });
-  const id = await openCase(page, reference);
+  const { id } = await submittedCase(page, { firstName: "Sessione", lastName: "Scaduta" });
+  await openCase(page, id);
 
   await endSession(page);
   await page.getByLabel("Note interne").fill("Richiamare il cittadino giovedì");
@@ -87,12 +39,39 @@ test("a session that ends mid-review keeps the page and brings the operator back
   await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
 });
 
+test("a sign-in sent before the page is interactive goes through, the password never in the URL", async ({
+  page,
+}) => {
+  const release = await holdScripts(page);
+  const addresses: string[] = [];
+  page.on("framenavigated", (frame) => frame === page.mainFrame() && addresses.push(frame.url()));
+  await page.goto("/console/accedi?motivo=sessione&next=%2Fconsole%2Fmetriche", {
+    waitUntil: "domcontentloaded",
+  });
+  // Typed and sent while only the server's HTML is there.
+  await page.getByLabel("Email").fill(DEMO.email);
+  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+
+  const sent = page.waitForRequest(
+    (r) => r.url().endsWith("/api/auth/login") && r.method() === "POST",
+    { timeout: 30_000 },
+  );
+  release();
+  const request = await sent;
+  expect(request.postDataJSON()).toEqual({ email: DEMO.email, password: DEMO.password });
+  // The shared demo account may be over its minute's quota: the held sign-in was still sent.
+  if ((await request.response())?.status() === 429) await logIn(page, DEMO);
+  await expect(page).toHaveURL(/\/console\/metriche$/);
+  expect(addresses.filter((url) => /[?&](email|password)=/.test(url))).toEqual([]);
+});
+
 test("a note saved on blur and a click on «Verifica» are both kept, without a false conflict", async ({
   page,
 }) => {
   await logIn(page, DEMO);
-  const reference = await submittedCase(page, { firstName: "Nota", lastName: "Contemporanea" });
-  const id = await openCase(page, reference);
+  const { id } = await submittedCase(page, { firstName: "Nota", lastName: "Contemporanea" });
+  await openCase(page, id);
 
   await page.getByLabel("Note interne").fill("Documento letto allo sportello");
   // The click blurs the notes: their save and the verification leave at the same moment.
@@ -111,8 +90,11 @@ test("a note saved on blur and a click on «Verifica» are both kept, without a 
 
 test("a case deleted while open says so and leaves the recent list", async ({ page, browser }) => {
   await logIn(page, DEMO);
-  const reference = await submittedCase(page, { firstName: "Pratica", lastName: "Eliminata" });
-  const id = await openCase(page, reference);
+  const { id, reference } = await submittedCase(page, {
+    firstName: "Pratica",
+    lastName: "Eliminata",
+  });
+  await openCase(page, id);
   const recent = page.getByRole("navigation", { name: "Console" });
   await expect(recent.getByRole("link", { name: "Pratica Eliminata" })).toBeVisible();
 
@@ -187,8 +169,12 @@ test("the document viewer follows quick arrow presses and reports a failed decis
   page,
 }) => {
   await logIn(page, DEMO);
-  const reference = await submittedCase(page, { firstName: "Visore", lastName: "Tastiera" }, 4);
-  const id = await openCase(page, reference);
+  const { id } = await submittedCase(
+    page,
+    { firstName: "Visore", lastName: "Tastiera" },
+    { files: 4 },
+  );
+  await openCase(page, id);
   const dossier = await (await page.request.get(`/api/cases/${id}`)).json();
   await page.goto(`/console/pratiche/${id}?documento=${dossier.documents[0].id}`);
   const viewer = page.getByRole("dialog");
@@ -213,18 +199,17 @@ test("long unbroken names and an Arabic-speaking citizen never widen the page", 
   page,
 }) => {
   await logIn(page, DEMO);
-  const reference = await submittedCase(
+  const { id } = await submittedCase(
     page,
     {
       firstName: "Abdulrahman-Al-Hashimi-Wa-Al-Qurashi-Bin-Abdullah-Ibn-Abdulaziz-Ibn-Saud-Al-Ma",
       lastName: "محمدعبدالرحمنالهاشميوالقرشيبنعبداللهابنعبدالعزيزابنسعودمحمدعبدالرحمنالهاشمي",
     },
-    2,
-    "ar",
+    { language: "ar" },
   );
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await openCase(page, reference);
+    await openCase(page, id);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
@@ -234,8 +219,12 @@ test("long unbroken names and an Arabic-speaking citizen never widen the page", 
 
 test("a refused export says why instead of failing as a browser download", async ({ page }) => {
   await logIn(page, DEMO);
-  const reference = await submittedCase(page, { firstName: "Esporta", lastName: "Fascicolo" }, 0);
-  await openCase(page, reference);
+  const { id, reference } = await submittedCase(
+    page,
+    { firstName: "Esporta", lastName: "Fascicolo" },
+    { files: 0 },
+  );
+  await openCase(page, id);
 
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Altro" }).click();

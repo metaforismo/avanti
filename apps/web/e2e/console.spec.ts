@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { logIn, openFirstReadyCase } from "./helpers";
+import { logIn, openCase, openFirstReadyCase, submittedCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const DEMO = { email: "operatore@demo.avanti.local", password: "DemoAvanti2027!" };
@@ -13,9 +13,10 @@ test("an operator logs in, opens a dossier and sees what to check", async ({ pag
   await page.getByLabel("Password", { exact: true }).fill("password-sbagliata");
   await page.getByRole("button", { name: "Accedi" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
-
-  await page.getByLabel("Password", { exact: true }).fill(DEMO.password);
-  await page.getByRole("button", { name: "Accedi" }).click();
+  // The email stays: only the password is typed again (the helper waits out the login limit
+  // the other spec files spend on the same demo account).
+  await expect(page.getByLabel("Email")).toHaveValue(DEMO.email);
+  await logIn(page, DEMO);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
 
   await openFirstReadyCase(page);
@@ -234,11 +235,10 @@ test("two operators on the same case: the second one sees the change instead of 
   const first = await login(DEMO.email);
   const second = await login(ADMIN.email);
 
-  // Both open the same case.
-  await first.getByRole("link", { name: /Persona Esempio 8/ }).click();
-  await expect(first.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
-  await second.goto(first.url());
-  await expect(second.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+  // Both open the same case: one of the test's own, since the verification below stays.
+  const { id } = await submittedCase(first, { firstName: "Due", lastName: "Operatori" });
+  await openCase(first, id);
+  await openCase(second, id);
 
   // The first operator verifies an item; the second still has the old version on screen.
   await first.getByRole("button", { name: "Verifica", exact: true }).first().click();

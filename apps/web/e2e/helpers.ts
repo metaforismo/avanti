@@ -32,6 +32,10 @@ export const openFirstCaseInReview = (page: Page) =>
 /**
  * Signs in through the form. The demo accounts sign in many times a minute across the suite and
  * the API allows 10 attempts per email per minute: on a 429 it waits the server's Retry-After.
+ *
+ * It types and clicks as soon as the form is visible, like an operator on a slow PC: the form
+ * holds a submission made before hydration and sends it once the page is interactive (see
+ * lib/early-submit), so no wait for readiness belongs here — one would hide that regressing.
  */
 export async function logIn(page: Page, account: { email: string; password: string }) {
   if (!new URL(page.url()).pathname.startsWith("/console/accedi")) {
@@ -41,12 +45,17 @@ export async function logIn(page: Page, account: { email: string; password: stri
   for (let attempt = 0; attempt < 6; attempt++) {
     await page.getByLabel("Email").fill(account.email);
     await page.getByLabel("Password", { exact: true }).fill(account.password);
-    const response = page.waitForResponse((r) => r.url().endsWith("/api/auth/login"));
+    const response = page.waitForResponse(
+      (r) => r.url().endsWith("/api/auth/login") && r.request().method() === "POST",
+    );
     await page.getByRole("button", { name: "Accedi" }).click();
     const result = await response;
     if (result.status() !== 429) return;
-    const seconds = Number(result.headers()["retry-after"] ?? "60");
-    await page.waitForTimeout(seconds * 1000 + 250);
+    const wait = Number(result.headers()["retry-after"] ?? "60") * 1000 + 250;
+    // The other spec files spent the quota: the wait is the suite's, not this test's slowness,
+    // and must not eat its time budget (a minute of a 90-second test).
+    test.info().setTimeout(test.info().timeout + wait);
+    await page.waitForTimeout(wait);
   }
 }
 
@@ -99,4 +108,77 @@ export async function startCase(page: Page, story?: string, language: Language =
     expect(told.ok(), `story: ${await told.text()}`).toBeTruthy();
   }
   return token;
+}
+
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/**
+ * A submitted case of the test's own. Spec files run in parallel against one database: a test
+ * that verifies, assigns or otherwise changes a seeded demo case races every other test reading
+ * it, and the next run finds it changed. `files` documents are attached to the first checklist
+ * items, ready for «Verifica».
+ */
+export async function submittedCase(
+  page: Page,
+  contact: { firstName: string; lastName: string },
+  {
+    files = 2,
+    language = "it",
+    fileNames = [],
+  }: { files?: number; language?: Language; fileNames?: string[] } = {},
+) {
+  const token = await startCase(page, "Devo fare l'ISEE, vivo da solo.", language);
+  await finishInterview(page, token);
+  const citizen = (await (await page.request.get(`/api/c/${token}`)).json()) as {
+    id: string;
+    reference: string;
+    checklist: { id: string }[];
+  };
+  for (const [index, item] of citizen.checklist.slice(0, files).entries()) {
+    const uploaded = await page.request.post(`/api/c/${token}/documents`, {
+      headers: origin(),
+      multipart: {
+        file: {
+          name: fileNames[index] ?? `documento-${index + 1}.png`,
+          mimeType: "image/png",
+          buffer: PNG,
+        },
+        checklistItemId: item.id,
+      },
+    });
+    expect(uploaded.ok(), await uploaded.text()).toBeTruthy();
+  }
+  // Submitting waits for the background analysis of the uploads.
+  await expect(async () => {
+    const sent = await page.request.post(`/api/c/${token}/submit`, {
+      headers: origin(),
+      data: { contact, confirmed: true },
+    });
+    expect(sent.ok(), await sent.text()).toBeTruthy();
+  }).toPass({ timeout: 30_000 });
+  return { id: citizen.id, reference: citizen.reference, token };
+}
+
+/** Opens a dossier by id, for an operator already signed in. */
+export async function openCase(page: Page, id: string) {
+  await page.goto(`/console/pratiche/${id}`);
+  await expect(page.getByRole("heading", { name: "Documenti", exact: true })).toBeVisible();
+}
+
+/**
+ * Holds the page's scripts until `release()`: the server-rendered page is on screen and React
+ * isn't running yet, as on a slow phone or PC — deterministically, unlike CPU throttling. Use
+ * `goto(…, { waitUntil: "domcontentloaded" })`: the load event waits for the held scripts.
+ */
+export async function holdScripts(page: Page) {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/_next\/static\/.+\.js(?:\?|$)/, async (route) => {
+    await held;
+    await route.continue();
+  });
+  return release;
 }

@@ -1,9 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
-import { logIn } from "./helpers";
+import { logIn, submittedCase } from "./helpers";
 
 // Demo credentials created by `pnpm db:seed` (see README); never valid outside local demo data.
 const ADMIN = { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" };
 
+/** The queue filtered to the test's own cases, by assignee; "" is everyone. */
 async function showQueue(page: Page, assignee: string) {
   const loaded = page.waitForResponse(
     (response) => /\/api\/cases\?/.test(response.url()) && response.ok(),
@@ -18,10 +19,17 @@ async function showQueue(page: Page, assignee: string) {
 test("l'amministratore assegna due pratiche a un operatore", async ({ page }) => {
   await logIn(page, ADMIN);
   await expect(page.getByRole("heading", { name: "Pratiche" })).toBeVisible();
+  // Two unassigned cases of the test's own: assigning demo cases, or another test's, would
+  // change them under the tests reading them at the same time.
+  const family = `Assegnate ${test.info().workerIndex}${Date.now().toString(36)}`;
+  for (const firstName of ["Prima", "Seconda"]) {
+    await submittedCase(page, { firstName, lastName: family }, { files: 0 });
+  }
+  await page.goto(`/console?q=${encodeURIComponent(family)}`);
   await showQueue(page, "none");
 
   const boxes = page.getByRole("checkbox", { name: /^Seleziona .+ [A-Z]+-\d{4}-/ });
-  await expect(boxes.nth(1)).toBeVisible();
+  await expect(boxes).toHaveCount(2);
   const labels = [
     await boxes.nth(0).getAttribute("aria-label"),
     await boxes.nth(1).getAttribute("aria-label"),
@@ -57,7 +65,7 @@ test("l'amministratore assegna due pratiche a un operatore", async ({ page }) =>
     await row.getByRole("checkbox", { name: label }).check();
   }
 
-  // Leave the demo data as it was for the other tests.
+  // Taking the assignment back is the same dialog.
   await page.getByRole("button", { name: "Assegna a…" }).click();
   const undo = page.getByRole("dialog", { name: "Assegna 2 pratiche" });
   await undo.getByRole("radio", { name: /Nessuno/ }).check();
