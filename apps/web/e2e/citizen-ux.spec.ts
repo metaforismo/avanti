@@ -1,4 +1,5 @@
 import { expect, request, test, type Page } from "@playwright/test";
+import type { ConversationState } from "@avanti/contracts";
 import { finishInterview, origin, startCase } from "./helpers";
 
 const PNG = {
@@ -132,4 +133,39 @@ test("an upload lost with the connection is sent again once it is back", async (
   await context.setOffline(false);
   await expect(page.getByText(/1 di \d+ pront[oi]/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Riprova" })).toBeHidden();
+});
+
+test("the card keeps the official question when the bubble above words it differently", async ({
+  page,
+}) => {
+  const token = await startCase(page, "Devo fare l'ISEE");
+  // The model's reply is tagged with the question but asks something else: the citizen must
+  // still read, on the card, the question their answer is recorded for.
+  await page.route(/\/conversation$/, async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const response = await route.fetch();
+    const state = (await response.json()) as ConversationState;
+    const asked = state.ask[0]!;
+    state.turns.push({
+      id: "00000000-0000-4000-8000-000000000001",
+      role: "assistant",
+      text: "Parlami un po' della tua situazione.",
+      kind: "question",
+      questionId: asked.id,
+      createdAt: new Date().toISOString(),
+    });
+    await route.fulfill({ response, json: state });
+  });
+  const state = (await (
+    await page.request.get(`/api/c/${token}/conversation`)
+  ).json()) as ConversationState;
+  const prompt = state.ask[0]!.prompt;
+  await page.goto(`/pratica/${token}`);
+  await expect(page.getByText("Parlami un po' della tua situazione.")).toBeVisible();
+  const title = page.getByRole("heading", { level: 2, name: prompt, exact: true });
+  await expect(title).toBeVisible();
+  // Not a 1-pixel screen-reader-only box: a line the citizen can read.
+  const box = await title.boundingBox();
+  expect(box?.height ?? 0).toBeGreaterThan(12);
+  expect(box?.width ?? 0).toBeGreaterThan(40);
 });
