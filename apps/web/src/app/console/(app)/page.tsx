@@ -652,6 +652,11 @@ function QueueRow({
               </Pill>
             </span>
           )}
+          {item.erasureRequestedAt && (
+            <Pill tone="danger" className="mt-1 w-fit">
+              Chiede la cancellazione
+            </Pill>
+          )}
           {item.aiPriority && <PriorityBadge item={item} />}
         </span>
         <span className="min-w-0 text-body-sm">

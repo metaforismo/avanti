@@ -55,6 +55,19 @@ Il link è una credenziale: frontend/proxy devono oscurarlo dai log e applicare 
 | DELETE | `/documents/:id`          | —                                        | `CitizenCase`                               |
 | GET    | `/documents/:id/file`     | —                                        | allegato autorizzato                        |
 | POST   | `/submit`                 | `SubmitCaseRequest`                      | `CitizenCase` con stato submitted           |
+| GET    | `/export`                 | —                                        | ZIP: `dati.json` e file originali           |
+| DELETE | ``                        | `DeleteOwnCaseRequest`                   | 204; 409 dopo il primo invio                |
+| POST   | `/erasure-request`        | —                                        | `CitizenCase`; 409 prima del primo invio    |
+
+`CitizenCase.privacy` dice al cittadino giorni di conservazione del CAF, cancellazione
+automatica al più tardi (`deleteBy` = scadenza link + giorni), se può cancellare da solo
+(`canDelete`, nessun primo invio) e l'eventuale richiesta già fatta. Copia, cancellazione e
+richiesta hanno la quota `citizenData` (5/min, 20/ora per link). La copia contiene solo la vista
+del cittadino, mai note interne o audit; HEAD non legge file né registra. La cancellazione
+usa `eraseCase` come retention e admin; la richiesta revoca il consenso agli inviti e non
+cambia `updatedAt`. L'admin chiude una richiesta senza cancellare con
+`DELETE /api/cases/:id/erasure-request` (204, idempotente). `CaseListItem.erasureRequestedAt`
+la porta in coda e nel fascicolo. [Decisione](decisions/citizen-data-rights.md).
 
 Intervista/upload modificabili in `intake` o `needs_citizen`. Oltre 60 documenti o 120 MB per
 pratica l'upload risponde `409 case_full` (codice proprio, tradotto dal frontend). Invio richiede pratica e

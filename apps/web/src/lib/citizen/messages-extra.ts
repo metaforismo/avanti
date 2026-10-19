@@ -310,6 +310,60 @@ export const fr: M = {
     lead: "Complétez ces points et votre demande retourne au guichet.",
     resend: "C'est fait, renvoyer",
   },
+  privacy: {
+    open: "Vos données et la confidentialité",
+    title: "Vos données",
+    lead: "Ce que nous conservons pour cette demande, pendant combien de temps et ce que vous pouvez faire.",
+    whoTitle: "Qui les traite",
+    who: "{org} est le responsable du traitement : il décide comment utiliser vos données pour la demande. Avanti est le service qu'il utilise pour la préparer et les traite pour son compte.",
+    whatTitle: "Ce que nous conservons",
+    what: "Les réponses, les personnes du foyer, vos coordonnées, les messages et les documents que vous envoyez, avec le contrôle automatique de chacun.",
+    documents: {
+      "=0": "Vous n'avez encore envoyé aucun document.",
+      "=1": "Vous avez envoyé un document.",
+      one: "Vous avez envoyé {n} document.",
+      other: "Vous avez envoyé {n} documents.",
+    },
+    ai: "Un assistant automatique lit les messages et les documents pour vous proposer des réponses et des contrôles. Les décisions sur la demande sont toujours prises par une personne du guichet. Avanti n'utilise pas vos données pour entraîner l'intelligence artificielle.",
+    keepTitle: "Pendant combien de temps",
+    linkUntil: "Le lien fonctionne jusqu'au {date}.",
+    retention: {
+      "=1": "Quand le lien expire ou que la demande est clôturée, les données restent encore un jour, puis Avanti les supprime.",
+      one: "Quand le lien expire ou que la demande est clôturée, les données restent encore {n} jour, puis Avanti les supprime.",
+      other:
+        "Quand le lien expire ou que la demande est clôturée, les données restent encore {n} jours, puis Avanti les supprime.",
+    },
+    retentionGeneric: "Elles restent seulement le temps fixé par {org}, puis Avanti les supprime.",
+    officeArchive:
+      "Si le guichet doit conserver la demande selon la loi, il le fait dans ses propres archives.",
+    copyTitle: "Télécharger une copie",
+    copy: "Un fichier ZIP avec les réponses, les messages et les documents que vous avez envoyés.",
+    copyAction: "Télécharger la copie",
+    deleteTitle: "Supprimer la demande",
+    deleteSelf:
+      "Vous ne l'avez pas encore envoyée au guichet : vous pouvez la supprimer vous-même, avec tous les documents et les messages.",
+    deleteAction: "Supprimer la demande…",
+    deleteConfirmTitle: "Supprimer la demande ?",
+    deleteConfirm:
+      "Les réponses, les documents et les messages sont supprimés tout de suite et ce lien ne fonctionne plus. C'est définitif : si vous en avez besoin, il faudra tout recommencer.",
+    deleteConfirmAction: "Oui, tout supprimer",
+    deletedTitle: "Demande supprimée",
+    deletedBody:
+      "Nous avons supprimé les réponses, les documents et les messages. Pendant un an, il ne reste qu'un registre technique des opérations, sans leur contenu.",
+    requestTitle: "Demander la suppression",
+    request:
+      "La demande est déjà au guichet : c'est {org} qui décide et vous répond dans un délai d'un mois. Certaines données peuvent rester si la loi oblige à les conserver.",
+    requestAction: "Demander la suppression…",
+    requestConfirmTitle: "Demander la suppression ?",
+    requestConfirm:
+      "Le guichet reçoit la demande et peut vous contacter pour vérifier votre identité. Si vous aviez demandé les invitations au renouvellement, elles s'arrêtent tout de suite.",
+    requestConfirmAction: "Envoyer la demande",
+    requested: "Demande envoyée le {date}. Le guichet vous répond dans un délai d'un mois.",
+    rightsTitle: "Vos autres droits",
+    rights:
+      "Vous pouvez demander à {org} de voir ou de corriger vos données, d'en limiter l'usage ou de vous y opposer. Si vous pensez qu'elles sont mal traitées, vous pouvez porter plainte auprès du Garante, l'autorité italienne de protection des données.",
+    fullNotice: "Notice complète (en italien)",
+  },
   steps: {
     need: "Besoin",
     interview: "Questions",
@@ -641,6 +695,58 @@ export const es: M = {
     title: "La ventanilla te pide",
     lead: "Completa estos puntos y tu trámite vuelve a la ventanilla.",
     resend: "Ya está, enviar de nuevo",
+  },
+  privacy: {
+    open: "Tus datos y la privacidad",
+    title: "Tus datos",
+    lead: "Qué guardamos para este trámite, durante cuánto tiempo y qué puedes hacer tú.",
+    whoTitle: "Quién los trata",
+    who: "{org} es el responsable del tratamiento: decide cómo usar tus datos para el trámite. Avanti es el servicio que usa para prepararlo y los trata por su cuenta.",
+    whatTitle: "Qué guardamos",
+    what: "Las respuestas, las personas de la unidad familiar, tus datos de contacto, los mensajes y los documentos que subes, con el control automático de cada uno.",
+    documents: {
+      "=0": "Todavía no has subido documentos.",
+      one: "Has subido un documento.",
+      other: "Has subido {n} documentos.",
+    },
+    ai: "Un asistente automático lee los mensajes y los documentos para proponerte respuestas y controles. Las decisiones sobre el trámite las toma siempre una persona de la ventanilla. Avanti no usa tus datos para entrenar la inteligencia artificial.",
+    keepTitle: "Durante cuánto tiempo",
+    linkUntil: "El enlace funciona hasta el {date}.",
+    retention: {
+      one: "Cuando el enlace caduca o el trámite se cierra, los datos se quedan un día más y luego Avanti los borra.",
+      other:
+        "Cuando el enlace caduca o el trámite se cierra, los datos se quedan {n} días más y luego Avanti los borra.",
+    },
+    retentionGeneric: "Se quedan solo el tiempo que fija {org} y luego Avanti los borra.",
+    officeArchive:
+      "Si la ventanilla debe conservar el trámite por ley, lo hace en su propio archivo.",
+    copyTitle: "Descarga una copia",
+    copy: "Un archivo ZIP con las respuestas, los mensajes y los documentos que has subido.",
+    copyAction: "Descargar la copia",
+    deleteTitle: "Borra el trámite",
+    deleteSelf:
+      "Todavía no lo has enviado a la ventanilla: puedes borrarlo tú, con todos los documentos y los mensajes.",
+    deleteAction: "Borrar el trámite…",
+    deleteConfirmTitle: "¿Borrar el trámite?",
+    deleteConfirm:
+      "Las respuestas, los documentos y los mensajes se borran enseguida y este enlace deja de funcionar. No se puede deshacer: si lo necesitas, tendrás que empezar de nuevo.",
+    deleteConfirmAction: "Sí, borrar todo",
+    deletedTitle: "Trámite borrado",
+    deletedBody:
+      "Hemos borrado las respuestas, los documentos y los mensajes. Durante un año solo queda un registro técnico de las operaciones, sin su contenido.",
+    requestTitle: "Pide que se borre",
+    request:
+      "El trámite ya está en la ventanilla: decide {org}, que te responde en el plazo de un mes. Algunos datos pueden quedarse si la ley obliga a conservarlos.",
+    requestAction: "Pedir que se borre…",
+    requestConfirmTitle: "¿Pedir que se borre?",
+    requestConfirm:
+      "La ventanilla recibe la petición y puede contactarte para comprobar quién eres. Si habías pedido las invitaciones para la renovación, se detienen enseguida.",
+    requestConfirmAction: "Enviar la petición",
+    requested: "Petición enviada el {date}. La ventanilla te responde en el plazo de un mes.",
+    rightsTitle: "Tus otros derechos",
+    rights:
+      "Puedes pedir a {org} ver o corregir tus datos, limitar su uso u oponerte. Si crees que se tratan mal, puedes reclamar ante el Garante, la autoridad italiana de protección de datos.",
+    fullNotice: "Información completa (en italiano)",
   },
   steps: {
     need: "Necesidad",
@@ -984,6 +1090,59 @@ export const ro: M = {
     title: "Ghișeul îți cere",
     lead: "Completează aceste puncte și cererea se întoarce la ghișeu.",
     resend: "Am completat, trimite din nou",
+  },
+  privacy: {
+    open: "Datele tale și confidențialitatea",
+    title: "Datele tale",
+    lead: "Ce păstrăm pentru această cerere, cât timp și ce poți face tu.",
+    whoTitle: "Cine le prelucrează",
+    who: "{org} este operatorul de date: decide cum îți folosește datele pentru cerere. Avanti este serviciul pe care îl folosește pentru a o pregăti și le prelucrează în numele său.",
+    whatTitle: "Ce păstrăm",
+    what: "Răspunsurile, persoanele din nucleul familial, datele tale de contact, mesajele și documentele pe care le încarci, cu verificarea automată a fiecăruia.",
+    documents: {
+      "=0": "Încă nu ai încărcat documente.",
+      one: "Ai încărcat un document.",
+      few: "Ai încărcat {n} documente.",
+      other: "Ai încărcat {n} de documente.",
+    },
+    ai: "Un asistent automat citește mesajele și documentele ca să-ți propună răspunsuri și verificări. Deciziile despre cerere le ia mereu o persoană de la ghișeu. Avanti nu îți folosește datele pentru a antrena inteligența artificială.",
+    keepTitle: "Cât timp",
+    linkUntil: "Linkul funcționează până pe {date}.",
+    retention: {
+      one: "Când linkul expiră sau cererea este închisă, datele mai rămân o zi, apoi Avanti le șterge.",
+      few: "Când linkul expiră sau cererea este închisă, datele mai rămân {n} zile, apoi Avanti le șterge.",
+      other:
+        "Când linkul expiră sau cererea este închisă, datele mai rămân {n} de zile, apoi Avanti le șterge.",
+    },
+    retentionGeneric: "Rămân doar cât stabilește {org}, apoi Avanti le șterge.",
+    officeArchive: "Dacă ghișeul trebuie să păstreze cererea prin lege, o face în propria arhivă.",
+    copyTitle: "Descarcă o copie",
+    copy: "Un fișier ZIP cu răspunsurile, mesajele și documentele pe care le-ai încărcat.",
+    copyAction: "Descarcă copia",
+    deleteTitle: "Șterge cererea",
+    deleteSelf:
+      "Încă nu ai trimis-o la ghișeu: o poți șterge tu, cu toate documentele și mesajele.",
+    deleteAction: "Șterge cererea…",
+    deleteConfirmTitle: "Ștergi cererea?",
+    deleteConfirm:
+      "Răspunsurile, documentele și mesajele se șterg imediat, iar acest link nu mai funcționează. Nu se poate anula: dacă ai nevoie de ea, va trebui să o iei de la capăt.",
+    deleteConfirmAction: "Da, șterge tot",
+    deletedTitle: "Cerere ștearsă",
+    deletedBody:
+      "Am șters răspunsurile, documentele și mesajele. Timp de un an rămâne doar un registru tehnic al operațiunilor, fără conținutul lor.",
+    requestTitle: "Cere ștergerea",
+    request:
+      "Cererea este deja la ghișeu: decide {org}, care îți răspunde în cel mult o lună. Unele date pot rămâne dacă legea obligă la păstrarea lor.",
+    requestAction: "Cere ștergerea…",
+    requestConfirmTitle: "Ceri ștergerea?",
+    requestConfirm:
+      "Ghișeul primește solicitarea și te poate contacta ca să verifice cine ești. Dacă ai cerut invitațiile pentru reînnoire, acestea se opresc imediat.",
+    requestConfirmAction: "Trimite solicitarea",
+    requested: "Solicitare trimisă pe {date}. Ghișeul îți răspunde în cel mult o lună.",
+    rightsTitle: "Celelalte drepturi",
+    rights:
+      "Poți cere ca {org} să-ți arate sau să-ți corecteze datele ori să le limiteze folosirea, iar tu te poți opune. Dacă crezi că sunt prelucrate greșit, poți depune o plângere la Garante, autoritatea italiană pentru protecția datelor.",
+    fullNotice: "Informarea completă (în italiană)",
   },
   steps: {
     need: "Nevoie",
@@ -1332,6 +1491,63 @@ export const uk: M = {
     title: "У вікні обслуговування просять",
     lead: "Заповніть ці пункти, і заява повернеться до вікна обслуговування.",
     resend: "Готово, надіслати знову",
+  },
+  privacy: {
+    open: "Ваші дані та конфіденційність",
+    title: "Ваші дані",
+    lead: "Що ми зберігаємо для цієї заяви, як довго і що Ви можете зробити.",
+    whoTitle: "Хто їх обробляє",
+    who: "{org} — контролер даних: вирішує, як використовувати Ваші дані для заяви. Avanti — сервіс, яким він користується, щоб її підготувати, і обробляє дані від його імені.",
+    whatTitle: "Що ми зберігаємо",
+    what: "Відповіді, членів сім’ї, Ваші контакти, повідомлення та документи, які Ви завантажуєте, з автоматичною перевіркою кожного з них.",
+    documents: {
+      "=0": "Ви ще не завантажили жодного документа.",
+      one: "Ви завантажили {n} документ.",
+      few: "Ви завантажили {n} документи.",
+      many: "Ви завантажили {n} документів.",
+      other: "Ви завантажили {n} документа.",
+    },
+    ai: "Автоматичний помічник читає повідомлення й документи, щоб запропонувати Вам відповіді та перевірки. Рішення щодо заяви завжди ухвалює працівник вікна обслуговування. Avanti не використовує Ваші дані для навчання штучного інтелекту.",
+    keepTitle: "Як довго",
+    linkUntil: "Посилання діє до {date}.",
+    retention: {
+      one: "Коли строк дії посилання завершиться або заяву закриють, дані зберігаються ще {n} день, а потім Avanti їх видаляє.",
+      few: "Коли строк дії посилання завершиться або заяву закриють, дані зберігаються ще {n} дні, а потім Avanti їх видаляє.",
+      many: "Коли строк дії посилання завершиться або заяву закриють, дані зберігаються ще {n} днів, а потім Avanti їх видаляє.",
+      other:
+        "Коли строк дії посилання завершиться або заяву закриють, дані зберігаються ще {n} дня, а потім Avanti їх видаляє.",
+    },
+    retentionGeneric:
+      "Вони зберігаються лише стільки, скільки визначить {org}, а потім Avanti їх видаляє.",
+    officeArchive:
+      "Якщо вікно обслуговування мусить зберігати заяву за законом, воно робить це у власному архіві.",
+    copyTitle: "Завантажити копію",
+    copy: "ZIP-файл з відповідями, повідомленнями та документами, які Ви завантажили.",
+    copyAction: "Завантажити копію",
+    deleteTitle: "Видалити заяву",
+    deleteSelf:
+      "Ви ще не надіслали її до вікна обслуговування: можете видалити її самі, разом з усіма документами й повідомленнями.",
+    deleteAction: "Видалити заяву…",
+    deleteConfirmTitle: "Видалити заяву?",
+    deleteConfirm:
+      "Відповіді, документи й повідомлення буде видалено одразу, а це посилання перестане діяти. Скасувати це неможливо: якщо заява Вам ще потрібна, доведеться почати спочатку.",
+    deleteConfirmAction: "Так, видалити все",
+    deletedTitle: "Заяву видалено",
+    deletedBody:
+      "Ми видалили відповіді, документи й повідомлення. Протягом року зберігається лише технічний журнал операцій, без їхнього змісту.",
+    requestTitle: "Попросити видалення",
+    request:
+      "Заява вже у вікні обслуговування: рішення ухвалює {org} і відповідає Вам протягом місяця. Деякі дані можуть залишитися, якщо закон зобов’язує їх зберігати.",
+    requestAction: "Попросити видалення…",
+    requestConfirmTitle: "Попросити видалення?",
+    requestConfirm:
+      "Вікно обслуговування отримає запит і може зв’язатися з Вами, щоб перевірити Вашу особу. Якщо Ви просили запрошення на поновлення, вони припиняться одразу.",
+    requestConfirmAction: "Надіслати запит",
+    requested: "Запит надіслано {date}. Вікно обслуговування відповість Вам протягом місяця.",
+    rightsTitle: "Інші Ваші права",
+    rights:
+      "Ви можете попросити {org} показати або виправити Ваші дані, обмежити їх використання чи заперечити проти нього. Якщо вважаєте, що дані обробляють неправильно, можете подати скаргу до Garante — італійського органу із захисту даних.",
+    fullNotice: "Повна інформація (італійською)",
   },
   steps: {
     need: "Потреба",
@@ -1714,6 +1930,65 @@ export const ar: M = {
     lead: "أكمل هذه البنود ويعود طلبك إلى شباك الخدمة.",
     resend: "أكملت، أرسل من جديد",
   },
+  privacy: {
+    open: "بياناتك والخصوصية",
+    title: "بياناتك",
+    lead: "ما نحتفظ به لهذا الطلب، ولأي مدة، وما يمكنك فعله.",
+    whoTitle: "من يعالجها",
+    who: "{org} هو المسؤول عن معالجة البيانات: يقرر كيف تُستخدم بياناتك في الطلب. Avanti هي الخدمة التي يستخدمها لتحضيره، وتعالج البيانات نيابةً عنه.",
+    whatTitle: "ما نحتفظ به",
+    what: "الإجابات، وأفراد الأسرة، وبيانات الاتصال بك، والرسائل، والوثائق التي ترفعها، مع الفحص الآلي لكل منها.",
+    documents: {
+      "=0": "لم ترفع أي وثيقة بعد.",
+      zero: "رفعت {n} وثيقة.",
+      one: "رفعت وثيقة واحدة.",
+      two: "رفعت وثيقتين.",
+      few: "رفعت {n} وثائق.",
+      many: "رفعت {n} وثيقة.",
+      other: "رفعت {n} وثيقة.",
+    },
+    ai: "يقرأ مساعد آلي الرسائل والوثائق ليقترح عليك إجابات وفحوصات. القرارات المتعلقة بالطلب يتخذها دائمًا موظف في شباك الخدمة. لا تستخدم Avanti بياناتك لتدريب الذكاء الاصطناعي.",
+    keepTitle: "لأي مدة",
+    linkUntil: "يعمل الرابط حتى {date}.",
+    retention: {
+      zero: "عندما تنتهي صلاحية الرابط أو يُغلق الطلب، تبقى البيانات {n} يوم إضافي، ثم تحذفها Avanti.",
+      one: "عندما تنتهي صلاحية الرابط أو يُغلق الطلب، تبقى البيانات يومًا واحدًا إضافيًا، ثم تحذفها Avanti.",
+      two: "عندما تنتهي صلاحية الرابط أو يُغلق الطلب، تبقى البيانات يومين إضافيين، ثم تحذفها Avanti.",
+      few: "عندما تنتهي صلاحية الرابط أو يُغلق الطلب، تبقى البيانات {n} أيام إضافية، ثم تحذفها Avanti.",
+      many: "عندما تنتهي صلاحية الرابط أو يُغلق الطلب، تبقى البيانات {n} يومًا إضافيًا، ثم تحذفها Avanti.",
+      other:
+        "عندما تنتهي صلاحية الرابط أو يُغلق الطلب، تبقى البيانات {n} يوم إضافي، ثم تحذفها Avanti.",
+    },
+    retentionGeneric: "تبقى فقط للمدة التي يحددها {org}، ثم تحذفها Avanti.",
+    officeArchive:
+      "إذا كان على شباك الخدمة الاحتفاظ بالطلب بموجب القانون، فإنه يفعل ذلك في أرشيفه الخاص.",
+    copyTitle: "نزّل نسخة",
+    copy: "ملف ZIP يضم الإجابات والرسائل والوثائق التي رفعتها.",
+    copyAction: "تنزيل النسخة",
+    deleteTitle: "احذف الطلب",
+    deleteSelf: "لم ترسله إلى شباك الخدمة بعد: يمكنك حذفه بنفسك، مع كل الوثائق والرسائل.",
+    deleteAction: "حذف الطلب…",
+    deleteConfirmTitle: "هل تريد حذف الطلب؟",
+    deleteConfirm:
+      "تُحذف الإجابات والوثائق والرسائل فورًا ويتوقف هذا الرابط عن العمل. لا يمكن التراجع: إذا احتجت إليه، فعليك أن تبدأ من جديد.",
+    deleteConfirmAction: "نعم، احذف كل شيء",
+    deletedTitle: "تم حذف الطلب",
+    deletedBody:
+      "حذفنا الإجابات والوثائق والرسائل. يبقى لمدة سنة سجل تقني للعمليات فقط، من دون محتواها.",
+    requestTitle: "اطلب الحذف",
+    request:
+      "الطلب موجود الآن في شباك الخدمة: القرار لـ{org}، ويرد عليك خلال شهر. قد تبقى بعض البيانات إذا كان القانون يفرض الاحتفاظ بها.",
+    requestAction: "طلب الحذف…",
+    requestConfirmTitle: "هل تريد طلب الحذف؟",
+    requestConfirm:
+      "يستلم شباك الخدمة الطلب وقد يتصل بك للتحقق من هويتك. إذا كنت قد طلبت دعوات التجديد، فإنها تتوقف فورًا.",
+    requestConfirmAction: "إرسال الطلب",
+    requested: "أُرسل الطلب في {date}. يرد عليك شباك الخدمة خلال شهر.",
+    rightsTitle: "حقوقك الأخرى",
+    rights:
+      "يمكنك أن تطلب من {org} الاطلاع على بياناتك أو تصحيحها، أو تقييد استخدامها أو الاعتراض عليه. إذا رأيت أنها تُعالج بشكل غير صحيح، يمكنك تقديم شكوى إلى Garante، الهيئة الإيطالية لحماية البيانات.",
+    fullNotice: "الإشعار الكامل (بالإيطالية)",
+  },
   steps: {
     need: "الحاجة",
     interview: "الأسئلة",
@@ -2033,6 +2308,53 @@ export const bn: M = {
     title: "সেবা কাউন্টার আপনার কাছে চাইছে",
     lead: "এগুলো সম্পূর্ণ করুন, তারপর আবেদনটি আবার সেবা কাউন্টারে যাবে।",
     resend: "সম্পূর্ণ করেছি, আবার পাঠান",
+  },
+  privacy: {
+    open: "আপনার তথ্য ও গোপনীয়তা",
+    title: "আপনার তথ্য",
+    lead: "এই আবেদনের জন্য আমরা কী রাখি, কতদিন রাখি এবং আপনি কী করতে পারেন।",
+    whoTitle: "কে এগুলো ব্যবহার করে",
+    who: "{org} তথ্যের নিয়ন্ত্রক: আবেদনের জন্য আপনার তথ্য কীভাবে ব্যবহার হবে তা তারাই ঠিক করে। Avanti হলো সেই পরিষেবা যা তারা আবেদন প্রস্তুত করতে ব্যবহার করে, এবং তাদের পক্ষে তথ্য প্রক্রিয়া করে।",
+    whatTitle: "আমরা কী রাখি",
+    what: "উত্তর, পরিবারের সদস্যরা, আপনার যোগাযোগের তথ্য, বার্তা এবং আপনার আপলোড করা নথি, প্রতিটির স্বয়ংক্রিয় যাচাইসহ।",
+    documents: { "=0": "আপনি এখনো কোনো নথি আপলোড করেননি।", other: "আপনি {n}টি নথি আপলোড করেছেন।" },
+    ai: "একটি স্বয়ংক্রিয় সহকারী বার্তা ও নথি পড়ে আপনাকে উত্তর ও যাচাইয়ের প্রস্তাব দেয়। আবেদনের বিষয়ে সিদ্ধান্ত সবসময় সেবা কাউন্টারের একজন কর্মী নেন। Avanti আপনার তথ্য কৃত্রিম বুদ্ধিমত্তা প্রশিক্ষণে ব্যবহার করে না।",
+    keepTitle: "কতদিন",
+    linkUntil: "লিংকটি {date} পর্যন্ত কাজ করবে।",
+    retention: {
+      other:
+        "লিংকের মেয়াদ শেষ হলে বা আবেদন বন্ধ হলে তথ্য আরও {n} দিন থাকে, তারপর Avanti তা মুছে ফেলে।",
+    },
+    retentionGeneric: "{org} যতদিন ঠিক করে শুধু ততদিন থাকে, তারপর Avanti তা মুছে ফেলে।",
+    officeArchive: "আইন অনুযায়ী সেবা কাউন্টারকে আবেদনটি রাখতে হলে, তারা নিজেদের আর্কাইভে রাখে।",
+    copyTitle: "একটি কপি ডাউনলোড করুন",
+    copy: "উত্তর, বার্তা এবং আপনার আপলোড করা নথিসহ একটি ZIP ফাইল।",
+    copyAction: "কপি ডাউনলোড করুন",
+    deleteTitle: "আবেদন মুছে ফেলুন",
+    deleteSelf:
+      "আপনি এখনো এটি সেবা কাউন্টারে পাঠাননি: সব নথি ও বার্তাসহ আপনি নিজেই এটি মুছে ফেলতে পারেন।",
+    deleteAction: "আবেদন মুছে ফেলুন…",
+    deleteConfirmTitle: "আবেদনটি মুছে ফেলবেন?",
+    deleteConfirm:
+      "উত্তর, নথি ও বার্তা সঙ্গে সঙ্গে মুছে যাবে এবং এই লিংক আর কাজ করবে না। এটি ফেরানো যাবে না: দরকার হলে আবার শুরু থেকে করতে হবে।",
+    deleteConfirmAction: "হ্যাঁ, সব মুছে ফেলুন",
+    deletedTitle: "আবেদন মুছে ফেলা হয়েছে",
+    deletedBody:
+      "আমরা উত্তর, নথি ও বার্তা মুছে ফেলেছি। এক বছর শুধু কাজের একটি প্রযুক্তিগত রেকর্ড থাকে, তাদের বিষয়বস্তু ছাড়া।",
+    requestTitle: "মুছে ফেলার অনুরোধ করুন",
+    request:
+      "আবেদনটি এখন সেবা কাউন্টারে আছে: সিদ্ধান্ত নেবে {org}, এবং এক মাসের মধ্যে আপনাকে উত্তর দেবে। আইন সংরক্ষণ বাধ্যতামূলক করলে কিছু তথ্য থেকে যেতে পারে।",
+    requestAction: "মুছে ফেলার অনুরোধ করুন…",
+    requestConfirmTitle: "মুছে ফেলার অনুরোধ করবেন?",
+    requestConfirm:
+      "সেবা কাউন্টার অনুরোধটি পাবে এবং আপনার পরিচয় যাচাই করতে আপনার সাথে যোগাযোগ করতে পারে। আপনি নবায়নের আমন্ত্রণ চেয়ে থাকলে, তা সঙ্গে সঙ্গে বন্ধ হয়ে যাবে।",
+    requestConfirmAction: "অনুরোধ পাঠান",
+    requested:
+      "{date} তারিখে অনুরোধ পাঠানো হয়েছে। সেবা কাউন্টার এক মাসের মধ্যে আপনাকে উত্তর দেবে।",
+    rightsTitle: "আপনার অন্যান্য অধিকার",
+    rights:
+      "আপনি {org}-এর কাছে আপনার তথ্য দেখতে বা সংশোধন করতে, এর ব্যবহার সীমিত করতে বা আপত্তি জানাতে চাইতে পারেন। তথ্য ভুলভাবে ব্যবহার হচ্ছে মনে হলে, Garante-এ (ইতালির তথ্য সুরক্ষা কর্তৃপক্ষ) অভিযোগ করতে পারেন।",
+    fullNotice: "সম্পূর্ণ বিজ্ঞপ্তি (ইতালীয় ভাষায়)",
   },
   steps: {
     need: "প্রয়োজন",
