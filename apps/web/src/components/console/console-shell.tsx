@@ -262,7 +262,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         Vai al contenuto
       </a>
       {/* Citizens' names and file names can be one long unbroken word: wrap rather than overflow. */}
-      <div className="min-h-dvh bg-paper wrap-break-word lg:grid lg:grid-cols-[15rem_1fr]">
+      <div className="min-h-dvh bg-paper wrap-break-word lg:grid lg:grid-cols-[14rem_1fr]">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
           <Link href="/console" className="rounded-sm">
             <Logo />
@@ -298,13 +298,17 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
               : "hidden",
           )}
         >
-          <div className="hidden h-16 items-center px-5 lg:flex">
+          <div className="hidden h-14 items-center px-4 lg:flex">
             <Link href="/console" className="rounded-sm">
               <Logo />
             </Link>
           </div>
-          <div className="grid gap-1.5 px-3 pt-3 lg:pt-1">
-            <Button className="w-full justify-start" onClick={() => setCreating(true)}>
+          <div className="grid gap-1 px-2.5 pt-3 lg:pt-1">
+            <Button
+              size="sm"
+              className="h-9 w-full justify-start px-2.5"
+              onClick={() => setCreating(true)}
+            >
               <Plus className="size-4" aria-hidden />
               Nuova pratica
             </Button>
@@ -312,15 +316,15 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => setSearching(true)}
               aria-keyshortcuts="Meta+K Control+K"
-              className="flex h-10 items-center gap-3 rounded-sm px-3 text-body-sm text-ink-2 transition-colors hover:bg-sunk hover:text-ink"
+              className="flex h-9 items-center gap-2.5 rounded-sm px-2.5 text-sm text-ink-2 transition-colors duration-100 hover:bg-sunk hover:text-ink"
             >
-              <Search className="size-4.5" aria-hidden />
+              <Search className="size-4" aria-hidden />
               <span className="flex-1 text-start">Cerca</span>
               <Kbd className="hidden lg:block">⌘K</Kbd>
             </button>
           </div>
-          <nav aria-label="Console" className="mt-4 flex-1 px-3">
-            <ul className="grid gap-0.5">
+          <nav aria-label="Console" className="mt-3 flex-1 px-2.5">
+            <ul className="grid gap-px">
               {NAV.filter((item) => !item.adminOnly || operator.role === "admin").map(
                 ({ href, label, icon: Icon, match }) => {
                   const active = match(pathname);
@@ -330,13 +334,19 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
                         href={href}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "flex h-10 items-center gap-3 rounded-sm px-3 text-body-sm transition-colors",
+                          "group flex h-9 items-center gap-2.5 rounded-sm px-2.5 text-sm transition-colors duration-100",
                           active
-                            ? "bg-stamp-wash font-semibold text-stamp"
-                            : "text-ink-2 hover:bg-sunk hover:text-ink",
+                            ? "bg-sunk font-semibold text-ink"
+                            : "text-ink-2 hover:bg-sunk/70 hover:text-ink",
                         )}
                       >
-                        <Icon className="size-4.5" aria-hidden />
+                        <Icon
+                          className={cn(
+                            "size-4 shrink-0",
+                            active ? "text-stamp" : "text-ink-3 group-hover:text-ink-2",
+                          )}
+                          aria-hidden
+                        />
                         {label}
                       </Link>
                     </li>
@@ -410,7 +420,7 @@ function RecentCases({ operatorId }: { operatorId: string }) {
   if (recent.length === 0) return null;
   return (
     <div className="mt-6">
-      <p className="px-3 pb-1.5 text-xs font-semibold text-ink-3">Aperte di recente</p>
+      <p className="px-2.5 pb-1 text-xs font-medium text-ink-3">Aperte di recente</p>
       {/* minmax(0, 1fr): a long name truncates instead of widening the column past the sidebar. */}
       <ul className="grid grid-cols-[minmax(0,1fr)] gap-0.5">
         {recent.slice(0, 5).map((item) => {
@@ -423,7 +433,7 @@ function RecentCases({ operatorId }: { operatorId: string }) {
                 aria-current={active ? "page" : undefined}
                 title={item.name ?? undefined}
                 className={cn(
-                  "block truncate rounded-sm px-3 py-1.5 text-sm transition-colors",
+                  "block truncate rounded-sm px-2.5 py-1.5 text-sm transition-colors duration-100",
                   active ? "bg-sunk text-ink" : "text-ink-2 hover:bg-sunk hover:text-ink",
                 )}
               >
@@ -455,10 +465,10 @@ function OperatorCard({ operator }: { operator: Operator }) {
   }
 
   return (
-    <div className="flex items-center gap-3 border-t border-line p-4">
+    <div className="flex items-center gap-2.5 border-t border-line px-3 py-3">
       <span
         aria-hidden
-        className="grid size-9 shrink-0 place-items-center rounded-full bg-contrast font-display text-sm font-semibold text-on-contrast"
+        className="grid size-8 shrink-0 place-items-center rounded-full bg-contrast font-display text-sm font-semibold text-on-contrast"
       >
         {operator.name
           .split(/\s+/)
