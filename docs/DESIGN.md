@@ -62,8 +62,8 @@ Atkinson Hyperlegible Mono solo per codici e tasti.
 
 | Utility           | Dimensione                  | Uso                                         |
 | ----------------- | --------------------------- | ------------------------------------------- |
-| `type-hero`       | 46 → 84 px, interlinea 0,98 | Un solo titolo per pagina, nella landing    |
-| `type-page`       | 36 → 56 px                  | Titoli delle pagine secondarie del sito     |
+| `type-hero`       | 46 → 96 px, interlinea 0,98 | Un solo titolo per pagina, nella landing    |
+| `type-page`       | 38 → 60 px                  | Titoli delle pagine secondarie del sito     |
 | `type-section`    | 32 → 52 px                  | Titolo di sezione                           |
 | `type-subsection` | 28 → 40 px                  | Sezione minore o di chiusura                |
 | `type-title`      | 24 px, semibold             | Titoli di scheda e di colonna               |
@@ -71,6 +71,10 @@ Atkinson Hyperlegible Mono solo per codici e tasti.
 | `type-eyebrow`    | 13 px, maiuscoletto +0,06em | Etichetta sopra il titolo di sezione        |
 | `text-base`       | 16 px                       | Testo corrente (cittadino: mai sotto 16 px) |
 | `text-body-sm`    | 15 px                       | Righe dense della console                   |
+
+Tracking ottico: Bricolage stringe già da sé ai corpi grandi (asse `opsz`), quindi i titoli
+editoriali vanno da −0,008em verso −0,006em man mano che crescono, larghezza 96–98% e peso
+650–660. Con −0,022em e larghezza 88% «rr», «fa» e «sc» si toccavano.
 
 Titoli con `text-wrap: balance`, paragrafi con `pretty`, al massimo ~65 caratteri per riga
 (`max-w-2xl` per i lead). Cifre che cambiano o si confrontano: `tabular`.
@@ -147,11 +151,30 @@ sfondo chiaro e per quello scuro.
 - Niente `backdrop-filter` sulle barre fisse del flusso cittadino: costa sui telefoni economici.
 - Le barre di avanzamento animano `transform`, non la larghezza.
 
-## Movimento
+## Motion
 
-- Curve in `globals.css`: `--ease-out` per entrate e uscite, `--ease-drawer` per pannelli e
-  fogli che scorrono da un bordo, `--ease-in-out` per ciò che si sposta sullo schermo. Solo
-  `transform` e `opacity`; sotto i 300 ms, le uscite più rapide delle entrate.
+Il movimento risponde a qualcosa (un'azione, un'informazione che arriva) e non decora. Regole
+per tutte le aree:
+
+- **Solo `transform` e `opacity`.** Unica eccezione: il tratto dell'evidenziatore sul testo del
+  cittadino nella demo (`background-size`), perché segue le righe a capo; dura 500 ms, una volta.
+- **Curve** (`globals.css`): `--ease-out` per entrate, uscite e feedback; `--ease-drawer` per
+  fogli e pannelli da un bordo; `--ease-in-out` per ciò che si sposta sullo schermo. Solo sul sito
+  (`(site)/site.css`): `--ease-out-expo` per ciò che arriva una volta (reveal, hero). Mai
+  `ease-in`.
+- **Durate:** feedback 100–160 ms, menu e popover 150–250 ms, fogli 300–340 ms; sul sito i
+  reveal 600–800 ms. Le uscite sono più rapide delle entrate.
+- **Pressione:** i pulsanti scendono a `scale(0.98)` su `:active`; le pillole della lingua a 0,96.
+  Gli hover (sollevamento di 2 px delle schede, freccia che avanza) solo dove c'è un puntatore:
+  Tailwind 4 li mette già sotto `@media (hover: hover)`.
+- **Movimento ridotto:** le entrate diventano dissolvenze di 150 ms, niente slittamenti, scale o
+  cicli; la demo mostra subito il fascicolo finito; i reveal non nascondono nulla; i numeri non
+  contano. Lo spinner continua a girare, più lento: è uno stato.
+- **Prestazioni:** niente librerie di animazione. Reveal e conteggi con un solo
+  IntersectionObserver per pagina; niente `backdrop-filter` sulle barre del cittadino.
+
+Console e cittadino:
+
 - Dialoghi: sul telefono un foglio che sale dal basso, da `sm` una scheda che compare al
   centro. I pannelli laterali (aiuto del cittadino, «Chiedi al fascicolo») scorrono dal bordo
   in cui stanno, specchiati in RTL. I menu crescono dal pulsante che li apre.
@@ -160,25 +183,65 @@ sfondo chiaro e per quello scuro.
 - Un badge di stato si anima solo quando cambia (documento caricato, voce verificata), non
   all'apertura della pagina (`components/ui/use-changed.ts`).
 
+Sito pubblico (`app/(site)/site.css`, caricato solo lì):
+
+| Classe / attributo        | Cosa fa                                                            |
+| ------------------------- | ------------------------------------------------------------------ |
+| `hero-in` + `--d`         | Entrata al caricamento, da CSS (non aspetta l'idratazione), 900 ms |
+| `data-reveal`             | Sale di 14 px e compare quando entra in vista, una volta           |
+| `data-reveal="stagger"`   | Lo stesso per i figli, 60 ms l'uno dall'altro (massimo 300 ms)     |
+| `draw-x`                  | Una linea dentro un reveal si disegna da sinistra (`scaleX`)       |
+| `marker-draw`             | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)   |
+| `stamp-press` / `tick-in` | Timbro premuto con piccolo rimbalzo; spunta che compare in scala   |
+| `grain` / `grain-dark`    | Grana della carta (SVG di rumore) su fondi chiari o scuri          |
+| `ruled`                   | Righe del registro che sfumano in alto negli hero                  |
+
+I reveal partono dopo l'idratazione (`lib/site/reveal.ts`): un attributo aggiunto prima
+all'HTML del server è un errore di idratazione. Quello che è già a schermo viene segnato come
+visto subito e non lampeggia; solo ciò che sta sotto la piega parte nascosto.
+
+## Pattern di componenti
+
+Riutilizzabili dalla console e dalle pagine del cittadino con gli stessi token; i componenti
+del sito stanno in `components/landing`, gli oggetti di brand in `components/brand`.
+
+| Pattern                     | Dove                                                  | Regola                                                                                                                                             |
+| --------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Etichetta + titolo + lead   | `SectionIntro`, `PageHero`                            | Etichetta in `type-eyebrow` con filetto di 24 px; un solo `h1` per pagina                                                                          |
+| Fascia di chiusura          | `PageCta`, chiusura della landing                     | Fondo `contrast` con grana, un solo passo successivo, pulsante `marker`                                                                            |
+| Elenco numerato a filetti   | passaggi al gestionale, sicurezza                     | Numero in mono `stamp`, filetto sopra; per sequenze dopo il prodotto, non per il percorso                                                          |
+| Schede di passaggi          | «Come funziona»                                       | `surface` + `shadow-raised`, sollevamento di 2 px all'hover, filo tratteggiato tra i numeri                                                        |
+| Immagine del prodotto       | `IntakeDemo`, `DossierPreview`                        | Disegnata sulla pagina vera, `shadow-frame`, «Dati inventati» in didascalia, controlli `aria-hidden`                                               |
+| Fogli impilati              | fascicolo della demo                                  | Due fogli dietro, ruotati di +1,4° e −0,8°, mai più di due                                                                                         |
+| Timbro                      | `Stamp`                                               | Maiuscolo, bordo 2,5 px, ruotato −7°/−9°, `mix-blend-multiply`; solo per uno stato vero (consegnato, ricevuta) o una regola («decide l'operatore») |
+| Biglietto della coda        | `QueueTicket`                                         | Forma del logo con le tacche colorate come il fondo (`--notch`); decorativo                                                                        |
+| Casella da spuntare         | «Prima di trattare dati reali»                        | Vuota quando la cosa va ancora fatta: non disegnare spunte per impegni futuri                                                                      |
+| CTA ripetuta                | hero, dopo la console, chiusura, header, barra mobile | Sempre verso `#pilota`, stesso verbo («Parliamo del pilota»)                                                                                       |
+| Barra in basso sul telefono | `MobileCta`                                           | Compare dopo l'hero, sparisce sopra modulo, chiusura e footer; `inert` quando nascosta, safe area                                                  |
+| Header                      | `SiteHeader`                                          | Sfondo che compare scorrendo (solo opacità), sezione attiva con `aria-current="location"`                                                          |
+| FAQ                         | `details` nativo                                      | Risposta che sale all'apertura, icona + che ruota di 45° e si riempie di `stamp`                                                                   |
+| Numeri con fonte            | `CountUp`                                             | Il server scrive il valore finale; conta solo se arriva da sotto la piega; fonte linkata sotto                                                     |
+| Focus                       | globale                                               | Contorno `stamp` di 2 px a 2 px di distanza; su fondo scuro `outline-marker`                                                                       |
+
 ## Landing
 
-Pubblico e tono in [gtm/pubblico.md](gtm/pubblico.md). Ogni sezione si apre con
-`SectionIntro` (etichetta, titolo, lead) e alterna carta e fasce bianche; la fascia scura è
-riservata alla sezione operatori e al richiamo finale, così il prodotto spicca. Le immagini del
-prodotto sono componenti disegnati sulle pagine vere (`intake-demo`, `dossier-preview` con coda e
-fascicolo, `ai-snippets`), con «Dati inventati» in didascalia: niente screenshot che invecchiano,
-niente illustrazioni generiche, niente loghi o testimonianze finché non ci sono clienti veri.
-Sotto l'hero, quattro fatti verificabili prendono il posto della prova sociale.
+Pubblico e tono in [gtm/pubblico.md](gtm/pubblico.md). Ritmo delle sezioni: hero su carta con
+righe del registro e piano di lavoro con grana → domande dello sportello (bianco) → passaggi
+(carta) → **operatori (scuro)** con la console disegnata → gestionale (bianco) → AI (carta) →
+lingue (bianco) → pratiche con cifre e fonti (carta) → **dati (scuro)** → pilota con modulo
+fisso a lato (incassato) → FAQ → **chiusura (scuro)**. Le immagini del prodotto sono componenti
+disegnati sulle pagine vere, con «Dati inventati» in didascalia: niente screenshot che
+invecchiano, niente illustrazioni generiche, niente loghi o testimonianze finché non ci sono
+clienti veri. Sotto l'hero, quattro fatti verificabili prendono il posto della prova sociale.
 
-Movimento della landing (verificato): l'unico momento orchestrato è l'evidenziatore della demo,
-che parte quando è in vista. È l'unica transizione che non usa `transform`/`opacity`
-(`background-size` del tratto, che segue le righe a capo e non si può fare con una scala); dura
-500 ms una volta sola su poche parole. Con `prefers-reduced-motion` la demo mostra subito il
-fascicolo finito. Il resto: dissolvenze, rotazione dell'icona delle FAQ, pressione dei pulsanti.
+La demo dell'hero è l'unico momento orchestrato: parte quando è in vista; frase evidenziata →
+fatto nel fascicolo (5 volte), checklist spuntata riga per riga, poi timbro «Consegnato allo
+sportello» e avviso del mancante. Il cambio lingua ridisegna il messaggio con una dissolvenza
+e riparte; il fascicolo resta in italiano.
 
 Controlli prima di cambiarla: 320, 375, 768 e 1440 px senza scorrimento orizzontale, zoom al
 200% (viewport di 720 px), testi lunghi nei nomi della coda (troncati: sono decorativi) e
-nell'email della conferma (`break-all`).
+nell'email della conferma (`break-all`), axe senza violazioni gravi su tutte le pagine del sito.
 
 ## Cosa non diciamo
 
