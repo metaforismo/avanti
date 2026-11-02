@@ -317,38 +317,40 @@
 }
 
 /*
- * Editorial headings (site pages), set with font-display. Bricolage at these sizes already
- * draws its tight display cut: tracking past about -0.022em makes letters touch ("rr", "fa").
- * Leading opens a little as the size drops, so two-line headings don't lock descenders.
+ * Editorial headings (site pages), set with font-display. Bricolage's optical-size axis already
+ * draws a tighter, higher-contrast cut as the size grows, so tracking moves toward zero on the
+ * largest sizes instead of tightening further: at -0.022em and 88% width "rr", "fa" and "sc"
+ * touched. Width opens a little and weight drops a little as the size grows, for the same reason.
+ * Leading opens as the size drops, so two-line headings don't lock descenders.
  */
 @utility type-hero {
-  font-size: clamp(2.875rem, 7vw, 5.25rem);
+  font-size: clamp(2.875rem, 7.2vw, 6rem);
   line-height: 0.98;
-  font-weight: 700;
-  letter-spacing: -0.022em;
-  font-stretch: 88%;
+  font-weight: 650;
+  letter-spacing: -0.006em;
+  font-stretch: 96%;
+}
+@utility type-page {
+  font-size: clamp(2.375rem, 5vw, 3.75rem);
+  line-height: 1.02;
+  font-weight: 660;
+  letter-spacing: -0.008em;
+  font-stretch: 96%;
 }
 @utility type-section {
   font-size: clamp(2rem, 4.2vw, 3.25rem);
   line-height: 1.04;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-stretch: 90%;
+  font-weight: 660;
+  letter-spacing: -0.008em;
+  font-stretch: 97%;
 }
-/* Page titles of the secondary site pages, and a section that closes a larger one. */
-@utility type-page {
-  font-size: clamp(2.25rem, 5vw, 3.5rem);
-  line-height: 1.02;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-stretch: 90%;
-}
+/* A section that closes a larger one. */
 @utility type-subsection {
   font-size: clamp(1.75rem, 3.4vw, 2.5rem);
-  line-height: 1.06;
-  font-weight: 700;
-  letter-spacing: -0.018em;
-  font-stretch: 90%;
+  line-height: 1.08;
+  font-weight: 660;
+  letter-spacing: -0.008em;
+  font-stretch: 98%;
 }
 
 /* Small caps label above a section title: says what the section is about to someone scrolling. */
@@ -367,9 +369,9 @@
 /* Card and column titles inside a section. */
 @utility type-title {
   font-size: 1.5rem;
-  line-height: 1.15;
+  line-height: 1.18;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
 }
 
 @layer utilities {
