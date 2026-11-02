@@ -16,6 +16,12 @@
     scrollbar-color: var(--line-strong) var(--paper);
     scroll-behavior: smooth;
   }
+  /* Glows and tilted sheets may reach past the edge on a phone: clip, never scroll sideways.
+     `clip`, not `hidden`, keeps the sticky header and pictures working. */
+  html:has(.site),
+  html:has(.site) body {
+    overflow-x: clip;
+  }
 
   /*
    * Scroll reveals. The hidden starting state is not here: lib/site/reveal.ts adds it after
