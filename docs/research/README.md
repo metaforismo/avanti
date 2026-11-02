@@ -6,14 +6,15 @@
 
 ## Indice
 
-| Documento                            | Decisione che aiuta a prendere                                          |
-| ------------------------------------ | ----------------------------------------------------------------------- |
-| [Mercato](market.md)                 | Volumi, sedi e compensi; ordine di grandezza dei ricavi e dati mancanti |
-| [Competitor](competitors.md)         | Offerte già presenti e differenziazione da dimostrare                   |
-| [Regolamentazione](regulation.md)    | Perimetro, responsabilità e documenti prima dei dati reali              |
-| [Integrazioni](integrations.md)      | Handoff iniziale e accessi/connettori da verificare                     |
-| [Playbook piloti](pilot-playbook.md) | Reclutamento, baseline, KPI e accordo da revisionare                    |
-| [Lingue](languages.md)               | Comunità, priorità e verifica delle traduzioni                          |
+| Documento                                          | Decisione che aiuta a prendere                                          |
+| -------------------------------------------------- | ----------------------------------------------------------------------- |
+| [Mercato](market.md)                               | Volumi, sedi e compensi; ordine di grandezza dei ricavi e dati mancanti |
+| [Competitor](competitors.md)                       | Offerte già presenti e differenziazione da dimostrare                   |
+| [Regolamentazione](regulation.md)                  | Perimetro, responsabilità e documenti prima dei dati reali              |
+| [Integrazioni](integrations.md)                    | Handoff iniziale e accessi/connettori da verificare                     |
+| [Playbook piloti](pilot-playbook.md)               | Reclutamento, baseline, KPI e accordo da revisionare                    |
+| [Lingue](languages.md)                             | Comunità, priorità e verifica delle traduzioni                          |
+| [Diritti dell'interessato](diritti-interessato.md) | Cosa il cittadino fa dal link e cosa resta al CAF titolare              |
 
 La ricerca normativa sulle singole pratiche, incluso ISEE 2027, è un lavoro separato. Questi documenti non definiscono la checklist normativa completa né sostituiscono la sua verifica prima del pilota.
 

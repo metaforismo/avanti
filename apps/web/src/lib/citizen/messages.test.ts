@@ -47,6 +47,8 @@ const INVARIANT: Record<(typeof LANGUAGES)[number], readonly string[]> = {
     "docs.inCheck",
     "docs.allUploaded",
     "review.waitChecking",
+    "privacy.documents",
+    "privacy.retention",
   ],
 };
 

@@ -300,6 +300,15 @@ restituire `deletedCases:0`. Vedi [decisione](decisions/renewals.md#promemoria-m
 L’export CLI del CAF include `renewalReminders` per portabilità, senza `withdrawal_token_hash`;
 non esporta nuove capability. Il formato resta versione 1 con campo additivo.
 
+## Richiesta di cancellazione del cittadino (0031)
+
+`0031_citizen_erasure_request`, generata con drizzle-kit, aggiunge `cases.erasure_requested_at`
+(`timestamptz` nullable, nessun backfill): il cittadino ha chiesto dal link di cancellare una
+pratica già inviata. Non è contenuto: non cambia `updated_at` né `content_version`. Torna null
+quando l'admin chiude la richiesta senza cancellare; sparisce con la pratica quando la cancella.
+La bozza mai inviata il cittadino la cancella da solo, con `case.citizen_deleted` (attore
+cittadino) al posto di `case.deleted`. [Decisione](decisions/citizen-data-rights.md).
+
 ## Versione del contenuto per «quasi pronta» (0026)
 
 `0026_near_ready_content_version`, generata con drizzle-kit e completata in coda con SQL

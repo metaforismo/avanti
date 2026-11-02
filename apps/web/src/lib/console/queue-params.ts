@@ -18,6 +18,8 @@ export type QueueParams = {
   assignee: "me" | "none" | "";
   priority: QueuePriority | "";
   longestWaiting: boolean;
+  /** Only the open erasure requests, in every status, nearest deadline first. */
+  erasure: boolean;
   q: string;
 };
 
@@ -37,6 +39,7 @@ export function readQueueParams(params: { get(key: string): string | null }): Qu
     priority: pick(QUEUE_PRIORITIES, params.get("priorita")),
     // Only the submitted tab offers this order: elsewhere nothing on screen could undo it.
     longestWaiting: status === "submitted" && params.get("ordina") === "attesa",
+    erasure: params.get("cancellazioni") === "1",
     q: (params.get("q") ?? "").slice(0, QUEUE_SEARCH_MAX),
   };
 }

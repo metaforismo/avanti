@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Select } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
+import { erasureDeadline, formatDeadline } from "@/lib/console/erasure-deadline";
 import { PageContainer, PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -66,6 +67,7 @@ function Queue() {
     assignee,
     priority,
     longestWaiting,
+    erasure,
     q: initialSearch,
   } = readQueueParams(params);
   const operator = useOperator();
@@ -101,12 +103,16 @@ function Queue() {
     const next = new URLSearchParams(params);
     next.delete("eliminata");
     next.delete("famiglia");
+    // Choosing a status tab leaves the erasure requests for the ordinary queue.
+    if (key === "stato") next.delete("cancellazioni");
     if (value) next.set(key, value);
     else next.delete(key);
     router.replace(`/console?${next.toString()}` as Route, { scroll: false });
   };
 
   const query = useMemo(() => {
+    // Every status at once, nearest art. 12(3) deadline first: nothing else filters this list.
+    if (erasure) return "/api/cases?erasure=requested&limit=50";
     const q = new URLSearchParams({ status, limit: "50" });
     if (practice) q.set("practiceId", practice);
     if (assignee) q.set("assignee", assignee);
@@ -114,7 +120,7 @@ function Queue() {
     if (deferredSearch) q.set("q", deferredSearch);
     if (longestWaiting) q.set("sort", "waiting");
     return `/api/cases?${q.toString()}`;
-  }, [status, practice, assignee, priority, deferredSearch, longestWaiting]);
+  }, [status, practice, assignee, priority, deferredSearch, longestWaiting, erasure]);
 
   const list = useResource<CaseListResponse>(query);
   const [extra, setExtra] = useState<{
@@ -162,6 +168,7 @@ function Queue() {
   const selectable = items.slice(0, ASSIGN_CASES_MAX);
   const allSelected = selectable.length > 0 && selectable.every((item) => selectedIds.has(item.id));
   const overdue = list.data?.waitingOverdue ?? 0;
+  const erasureRequests = list.data?.erasureRequests ?? 0;
 
   function toggle(id: string) {
     const next = new Set(selectedIds);
@@ -268,13 +275,50 @@ function Queue() {
         )}
       </div>
 
+      {erasure ? (
+        <Notice
+          tone="danger"
+          role="none"
+          className="mt-4"
+          title="Richieste di cancellazione aperte"
+          action={
+            <Button variant="secondary" onClick={() => setParam("cancellazioni", "")}>
+              Torna alle pratiche
+            </Button>
+          }
+        >
+          In ogni stato, dalla scadenza più vicina. La risposta al cittadino va data entro un mese
+          dalla richiesta: cancella la pratica o, se va conservata, spiegagli perché.
+        </Notice>
+      ) : (
+        erasureRequests > 0 && (
+          <Notice
+            tone="danger"
+            role="none"
+            className="mt-4"
+            title={
+              erasureRequests === 1
+                ? "Un cittadino chiede la cancellazione dei suoi dati"
+                : `${erasureRequests} cittadini chiedono la cancellazione dei loro dati`
+            }
+            action={
+              <Button variant="secondary" onClick={() => setParam("cancellazioni", "1")}>
+                Vedi le richieste
+              </Button>
+            }
+          >
+            Va data una risposta entro un mese dalla richiesta, in qualunque stato sia la pratica.
+          </Notice>
+        )
+      )}
+
       <div
         role="group"
         aria-label="Stato"
         className="-mx-1 mt-5 flex gap-1 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible"
       >
         {STATUS_ORDER.map((key) => {
-          const active = key === status;
+          const active = !erasure && key === status;
           const count = counts?.[key];
           return (
             <button
@@ -310,7 +354,7 @@ function Queue() {
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className={cn("mt-4 flex flex-wrap items-center gap-2", erasure && "hidden")}>
         <div className="relative min-w-64 flex-[2_1_18rem]">
           <Search
             className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
@@ -400,7 +444,7 @@ function Queue() {
         </div>
       </div>
 
-      {status === "submitted" && (
+      {status === "submitted" && !erasure && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <p
             className={cn(
@@ -427,7 +471,7 @@ function Queue() {
 
       <p role="status" className="sr-only">
         {list.status === "ready"
-          ? `${casesLabel(items.length)}: ${CASE_STATUS[status].label.toLowerCase()}`
+          ? `${casesLabel(items.length)}: ${erasure ? "richieste di cancellazione" : CASE_STATUS[status].label.toLowerCase()}`
           : ""}
       </p>
       <section aria-busy={list.status === "loading" || list.refreshing} className="mt-5">
@@ -447,7 +491,9 @@ function Queue() {
         ) : list.status === "loading" && !list.data ? (
           <QueueSkeleton />
         ) : items.length === 0 ? (
-          queueIsIdle(counts) && counts && !filtered ? (
+          erasure ? (
+            <Notice tone="ok" size="page" title="Nessuna richiesta di cancellazione aperta." />
+          ) : queueIsIdle(counts) && counts && !filtered ? (
             <FirstSteps
               counts={counts}
               onNewCase={() => setCreatingTrial(true)}
@@ -651,6 +697,12 @@ function QueueRow({
                 In attesa {waitingSince(item.waiting.days)}
               </Pill>
             </span>
+          )}
+          {item.erasureRequestedAt && (
+            <Pill tone="danger" className="mt-1 w-fit">
+              Chiede la cancellazione · entro il{" "}
+              {formatDeadline(erasureDeadline(item.erasureRequestedAt))}
+            </Pill>
           )}
           {item.aiPriority && <PriorityBadge item={item} />}
         </span>

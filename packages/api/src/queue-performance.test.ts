@@ -124,7 +124,8 @@ it("keeps list evaluation equal to dossiers, orders timestamp ties, searches lit
     queryCount = 0;
     await get("/api/cases?limit=100");
     expect(queryCount).toBe(one);
-    expect(queryCount).toBeLessThanOrEqual(11);
+    // 12: one constant count of open erasure requests, whatever the filters (not per row).
+    expect(queryCount).toBeLessThanOrEqual(12);
     const invalid = await app.request("/api/cases?cursor=invalid", {
       headers: { Cookie: `avanti_session=${token}` },
     });

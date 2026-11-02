@@ -52,6 +52,7 @@ import { DocumentViewer } from "./document-viewer";
 import { DossierAside } from "./dossier-aside";
 import { DsuSheetSection } from "./dsu-sheet-section";
 import { FamilyErasureDialog } from "./family-erasure-dialog";
+import { ErasureRequestNotice } from "./erasure-request-notice";
 import { NewLinkDialog } from "./new-link-dialog";
 import { ReuseDialog } from "./reuse-dialog";
 import { FindingsSummary } from "./findings-summary";
@@ -580,6 +581,13 @@ export function DossierView({ caseId }: { caseId: string }) {
           </p>
         </header>
       </div>
+      <ErasureRequestNotice
+        dossier={data}
+        isAdmin={operator.role === "admin"}
+        onDelete={() => setConfirmDelete(true)}
+        onEraseFamily={() => setEraseFamily(true)}
+        onChanged={() => void dossier.reload()}
+      />
       {withdraw === "done" && (
         <Notice
           tone="ok"

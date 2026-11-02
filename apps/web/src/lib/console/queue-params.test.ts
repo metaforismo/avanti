@@ -7,7 +7,7 @@ describe("readQueueParams", () => {
   it("keeps valid filters from a shared link", () => {
     expect(
       read(
-        "stato=submitted&pratica=isee_ordinario&assegnatario=me&priorita=near_ready&ordina=attesa&q=Rossi",
+        "stato=submitted&pratica=isee_ordinario&assegnatario=me&priorita=near_ready&ordina=attesa&cancellazioni=1&q=Rossi",
       ),
     ).toEqual({
       status: "submitted",
@@ -15,19 +15,23 @@ describe("readQueueParams", () => {
       assignee: "me",
       priority: "near_ready",
       longestWaiting: true,
+      erasure: true,
       q: "Rossi",
     });
   });
 
   it("drops values the API would reject instead of breaking the queue", () => {
-    expect(read("stato=foo&pratica=nope&assegnatario=xyz&priorita=zzz")).toEqual({
-      status: "submitted",
-      practice: "",
-      assignee: "",
-      priority: "",
-      longestWaiting: false,
-      q: "",
-    });
+    expect(read("stato=foo&pratica=nope&assegnatario=xyz&priorita=zzz&cancellazioni=true")).toEqual(
+      {
+        status: "submitted",
+        practice: "",
+        assignee: "",
+        priority: "",
+        longestWaiting: false,
+        erasure: false,
+        q: "",
+      },
+    );
   });
 
   it("ignores inherited object keys", () => {

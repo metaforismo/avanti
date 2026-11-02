@@ -191,11 +191,16 @@ Questo consenso non autorizza a conservare più a lungo tutti i miei documenti.�
 
 La UI attuale contiene già una checkbox dedicata al rinnovo ISEE nel riepilogo,
 collegata al submit; inizialmente è non selezionata e mostra l'eventuale preferenza
-già salvata. La console consente di preparare la campagna. Non è stato collaudato
-in questa attività il percorso di revoca: nella ricerca mirata del frontend non
-risulta una chiamata dedicata a `renewal-consent`; il submit trasmette anche il rifiuto.
-Non presumere che ripassare dal submit sia una revoca facilmente praticabile dopo
-chiusura/scadenza: prevedere comunque il canale CAF.
+già salvata. La console consente di preparare la campagna. Aggiornamento del 19 ottobre
+2026: dopo l'invio la pagina della pratica ha un interruttore che chiama
+`PUT /api/c/:token/renewal-consent`, e la richiesta di cancellazione dal link revoca il
+consenso. Con link scaduto o pratica chiusa la pagina non si apre: prevedere comunque il
+canale CAF.
+
+La scheda «I tuoi dati» del link (8 lingue) è un secondo livello sintetico di questa
+informativa, non la sostituisce: rimanda a `/privacy`. Il canale dei diritti da indicare
+in A può citarla: copia dei dati e cancellazione della bozza dal link, cancellazione dopo
+l'invio come richiesta al CAF ([decisione](../decisions/citizen-data-rights.md)).
 
 Registrare testo/versione, azione positiva, data, contesto e prova proporzionata del
 soggetto che acconsente. Il backend conserva un timestamp e registra l'azione; un
