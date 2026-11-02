@@ -1,323 +1,267 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, Check, Clock3, FileCheck2, Languages, ShieldCheck } from "lucide-react";
-import { CitizenSnippet, OperatorSnippet } from "@/components/landing/ai-snippets";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Building2,
+  FileArchive,
+  FileWarning,
+  History,
+  MessageSquareText,
+  ServerCog,
+} from "lucide-react";
+import { QueueTicket } from "@/components/brand/desk-objects";
+import { OperatorSnippet } from "@/components/landing/ai-snippets";
+import { CountUp } from "@/components/landing/count-up";
+import { DossierPreview } from "@/components/landing/dossier-preview";
+import { HowItWorks } from "@/components/landing/how-it-works";
 import { IntakeDemo } from "@/components/landing/intake-demo";
-import { LanguageShowcase } from "@/components/landing/language-showcase";
 import { PilotForm } from "@/components/landing/pilot-form";
+import { SectionIntro } from "@/components/landing/section-intro";
 import { Button } from "@/components/ui/button";
-import { Pill } from "@/components/ui/pill";
+import { cn } from "@/lib/cn";
+
+const DESCRIPTION =
+  "Avanti prepara le pratiche ISEE prima dell'appuntamento: il cittadino risponde dal telefono, anche nella sua lingua, e l'operatore del CAF trova un fascicolo ordinato con quello che manca già segnalato. La pratica resta all'operatore.";
+
+export const metadata: Metadata = {
+  title: { absolute: "Avanti — il fascicolo ISEE arriva pronto allo sportello del CAF" },
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: { title: "Avanti — il fascicolo arriva pronto", description: DESCRIPTION, url: "/" },
+  twitter: { card: "summary_large_image" },
+};
 
 // Public demo office (seeded, fictitious data). Unset in environments without demo data.
 const DEMO_OFFICE = process.env.NEXT_PUBLIC_DEMO_OFFICE_SLUG;
 
-const DESK_QUESTIONS = [
-  {
-    asked: "«Che pratica le serve?»",
-    answer:
-      "Avanti la riconosce da come il cittadino la racconta, anche se non conosce il nome giusto. Se ha dubbi, chiede.",
-  },
-  {
-    asked: "«Cosa devo portare?»",
-    answer:
-      "Una checklist costruita su quella famiglia: un estratto per ogni conto, una visura per ogni immobile, un documento per ogni persona.",
-  },
-  {
-    asked: "«Questo documento va bene?»",
-    answer:
-      "Controlla tipo, anno, intestatario, scadenza, leggibilità e pagine mancanti appena il file viene caricato.",
-  },
-  {
-    asked: "«Torni con la giacenza media.»",
-    answer:
-      "Quello che manca il cittadino lo sa prima dell'appuntamento, con le istruzioni per trovarlo, nella sua lingua.",
-  },
+/** The three things a CAF manager asks before reading further. */
+const HERO_FACTS = [
+  "Nessun invio all'INPS",
+  "Il CAF resta titolare dei dati",
+  /* DA DECIDERE: gratuità del pilota fino al 31 marzo 2027 (docs/gtm/pilota.md è una proposta
+     da approvare). Confermare prima di pubblicare. */
+  "Gratis per i CAF pilota fino al 31 marzo 2027",
 ] as const;
 
-const STEPS = [
-  {
-    title: "Racconta",
-    body: "Il cittadino apre il link o inquadra il QR dello sportello e scrive cosa deve fare, con parole sue. Nessun account, nessuna app.",
-  },
-  {
-    title: "Risponde",
-    body: "Una conversazione, scritta o a voce, con le sole domande che mancano. Chi ha già detto «vivo con mia madre» non se lo sente richiedere: conferma quello che Avanti ha capito.",
-  },
-  {
-    title: "Carica",
-    body: "Foto o PDF dal telefono. Avanti li analizza, propone la voce giusta e segnala subito cosa non torna. Quando il controllo è incerto lo dice: la verifica resta all'operatore.",
-  },
-  {
-    title: "Consegna",
-    body: "Il fascicolo arriva in coda allo sportello, già ordinato: riepilogo, nucleo, documenti, cosa manca. L'operatore verifica e fa la pratica.",
-  },
+/** Desk work Avanti takes off the operator: three shipped console features. */
+const OPERATOR_FEATURES = [
+  { icon: FileWarning, text: "Mancanti in cima, per persona" },
+  { icon: MessageSquareText, text: "Integrazioni nella sua lingua" },
+  { icon: FileArchive, text: "Originali in un solo ZIP" },
 ] as const;
 
-/** What the AI does in Avanti today, and what stays with people. Each line is a shipped feature. */
-const AI_CITIZEN = [
-  [
-    "Parla o scrive come allo sportello",
-    "Nella sua lingua, anche a voce. L'assistente capisce più informazioni in un messaggio, ripete cosa ha capito da confermare e chiede solo ciò che manca.",
-  ],
-  [
-    "Ha un dubbio a metà strada",
-    "Chiede all'assistente cosa vuol dire una domanda o dove trovare un documento. Se serve una persona, la domanda arriva allo sportello.",
-  ],
-  [
-    "Carica una foto sbagliata",
-    "Avanti la legge e avvisa subito se è il documento sbagliato, di un'altra persona, scaduto o illeggibile, prima che il fascicolo parta.",
-  ],
-] as const;
-
-const AI_OPERATOR = [
-  [
-    "Un riepilogo da collega",
-    "La situazione in due righe, cosa controllare e perché: ogni punto rimanda alla risposta o al documento da cui viene.",
-  ],
-  [
-    "Dichiarazioni e documenti a confronto",
-    "Nomi che non tornano, anni sbagliati, conti dichiarati senza estratto. E il prospetto DSU precompilato dai documenti, da confermare voce per voce.",
-  ],
-  [
-    "Meno scrittura",
-    "Bozze delle richieste d'integrazione e delle risposte ai cittadini, risposte rapide, domande normative con le fonti.",
-  ],
-] as const;
-
-const AI_LIMITS = [
-  "Non decide se un cittadino ha diritto a qualcosa e non manda nulla al suo posto: decide l'operatore.",
-  "Non inventa documenti, anni o regole: quelle stanno nel motore di Avanti, con le fonti ufficiali.",
-  "Se l'AI non risponde, Avanti continua con le regole: le pratiche non si fermano.",
-  "Usa fornitori configurati per non conservare i dati né addestrare modelli, scritti nell'accordo con il CAF, e solo ciò che serve a ogni compito.",
-] as const;
-
-const PRACTICES = [
-  { name: "ISEE ordinario", when: "Gennaio 2027", status: "Pilota con i CAF", live: true },
-  { name: "Modello 730", when: "Aprile 2027", status: "In preparazione", live: false },
-  { name: "Assegno unico", when: "2027", status: "In preparazione", live: false },
-  { name: "Permesso di soggiorno", when: "2027", status: "In preparazione", live: false },
-  {
-    name: "RED, NASpI, successioni semplici, cittadinanza",
-    when: "Dopo",
-    status: "In programma",
-    live: false,
-  },
+const AI_POINTS = [
+  "Ogni proposta è etichettata",
+  "Nulla parte verso gli enti",
+  "Senza AI, funziona con le regole",
 ] as const;
 
 // Verified figures only, with year and primary source (see docs/research/market.md).
 const FACTS = [
   {
-    value: "85%",
-    label: "delle DSU per l'ISEE passa da un CAF (2024)",
+    value: 85,
+    label: "delle DSU passa da un CAF",
     source: "Ministero del Lavoro, Rapporto ISEE 2024",
     href: "https://lavoro.gov.it/documenti-e-norme/studi-e-statistiche/rapporto-isee-2024",
   },
   {
-    value: "71%",
-    label: "delle DSU 2025 è arrivato nel primo trimestre",
+    value: 71,
+    label: "arriva nel primo trimestre",
     source: "INPS, Osservatorio DSU e ISEE, febbraio 2026",
     href: "https://www.inps.it/it/it/inps-comunica/notizie/dettaglio-news-page.news.2026.02.osservatorio-su-dsu-e-isee-i-dati-2016-2025.html",
   },
 ] as const;
 
-const NOT_DOING = [
+const NEXT_PRACTICES = ["Modello 730", "Assegno unico", "Permesso di soggiorno"] as const;
+
+// Every line must match docs/SECURITY.md, docs/DEPLOY.md and docs/legal/sub-responsabili.md:
+// Frankfurt is the planned pilot region, and the providers' terms are still to be signed.
+const DATA_FACTS = [
   {
-    title: "Non fa la pratica",
-    body: "Non trasmette nulla a INPS o Agenzia delle Entrate. Prepara il lavoro; la pratica la fa l'operatore abilitato.",
+    icon: Building2,
+    title: "Il CAF resta titolare",
+    body: "Avanti è responsabile del trattamento (art. 28 GDPR).",
   },
   {
-    title: "Non sostituisce il gestionale",
-    body: "Sta davanti al software che il CAF usa già. Il fascicolo si esporta in PDF e in un formato strutturato.",
+    icon: ServerCog,
+    title: "Server UE, previsti per il pilota",
+    body: "A Francoforte: fornitori e regioni scritti nell'accordo.",
   },
   {
-    title: "Non decide al posto delle persone",
-    body: "Segnala dubbi e mancanze; ogni voce del fascicolo resta verificabile e modificabile dall'operatore.",
+    icon: History,
+    title: "Ogni accesso registrato",
+    body: "Il responsabile del CAF consulta ed esporta il registro.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Fornitori approvati da voi",
+    body: "Senza garanzie adeguate, Avanti lavora senza AI.",
+  },
+] as const;
+
+const PILOT_TIMELINE = [
+  { when: "Novembre", what: "Mezz'ora di demo e prova nel vostro gestionale" },
+  { when: "Dicembre", what: "Accordo sui dati, un'ora di formazione, QR in sala" },
+  { when: "Gennaio – marzo", what: "Uso vero nel picco, flusso abituale sempre disponibile" },
+  {
+    when: "Entro il 31 marzo",
+    // DA DECIDERE: «nessun passaggio automatico a pagamento» (proposta in docs/gtm/pilota.md, da approvare).
+    what: "Risultati e proposta. Decidete voi: nessun passaggio automatico a pagamento.",
   },
 ] as const;
 
 const FAQ = [
   {
-    q: "Il cittadino deve installare qualcosa o registrarsi?",
-    a: "No. Riceve un link personale (o inquadra il QR dello sportello) e lo apre dal browser del telefono. Il link scade da solo dopo un periodo stabilito dal CAF.",
+    q: "Cosa ci chiedete in cambio?",
+    a: "Un referente che possa autorizzare il nuovo fornitore e un operatore di riferimento; una settimana di misure prima di iniziare, per avere un punto di partenza onesto; il permesso di pubblicare i risultati in forma aggregata. Nome e logo solo se lo autorizzate.",
   },
   {
-    q: "Chi è titolare dei dati?",
-    a: "Il CAF o il patronato, come oggi. Avanti tratta i dati per conto loro, con un accordo di nomina a responsabile del trattamento. Ogni accesso al fascicolo resta registrato.",
+    q: "Perché sul sito non ci sono loghi né testimonianze?",
+    a: "Siamo all'inizio: il pilota serve proprio a raccogliere le prove. Con i primi sportelli misureremo minuti di lavoro, completezza al primo invio e tempo di copia nel gestionale, e pubblicheremo metodo, campione e limiti del risultato, anche se non è quello sperato.",
   },
   {
-    q: "E se il cittadino non sa scrivere bene, o non sa usare il telefono?",
-    a: "Le domande sono brevi e hanno risposte già pronte da toccare. Se serve, l'operatore può aprire il fascicolo allo sportello e completarlo insieme a lui.",
+    q: "Se l'AI sbaglia, chi ne risponde?",
+    a: "Nessun documento è accettato o rifiutato dall'AI e nessun importo entra nel prospetto senza la conferma dell'operatore: ogni proposta è etichettata e ha accanto il file da cui viene. La DSU la firmano e la trasmettono il cittadino e il CAF, con le procedure di sempre. Nel pilota contiamo anche gli errori dell'AI, separati per tipo, e li mettiamo nel rapporto.",
   },
   {
-    q: "Cosa succede se l'AI sbaglia a riconoscere un documento?",
-    a: "Il cittadino vede a quale voce è stato abbinato e può spostarlo; se l'avviso è sbagliato può dire «è giusto così». L'operatore vede il grado di certezza e ha sempre l'ultima parola su ogni voce: nessun documento è mai accettato o rifiutato dall'AI.",
-  },
-  {
-    q: "Dove finiscono i dati che passano dall'AI?",
-    a: "Solo a fornitori che non li conservano e non li usano per addestrare modelli, e solo la parte che serve a ogni compito: mai note interne o altri fascicoli. Il CAF può spegnere l'AI per i cittadini o per gli operatori: Avanti continua con le regole.",
+    q: "Dove finiscono i dati?",
+    a: "Per il pilota prevediamo database e documenti su server a Francoforte, nell'Unione europea. All'AI arriva solo la parte che serve a ogni compito, mai note interne o altri fascicoli. Fornitori, regioni, conservazione dei dati e uso per l'addestramento sono scritti nell'elenco allegato all'accordo e li approvate voi: senza garanzie adeguate, Avanti lavora con le sole regole. Prima del primo cittadino vero firmiamo insieme accordo di nomina, valutazione d'impatto e informativa nelle lingue dello sportello.",
   },
   {
     q: "Funziona con il nostro gestionale?",
-    a: "Avanti non lo sostituisce: esporta un fascicolo leggibile e un file strutturato da cui copiare i dati. Le integrazioni dirette le costruiamo con i CAF pilota.",
+    a: "Avanti non lo sostituisce e oggi non si collega in automatico. Dal fascicolo l'operatore copia i dati dal prospetto DSU, già nell'ordine del modello, e scarica in un solo ZIP tutti gli originali rinominati per persona, più il riepilogo in PDF. Prima di partire proviamo insieme il passaggio nel vostro software; i collegamenti diretti li costruiamo con i CAF pilota.",
+  },
+  {
+    q: "Quanto tempo serve agli operatori per imparare?",
+    a: "Un'ora di formazione su pratiche di prova: caso completo, documento sbagliato, richiesta d'integrazione, export. La console è in italiano e ha una pagina di aiuto; il primo giorno una lista «Per iniziare» guida l'amministratore passo per passo.",
+  },
+  {
+    q: "E chi non ha lo smartphone o non sa scrivere bene?",
+    a: "Le domande sono brevi, con risposte da toccare, e si può rispondere a voce. L'operatore può completare il fascicolo allo sportello insieme al cittadino, oppure stampargli l'elenco dei documenti da portare su un foglio A4, nella sua lingua e in italiano. Lo sportello resta aperto come oggi: nessuno è obbligato a usare Avanti.",
+  },
+  {
+    q: "Il cittadino deve installare qualcosa o registrarsi?",
+    a: "No. Riceve un link personale (o inquadra il QR dello sportello) e lo apre dal browser del telefono. Il link scade da solo dopo il periodo stabilito dal CAF.",
   },
   {
     q: "E l'anno dopo, quando l'ISEE scade?",
-    a: "L'ISEE vale fino al 31 dicembre. Per il rinnovo l'operatore sceglie le famiglie dell'anno prima e Avanti prepara il nuovo fascicolo con nucleo e documenti ancora validi: il cittadino riceve il link, conferma chi vive con lui e carica solo quello che va aggiornato. L'invito via email parte solo a chi ha dato il consenso.",
+    a: "L'ISEE vale fino al 31 dicembre. Per il rinnovo l'operatore sceglie le famiglie dell'anno prima e Avanti prepara il nuovo fascicolo con nucleo e documenti ancora validi: il cittadino conferma chi vive con lui e carica solo quello che va aggiornato. L'invito via email parte solo a chi ha dato il consenso.",
   },
   {
-    q: "Quanto costa?",
-    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027. Dopo, un canone per sportello che definiamo insieme ai piloti sulla base del tempo risparmiato misurato. L'intelligenza artificiale è inclusa: nessuna chiave da configurare, nessun contratto con fornitori, nessun costo a consumo.",
+    q: "Quanto costa? E se non fa per noi?",
+    // DA DECIDERE: gratuità fino al 31 marzo, «vi fermate», «nessun rinnovo automatico»
+    // (docs/gtm/pilota.md e prezzi.md sono proposte da approvare). Il prezzo dopo il pilota non
+    // è deciso: non citare canoni o modelli finché non lo è.
+    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027, intelligenza artificiale inclusa: nessuna chiave da configurare. Il prezzo per continuare non è ancora deciso: entro marzo vi facciamo un'offerta separata, costruita sui risultati misurati nel pilota. Se il pilota non funziona per voi vi fermate: non c'è rinnovo automatico, vi restituiamo i dati e cancelliamo le copie in Avanti.",
   },
 ] as const;
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Avanti",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  inLanguage: "it",
+  description: DESCRIPTION,
+  audience: { "@type": "BusinessAudience", name: "CAF e patronati" },
+};
+
+function Arrow({ className }: { className?: string }) {
+  return (
+    <ArrowRight
+      className={cn(
+        "rtl-flip size-4.5 transition-transform duration-200 ease-(--ease-out) group-hover:translate-x-0.5",
+        className,
+      )}
+      aria-hidden
+    />
+  );
+}
 
 export default function HomePage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        // Static object defined above: no user input reaches it.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
+
       {/* Hero */}
-      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 pt-10 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-16 lg:pb-28">
-        <div className="flex flex-col justify-center">
-          <p className="mb-6 inline-flex w-fit items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-sm text-ink-2 ring-1 ring-line">
-            <span className="size-1.5 rounded-full bg-ok" aria-hidden />
-            Pilota ISEE con i CAF, gennaio 2027
-          </p>
-          <h1 className="font-display type-hero">Il fascicolo arriva pronto.</h1>
-          <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-ink-2 sm:text-xl">
-            Avanti è il front office AI per CAF e patronati. Ascolta il cittadino nella sua lingua,
-            prepara la checklist, ordina i documenti e segnala cosa va verificato. L&apos;operatore
-            controlla il fascicolo e prosegue nel gestionale.
-          </p>
-          <div className="mt-9 grid gap-3 sm:flex sm:flex-wrap">
-            <Button asChild size="lg">
-              <a href="#pilota">Diventa CAF pilota</a>
-            </Button>
-            <Button asChild size="lg" variant="secondary">
-              <a href="#come-funziona">Guarda come funziona</a>
-            </Button>
-          </div>
-          {DEMO_OFFICE && (
-            <p className="mt-5 text-ink-2">
-              Vuoi vederlo dal lato del cittadino?{" "}
-              <Link
-                href={`/s/${DEMO_OFFICE}`}
-                className="font-semibold text-stamp underline underline-offset-2"
-              >
-                Prova la demo dal telefono
-              </Link>
+      <section id="hero" aria-labelledby="hero-title" className="relative">
+        <div aria-hidden className="ruled pointer-events-none absolute inset-x-0 top-0 h-[44rem]" />
+        <div className="relative mx-auto max-w-6xl px-4 pt-12 pb-20 sm:px-6 lg:pt-20 lg:pb-28">
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="hero-in mx-auto mb-8 inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-surface py-1 ps-1.5 pe-3 text-sm font-semibold text-ink-2 shadow-raised ring-1 ring-line">
+              <span className="shrink-0 rounded-full bg-stamp-wash px-2 py-0.5 text-xs whitespace-nowrap text-stamp">
+                Pilota ISEE
+              </span>
+              <span className="min-w-0 truncate">
+                <span className="sm:hidden">Gennaio 2027</span>
+                <span className="hidden sm:inline">Per CAF e patronati, da gennaio 2027</span>
+              </span>
             </p>
-          )}
-        </div>
-        <IntakeDemo />
-      </section>
-
-      {/* Desk questions */}
-      <section aria-labelledby="sportello-title" className="border-y border-line bg-surface">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-          <div className="max-w-2xl">
-            <h2 id="sportello-title" className="font-display type-section">
-              Prima di aprire la pratica, lo sportello fa domande. Sempre le stesse.
-            </h2>
-            <p className="mt-5 text-lg text-ink-2">
-              Capire cosa serve, chiedere i documenti, scoprire cosa manca, richiamare. Avanti fa
-              questa parte prima che il cittadino si sieda.
+            <h1 id="hero-title" className="hero-in font-display type-hero [--d:60ms]">
+              Il fascicolo arriva <span className="marker-draw">pronto.</span>
+            </h1>
+            <p className="hero-in mx-auto mt-7 max-w-2xl type-lead text-ink-2 [--d:140ms]">
+              Il cittadino prepara l&apos;ISEE dal telefono, nella sua lingua. Il vostro operatore
+              trova tutto in ordine, con i mancanti in cima.
             </p>
-          </div>
-          <dl className="mt-14 divide-y divide-line border-y border-line">
-            {DESK_QUESTIONS.map((item) => (
-              <div
-                key={item.asked}
-                className="grid gap-2 py-7 md:grid-cols-[minmax(0,22rem)_1fr] md:gap-10"
-              >
-                <dt className="font-display text-xl font-semibold tracking-[-0.01em] text-ink sm:text-2xl">
-                  {item.asked}
-                </dt>
-                <dd className="max-w-xl text-[1.0625rem] leading-relaxed text-ink-2">
-                  {item.answer}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section
-        id="come-funziona"
-        aria-labelledby="come-title"
-        className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
-      >
-        <h2 id="come-title" className="max-w-2xl font-display type-section">
-          Dal «devo fare l&apos;ISEE» al fascicolo, in quattro passaggi.
-        </h2>
-        <ol className="mt-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          {STEPS.map((step, i) => (
-            <li key={step.title} className="relative">
-              <div className="flex items-center gap-3">
-                <span className="tabular grid size-9 place-items-center rounded-full bg-stamp font-display text-base font-bold text-on-stamp">
-                  {i + 1}
-                </span>
-                {i < STEPS.length - 1 && (
-                  <span aria-hidden className="hidden h-px flex-1 bg-line-strong lg:block" />
-                )}
-              </div>
-              <h3 className="mt-5 font-display text-2xl font-semibold tracking-[-0.015em]">
-                {step.title}
-              </h3>
-              <p className="mt-2 leading-relaxed text-ink-2">{step.body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* AI */}
-      <section aria-labelledby="ai-title" className="border-y border-line bg-surface">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-          <div className="max-w-2xl">
-            <h2 id="ai-title" className="font-display type-section">
-              L&apos;intelligenza artificiale, dove fa risparmiare tempo.
-            </h2>
-            <p className="mt-5 text-lg text-ink-2">
-              Non un chatbot appoggiato sopra: l&apos;AI lavora dentro il percorso, accanto a regole
-              scritte con le fonti ufficiali che decidono cosa chiedere e cosa serve. È inclusa nel
-              servizio: niente chiavi da configurare né costi a consumo.
-            </p>
-          </div>
-          {/* Subgrid: the two examples share one row height, so the lists under them start on
-              the same line. */}
-          <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-y-0">
-            {(
-              [
-                ["Per il cittadino", AI_CITIZEN],
-                ["Per l'operatore", AI_OPERATOR],
-              ] as const
-            ).map(([title, items], index) => (
-              <div key={title} className="lg:row-span-3 lg:grid lg:grid-rows-subgrid">
-                <h3 className="font-display text-2xl font-semibold tracking-[-0.015em]">{title}</h3>
-                <div className="mt-6 grid">
-                  {index === 0 ? <CitizenSnippet /> : <OperatorSnippet />}
-                </div>
-                <dl className="mt-8 grid gap-6">
-                  {items.map(([term, text]) => (
-                    <div key={term}>
-                      <dt className="font-semibold">{term}</dt>
-                      <dd className="mt-1 leading-relaxed text-ink-2">{text}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ))}
-          </div>
-          <div className="mt-14 rounded-lg bg-paper p-6 ring-1 ring-line">
-            <h3 className="flex items-center gap-2 font-semibold">
-              <ShieldCheck className="size-5 text-stamp" aria-hidden />
-              Cosa resta alle persone
-            </h3>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-              {AI_LIMITS.map((line) => (
-                <li key={line} className="flex gap-2.5 leading-relaxed text-ink-2">
-                  <Check className="mt-1 size-4 shrink-0 text-ok" aria-hidden />
-                  {line}
+            <div className="hero-in mt-10 flex flex-col justify-center gap-3 [--d:200ms] sm:flex-row">
+              <Button asChild size="lg" className="group">
+                <a href="#pilota">
+                  Parliamo del pilota ISEE
+                  <Arrow />
+                </a>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <a href="#come-funziona">Guarda come funziona</a>
+              </Button>
+            </div>
+            <ul className="hero-in mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-2 [--d:260ms]">
+              {HERO_FACTS.map((fact) => (
+                <li key={fact} className="flex items-center gap-2">
+                  <span aria-hidden className="size-1.5 rounded-full bg-stamp" />
+                  {fact}
                 </li>
               ))}
             </ul>
+            {DEMO_OFFICE && (
+              <p className="hero-in mt-5 text-sm text-ink-2 [--d:300ms]">
+                <Link
+                  href={`/s/${DEMO_OFFICE}`}
+                  className="font-semibold text-stamp underline underline-offset-4"
+                >
+                  Prova la demo dal telefono
+                </Link>
+              </p>
+            )}
+          </div>
+
+          {/* The stage: the live example on a desk surface. */}
+          <div className="hero-in grain glow relative mt-16 rounded-[2rem] bg-sunk/70 p-4 ring-1 ring-line [--d:340ms] sm:p-6 lg:mt-20 lg:p-12">
+            <IntakeDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* How it works: sticky picture, four steps */}
+      <section
+        id="come-funziona"
+        aria-labelledby="come-title"
+        className="scroll-mt-16 border-t border-line bg-surface"
+      >
+        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
+          <SectionIntro
+            id="come-title"
+            eyebrow="Come funziona"
+            title="Le domande dello sportello, prima dello sportello."
+          />
+          <div className="mt-16 lg:mt-8">
+            <HowItWorks />
           </div>
         </div>
       </section>
@@ -326,334 +270,255 @@ export default function HomePage() {
       <section
         id="operatori"
         aria-labelledby="operatori-title"
-        className="bg-contrast text-on-contrast"
+        className="grain grain-dark relative scroll-mt-16 overflow-hidden bg-contrast text-on-contrast"
       >
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
+        <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:pt-32">
+          <SectionIntro
+            id="operatori-title"
+            inverted
+            className="mx-auto text-center [&_p:first-child]:justify-center"
+            eyebrow="Per l'operatore"
+            title="Apre il fascicolo e sa già dove guardare."
+            lead="Poi copia nel vostro gestionale: prospetto DSU, PDF e originali in un solo ZIP."
+          />
+          <ul
+            data-reveal="stagger"
+            className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-3 text-on-contrast/85"
+          >
+            {OPERATOR_FEATURES.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-2.5">
+                <Icon className="size-4.5 text-marker" aria-hidden />
+                {text}
+              </li>
+            ))}
+          </ul>
+          <div className="glow mt-16 [--glow-color:rgb(123_144_255/0.18)] lg:mt-20">
+            <div className="scroll-tilt">
+              <DossierPreview />
+            </div>
+          </div>
+        </div>
+        <div className="h-24 lg:h-32" />
+      </section>
+
+      {/* AI */}
+      <section aria-labelledby="ai-title" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
+        <div className="grid items-center gap-16 lg:grid-cols-2 lg:gap-20">
           <div>
-            <h2 id="operatori-title" className="font-display type-section">
-              L&apos;operatore apre il fascicolo e sa già dove guardare.
-            </h2>
-            <p className="mt-5 text-lg leading-relaxed text-on-contrast/75">
-              Prima i problemi bloccanti, poi gli avvisi, poi tutto il resto. Ogni voce si verifica
-              con un clic; le integrazioni si chiedono nel link del cittadino, nella sua lingua.
-            </p>
-            <ul className="mt-10 grid gap-5">
-              {[
-                {
-                  icon: FileCheck2,
-                  text: "Documenti rinominati e ordinati per persona, non IMG_2847.jpg",
-                },
-                {
-                  icon: AlertTriangle,
-                  text: "Scadenze, anni sbagliati e pagine mancanti segnalati in cima",
-                },
-                {
-                  icon: Languages,
-                  text: "Console in italiano; il cittadino usa una delle otto lingue e l'originale resta consultabile",
-                },
-                {
-                  icon: Clock3,
-                  text: "Tempi, mancanti e integrazioni misurati pratica per pratica: nel pilota li confrontiamo con il vostro flusso abituale",
-                },
-              ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex gap-3.5 text-on-contrast/90">
-                  <Icon className="mt-0.5 size-5 shrink-0 text-marker" aria-hidden />
-                  {text}
+            <SectionIntro
+              id="ai-title"
+              eyebrow="Intelligenza artificiale"
+              title="L'AI propone. L'operatore decide."
+              lead="Legge documenti e racconti, accanto a regole scritte con le fonti ufficiali."
+            />
+            <ul data-reveal="stagger" className="mt-10 grid gap-4">
+              {AI_POINTS.map((point) => (
+                <li key={point} className="flex items-center gap-3 text-lg">
+                  <span
+                    aria-hidden
+                    className="grid size-6 shrink-0 place-items-center rounded-full bg-stamp-wash text-xs font-bold text-stamp"
+                  >
+                    ✓
+                  </span>
+                  {point}
                 </li>
               ))}
             </ul>
           </div>
-          <DossierPreview />
+          <div data-reveal className="glow">
+            <OperatorSnippet />
+          </div>
         </div>
       </section>
 
-      {/* Handoff to the CAF's software */}
-      <section aria-labelledby="gestionale-title" className="border-b border-line bg-surface">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-          <h2 id="gestionale-title" className="font-display type-subsection">
-            Il lavoro prosegue nel vostro gestionale.
-          </h2>
-          {/* Ruled columns, not a second row of blue discs: the four steps above are the
-              citizen's journey, these are what happens after it, at the desk. */}
-          <ol className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">
-            {[
-              "L'operatore verifica documenti e mancanti, voce per voce.",
-              "Consulta il prospetto DSU nell'ordine del modello: le risposte del cittadino, e gli importi letti dai documenti che ha confermato. Scarica il riepilogo PDF o i dati JSON.",
-              "Copia i dati e carica gli originali nel software del CAF, con la procedura provata insieme durante l'avvio.",
-            ].map((text, i) => (
-              <li key={text} className="border-t border-line-strong pt-4">
-                <span
-                  aria-hidden
-                  className="tabular block font-display text-sm font-bold tracking-[0.02em] text-stamp"
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <p className="mt-2 leading-relaxed text-ink-2">{text}</p>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-8 max-w-3xl text-sm text-ink-3">
-            Gli importi letti dall&apos;AI nei documenti restano proposte finché l&apos;operatore
-            non li conferma sul file. Avanti non invia nulla agli enti; le integrazioni dirette con
-            i gestionali si definiscono con i piloti.
-          </p>
-        </div>
-      </section>
-
-      {/* Languages */}
-      <section
-        id="lingue"
-        aria-labelledby="lingue-title"
-        className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
-      >
-        <div className="max-w-2xl">
-          <h2 id="lingue-title" className="font-display type-section">
-            Ognuno risponde nella sua lingua. Lo sportello legge in italiano.
-          </h2>
-          <p className="mt-5 text-lg text-ink-2">
-            Per chi è arrivato da poco, la parte difficile non è la pratica: è capire cosa chiedono.
-            Avanti spiega con parole semplici e lascia in italiano i nomi che si troveranno scritti
-            sui documenti.
-          </p>
-        </div>
-        {/* Skipped until near the viewport: its Arabic and Bengali glyphs (270 KB of fonts) are
-            then fetched only by visitors who scroll this far. */}
-        <div className="mt-12 [contain-intrinsic-size:auto_32rem] [content-visibility:auto]">
-          <LanguageShowcase />
-        </div>
-      </section>
-
-      {/* Practices */}
+      {/* Practices and figures */}
       <section
         id="pratiche"
         aria-labelledby="pratiche-title"
-        className="border-y border-line bg-surface"
+        className="scroll-mt-16 border-y border-line bg-surface"
       >
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
-          <div>
-            <h2 id="pratiche-title" className="font-display type-section">
-              Si parte dall&apos;ISEE. Il resto segue il calendario dei CAF.
-            </h2>
-            <p className="mt-5 text-lg text-ink-2">
-              Gennaio è il mese più pesante per l&apos;ISEE, aprile apre la campagna 730. Ogni
-              pratica arriva quando è verificata con chi la fa ogni giorno.
-            </p>
-            <dl className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {FACTS.map((fact) => (
-                <div key={fact.value} className="border-t-2 border-ink pt-3">
-                  <dt className="sr-only">{fact.label}</dt>
-                  <dd className="tabular font-display text-5xl font-bold tracking-[-0.02em]">
-                    {fact.value}
-                  </dd>
-                  <dd className="mt-1 text-ink-2">{fact.label}</dd>
-                  <dd className="mt-1 text-sm">
-                    <a
-                      href={fact.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-ink-3 underline underline-offset-2 hover:text-ink"
-                    >
-                      {fact.source}
-                    </a>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <ol className="relative grid gap-0 border-s border-line-strong ps-8">
-            {/* Dots centred on the 1px rule (ps-8 + border) and on the date line (20px). */}
-            {PRACTICES.map((p) => (
-              <li key={p.name} className="relative pb-8 last:pb-0">
-                <span
-                  aria-hidden
-                  className={
-                    p.live
-                      ? "absolute -start-[39.5px] top-[3px] size-3.5 rounded-full bg-stamp ring-4 ring-stamp-wash"
-                      : "absolute -start-[38.5px] top-1 size-3 rounded-full bg-surface ring-2 ring-line-strong"
-                  }
-                />
-                <p className="tabular text-sm text-ink-3">{p.when}</p>
-                <h3 className="mt-0.5 font-display text-xl font-semibold tracking-[-0.01em]">
-                  {p.name}
-                </h3>
-                <p className={p.live ? "mt-1 font-semibold text-stamp" : "mt-1 text-ink-2"}>
-                  {p.status}
-                </p>
-              </li>
+        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
+          <SectionIntro
+            id="pratiche-title"
+            eyebrow="Pratiche"
+            title="Si parte dall'ISEE, quando serve di più."
+          />
+          <div data-reveal="stagger" className="mt-14 grid gap-10 sm:grid-cols-2 lg:gap-16">
+            {FACTS.map((fact) => (
+              <p key={fact.value} className="border-t-2 border-ink pt-5">
+                <span className="block font-display text-[clamp(4.5rem,10vw,8rem)] leading-none font-semibold tracking-[-0.01em]">
+                  <CountUp value={fact.value} suffix="%" />
+                </span>
+                <span className="mt-3 block text-xl text-ink">{fact.label}</span>
+                <a
+                  href={fact.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-sm text-ink-3 underline underline-offset-2 hover:text-ink"
+                >
+                  {fact.source}
+                  <span className="sr-only"> (si apre in una nuova scheda)</span>
+                </a>
+              </p>
             ))}
-          </ol>
+          </div>
+          <div
+            data-reveal
+            className="mt-16 flex flex-wrap items-center gap-x-3 gap-y-3 border-t border-line pt-8 text-body-sm"
+          >
+            <span className="inline-flex items-center gap-2 rounded-full bg-stamp px-3.5 py-1.5 font-semibold text-on-stamp">
+              <span aria-hidden className="size-1.5 rounded-full bg-marker" />
+              ISEE ordinario · pilota da gennaio 2027
+            </span>
+            {NEXT_PRACTICES.map((name) => (
+              <span
+                key={name}
+                className="rounded-full px-3.5 py-1.5 text-ink-2 ring-1 ring-line-strong"
+              >
+                {name}
+              </span>
+            ))}
+            <span className="text-ink-3">in preparazione</span>
+          </div>
         </div>
       </section>
 
-      {/* Boundaries + privacy */}
+      {/* Data and responsibility */}
       <section
-        aria-labelledby="limiti-title"
-        className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
+        id="dati"
+        aria-labelledby="dati-title"
+        className="grain grain-dark relative scroll-mt-16 bg-contrast text-on-contrast"
       >
-        <h2 id="limiti-title" className="max-w-2xl font-display type-section">
-          Cosa Avanti non fa, di proposito.
-        </h2>
-        <div className="mt-12 grid gap-10 md:grid-cols-3">
-          {NOT_DOING.map((item) => (
-            <div key={item.title}>
-              <h3 className="font-display text-xl font-semibold tracking-[-0.01em]">
-                {item.title}
-              </h3>
-              <p className="mt-2 leading-relaxed text-ink-2">{item.body}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-14 flex flex-col gap-5 rounded-xl bg-folder/55 p-6 sm:flex-row sm:items-start sm:p-8">
-          <ShieldCheck className="size-7 shrink-0 text-stamp" aria-hidden />
-          <div>
-            <h3 className="font-display text-xl font-semibold tracking-[-0.01em]">
-              Documenti di persone vere, trattati di conseguenza
-            </h3>
-            <p className="mt-2 max-w-3xl leading-relaxed text-ink-2">
-              Il CAF resta titolare dei dati. Il cittadino accede con un link personale che scade,
-              senza password da ricordare. Ogni accesso al fascicolo è registrato, la durata di
-              conservazione la decide il CAF e l&apos;AI riceve solo ciò che serve a controllare il
-              singolo documento.
-            </p>
-            <Link
-              href="/sicurezza"
-              className="mt-4 inline-block font-semibold text-stamp underline underline-offset-2"
-            >
-              Come proteggiamo i dati
-            </Link>
-          </div>
+        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
+          <SectionIntro
+            id="dati-title"
+            inverted
+            eyebrow="Dati e responsabilità"
+            title="Documenti di persone vere, trattati di conseguenza."
+          />
+          <dl
+            data-reveal="stagger"
+            className="mt-14 grid gap-px overflow-hidden rounded-2xl bg-on-contrast/10 sm:grid-cols-2"
+          >
+            {DATA_FACTS.map(({ icon: Icon, title, body }) => (
+              <div key={title} className="bg-contrast p-7 sm:p-8">
+                <Icon className="size-5 text-marker" aria-hidden />
+                <dt className="mt-5 font-display text-xl font-semibold">{title}</dt>
+                <dd className="mt-1.5 text-on-contrast/75">{body}</dd>
+              </div>
+            ))}
+          </dl>
+          <Link
+            href="/sicurezza"
+            className="group mt-10 inline-flex min-h-11 items-center gap-2 rounded-sm font-semibold text-marker underline-offset-4 hover:underline focus-visible:outline-marker"
+          >
+            Tutti i controlli di sicurezza
+            <Arrow className="size-4" />
+          </Link>
         </div>
       </section>
 
       {/* Pilot */}
-      <section
-        id="pilota"
-        aria-labelledby="pilota-title"
-        className="border-t border-line bg-sunk/60"
-      >
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:py-28">
-          <div>
-            <h2 id="pilota-title" className="font-display type-section">
-              Cerchiamo tre sportelli per il picco ISEE di gennaio.
-            </h2>
-            <p className="mt-5 text-lg text-ink-2">
-              Installazione e formazione tra novembre e dicembre, uso vero a gennaio. Gratis fino al
-              31 marzo 2027.
-            </p>
-            <h3 className="mt-10 font-semibold">In cambio vi chiediamo</h3>
-            <ul className="mt-3 grid gap-3 text-ink-2">
-              {[
-                "Una settimana di misure prima di iniziare, per avere un punto di partenza onesto",
-                "Mezz'ora a settimana per dirci cosa non funziona",
-                "Il permesso di raccontare i risultati, anche se non sono quelli sperati",
-              ].map((text) => (
-                <li key={text} className="flex gap-3">
-                  <Check className="mt-1 size-4 shrink-0 text-ok" aria-hidden />
-                  {text}
+      <section id="pilota" aria-labelledby="pilota-title" className="scroll-mt-16">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-14 px-4 py-24 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:py-32">
+          <div className="min-w-0">
+            {/* DA DECIDERE: gratuità fino al 31 marzo 2027, «potete fermarvi quando volete» e
+                tetto di pratiche del pilota (docs/gtm/pilota.md propone 500 fascicoli per sede, da
+                approvare). Finché non è deciso il tetto resta «volumi concordati», senza numeri. */}
+            <SectionIntro
+              id="pilota-title"
+              eyebrow="Pilota 2027"
+              title="Tre sportelli per il picco di gennaio."
+              lead="Gratis fino al 31 marzo 2027, intelligenza artificiale inclusa, con volumi concordati prima di partire. Potete fermarvi quando volete."
+            />
+            <ol data-reveal="stagger" className="mt-12 grid border-s border-line-strong">
+              {PILOT_TIMELINE.map((step) => (
+                <li key={step.when} className="relative ps-6 pb-7 last:pb-0">
+                  <span
+                    aria-hidden
+                    className="absolute -start-[5px] top-[7px] size-2.5 rounded-full bg-stamp ring-4 ring-paper"
+                  />
+                  <p className="font-semibold text-ink">{step.when}</p>
+                  <p className="mt-0.5 text-ink-2">{step.what}</p>
                 </li>
               ))}
-            </ul>
-            <h3 className="mt-10 font-semibold">La prova che stiamo cercando</h3>
-            <p className="mt-3 text-ink-2">
-              Con i primi sportelli misureremo minuti di lavoro, completezza al primo invio e tempo
-              di copia nel gestionale. Pubblicheremo metodo, campione e limiti del risultato.
-            </p>
+            </ol>
           </div>
-          <PilotForm />
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <PilotForm />
+          </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section
-        aria-labelledby="faq-title"
-        className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:py-28"
-      >
-        <h2 id="faq-title" className="font-display type-section">
-          Domande dei CAF
-        </h2>
-        <div className="mt-10 divide-y divide-line border-y border-line">
-          {FAQ.map((item) => (
-            <details key={item.q} className="group py-1">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-sm py-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">
-                {item.q}
-                <span
-                  aria-hidden
-                  className="grid size-7 shrink-0 place-items-center rounded-full text-ink-3 ring-1 ring-line-strong transition-transform duration-200 ease-(--ease-out) group-open:rotate-45"
-                >
-                  <svg
-                    viewBox="0 0 12 12"
-                    className="size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
+      <section aria-labelledby="faq-title" className="border-t border-line bg-surface">
+        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:py-32">
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <SectionIntro id="faq-title" eyebrow="Domande" title="Domande dei CAF" />
+          </div>
+          <div data-reveal="stagger" className="border-t border-line">
+            {FAQ.map((item) => (
+              <details key={item.q} className="group border-b border-line">
+                <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-6 rounded-sm py-4 text-lg font-semibold transition-colors hover:text-stamp [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <span
+                    aria-hidden
+                    className="grid size-8 shrink-0 place-items-center rounded-full text-ink-3 ring-1 ring-line-strong transition-[transform,background-color,color] duration-200 ease-(--ease-out) group-open:rotate-45 group-open:bg-stamp group-open:text-on-stamp group-open:ring-stamp"
                   >
-                    <path d="M6 1v10M1 6h10" strokeLinecap="round" />
-                  </svg>
-                </span>
-              </summary>
-              <p className="pb-5 leading-relaxed text-ink-2">{item.a}</p>
-            </details>
-          ))}
+                    <svg
+                      viewBox="0 0 12 12"
+                      className="size-3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    >
+                      <path d="M6 1v10M1 6h10" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                </summary>
+                <p className="max-w-[62ch] animate-rise pb-6 leading-relaxed text-ink-2">
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Closing call to action */}
+      <section
+        id="chiusura"
+        aria-labelledby="chiusura-title"
+        className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32"
+      >
+        <div
+          data-reveal
+          className="grain grain-dark relative rounded-[2rem] bg-contrast px-6 py-16 text-center text-on-contrast sm:px-10 lg:py-24"
+        >
+          <QueueTicket
+            number="A 319"
+            label="Il prossimo"
+            className="absolute end-12 top-10 hidden rotate-[6deg] [--notch:var(--contrast)] lg:inline-flex"
+          />
+          <h2 id="chiusura-title" className="mx-auto max-w-2xl font-display type-section">
+            Mezz&apos;ora per capire se fa per voi.
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl type-lead text-on-contrast/75">
+            Una pratica di prova, dall&apos;inizio al vostro gestionale.
+          </p>
+          <Button
+            asChild
+            size="lg"
+            variant="marker"
+            className="group mt-10 w-full focus-visible:outline-marker sm:w-auto"
+          >
+            <a href="#pilota">
+              Parliamo del pilota ISEE
+              <Arrow />
+            </a>
+          </Button>
         </div>
       </section>
     </>
-  );
-}
-
-/** Static, labelled example of the operator dossier view. */
-function DossierPreview() {
-  const rows = [
-    { label: "Documento d'identità, Anna Rossi", state: "warn", note: "Scade il 12/01/2027" },
-    { label: "Saldo e giacenza media 2025, conto Fineco", state: "block", note: "Non caricato" },
-    { label: "Redditi 2025, Mario Rossi", state: "ok", note: "Certificazione Unica 2026" },
-    { label: "Visura catastale, casa di proprietà", state: "ok", note: "1 immobile" },
-    { label: "Targa del veicolo", state: "ok", note: "Dichiarata dal cittadino" },
-  ] as const;
-  return (
-    <figure className="self-center rounded-xl bg-paper text-ink shadow-float ring-1 ring-on-contrast/10">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
-        <div>
-          <p className="font-display text-lg font-semibold tracking-[-0.01em]">
-            ISEE ordinario 2027
-          </p>
-          <p className="text-sm text-ink-3">Mario Rossi, nucleo di 3 persone</p>
-        </div>
-        <Pill tone="warn" size="sm">
-          12 di 13 documenti
-        </Pill>
-      </div>
-      <ul className="divide-y divide-line">
-        {rows.map((row) => (
-          <li key={row.label} className="flex items-start gap-3 px-5 py-3.5 sm:px-6">
-            <span
-              className={
-                row.state === "ok"
-                  ? "mt-px grid size-6 shrink-0 place-items-center rounded-full bg-ok-wash text-ok"
-                  : row.state === "warn"
-                    ? "mt-px grid size-6 shrink-0 place-items-center rounded-full bg-warn-wash text-warn"
-                    : "mt-px grid size-6 shrink-0 place-items-center rounded-full bg-danger-wash text-danger"
-              }
-              role="img"
-              aria-label={
-                row.state === "ok" ? "Presente" : row.state === "warn" ? "Avviso" : "Mancante"
-              }
-            >
-              {row.state === "ok" ? (
-                <Check className="size-3.5" />
-              ) : (
-                <AlertTriangle className="size-3.5" />
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold">{row.label}</span>
-              <span className="block text-sm text-ink-3">{row.note}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-      <figcaption className="rounded-b-xl border-t border-line bg-sunk px-5 py-3 text-sm text-ink-3 sm:px-6">
-        Esempio con dati inventati
-      </figcaption>
-    </figure>
   );
 }

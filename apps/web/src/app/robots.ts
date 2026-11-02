@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     // Citizen links and the console must never be indexed.
     rules: {
       userAgent: "*",
-      allow: ["/", "/privacy", "/sicurezza"],
+      allow: ["/", "/privacy", "/sicurezza", "/accessibilita"],
       disallow: ["/api/", "/console", "/pratica/", "/s/", "/stampa/"],
     },
     sitemap: `${process.env.PUBLIC_APP_URL ?? "http://localhost:3400"}/sitemap.xml`,

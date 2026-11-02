@@ -1,9 +1,11 @@
 import { ImageResponse } from "next/og";
+import { CHEVRON_PATH, TICKET_PATH } from "@/components/brand/mark";
 
 export const alt = "Avanti: il fascicolo arriva pronto";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+/** The landing's hero as a card: ruled paper, the title with its highlighter, the ticket. */
 export default function OpenGraphImage() {
   return new ImageResponse(
     <div
@@ -13,53 +15,61 @@ export default function OpenGraphImage() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        padding: "72px 80px",
+        padding: "64px 80px",
         background: "#f7f8f6",
+        backgroundImage:
+          "repeating-linear-gradient(to bottom, transparent 0 47px, rgba(20,27,45,0.06) 47px 48px)",
         color: "#141b2d",
+        position: "relative",
       }}
     >
-      <div
-        style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 40, fontWeight: 700 }}
-      >
-        <svg width="56" height="56" viewBox="0 0 32 32">
-          <path
-            d="M6 5h20a3 3 0 0 1 3 3v5.2a2.8 2.8 0 0 0 0 5.6V24a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-5.2a2.8 2.8 0 0 0 0-5.6V8a3 3 0 0 1 3-3Z"
-            fill="#2440b3"
-          />
-          <path
-            d="M13.5 11.5 18 16l-4.5 4.5"
-            fill="none"
-            stroke="#ffe45c"
-            strokeWidth="2.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        Avanti
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 40, fontWeight: 700 }}
+        >
+          <svg width="56" height="56" viewBox="0 0 32 32">
+            <path d={TICKET_PATH} fill="#2440b3" />
+            <path
+              d={CHEVRON_PATH}
+              fill="none"
+              stroke="#ffe45c"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Avanti
+        </div>
         <div
           style={{
             display: "flex",
-            fontSize: 96,
-            fontWeight: 800,
-            letterSpacing: -3,
-            lineHeight: 1,
+            fontSize: 24,
+            fontWeight: 700,
+            color: "#2440b3",
+            background: "#e9edfb",
+            padding: "8px 18px",
+            borderRadius: 999,
           }}
         >
+          Pilota ISEE · gennaio 2027
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+        <div style={{ display: "flex", fontSize: 100, fontWeight: 800, lineHeight: 1 }}>
+          Il fascicolo arriva&nbsp;
           <span
             style={{
-              backgroundImage: "linear-gradient(transparent 55%, #ffe45c 55%)",
+              backgroundImage: "linear-gradient(transparent 58%, #ffe45c 58%)",
               padding: "0 8px",
               margin: "0 -8px",
             }}
           >
-            Il fascicolo arriva pronto.
+            pronto.
           </span>
         </div>
-        <div style={{ fontSize: 34, color: "#485067", maxWidth: 900, lineHeight: 1.35 }}>
-          Il front office AI per CAF e patronati: ascolta il cittadino nella sua lingua, prepara la
-          checklist e ordina i documenti per l&apos;operatore.
+        <div style={{ fontSize: 32, color: "#485067", maxWidth: 920, lineHeight: 1.35 }}>
+          Per CAF e patronati: il cittadino prepara l&apos;ISEE dal telefono, nella sua lingua;
+          l&apos;operatore trova documenti in ordine e quello che manca già segnalato.
         </div>
       </div>
     </div>,

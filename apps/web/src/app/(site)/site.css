@@ -1,0 +1,257 @@
+/*
+ * Public site only: texture, scroll reveals and the hero's entrance. The console and the citizen
+ * pages never load this file, so none of it costs them a byte or a frame.
+ *
+ * In the components layer: Tailwind's utilities (hover lifts, explicit transitions) still win.
+ */
+@layer components {
+  :root {
+    /* Long, soft landing for things that arrive once (reveals, the hero). UI feedback keeps
+       --ease-out from globals.css. */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --reveal-distance: 14px;
+  }
+
+  html:has(.site) {
+    scrollbar-color: var(--line-strong) var(--paper);
+    scroll-behavior: smooth;
+  }
+  /* Glows and tilted sheets may reach past the edge on a phone: clip, never scroll sideways.
+     `clip`, not `hidden`, keeps the sticky header and pictures working. */
+  html:has(.site),
+  html:has(.site) body {
+    overflow-x: clip;
+  }
+
+  /*
+   * Scroll reveals. The hidden starting state is not here: lib/site/reveal.ts adds it after
+   * hydration, only below the fold and only without prefers-reduced-motion. Without
+   * JavaScript, or with reduced motion, everything is simply there.
+   */
+  [data-reveal],
+  [data-reveal="stagger"] > * {
+    transition:
+      opacity 600ms var(--ease-out-expo),
+      transform 800ms var(--ease-out-expo);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  [data-reveal="stagger"] > :nth-child(2) {
+    --reveal-delay: 60ms;
+  }
+  [data-reveal="stagger"] > :nth-child(3) {
+    --reveal-delay: 120ms;
+  }
+  [data-reveal="stagger"] > :nth-child(4) {
+    --reveal-delay: 180ms;
+  }
+  [data-reveal="stagger"] > :nth-child(5) {
+    --reveal-delay: 240ms;
+  }
+  [data-reveal="stagger"] > :nth-child(n + 6) {
+    --reveal-delay: 300ms;
+  }
+
+  /* A rule that draws itself when its section arrives (the steps' connector). */
+  [data-reveal] .draw-x,
+  [data-reveal="stagger"] .draw-x {
+    transform-origin: left center;
+    transition: transform 1100ms var(--ease-out-expo) 200ms;
+  }
+  [dir="rtl"] .draw-x {
+    transform-origin: right center;
+  }
+
+  /*
+   * Product pictures: a 1px translucent edge, a top highlight and three stacked shadows (contact,
+   * near, far) instead of one blurry one. On dark bands the edge turns light.
+   */
+  .card-premium {
+    background: var(--surface);
+    border-radius: 1rem;
+    box-shadow:
+      0 0 0 1px rgb(20 27 45 / 0.07),
+      inset 0 1px 0 rgb(255 255 255 / 0.7),
+      0 1px 2px rgb(20 27 45 / 0.05),
+      0 8px 16px -6px rgb(20 27 45 / 0.08),
+      0 32px 64px -24px rgb(20 27 45 / 0.22);
+  }
+  .card-premium-dark {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.1),
+      0 1px 2px rgb(0 0 0 / 0.2),
+      0 24px 48px -12px rgb(0 0 0 / 0.45),
+      0 60px 120px -40px rgb(0 0 0 / 0.6);
+  }
+
+  /* A soft light behind a picture: a radial wash, no blur filter to pay for. */
+  .glow {
+    position: relative;
+    isolation: isolate;
+  }
+  .glow::before {
+    content: "";
+    position: absolute;
+    inset: -12% -8%;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      50% 50% at 50% 45%,
+      var(--glow-color, rgb(36 64 179 / 0.12)),
+      transparent 70%
+    );
+  }
+
+  /*
+   * Scroll-linked, where the browser supports scroll-driven animations: each element runs on its
+   * own view timeline, so rows of a picture compose one after another as the page scrolls. Where
+   * it isn't supported, or with reduced motion, the picture is simply complete.
+   */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .scroll-tilt {
+        transform-origin: 50% 0;
+        animation: scroll-tilt linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 35%;
+      }
+      .scroll-compose {
+        animation: scroll-compose linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 30%;
+      }
+    }
+  }
+  @keyframes scroll-tilt {
+    from {
+      opacity: 0.5;
+      transform: perspective(1800px) rotateX(16deg) scale(0.92) translateY(24px);
+    }
+  }
+  @keyframes scroll-compose {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 16px, 0);
+    }
+  }
+
+  /* The hero arrives on load, from CSS: it must not wait for hydration. */
+  .hero-in {
+    animation: site-rise 900ms var(--ease-out-expo) both;
+    animation-delay: var(--d, 0ms);
+  }
+
+  /* Paper grain: a fixed SVG noise, multiplied on light grounds and screened on dark ones. */
+  .grain {
+    isolation: isolate;
+  }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.1 0 0 0 0 0.18 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.22;
+    mix-blend-mode: multiply;
+  }
+  .grain-dark::after {
+    opacity: 0.12;
+    mix-blend-mode: screen;
+    filter: invert(1);
+  }
+
+  /* The ruled lines of a register, fading out from the top of a hero. */
+  .ruled {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 39px,
+      rgb(20 27 45 / 0.055) 39px 40px
+    );
+    mask-image: radial-gradient(120% 80% at 50% 0%, #000 25%, transparent 75%);
+  }
+
+  /* The highlighter drawn under one word of a title, left to right, once on load. A pseudo-
+     element scaled on X: the same gesture as the .marker stroke, but composited. */
+  .marker-draw {
+    position: relative;
+    z-index: 0;
+    white-space: nowrap;
+  }
+  .marker-draw::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-inline: -0.05em -0.08em;
+    bottom: 0.04em;
+    height: 0.4em;
+    border-radius: 0.06em;
+    background: var(--marker);
+    transform-origin: left center;
+    animation: marker-draw 800ms var(--ease-out-expo) 600ms both;
+  }
+  [dir="rtl"] .marker-draw::before {
+    transform-origin: right center;
+  }
+
+  /* Rubber stamp pressed onto the sheet: overshoots, then settles. The tilt is the element's own
+     `rotate`, which composes with this transform. */
+  .stamp-press {
+    animation: stamp-press 520ms var(--ease-out) both;
+  }
+
+  /* A check mark ticked in a list. */
+  .tick-in {
+    animation: tick-in 360ms var(--ease-out) both;
+  }
+
+  @keyframes site-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+  }
+  @keyframes site-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes marker-draw {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes stamp-press {
+    0% {
+      opacity: 0;
+      transform: scale(1.5);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(0.96);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes tick-in {
+    from {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-in,
+    .marker-draw::before,
+    .stamp-press,
+    .tick-in {
+      animation-name: site-fade !important;
+      animation-duration: 150ms !important;
+    }
+    html:has(.site) {
+      scroll-behavior: auto;
+    }
+  }
+}

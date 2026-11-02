@@ -11,9 +11,12 @@
   --sunk: #eef1f0;
   --ink: #141b2d;
   --ink-2: #485067;
-  --ink-3: #646b80;
+  /* Darkest of the three that still reads as secondary: AA on paper, sunk and folder alike. */
+  --ink-3: #5d6477;
   --line: #dde1e3;
   --line-strong: #c3c9cf;
+  /* Edges of form controls: 3:1 against the surface (WCAG 1.4.11), unlike decorative rules. */
+  --line-field: #868d9b;
 
   --stamp: #2440b3;
   --stamp-hover: #1b3192;
@@ -67,6 +70,7 @@
     --ink-3: #8a93a6;
     --line: #263044;
     --line-strong: #364159;
+    --line-field: #66728c;
     --stamp: #7b90ff;
     --stamp-hover: #93a4ff;
     --stamp-wash: #1b2448;
@@ -98,6 +102,7 @@
   --color-ink-3: var(--ink-3);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-line-field: var(--line-field);
   --color-stamp: var(--stamp);
   --color-stamp-hover: var(--stamp-hover);
   --color-stamp-wash: var(--stamp-wash);
@@ -138,6 +143,11 @@
   --shadow-float: 0 1px 0 rgb(20 27 45 / 0.05), 0 24px 48px -20px rgb(20 27 45 / 0.3);
   /* Bars pinned to the bottom of the screen, lifted above the content they cover. */
   --shadow-dock: 0 -8px 24px -16px rgb(20 27 45 / 0.25);
+
+  /* Inner hairline of cards that sit on a darker band, and of product pictures. */
+  --shadow-frame:
+    0 0 0 1px rgb(20 27 45 / 0.06), 0 2px 4px -2px rgb(20 27 45 / 0.08),
+    0 32px 64px -32px rgb(20 27 45 / 0.35);
 
   --ease-out: var(--ease-out);
   --ease-in-out: var(--ease-in-out);
@@ -307,38 +317,61 @@
 }
 
 /*
- * Editorial headings (site pages), set with font-display. Bricolage at these sizes already
- * draws its tight display cut: tracking past about -0.022em makes letters touch ("rr", "fa").
- * Leading opens a little as the size drops, so two-line headings don't lock descenders.
+ * Editorial headings (site pages), set with font-display. Bricolage's optical-size axis already
+ * draws a tighter, higher-contrast cut as the size grows, so tracking moves toward zero on the
+ * largest sizes instead of tightening further: at -0.022em and 88% width "rr", "fa" and "sc"
+ * touched. Width opens a little and weight drops a little as the size grows, for the same reason.
+ * Leading opens as the size drops, so two-line headings don't lock descenders.
  */
 @utility type-hero {
-  font-size: clamp(2.875rem, 7vw, 5.25rem);
+  font-size: clamp(2.875rem, 7.2vw, 6rem);
   line-height: 0.98;
-  font-weight: 700;
-  letter-spacing: -0.022em;
-  font-stretch: 88%;
+  font-weight: 650;
+  letter-spacing: -0.006em;
+  font-stretch: 96%;
+}
+@utility type-page {
+  font-size: clamp(2.375rem, 5vw, 3.75rem);
+  line-height: 1.02;
+  font-weight: 660;
+  letter-spacing: -0.008em;
+  font-stretch: 96%;
 }
 @utility type-section {
   font-size: clamp(2rem, 4.2vw, 3.25rem);
   line-height: 1.04;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-stretch: 90%;
+  font-weight: 660;
+  letter-spacing: -0.008em;
+  font-stretch: 97%;
 }
-/* Page titles of the secondary site pages, and a section that closes a larger one. */
-@utility type-page {
-  font-size: clamp(2.25rem, 5vw, 3.5rem);
-  line-height: 1.02;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-stretch: 90%;
-}
+/* A section that closes a larger one. */
 @utility type-subsection {
   font-size: clamp(1.75rem, 3.4vw, 2.5rem);
-  line-height: 1.06;
+  line-height: 1.08;
+  font-weight: 660;
+  letter-spacing: -0.008em;
+  font-stretch: 98%;
+}
+
+/* Small caps label above a section title: says what the section is about to someone scrolling. */
+@utility type-eyebrow {
+  font-size: 0.8125rem;
+  line-height: 1.3;
   font-weight: 700;
-  letter-spacing: -0.018em;
-  font-stretch: 90%;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* The paragraph under a section title. */
+@utility type-lead {
+  font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+  line-height: 1.55;
+}
+/* Card and column titles inside a section. */
+@utility type-title {
+  font-size: 1.5rem;
+  line-height: 1.18;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 @layer utilities {
