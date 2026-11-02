@@ -349,16 +349,19 @@ export const fr: M = {
     deleteConfirmAction: "Oui, tout supprimer",
     deletedTitle: "Demande supprimée",
     deletedBody:
-      "Nous avons supprimé les réponses, les documents et les messages. Pendant un an, il ne reste qu'un registre technique des opérations, sans leur contenu.",
+      "Nous avons supprimé les réponses, les documents et les messages. Pendant un an, il ne reste qu'un registre technique des opérations, sans leur contenu. Dans les copies de sécurité (sauvegardes), ils ne restent que jusqu'à leur expiration, sans être utilisés.",
+    deleteGone:
+      "Ce lien n'est plus valide. Si vous aviez déjà supprimé la demande, c'est fait ; sinon, adressez-vous au guichet.",
     requestTitle: "Demander la suppression",
     request:
-      "La demande est déjà au guichet : c'est {org} qui décide et vous répond dans un délai d'un mois. Certaines données peuvent rester si la loi oblige à les conserver.",
+      "La demande est déjà au guichet : c'est {org} qui décide et vous répond en principe dans un délai d'un mois (prolongeable de deux mois, en vous expliquant pourquoi). Certaines données peuvent rester si la loi oblige à les conserver.",
     requestAction: "Demander la suppression…",
     requestConfirmTitle: "Demander la suppression ?",
     requestConfirm:
       "Le guichet reçoit la demande et peut vous contacter pour vérifier votre identité. Si vous aviez demandé les invitations au renouvellement, elles s'arrêtent tout de suite.",
     requestConfirmAction: "Envoyer la demande",
-    requested: "Demande envoyée le {date}. Le guichet vous répond dans un délai d'un mois.",
+    requested:
+      "Demande envoyée le {date}. Le guichet vous répond en principe dans un délai d'un mois, prolongeable de deux mois en vous expliquant pourquoi.",
     rightsTitle: "Vos autres droits",
     rights:
       "Vous pouvez demander à {org} de voir ou de corriger vos données, d'en limiter l'usage ou de vous y opposer. Si vous pensez qu'elles sont mal traitées, vous pouvez porter plainte auprès du Garante, l'autorité italienne de protection des données.",
@@ -733,16 +736,19 @@ export const es: M = {
     deleteConfirmAction: "Sí, borrar todo",
     deletedTitle: "Trámite borrado",
     deletedBody:
-      "Hemos borrado las respuestas, los documentos y los mensajes. Durante un año solo queda un registro técnico de las operaciones, sin su contenido.",
+      "Hemos borrado las respuestas, los documentos y los mensajes. Durante un año solo queda un registro técnico de las operaciones, sin su contenido. En las copias de seguridad solo se quedan hasta que estas caducan, sin usarse.",
+    deleteGone:
+      "Este enlace ya no es válido. Si ya habías borrado el trámite, está hecho; si no, pregunta en la ventanilla.",
     requestTitle: "Pide que se borre",
     request:
-      "El trámite ya está en la ventanilla: decide {org}, que te responde en el plazo de un mes. Algunos datos pueden quedarse si la ley obliga a conservarlos.",
+      "El trámite ya está en la ventanilla: decide {org}, que normalmente te responde en el plazo de un mes (ampliable dos meses más, explicándote el motivo). Algunos datos pueden quedarse si la ley obliga a conservarlos.",
     requestAction: "Pedir que se borre…",
     requestConfirmTitle: "¿Pedir que se borre?",
     requestConfirm:
       "La ventanilla recibe la petición y puede contactarte para comprobar quién eres. Si habías pedido las invitaciones para la renovación, se detienen enseguida.",
     requestConfirmAction: "Enviar la petición",
-    requested: "Petición enviada el {date}. La ventanilla te responde en el plazo de un mes.",
+    requested:
+      "Petición enviada el {date}. La ventanilla normalmente te responde en el plazo de un mes, ampliable dos meses más explicándote el motivo.",
     rightsTitle: "Tus otros derechos",
     rights:
       "Puedes pedir a {org} ver o corregir tus datos, limitar su uso u oponerte. Si crees que se tratan mal, puedes reclamar ante el Garante, la autoridad italiana de protección de datos.",
@@ -1129,16 +1135,19 @@ export const ro: M = {
     deleteConfirmAction: "Da, șterge tot",
     deletedTitle: "Cerere ștearsă",
     deletedBody:
-      "Am șters răspunsurile, documentele și mesajele. Timp de un an rămâne doar un registru tehnic al operațiunilor, fără conținutul lor.",
+      "Am șters răspunsurile, documentele și mesajele. Timp de un an rămâne doar un registru tehnic al operațiunilor, fără conținutul lor. În copiile de siguranță (backup) rămân doar până la expirarea acestora, fără să fie folosite.",
+    deleteGone:
+      "Acest link nu mai este valabil. Dacă ai șters deja cererea, s-a făcut; altfel, întreabă la ghișeu.",
     requestTitle: "Cere ștergerea",
     request:
-      "Cererea este deja la ghișeu: decide {org}, care îți răspunde în cel mult o lună. Unele date pot rămâne dacă legea obligă la păstrarea lor.",
+      "Cererea este deja la ghișeu: decide {org}, care de regulă îți răspunde în cel mult o lună (termenul se poate prelungi cu două luni, iar atunci îți explică de ce). Unele date pot rămâne dacă legea obligă la păstrarea lor.",
     requestAction: "Cere ștergerea…",
     requestConfirmTitle: "Ceri ștergerea?",
     requestConfirm:
       "Ghișeul primește solicitarea și te poate contacta ca să verifice cine ești. Dacă ai cerut invitațiile pentru reînnoire, acestea se opresc imediat.",
     requestConfirmAction: "Trimite solicitarea",
-    requested: "Solicitare trimisă pe {date}. Ghișeul îți răspunde în cel mult o lună.",
+    requested:
+      "Solicitare trimisă pe {date}. Ghișeul îți răspunde de regulă în cel mult o lună; termenul se poate prelungi cu două luni, explicându-ți de ce.",
     rightsTitle: "Celelalte drepturi",
     rights:
       "Poți cere ca {org} să-ți arate sau să-ți corecteze datele ori să le limiteze folosirea, iar tu te poți opune. Dacă crezi că sunt prelucrate greșit, poți depune o plângere la Garante, autoritatea italiană pentru protecția datelor.",
@@ -1534,16 +1543,19 @@ export const uk: M = {
     deleteConfirmAction: "Так, видалити все",
     deletedTitle: "Заяву видалено",
     deletedBody:
-      "Ми видалили відповіді, документи й повідомлення. Протягом року зберігається лише технічний журнал операцій, без їхнього змісту.",
+      "Ми видалили відповіді, документи й повідомлення. Протягом року зберігається лише технічний журнал операцій, без їхнього змісту. У резервних копіях вони залишаються лише до завершення строку їх зберігання і не використовуються.",
+    deleteGone:
+      "Це посилання більше не дійсне. Якщо Ви вже видалили заяву, це зроблено; інакше зверніться до вікна обслуговування.",
     requestTitle: "Попросити видалення",
     request:
-      "Заява вже у вікні обслуговування: рішення ухвалює {org} і відповідає Вам протягом місяця. Деякі дані можуть залишитися, якщо закон зобов’язує їх зберігати.",
+      "Заява вже у вікні обслуговування: рішення ухвалює {org} і зазвичай відповідає Вам протягом місяця (строк можна продовжити ще на два місяці, пояснивши Вам причину). Деякі дані можуть залишитися, якщо закон зобов’язує їх зберігати.",
     requestAction: "Попросити видалення…",
     requestConfirmTitle: "Попросити видалення?",
     requestConfirm:
       "Вікно обслуговування отримає запит і може зв’язатися з Вами, щоб перевірити Вашу особу. Якщо Ви просили запрошення на поновлення, вони припиняться одразу.",
     requestConfirmAction: "Надіслати запит",
-    requested: "Запит надіслано {date}. Вікно обслуговування відповість Вам протягом місяця.",
+    requested:
+      "Запит надіслано {date}. Вікно обслуговування зазвичай відповідає Вам протягом місяця; строк можна продовжити ще на два місяці, пояснивши причину.",
     rightsTitle: "Інші Ваші права",
     rights:
       "Ви можете попросити {org} показати або виправити Ваші дані, обмежити їх використання чи заперечити проти нього. Якщо вважаєте, що дані обробляють неправильно, можете подати скаргу до Garante — італійського органу із захисту даних.",
@@ -1974,16 +1986,19 @@ export const ar: M = {
     deleteConfirmAction: "نعم، احذف كل شيء",
     deletedTitle: "تم حذف الطلب",
     deletedBody:
-      "حذفنا الإجابات والوثائق والرسائل. يبقى لمدة سنة سجل تقني للعمليات فقط، من دون محتواها.",
+      "حذفنا الإجابات والوثائق والرسائل. يبقى لمدة سنة سجل تقني للعمليات فقط، من دون محتواها. وفي النسخ الاحتياطية تبقى فقط حتى انتهاء مدتها، من دون استخدامها.",
+    deleteGone:
+      "هذا الرابط لم يعد صالحًا. إذا كنت قد حذفت الطلب من قبل فقد تم ذلك، وإلا فاسأل شباك الخدمة.",
     requestTitle: "اطلب الحذف",
     request:
-      "الطلب موجود الآن في شباك الخدمة: القرار لـ{org}، ويرد عليك خلال شهر. قد تبقى بعض البيانات إذا كان القانون يفرض الاحتفاظ بها.",
+      "الطلب موجود الآن في شباك الخدمة: القرار لـ{org}، ويرد عليك عادةً خلال شهر (يمكن تمديد المدة شهرين آخرين مع شرح السبب لك). قد تبقى بعض البيانات إذا كان القانون يفرض الاحتفاظ بها.",
     requestAction: "طلب الحذف…",
     requestConfirmTitle: "هل تريد طلب الحذف؟",
     requestConfirm:
       "يستلم شباك الخدمة الطلب وقد يتصل بك للتحقق من هويتك. إذا كنت قد طلبت دعوات التجديد، فإنها تتوقف فورًا.",
     requestConfirmAction: "إرسال الطلب",
-    requested: "أُرسل الطلب في {date}. يرد عليك شباك الخدمة خلال شهر.",
+    requested:
+      "أُرسل الطلب في {date}. يرد عليك شباك الخدمة عادةً خلال شهر، ويمكن تمديد المدة شهرين آخرين مع شرح السبب لك.",
     rightsTitle: "حقوقك الأخرى",
     rights:
       "يمكنك أن تطلب من {org} الاطلاع على بياناتك أو تصحيحها، أو تقييد استخدامها أو الاعتراض عليه. إذا رأيت أنها تُعالج بشكل غير صحيح، يمكنك تقديم شكوى إلى Garante، الهيئة الإيطالية لحماية البيانات.",
@@ -2340,17 +2355,19 @@ export const bn: M = {
     deleteConfirmAction: "হ্যাঁ, সব মুছে ফেলুন",
     deletedTitle: "আবেদন মুছে ফেলা হয়েছে",
     deletedBody:
-      "আমরা উত্তর, নথি ও বার্তা মুছে ফেলেছি। এক বছর শুধু কাজের একটি প্রযুক্তিগত রেকর্ড থাকে, তাদের বিষয়বস্তু ছাড়া।",
+      "আমরা উত্তর, নথি ও বার্তা মুছে ফেলেছি। এক বছর শুধু কাজের একটি প্রযুক্তিগত রেকর্ড থাকে, তাদের বিষয়বস্তু ছাড়া। ব্যাকআপ কপিতে সেগুলো শুধু মেয়াদ শেষ হওয়া পর্যন্ত থাকে, ব্যবহার করা হয় না।",
+    deleteGone:
+      "এই লিঙ্কটি আর বৈধ নয়। আপনি আগেই আবেদনটি মুছে থাকলে তা হয়ে গেছে; না হলে সেবা কাউন্টারে জিজ্ঞাসা করুন।",
     requestTitle: "মুছে ফেলার অনুরোধ করুন",
     request:
-      "আবেদনটি এখন সেবা কাউন্টারে আছে: সিদ্ধান্ত নেবে {org}, এবং এক মাসের মধ্যে আপনাকে উত্তর দেবে। আইন সংরক্ষণ বাধ্যতামূলক করলে কিছু তথ্য থেকে যেতে পারে।",
+      "আবেদনটি এখন সেবা কাউন্টারে আছে: সিদ্ধান্ত নেবে {org}, এবং সাধারণত এক মাসের মধ্যে আপনাকে উত্তর দেবে (সময়সীমা আরও দুই মাস বাড়তে পারে, তখন কারণ জানাবে)। আইন সংরক্ষণ বাধ্যতামূলক করলে কিছু তথ্য থেকে যেতে পারে।",
     requestAction: "মুছে ফেলার অনুরোধ করুন…",
     requestConfirmTitle: "মুছে ফেলার অনুরোধ করবেন?",
     requestConfirm:
       "সেবা কাউন্টার অনুরোধটি পাবে এবং আপনার পরিচয় যাচাই করতে আপনার সাথে যোগাযোগ করতে পারে। আপনি নবায়নের আমন্ত্রণ চেয়ে থাকলে, তা সঙ্গে সঙ্গে বন্ধ হয়ে যাবে।",
     requestConfirmAction: "অনুরোধ পাঠান",
     requested:
-      "{date} তারিখে অনুরোধ পাঠানো হয়েছে। সেবা কাউন্টার এক মাসের মধ্যে আপনাকে উত্তর দেবে।",
+      "{date} তারিখে অনুরোধ পাঠানো হয়েছে। সেবা কাউন্টার সাধারণত এক মাসের মধ্যে আপনাকে উত্তর দেবে; সময়সীমা আরও দুই মাস বাড়লে কারণ জানাবে।",
     rightsTitle: "আপনার অন্যান্য অধিকার",
     rights:
       "আপনি {org}-এর কাছে আপনার তথ্য দেখতে বা সংশোধন করতে, এর ব্যবহার সীমিত করতে বা আপত্তি জানাতে চাইতে পারেন। তথ্য ভুলভাবে ব্যবহার হচ্ছে মনে হলে, Garante-এ (ইতালির তথ্য সুরক্ষা কর্তৃপক্ষ) অভিযোগ করতে পারেন।",

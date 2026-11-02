@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { origin, startCase, submittedCase } from "./helpers";
+import { logIn, origin, startCase, submittedCase } from "./helpers";
 
 test("the QR page explains the data in the chosen language before anything is kept", async ({
   page,
@@ -59,4 +59,34 @@ test("after sending, the citizen asks the CAF to erase and sees the request", as
   // A second request changes nothing: the desk sees one.
   const again = await page.request.post(`/api/c/${token}/erasure-request`, { headers: origin() });
   expect(again.ok()).toBeTruthy();
+});
+
+test("a link the desk replaced never claims the practice was deleted", async ({
+  page,
+  browser,
+}) => {
+  const token = await startCase(page, "Devo fare l'ISEE, vivo da solo.");
+  const { id } = (await (await page.request.get(`/api/c/${token}`)).json()) as { id: string };
+  await page.goto(`/pratica/${token}`);
+  await page.getByRole("button", { name: "I tuoi dati e la privacy" }).click();
+  await page
+    .getByRole("dialog", { name: "I tuoi dati" })
+    .getByRole("button", { name: "Cancella la pratica…" })
+    .click();
+
+  // Meanwhile the desk gives the citizen a new link: the open page still holds the old one.
+  const desk = await browser.newContext({ baseURL: test.info().project.use.baseURL });
+  try {
+    const deskPage = await desk.newPage();
+    await logIn(deskPage, { email: "admin@demo.avanti.local", password: "DemoAvanti2027!" });
+    const rotated = await deskPage.request.post(`/api/cases/${id}/link`, { headers: origin() });
+    expect(rotated.ok(), await rotated.text()).toBeTruthy();
+  } finally {
+    await desk.close();
+  }
+
+  const confirm = page.getByRole("dialog", { name: "Cancellare la pratica?" });
+  await confirm.getByRole("button", { name: "Sì, cancella tutto" }).click();
+  await expect(confirm.getByText(/^Questo link non è più valido\./)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pratica cancellata" })).toHaveCount(0);
 });

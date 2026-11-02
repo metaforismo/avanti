@@ -1,12 +1,13 @@
 "use client";
 
 import { Download, ShieldCheck, Trash2 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import type { CitizenCase, Language } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Notice } from "@/components/ui/notice";
 import { apiDownload, apiFetch, ApiRequestError } from "@/lib/api";
+import { zipComplete } from "@/lib/console/zip-complete";
 import {
   errorMessage,
   format,
@@ -54,6 +55,7 @@ export function PrivacySheet({
   const [pending, setPending] = useState<"copy" | "delete" | "request" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Confirm>(null);
+  const deleteResponseLost = useRef(false);
   const org = { org: orgName };
 
   const fail = (err: unknown) =>
@@ -64,9 +66,15 @@ export function PrivacySheet({
     setPending("copy");
     setError(null);
     try {
+      // Held in memory like the desk's archive (at most the case's 120 MB), so a refusal or a
+      // cut-off copy shows here in the citizen's language instead of saving an error as a file.
       const { blob, fileName } = await apiDownload(
         `/api/c/${encodeURIComponent(practice.token)}/export`,
       );
+      if (await zipComplete(blob)) {
+        setError(errorMessage(m, "network"));
+        return;
+      }
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -87,17 +95,25 @@ export function PrivacySheet({
     setPending(kind);
     setError(null);
     const path = `/api/c/${encodeURIComponent(practice.token)}`;
+    // A 404 alone also means a rotated link (the desk issued a new one): only a DELETE this page
+    // already sent, whose answer never arrived, lets a 404 confirm the erasure.
+    const retryOfLostDelete = kind === "delete" && deleteResponseLost.current;
     try {
-      if (kind === "delete") await apiFetch(path, { method: "DELETE", body: { confirmed: true } });
-      else await apiFetch(`${path}/erasure-request`, { method: "POST" });
+      if (kind === "delete") {
+        deleteResponseLost.current = true;
+        await apiFetch(path, { method: "DELETE", body: { confirmed: true } });
+      } else await apiFetch(`${path}/erasure-request`, { method: "POST" });
       setConfirm(null);
       if (kind === "delete") practice.onErased();
       else practice.onChanged();
     } catch (err) {
-      // A retry after a lost response finds the case already gone: that is the success.
-      if (kind === "delete" && err instanceof ApiRequestError && err.code === "not_found")
-        practice.onErased();
-      else fail(err);
+      const answered = err instanceof ApiRequestError;
+      if (kind === "delete" && answered && err.code === "not_found") {
+        if (retryOfLostDelete) practice.onErased();
+        else setError(p.deleteGone);
+      } else fail(err);
+      // The server answered: whatever it said, this attempt did not erase anything.
+      if (kind === "delete" && answered) deleteResponseLost.current = false;
     } finally {
       setPending(null);
     }

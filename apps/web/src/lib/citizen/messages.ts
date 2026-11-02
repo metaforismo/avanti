@@ -342,16 +342,19 @@ const it = {
     deleteConfirmAction: "Sì, cancella tutto",
     deletedTitle: "Pratica cancellata",
     deletedBody:
-      "Abbiamo cancellato risposte, documenti e messaggi. Per un anno resta solo un registro tecnico delle operazioni, senza il loro contenuto.",
+      "Abbiamo cancellato risposte, documenti e messaggi. Per un anno resta solo un registro tecnico delle operazioni, senza il loro contenuto. Nelle copie di sicurezza (backup) restano solo fino alla loro scadenza, senza essere usati.",
+    deleteGone:
+      "Questo link non è più valido. Se avevi già cancellato la pratica, è fatto; altrimenti chiedi allo sportello.",
     requestTitle: "Chiedi la cancellazione",
     request:
-      "La pratica è già allo sportello: decide {org}, che ti risponde entro un mese. Alcuni dati possono restare se la legge obbliga a conservarli.",
+      "La pratica è già allo sportello: decide {org}, che di norma ti risponde entro un mese (il termine può allungarsi di due mesi, e in quel caso ti spiega perché). Alcuni dati possono restare se la legge obbliga a conservarli.",
     requestAction: "Chiedi la cancellazione…",
     requestConfirmTitle: "Chiedere la cancellazione?",
     requestConfirm:
       "Lo sportello riceve la richiesta e può contattarti per verificare chi sei. Se avevi chiesto gli inviti per il rinnovo, si fermano subito.",
     requestConfirmAction: "Invia la richiesta",
-    requested: "Richiesta inviata il {date}. Lo sportello ti risponde entro un mese.",
+    requested:
+      "Richiesta inviata il {date}. Lo sportello ti risponde di norma entro un mese, prorogabile di due mesi spiegandoti perché.",
     rightsTitle: "Gli altri diritti",
     rights:
       "Puoi chiedere a {org} di vedere o correggere i tuoi dati, di limitarne l'uso o di opporti. Se pensi che siano trattati male, puoi fare reclamo al Garante per la protezione dei dati personali.",
@@ -729,16 +732,19 @@ const en: Widen<CitizenMessages> = {
     deleteConfirmAction: "Yes, delete everything",
     deletedTitle: "Application deleted",
     deletedBody:
-      "We have deleted the answers, documents and messages. For one year only a technical log of the operations remains, without their content.",
+      "We have deleted the answers, documents and messages. For one year only a technical log of the operations remains, without their content. In the security copies (backups) they remain only until those expire, and are not used.",
+    deleteGone:
+      "This link is no longer valid. If you had already deleted the application, it's done; otherwise, ask the desk.",
     requestTitle: "Ask for deletion",
     request:
-      "The application is already at the desk: {org} decides and replies within one month. Some data may stay if the law requires keeping it.",
+      "The application is already at the desk: {org} decides and normally replies within one month (this can be extended by two months, and it will tell you why). Some data may stay if the law requires keeping it.",
     requestAction: "Ask for deletion…",
     requestConfirmTitle: "Ask for deletion?",
     requestConfirm:
       "The desk receives the request and may contact you to check who you are. If you asked for renewal invitations, they stop right away.",
     requestConfirmAction: "Send the request",
-    requested: "Request sent on {date}. The desk will reply within one month.",
+    requested:
+      "Request sent on {date}. The desk normally replies within one month; if it needs two more months, it will tell you why.",
     rightsTitle: "Your other rights",
     rights:
       "You can ask {org} to see or correct your data, to limit its use, or to object to it. If you think it is being handled wrongly, you can complain to the Garante, the Italian data protection authority.",
