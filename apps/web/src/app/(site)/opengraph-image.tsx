@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { CHEVRON_PATH, TICKET_PATH } from "@/components/brand/mark";
 
 export const alt = "Avanti: il fascicolo arriva pronto";
 export const size = { width: 1200, height: 630 };
@@ -22,12 +23,9 @@ export default function OpenGraphImage() {
         style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 40, fontWeight: 700 }}
       >
         <svg width="56" height="56" viewBox="0 0 32 32">
+          <path d={TICKET_PATH} fill="#2440b3" />
           <path
-            d="M6 5h20a3 3 0 0 1 3 3v5.2a2.8 2.8 0 0 0 0 5.6V24a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-5.2a2.8 2.8 0 0 0 0-5.6V8a3 3 0 0 1 3-3Z"
-            fill="#2440b3"
-          />
-          <path
-            d="M13.5 11.5 18 16l-4.5 4.5"
+            d={CHEVRON_PATH}
             fill="none"
             stroke="#ffe45c"
             strokeWidth="2.6"

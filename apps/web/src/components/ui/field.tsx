@@ -5,7 +5,7 @@ import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 const control =
-  "w-full rounded-sm bg-surface px-3 text-ink ring-1 ring-line-strong ring-inset placeholder:text-ink-3 " +
+  "w-full rounded-sm bg-surface px-3 text-ink ring-1 ring-line-field ring-inset placeholder:text-ink-3 " +
   "transition-shadow duration-150 hover:ring-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none " +
   "aria-invalid:ring-danger disabled:bg-sunk disabled:text-ink-3";
 
