@@ -13,18 +13,22 @@ export const metadata: Metadata = {
 const PRACTICES = [
   {
     title: "Per chi non legge bene l'italiano",
+    summary: "Otto lingue, frasi brevi, risposte anche a voce.",
     body: "Il percorso del cittadino è in otto lingue, arabo da destra a sinistra compreso, con frasi brevi a livello A2. I nomi dei documenti restano in italiano, con una spiegazione accanto, perché sono quelli che troverà scritti. Si può rispondere toccando un'opzione, scrivendo con parole proprie o parlando.",
   },
   {
     title: "Per chi usa la tastiera o uno screen reader",
+    summary: "Tutto da tastiera, focus visibile, cambiamenti annunciati.",
     body: "Ogni azione si raggiunge da tastiera, con il focus sempre visibile. Titoli, campi, errori e avvisi hanno nomi e ruoli espliciti; i cambiamenti importanti (un documento controllato, una risposta dell'assistente) vengono annunciati. Nella console le scorciatoie, come «/» per cercare, si possono ignorare.",
   },
   {
     title: "Per chi vede poco o è sensibile al movimento",
+    summary: "Contrasti verificati, animazioni che si spengono.",
     body: "Testi e controlli rispettano i contrasti WCAG in tema chiaro e scuro, verificati a ogni rilascio. Le animazioni si spengono quando il sistema chiede movimento ridotto.",
   },
   {
     title: "Per chi ha un telefono vecchio o poca rete",
+    summary: "Nessuna app, foto ridotte sul telefono, invii da riprendere.",
     body: "Nessuna app e nessun account: il link si apre dal browser. Le foto vengono ridotte sul telefono prima dell'invio e, se la rete cade, il caricamento si può riprovare senza scegliere di nuovo il file. Si può interrompere e riprendere quando si vuole.",
   },
 ] as const;
@@ -42,7 +46,7 @@ export default function AccessibilityPage() {
       <PageHero
         eyebrow="Accessibilità"
         title="Allo sportello arriva chiunque."
-        lead="Avanti è pensato prima di tutto per chi fa più fatica con la burocrazia: chi è arrivato da poco, chi non vede bene, chi ha solo il telefono."
+        lead="Pensato prima di tutto per chi fa più fatica con la burocrazia."
       />
 
       <div className="border-y border-line bg-surface">
@@ -51,9 +55,21 @@ export default function AccessibilityPage() {
           className="mx-auto grid max-w-6xl gap-4 px-4 py-16 sm:px-6 md:grid-cols-2 lg:py-20"
         >
           {PRACTICES.map((item) => (
-            <section key={item.title} className="rounded-lg bg-paper p-6 ring-1 ring-line sm:p-8">
+            <section key={item.title} className="card-premium p-6 sm:p-8">
               <h2 className="font-display type-title">{item.title}</h2>
-              <p className="mt-3 leading-relaxed text-ink-2">{item.body}</p>
+              <p className="mt-3 text-lg text-ink-2">{item.summary}</p>
+              <details className="group mt-3">
+                <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-sm text-sm font-semibold text-stamp [&::-webkit-details-marker]:hidden">
+                  Nel dettaglio
+                  <span
+                    aria-hidden
+                    className="transition-transform duration-200 ease-(--ease-out) group-open:rotate-90"
+                  >
+                    ›
+                  </span>
+                </summary>
+                <p className="animate-rise text-body-sm leading-relaxed text-ink-2">{item.body}</p>
+              </details>
             </section>
           ))}
         </div>
@@ -72,9 +88,8 @@ export default function AccessibilityPage() {
             Cosa verifichiamo
           </h2>
           <p className="mt-5 type-lead text-ink-2">
-            I controlli automatici trovano solo una parte dei problemi: non dichiariamo una
-            conformità che non è stata valutata da terzi. Nel pilota proviamo il percorso anche con
-            persone che usano tecnologie assistive.
+            Nessuna conformità dichiarata senza una valutazione di terzi. Nel pilota proviamo il
+            percorso con chi usa tecnologie assistive.
           </p>
         </div>
         <ul data-reveal="stagger" className="grid content-start gap-3">

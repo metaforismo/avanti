@@ -70,35 +70,46 @@ export default function PrivacyPage() {
           <nav aria-label="In questa pagina" className="lg:sticky lg:top-24 lg:self-start">
             <p className="type-eyebrow text-ink-3">In questa pagina</p>
             <ol className="mt-3 grid border-s border-line">
-              {SECTIONS.map((section) => (
+              {SECTIONS.map((section, i) => (
                 <li key={section.id}>
                   <a
                     href={`#${section.id}`}
                     className="-ms-px flex min-h-10 items-center border-s-2 border-transparent ps-4 text-body-sm text-ink-2 transition-colors hover:border-stamp hover:text-ink"
                   >
+                    <span aria-hidden className="tabular me-3 font-mono text-xs text-ink-3">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
                     {section.title}
                   </a>
                 </li>
               ))}
             </ol>
           </nav>
-          <div className="grid max-w-2xl gap-12">
-            {SECTIONS.map((section) => (
+          <div className="grid max-w-2xl">
+            {SECTIONS.map((section, i) => (
               <section
                 key={section.id}
                 id={section.id}
                 aria-labelledby={`${section.id}-title`}
                 data-reveal
-                className="scroll-mt-24"
+                className="scroll-mt-24 border-t border-line py-10 first:border-t-0 first:pt-0"
               >
-                <h2 id={`${section.id}-title`} className="font-display type-title">
+                <p aria-hidden className="tabular font-mono text-sm text-stamp">
+                  {String(i + 1).padStart(2, "0")}
+                </p>
+                <h2
+                  id={`${section.id}-title`}
+                  className="mt-2 font-display text-[1.75rem] leading-tight font-semibold"
+                >
                   {section.title}
                 </h2>
-                {section.body.map((p) => (
-                  <p key={p} className="mt-3 leading-relaxed text-ink-2">
-                    {p}
-                  </p>
-                ))}
+                <div className="mt-5 grid gap-4">
+                  {section.body.map((p) => (
+                    <p key={p} className="text-[1.0625rem] leading-[1.7] text-ink-2">
+                      {p}
+                    </p>
+                  ))}
+                </div>
               </section>
             ))}
           </div>
