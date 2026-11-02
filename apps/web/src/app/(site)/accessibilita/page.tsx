@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Check } from "lucide-react";
+import { PageCta, PageHero } from "@/components/landing/page-hero";
 
 export const metadata: Metadata = {
   title: "Accessibilità",
@@ -36,48 +38,64 @@ const CHECKS = [
 
 export default function AccessibilityPage() {
   return (
-    <article className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-24">
-      <h1 className="max-w-2xl font-display type-page">Accessibilità</h1>
-      <p className="mt-5 max-w-2xl text-lg text-ink-2">
-        Allo sportello arriva chiunque. Avanti è pensato prima di tutto per chi fa più fatica con la
-        burocrazia: chi è arrivato da poco, chi non vede bene, chi ha solo il telefono.
-      </p>
+    <article>
+      <PageHero
+        eyebrow="Accessibilità"
+        title="Allo sportello arriva chiunque."
+        lead="Avanti è pensato prima di tutto per chi fa più fatica con la burocrazia: chi è arrivato da poco, chi non vede bene, chi ha solo il telefono."
+      />
 
-      <div className="mt-14 grid gap-x-12 gap-y-10 md:grid-cols-2">
-        {PRACTICES.map((item) => (
-          <section key={item.title}>
-            <h2 className="font-display text-xl font-semibold tracking-[-0.01em]">{item.title}</h2>
-            <p className="mt-2 leading-relaxed text-ink-2">{item.body}</p>
-          </section>
-        ))}
+      <div className="border-y border-line bg-surface">
+        <div
+          data-reveal="stagger"
+          className="mx-auto grid max-w-6xl gap-4 px-4 py-16 sm:px-6 md:grid-cols-2 lg:py-20"
+        >
+          {PRACTICES.map((item) => (
+            <section key={item.title} className="rounded-lg bg-paper p-6 ring-1 ring-line sm:p-8">
+              <h2 className="font-display type-title">{item.title}</h2>
+              <p className="mt-3 leading-relaxed text-ink-2">{item.body}</p>
+            </section>
+          ))}
+        </div>
       </div>
 
-      <section className="mt-16 rounded-xl bg-folder/55 p-6 sm:p-8" aria-labelledby="checks">
-        <h2 id="checks" className="font-display text-2xl font-semibold tracking-[-0.015em]">
-          Cosa verifichiamo
-        </h2>
-        <p className="mt-2 max-w-2xl text-ink-2">
-          I controlli automatici trovano solo una parte dei problemi: non dichiariamo una conformità
-          che non è stata valutata da terzi. Nel pilota proviamo il percorso anche con persone che
-          usano tecnologie assistive.
-        </p>
-        <ul className="mt-5 grid gap-2.5">
+      <section
+        aria-labelledby="checks"
+        className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:py-28"
+      >
+        <div data-reveal="stagger">
+          <p className="mb-4 flex items-center gap-2.5 type-eyebrow text-stamp">
+            <span aria-hidden className="h-px w-6 bg-current opacity-60" />
+            Verifiche
+          </p>
+          <h2 id="checks" className="font-display type-section">
+            Cosa verifichiamo
+          </h2>
+          <p className="mt-5 type-lead text-ink-2">
+            I controlli automatici trovano solo una parte dei problemi: non dichiariamo una
+            conformità che non è stata valutata da terzi. Nel pilota proviamo il percorso anche con
+            persone che usano tecnologie assistive.
+          </p>
+        </div>
+        <ul data-reveal="stagger" className="grid content-start gap-3">
           {CHECKS.map((item) => (
-            <li key={item} className="flex gap-3">
-              <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-stamp" />
+            <li
+              key={item}
+              className="flex gap-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-line"
+            >
+              <Check className="mt-0.5 size-5 shrink-0 text-ok" aria-hidden />
               {item}
             </li>
           ))}
         </ul>
       </section>
 
-      <p className="mt-12 text-ink-2">
-        Hai trovato un ostacolo? Diccelo dal{" "}
-        <Link href="/#pilota" className="font-semibold text-stamp underline underline-offset-2">
-          modulo di contatto
-        </Link>
-        : se sei un cittadino, puoi anche chiedere aiuto allo sportello del tuo CAF.
-      </p>
+      <PageCta title="Hai trovato un ostacolo?">
+        <p>
+          Diccelo dal <Link href="/#pilota">modulo di contatto</Link>: se sei un cittadino, puoi
+          anche chiedere aiuto allo sportello del tuo CAF.
+        </p>
+      </PageCta>
     </article>
   );
 }

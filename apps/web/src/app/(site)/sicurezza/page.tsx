@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Stamp } from "@/components/brand/desk-objects";
+import { PageCta, PageHero } from "@/components/landing/page-hero";
 
 export const metadata: Metadata = {
   title: "Sicurezza e dati",
@@ -58,52 +60,75 @@ const BEFORE_REAL_DATA = [
 
 export default function SecurityPage() {
   return (
-    <article className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-24">
-      <h1 className="max-w-2xl font-display type-page">Sicurezza e dati</h1>
-      <p className="mt-5 max-w-2xl text-lg text-ink-2">
-        Allo sportello arrivano documenti d&apos;identità, redditi, conti correnti. Ecco come li
-        trattiamo, in concreto. Non usiamo parole come «certificato» o «garantito» dove non c&apos;è
-        una certificazione.
-      </p>
+    <article>
+      <PageHero
+        eyebrow="Sicurezza e dati"
+        title="Documenti di persone vere, trattati di conseguenza."
+        lead={
+          <>
+            Allo sportello arrivano documenti d&apos;identità, redditi, conti correnti. Ecco come li
+            trattiamo, in concreto. Non usiamo parole come «certificato» o «garantito» dove non
+            c&apos;è una certificazione.
+          </>
+        }
+      />
 
-      <div className="mt-14 grid gap-x-12 gap-y-10 md:grid-cols-2">
-        {CONTROLS.map((item) => (
-          <section key={item.title}>
-            <h2 className="font-display text-xl font-semibold tracking-[-0.01em]">{item.title}</h2>
-            <p className="mt-2 leading-relaxed text-ink-2">{item.body}</p>
-          </section>
-        ))}
+      <div className="border-y border-line bg-surface">
+        <div
+          data-reveal="stagger"
+          className="mx-auto grid max-w-6xl gap-x-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:py-20"
+        >
+          {CONTROLS.map((item, i) => (
+            <section key={item.title} className="border-t border-line py-6">
+              <span aria-hidden className="tabular font-mono text-sm font-bold text-stamp">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h2 className="mt-2 font-display text-xl font-semibold">{item.title}</h2>
+              <p className="mt-2 leading-relaxed text-ink-2">{item.body}</p>
+            </section>
+          ))}
+        </div>
       </div>
 
-      <section className="mt-16 rounded-xl bg-folder/55 p-6 sm:p-8" aria-labelledby="before">
-        <h2 id="before" className="font-display text-2xl font-semibold tracking-[-0.015em]">
-          Prima di trattare dati reali, insieme al CAF
-        </h2>
-        <p className="mt-2 max-w-2xl text-ink-2">
-          Il software è una parte. Questi passaggi li completiamo con ogni CAF pilota prima del
-          primo cittadino vero:
-        </p>
-        <ul className="mt-5 grid gap-2.5">
-          {BEFORE_REAL_DATA.map((item) => (
-            <li key={item} className="flex gap-3">
-              <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-stamp" />
-              {item}
-            </li>
-          ))}
-        </ul>
+      <section aria-labelledby="before" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
+        <div
+          data-reveal
+          className="relative mx-auto max-w-3xl rounded-xl bg-surface p-6 shadow-frame ring-1 ring-line sm:p-10"
+        >
+          <Stamp className="absolute end-6 top-6 hidden text-xs sm:inline-flex">
+            <span>Prima del</span>
+            <span className="mt-0.5">primo cittadino</span>
+          </Stamp>
+          <p className="type-eyebrow text-stamp">Da firmare con ogni CAF pilota</p>
+          <h2 id="before" className="mt-3 max-w-md font-display type-subsection">
+            Prima di trattare dati reali, insieme al CAF
+          </h2>
+          <p className="mt-3 max-w-xl text-ink-2">
+            Il software è una parte. Questi passaggi li completiamo con ogni CAF pilota prima del
+            primo cittadino vero:
+          </p>
+          <ul className="mt-6 divide-y divide-line border-y border-line">
+            {BEFORE_REAL_DATA.map((item) => (
+              <li key={item} className="flex gap-3 py-3.5">
+                {/* An empty box: to be ticked with the CAF, not already done. */}
+                <span
+                  aria-hidden
+                  className="mt-0.5 size-5 shrink-0 rounded-sm ring-1 ring-line-field"
+                />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
-      <p className="mt-12 text-ink-2">
-        Hai domande tecniche o vuoi la documentazione completa per il vostro DPO?{" "}
-        <Link href="/#pilota" className="font-semibold text-stamp underline underline-offset-2">
-          Scrivici dal modulo del pilota
-        </Link>
-        . Per i cittadini c&apos;è l&apos;
-        <Link href="/privacy" className="font-semibold text-stamp underline underline-offset-2">
-          informativa privacy
-        </Link>
-        .
-      </p>
+      <PageCta title="Documentazione per il vostro DPO">
+        <p>
+          Hai domande tecniche o vuoi la documentazione completa?{" "}
+          <Link href="/#pilota">Scrivici dal modulo del pilota</Link>. Per i cittadini c&apos;è
+          l&apos;<Link href="/privacy">informativa privacy</Link>.
+        </p>
+      </PageCta>
     </article>
   );
 }

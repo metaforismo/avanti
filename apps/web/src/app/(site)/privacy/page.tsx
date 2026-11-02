@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { PageHero } from "@/components/landing/page-hero";
 import { Notice } from "@/components/ui/notice";
 
 export const metadata: Metadata = { title: "Privacy" };
 
 const SECTIONS = [
   {
+    id: "chi",
     title: "Chi tratta i dati",
     body: [
       "Quando usi Avanti per preparare una pratica, il titolare del trattamento è il CAF o il patronato che ti ha dato il link: il suo nome è in cima alla pagina della tua pratica e lo sportello ti dà i recapiti e l'informativa completa. Avanti tratta i dati per suo conto, come responsabile del trattamento, sulla base di un accordo scritto.",
@@ -14,6 +16,7 @@ const SECTIONS = [
     ],
   },
   {
+    id: "quali",
     title: "Quali dati e perché",
     body: [
       "Le risposte alle domande, i dati delle persone del nucleo che indichi e i documenti che carichi. Servono solo a preparare la pratica che hai chiesto e a consegnarla all'operatore.",
@@ -24,12 +27,14 @@ const SECTIONS = [
     ],
   },
   {
+    id: "quanto",
     title: "Per quanto tempo",
     body: [
       "Il link personale scade dopo il periodo stabilito dal CAF. Alla fine del periodo di conservazione scelto dal CAF il fascicolo e i documenti vengono cancellati da Avanti automaticamente; eventuali obblighi di conservazione a carico del CAF riguardano il suo archivio.",
     ],
   },
   {
+    id: "rinnovi",
     title: "L'anno dopo: rinnovi",
     body: [
       "Se torni dallo stesso CAF, il nuovo fascicolo può partire dal nucleo e dai documenti ancora validi dell'anno prima: le persone le confermi tu, le risposte su redditi e patrimonio si danno di nuovo.",
@@ -37,6 +42,7 @@ const SECTIONS = [
     ],
   },
   {
+    id: "diritti",
     title: "I tuoi diritti",
     body: [
       "Puoi chiedere accesso, rettifica, cancellazione o limitazione dei dati, opporti al trattamento e, quando spetta, ricevere i dati in un formato leggibile da una macchina, rivolgendoti al CAF o al patronato. Puoi revocare in qualsiasi momento il consenso agli avvisi di rinnovo.",
@@ -47,29 +53,56 @@ const SECTIONS = [
 
 export default function PrivacyPage() {
   return (
-    <article className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:py-24">
-      <h1 className="font-display type-page">Informativa privacy</h1>
-      <p className="mt-5 text-lg text-ink-2">
-        In breve: i dati servono a preparare la tua pratica e restano sotto il controllo del CAF che
-        hai scelto.
-      </p>
-      <div className="mt-12 grid gap-10">
-        {SECTIONS.map((section) => (
-          <section key={section.title}>
-            <h2 className="font-display text-2xl font-semibold tracking-[-0.01em]">
-              {section.title}
-            </h2>
-            {section.body.map((p) => (
-              <p key={p} className="mt-3 leading-relaxed text-ink-2">
-                {p}
-              </p>
+    <article>
+      <PageHero
+        eyebrow="Privacy"
+        title="Informativa privacy"
+        lead="In breve: i dati servono a preparare la tua pratica e restano sotto il controllo del CAF che hai scelto."
+      >
+        <Notice tone="warn" className="max-w-2xl">
+          Versione preliminare per il programma pilota, in revisione legale prima del lancio.
+        </Notice>
+      </PageHero>
+
+      <div className="border-t border-line bg-surface">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-16 lg:py-20">
+          <nav aria-label="In questa pagina" className="lg:sticky lg:top-24 lg:self-start">
+            <p className="type-eyebrow text-ink-3">In questa pagina</p>
+            <ol className="mt-3 grid border-s border-line">
+              {SECTIONS.map((section) => (
+                <li key={section.id}>
+                  <a
+                    href={`#${section.id}`}
+                    className="-ms-px flex min-h-10 items-center border-s-2 border-transparent ps-4 text-body-sm text-ink-2 transition-colors hover:border-stamp hover:text-ink"
+                  >
+                    {section.title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+          <div className="grid max-w-2xl gap-12">
+            {SECTIONS.map((section) => (
+              <section
+                key={section.id}
+                id={section.id}
+                aria-labelledby={`${section.id}-title`}
+                data-reveal
+                className="scroll-mt-24"
+              >
+                <h2 id={`${section.id}-title`} className="font-display type-title">
+                  {section.title}
+                </h2>
+                {section.body.map((p) => (
+                  <p key={p} className="mt-3 leading-relaxed text-ink-2">
+                    {p}
+                  </p>
+                ))}
+              </section>
             ))}
-          </section>
-        ))}
+          </div>
+        </div>
       </div>
-      <Notice tone="warn" className="mt-14">
-        Versione preliminare per il programma pilota, in revisione legale prima del lancio.
-      </Notice>
     </article>
   );
 }
