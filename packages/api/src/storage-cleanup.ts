@@ -3,40 +3,56 @@ import { storageDeletions, documents } from "@avanti/db";
 import type { Services } from "./context";
 import { safeError } from "./logging";
 
+export const STORAGE_DELETION_BATCH = 100;
+
+/**
+ * Deletes due files. Each row is claimed with FOR UPDATE SKIP LOCKED and checked again under
+ * that lock: an upload whose 10-minute lease just ran out may be committing its document right
+ * now, holding the lease row, and deleting its file would leave a document with no bytes. The
+ * upload locks the same row before it commits, so exactly one of the two wins.
+ */
 export async function retryStorageDeletions(
   s: Services,
   id?: string,
   caseId?: string,
-): Promise<void> {
+  budgetMs = 20000,
+): Promise<{ attempted: number; outOfTime: boolean }> {
+  const due = () =>
+    id
+      ? eq(storageDeletions.id, id)
+      : and(
+          lte(storageDeletions.nextAttemptAt, s.clock().toISOString()),
+          caseId ? eq(storageDeletions.caseId, caseId) : undefined,
+        );
   const pending = await s.db
     .select()
     .from(storageDeletions)
-    .where(
-      id
-        ? eq(storageDeletions.id, id)
-        : and(
-            lte(storageDeletions.nextAttemptAt, s.clock().toISOString()),
-            caseId ? eq(storageDeletions.caseId, caseId) : undefined,
-          ),
-    )
+    .where(due())
     .orderBy(asc(storageDeletions.nextAttemptAt), asc(storageDeletions.id))
-    .limit(100);
+    .limit(STORAGE_DELETION_BATCH);
   const started = performance.now();
+  let attempted = 0;
   for (const row of pending) {
-    if (performance.now() - started >= 20000) break;
+    if (performance.now() - started >= budgetMs) return { attempted, outOfTime: true };
+    attempted++;
     try {
-      const [reference] = await s.db
-        .select({ id: documents.id })
-        .from(documents)
-        .where(eq(documents.storageKey, row.storageKey))
-        .limit(1);
-      if (reference) {
+      await s.db.transaction(async (tx) => {
+        const [claimed] = await tx
+          .select()
+          .from(storageDeletions)
+          .where(and(eq(storageDeletions.id, row.id), due()))
+          .for("update", { skipLocked: true });
+        // Taken by an upload commit or another worker, rescheduled, or already done.
+        if (!claimed) return;
+        const [reference] = await tx
+          .select({ id: documents.id })
+          .from(documents)
+          .where(eq(documents.storageKey, claimed.storageKey))
+          .limit(1);
         // Every unlink queues a new deletion; the last unlink will retry this file.
-        await s.db.delete(storageDeletions).where(eq(storageDeletions.id, row.id));
-        continue;
-      }
-      await s.storage.delete(row.storageKey);
-      await s.db.delete(storageDeletions).where(eq(storageDeletions.id, row.id));
+        if (!reference) await s.storage.delete(claimed.storageKey);
+        await tx.delete(storageDeletions).where(eq(storageDeletions.id, claimed.id));
+      });
     } catch (error) {
       (s.storageLogger ?? console.error)({
         op: "storage.delete",
@@ -55,4 +71,5 @@ export async function retryStorageDeletions(
         .where(eq(storageDeletions.id, row.id));
     }
   }
+  return { attempted, outOfTime: false };
 }

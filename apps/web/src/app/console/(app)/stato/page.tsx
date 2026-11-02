@@ -221,6 +221,11 @@ function StatusBody({ data }: { data: SystemStatus }) {
             count={counters.linksExpiringWithin7Days.count}
           />
           <Counter
+            label="Pratiche e registrazioni oltre il periodo di conservazione"
+            level={counters.retentionOverdue.status}
+            count={counters.retentionOverdue.count}
+          />
+          <Counter
             label="Errori del servizio nelle ultime 24 ore"
             level={counters.recentApiErrors24Hours.status}
             count={counters.recentApiErrors24Hours.count}

@@ -387,9 +387,11 @@ sul provider AI dopo una terminazione: vale il limite del lease e la scadenza AI
 
 Recupero: fino a 4 documenti per lettura/run, budget 45 secondi tra lavori, storage
 10 secondi e analisi 25 secondi massimi per lavoro; la route ha 120 secondi disponibili.
-Retention: fino a 25 fascicoli/run; retry file: fino a 100/run. Il cron
-recupera anche le pratiche mai riaperte e fa le pulizie. Con backlog superiore ai
-lotti servono run ulteriori o cadenza Pro; la retention è un criterio di eleggibilità,
+Retention: lotti da 25 fascicoli, 1.000 eventi audit, 500 candidature e 100 file, ripetuti
+finché c'è lavoro entro 75 secondi per run; gli altri passi girano anche se uno fallisce. Il cron
+recupera anche le pratiche mai riaperte e fa le pulizie. Se il budget finisce prima, il job
+`retention` risulta fallito e il contatore «oltre il periodo di conservazione» lo mostra;
+il run successivo riprende da lì. La retention è un criterio di eleggibilità,
 non una promessa di cancellazione all’istante esatto. Monitorare conteggi e ritardi.
 Il cooldown di un minuto è per istanza; lease e transazioni proteggono le operazioni
 persistite anche in presenza di invocazioni sovrapposte.

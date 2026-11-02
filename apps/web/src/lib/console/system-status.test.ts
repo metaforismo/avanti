@@ -32,6 +32,7 @@ function status(overrides: Partial<SystemStatus["components"]> = {}, counterStat
       casesWaitingForCitizenOver7Days: counter,
       linksExpiringWithin7Days: counter,
       recentApiErrors24Hours: { ...counter, status: counterStatus },
+      retentionOverdue: counter,
       notificationsQueued: counter,
     },
   } as SystemStatus;

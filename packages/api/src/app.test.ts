@@ -1703,9 +1703,11 @@ it("11: failed cron jobs observe cooldown and never retry on citizen POST", asyn
   const cron = () =>
     app.request("/api/cron/maintenance", { headers: { Authorization: "Bearer test-cron" } });
   expect((await cron()).status).toBe(500);
+  // The other steps still ran in that run; nothing may delete again until the cooldown.
+  const afterRun = deletion.mock.calls.length;
   expect(await (await cron()).json()).toEqual({ ok: true, skipped: true });
   await start();
-  expect(deletion).toHaveBeenCalledTimes(1);
+  expect(deletion).toHaveBeenCalledTimes(afterRun);
   deletion.mockRestore();
 });
 it("8: the Next production server rejects missing trusted proxy before serving requests", async () => {

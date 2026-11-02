@@ -1298,6 +1298,8 @@ export const SystemStatus = z
         casesWaitingForCitizenOver7Days: StatusCounter,
         linksExpiringWithin7Days: StatusCounter,
         recentApiErrors24Hours: StatusCounter,
+        /** Dossiers and audit events of this CAF kept more than two days past their period. */
+        retentionOverdue: StatusCounter,
         /** All pending/sending notifications for the authenticated CAF, regardless of age. */
         notificationsQueued: StatusCounter,
       })
@@ -1403,6 +1405,8 @@ export const AuditDetails = z.object({
   year: z.number().int().min(2020).max(2100).optional(),
   consented: z.boolean().optional(),
   consentTextVersion: z.number().int().positive().optional(),
+  /** Version of the privacy notice shown at intake (`privacy.accepted`). */
+  noticeVersion: z.number().int().positive().optional(),
   consentLanguage: z.number().int().min(0).max(7).optional(),
   answersCount: z.number().int().nonnegative().optional(),
   heuristic: z.boolean().optional(),
