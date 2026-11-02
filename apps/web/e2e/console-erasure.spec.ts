@@ -19,6 +19,14 @@ test("an admin sees a citizen's erasure request with its deadline and can keep t
   await expect(
     page.getByRole("link", { name: new RegExp(reference) }).getByText("Chiede la cancellazione"),
   ).toBeVisible();
+  // From any tab, the open requests are one click away, in every status.
+  await page.getByRole("button", { name: /^Pronte/ }).click();
+  await expect(page.getByText(/cittadin[oi] chied(e|ono) la cancellazione/)).toBeVisible();
+  await page.getByRole("button", { name: "Vedi le richieste" }).click();
+  await expect(page.getByText("Richieste di cancellazione aperte")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: new RegExp(reference) }).getByText(/entro il \d+ /),
+  ).toBeVisible();
   await openCase(page, id);
   const notice = page.getByText("Il cittadino chiede di cancellare i suoi dati");
   await expect(notice).toBeVisible();

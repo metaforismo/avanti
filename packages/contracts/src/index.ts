@@ -716,6 +716,11 @@ export const CaseListQuery = z.object({
   q: SafeText.trim().max(100).optional(),
   /** `waiting`: first submission oldest first, the cases that have waited longest on top. */
   sort: z.enum(["updated", "waiting"]).default("updated"),
+  /**
+   * `requested`: only cases whose citizen asked for erasure, in any status, oldest request (the
+   * nearest art. 12(3) deadline) first. Overrides `sort`.
+   */
+  erasure: z.literal("requested").optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
@@ -730,6 +735,8 @@ export const CaseListResponse = z.object({
     .default({ near_ready: 0 }),
   /** Submitted, unassigned and past the waiting threshold, with the list filters except status. */
   waitingOverdue: z.number().int().nonnegative().default(0),
+  /** Erasure requests still open in the whole organization, whatever the list filters. */
+  erasureRequests: z.number().int().nonnegative().default(0),
 });
 export type CaseListResponse = z.infer<typeof CaseListResponse>;
 
