@@ -1,10 +1,11 @@
 "use client";
 
-import { CheckCircle2, ChevronDown } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { PilotLeadRequest } from "@avanti/contracts";
 import { focusFirstError, isEmail, text } from "@/lib/validation";
+import { Stamp } from "@/components/brand/desk-objects";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, Input, Textarea } from "@/components/ui/field";
@@ -21,6 +22,13 @@ const FIELD_MESSAGES: Record<string, string> = {
   offices: "Indica un numero di sportelli tra 1 e 5000.",
   privacyAccepted: "Serve il consenso per poterti ricontattare.",
 };
+
+/** What happens after sending: no promised response time, there is no on-call rota yet. */
+const NEXT_STEPS = [
+  "Leggiamo la richiesta",
+  "Vi scriviamo per fissare mezz'ora",
+  "Demo su una famiglia inventata e prova nel vostro gestionale",
+] as const;
 
 /** Optional details, folded away so the form reads as four fields. */
 const DETAIL_FIELDS = ["role", "offices", "message"];
@@ -101,8 +109,15 @@ export function PilotForm() {
     return (
       <div
         role="status"
-        className="animate-rise self-start rounded-xl bg-surface p-6 shadow-raised ring-1 ring-line sm:p-8"
+        className="relative animate-rise self-start overflow-hidden rounded-xl bg-surface p-6 shadow-raised ring-1 ring-line sm:p-8"
       >
+        <Stamp
+          tone="ok"
+          pressed
+          className="absolute end-6 top-6 text-sm [--stamp-rotate:-8deg] sm:end-8 sm:top-8"
+        >
+          Ricevuta
+        </Stamp>
         <CheckCircle2 className="size-8 text-ok" aria-hidden />
         <h3
           ref={doneRef}
@@ -263,10 +278,36 @@ export function PilotForm() {
       {formError && <Notice tone="danger">{formError}</Notice>}
 
       <div className="flex flex-wrap items-center gap-4">
-        <Button type="submit" size="lg" loading={status === "sending"} className="w-full sm:w-auto">
+        <Button
+          type="submit"
+          size="lg"
+          loading={status === "sending"}
+          className="group w-full sm:w-auto"
+        >
           Candida il tuo sportello
+          <ArrowRight
+            className="rtl-flip size-4.5 transition-transform duration-200 ease-(--ease-out) group-hover:translate-x-0.5"
+            aria-hidden
+          />
         </Button>
         <p className="text-sm text-ink-3">Prima ci parliamo: candidarsi non impegna a nulla.</p>
+      </div>
+
+      <div className="border-t border-line pt-5">
+        <p className="text-sm font-semibold text-ink">Cosa succede dopo</p>
+        <ol className="mt-3 grid gap-2 text-sm text-ink-2 sm:grid-cols-3 sm:gap-4">
+          {NEXT_STEPS.map((step, i) => (
+            <li key={step} className="flex gap-2.5 sm:block">
+              <span
+                aria-hidden
+                className="tabular grid size-6 shrink-0 place-items-center rounded-full bg-stamp-wash font-mono text-xs font-bold text-stamp sm:mb-2"
+              >
+                {i + 1}
+              </span>
+              {step}
+            </li>
+          ))}
+        </ol>
       </div>
     </Form>
   );
