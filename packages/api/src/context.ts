@@ -48,6 +48,8 @@ export interface ApiEnv {
     operator: typeof operators.$inferSelect;
     session: typeof sessions.$inferSelect;
     citizen: CaseRow;
+    /** Set by the citizen's own erasure: the link is gone on purpose, not rotated mid-request. */
+    citizenErased: boolean;
     requestId: string;
     bodyTooLarge: boolean;
     jsonTooLarge: boolean;

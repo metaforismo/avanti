@@ -17,6 +17,7 @@ import {
 import { registerErrors } from "./middleware/errors";
 import { requireOrigin } from "./middleware/origin";
 import { rateLimit } from "./middleware/rate-limit";
+import { mountCitizenPrivacy } from "./citizen-privacy";
 import { mountDocumentArchive } from "./document-archive";
 import { mountMaintenance } from "./middleware/maintenance";
 import { requestMetadata } from "./middleware/request";
@@ -112,6 +113,7 @@ export function createApp(options: ApiOptions) {
   mountAuthRoutes(app, services);
   mountMfaRoutes(app, services);
   mountCitizenRoutes(app, services);
+  mountCitizenPrivacy(app, services);
   // Assistant and voice quotas are per case, so they run again once the capability is resolved.
   // Hono's "/assistant/*" also matches "/assistant".
   for (const path of ["/c/:token/assistant/*", "/c/:token/transcribe"]) app.use(path, limited);

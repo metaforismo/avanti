@@ -14,6 +14,7 @@ function sample(language: Language, name: string): CaseDossier {
     id: "example-case",
     assistantTurns: [],
     hasCitizenQuestion: false,
+    erasureRequestedAt: null,
     reference: "AV-2027-000123",
     aiAttention: null,
     aiPriority: null,

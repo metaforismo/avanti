@@ -266,6 +266,12 @@ Runbook da concordare prima del pilota:
 5. Documentare esito, dati residui motivati e tempi. Nessun comando di purge o workflow
    automatico può essere considerato operativo senza una prova sul deployment.
 
+Dal 19 ottobre 2026 il link del cittadino espone una scheda «I tuoi dati» nelle 8 lingue:
+copia ZIP dei dati che vede (`GET /api/c/:token/export`), cancellazione autonoma della pratica
+mai inviata (`DELETE /api/c/:token`) e, dopo l'invio, richiesta di cancellazione al CAF,
+visibile in coda e nel fascicolo con la scadenza di un mese. La richiesta non decide nulla:
+il punto 1–5 sopra resta del CAF. [Decisione](decisions/citizen-data-rights.md).
+
 Accesso, rettifica, cancellazione, limitazione/opposizione e portabilità hanno condizioni
 specifiche; la portabilità non vale indiscriminatamente per tutte le basi giuridiche.
 Il titolare risponde normalmente entro un mese, con estensione motivata nei casi previsti;

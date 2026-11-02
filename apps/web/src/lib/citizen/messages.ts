@@ -305,6 +305,61 @@ const it = {
     lead: "Completa queste voci e la pratica torna allo sportello.",
     resend: "Ho completato, invia di nuovo",
   },
+  privacy: {
+    open: "I tuoi dati e la privacy",
+    title: "I tuoi dati",
+    lead: "Cosa conserviamo per questa pratica, per quanto tempo e cosa puoi fare tu.",
+    whoTitle: "Chi li tratta",
+    who: "{org} è il titolare del trattamento: decide come usare i tuoi dati per la pratica. Avanti è il servizio che usa per prepararla e li tratta per suo conto.",
+    whatTitle: "Cosa conserviamo",
+    what: "Le risposte, le persone del nucleo familiare, i recapiti, i messaggi e i documenti che carichi, con il controllo automatico di ciascuno.",
+    documents: {
+      "=0": "Non hai ancora caricato documenti.",
+      one: "Hai caricato un documento.",
+      other: "Hai caricato {n} documenti.",
+    },
+    ai: "Un assistente automatico legge messaggi e documenti per proporti risposte e controlli. Le decisioni sulla pratica le prende sempre una persona dello sportello. Avanti non usa i tuoi dati per addestrare l'intelligenza artificiale.",
+    keepTitle: "Per quanto tempo",
+    linkUntil: "Il link funziona fino al {date}.",
+    retention: {
+      one: "Quando il link scade o la pratica viene chiusa, i dati restano ancora un giorno, poi Avanti li cancella.",
+      other:
+        "Quando il link scade o la pratica viene chiusa, i dati restano ancora {n} giorni, poi Avanti li cancella.",
+    },
+    retentionGeneric: "Restano solo per il tempo stabilito da {org}, poi Avanti li cancella.",
+    officeArchive:
+      "Se lo sportello deve conservare la pratica per legge, lo fa nel proprio archivio.",
+    copyTitle: "Scarica una copia",
+    copy: "Un file ZIP con le risposte, i messaggi e i documenti che hai caricato.",
+    copyAction: "Scarica la copia",
+    deleteTitle: "Cancella la pratica",
+    deleteSelf:
+      "Non l'hai ancora inviata allo sportello: puoi cancellarla tu, con tutti i documenti e i messaggi.",
+    deleteAction: "Cancella la pratica…",
+    deleteConfirmTitle: "Cancellare la pratica?",
+    deleteConfirm:
+      "Risposte, documenti e messaggi vengono cancellati subito e questo link smette di funzionare. Non si può annullare: se ti serve, dovrai ricominciare da capo.",
+    deleteConfirmAction: "Sì, cancella tutto",
+    deletedTitle: "Pratica cancellata",
+    deletedBody:
+      "Abbiamo cancellato risposte, documenti e messaggi. Per un anno resta solo un registro tecnico delle operazioni, senza il loro contenuto. Nelle copie di sicurezza (backup) restano solo fino alla loro scadenza, senza essere usati.",
+    deleteGone:
+      "Questo link non è più valido. Se avevi già cancellato la pratica, è fatto; altrimenti chiedi allo sportello.",
+    requestTitle: "Chiedi la cancellazione",
+    request:
+      "La pratica è già allo sportello: decide {org}, che di norma ti risponde entro un mese (il termine può allungarsi di due mesi, e in quel caso ti spiega perché). Alcuni dati possono restare se la legge obbliga a conservarli.",
+    requestAction: "Chiedi la cancellazione…",
+    requestConfirmTitle: "Chiedere la cancellazione?",
+    requestConfirm:
+      "Lo sportello riceve la richiesta e può contattarti per verificare chi sei. Se avevi chiesto gli inviti per il rinnovo, si fermano subito.",
+    requestConfirmAction: "Invia la richiesta",
+    requested:
+      "Richiesta inviata il {date}. Lo sportello ti risponde di norma entro un mese, prorogabile di due mesi spiegandoti perché.",
+    rightsTitle: "Gli altri diritti",
+    rights:
+      "Puoi chiedere a {org} di vedere o correggere i tuoi dati, di limitarne l'uso o di opporti. Se pensi che siano trattati male, puoi fare reclamo al Garante per la protezione dei dati personali.",
+    fullNotice: "Informativa completa (in italiano)",
+  },
   steps: {
     need: "Esigenza",
     interview: "Domande",
@@ -640,6 +695,60 @@ const en: Widen<CitizenMessages> = {
     title: "The desk is asking for",
     lead: "Complete these items and your application goes back to the desk.",
     resend: "Done, send it again",
+  },
+  privacy: {
+    open: "Your data and privacy",
+    title: "Your data",
+    lead: "What we keep for this application, for how long, and what you can do.",
+    whoTitle: "Who handles it",
+    who: "{org} is the data controller: it decides how your data is used for the application. Avanti is the service it uses to prepare it, and handles the data on its behalf.",
+    whatTitle: "What we keep",
+    what: "Your answers, the people in your household, your contact details, the messages and the documents you upload, with the automatic check of each one.",
+    documents: {
+      "=0": "You haven't uploaded any documents yet.",
+      one: "You have uploaded one document.",
+      other: "You have uploaded {n} documents.",
+    },
+    ai: "An automatic assistant reads messages and documents to suggest answers and checks. Decisions on the application are always made by a person at the desk. Avanti does not use your data to train artificial intelligence.",
+    keepTitle: "For how long",
+    linkUntil: "The link works until {date}.",
+    retention: {
+      one: "When the link expires or the application is closed, the data stays for one more day, then Avanti deletes it.",
+      other:
+        "When the link expires or the application is closed, the data stays for {n} more days, then Avanti deletes it.",
+    },
+    retentionGeneric: "It stays only as long as {org} decides, then Avanti deletes it.",
+    officeArchive: "If the desk must keep the application by law, it does so in its own records.",
+    copyTitle: "Download a copy",
+    copy: "A ZIP file with your answers, the messages and the documents you uploaded.",
+    copyAction: "Download the copy",
+    deleteTitle: "Delete the application",
+    deleteSelf:
+      "You haven't sent it to the desk yet: you can delete it yourself, with all documents and messages.",
+    deleteAction: "Delete the application…",
+    deleteConfirmTitle: "Delete the application?",
+    deleteConfirm:
+      "Answers, documents and messages are deleted right away and this link stops working. This can't be undone: if you need it, you'll have to start again.",
+    deleteConfirmAction: "Yes, delete everything",
+    deletedTitle: "Application deleted",
+    deletedBody:
+      "We have deleted the answers, documents and messages. For one year only a technical log of the operations remains, without their content. In the security copies (backups) they remain only until those expire, and are not used.",
+    deleteGone:
+      "This link is no longer valid. If you had already deleted the application, it's done; otherwise, ask the desk.",
+    requestTitle: "Ask for deletion",
+    request:
+      "The application is already at the desk: {org} decides and normally replies within one month (this can be extended by two months, and it will tell you why). Some data may stay if the law requires keeping it.",
+    requestAction: "Ask for deletion…",
+    requestConfirmTitle: "Ask for deletion?",
+    requestConfirm:
+      "The desk receives the request and may contact you to check who you are. If you asked for renewal invitations, they stop right away.",
+    requestConfirmAction: "Send the request",
+    requested:
+      "Request sent on {date}. The desk normally replies within one month; if it needs two more months, it will tell you why.",
+    rightsTitle: "Your other rights",
+    rights:
+      "You can ask {org} to see or correct your data, to limit its use, or to object to it. If you think it is being handled wrongly, you can complain to the Garante, the Italian data protection authority.",
+    fullNotice: "Full notice (in Italian)",
   },
   steps: {
     need: "Need",

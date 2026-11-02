@@ -16,6 +16,7 @@ import {
   lt,
   or,
   ilike,
+  isNotNull,
   isNull,
   sql,
   count,
@@ -136,23 +137,31 @@ export function mountOperatorRoutes(app: App, s: Services) {
     const counts = emptyCounts();
     for (const t of totals) counts[t.status] = t.total;
     if (query.status) filters.push(eq(cases.status, query.status));
-    const waitingSort = query.sort === "waiting";
+    const erasureSort = query.erasure === "requested";
+    if (erasureSort) filters.push(isNotNull(cases.erasureRequestedAt));
+    const sort = erasureSort ? "erasure" : query.sort;
+    const waitingSort = sort === "waiting";
     if (query.cursor) {
-      const cursor = decodeCursor(query.cursor, query.sort);
+      const cursor = decodeCursor(query.cursor, sort);
       // Ascending order keeps never-submitted cases (null) last, matching the index.
       filters.push(
-        waitingSort
-          ? cursor.at === null
-            ? and(isNull(cases.submittedAt), gt(cases.id, cursor.id))!
+        erasureSort
+          ? or(
+              gt(cases.erasureRequestedAt, cursor.at!),
+              and(eq(cases.erasureRequestedAt, cursor.at!), gt(cases.id, cursor.id)),
+            )!
+          : waitingSort
+            ? cursor.at === null
+              ? and(isNull(cases.submittedAt), gt(cases.id, cursor.id))!
+              : or(
+                  gt(cases.submittedAt, cursor.at),
+                  and(eq(cases.submittedAt, cursor.at), gt(cases.id, cursor.id)),
+                  isNull(cases.submittedAt),
+                )!
             : or(
-                gt(cases.submittedAt, cursor.at),
-                and(eq(cases.submittedAt, cursor.at), gt(cases.id, cursor.id)),
-                isNull(cases.submittedAt),
-              )!
-          : or(
-              lt(cases.updatedAt, cursor.at!),
-              and(eq(cases.updatedAt, cursor.at!), lt(cases.id, cursor.id)),
-            )!,
+                lt(cases.updatedAt, cursor.at!),
+                and(eq(cases.updatedAt, cursor.at!), lt(cases.id, cursor.id)),
+              )!,
       );
     }
     const rows = await s.db
@@ -163,9 +172,11 @@ export function mountOperatorRoutes(app: App, s: Services) {
       .from(cases)
       .where(and(...filters))
       .orderBy(
-        ...(waitingSort
-          ? [asc(cases.submittedAt), asc(cases.id)]
-          : [desc(cases.updatedAt), desc(cases.id)]),
+        ...(erasureSort
+          ? [asc(cases.erasureRequestedAt), asc(cases.id)]
+          : waitingSort
+            ? [asc(cases.submittedAt), asc(cases.id)]
+            : [desc(cases.updatedAt), desc(cases.id)]),
       )
       .limit(query.limit + 1);
     const page = rows.slice(0, query.limit);
@@ -183,19 +194,33 @@ export function mountOperatorRoutes(app: App, s: Services) {
           : null,
     }));
     const cursorAt = (row: NonNullable<typeof last>) =>
-      waitingSort ? (row.submittedAt ? iso(row.submittedAt) : null) : iso(row.updatedAt);
+      erasureSort
+        ? iso(row.erasureRequestedAt!)
+        : waitingSort
+          ? row.submittedAt
+            ? iso(row.submittedAt)
+            : null
+          : iso(row.updatedAt);
+    // Whatever the desk is filtering, an open request (a one-month legal deadline) stays counted.
+    const [erasureOpen] = await s.db
+      .select({ total: count() })
+      .from(cases)
+      .where(
+        and(eq(cases.organizationId, operator.organizationId), isNotNull(cases.erasureRequestedAt)),
+      );
     return c.json({
       items,
       counts,
       priorityCounts: { near_ready: totals.reduce((sum, t) => sum + t.nearReadyTotal, 0) },
       waitingOverdue: totals.reduce((sum, t) => sum + t.overdueTotal, 0),
+      erasureRequests: erasureOpen?.total ?? 0,
       nextCursor:
         rows.length > query.limit && last
           ? Buffer.from(
               JSON.stringify({
                 at: cursorAt(last),
                 id: last.id,
-                ...(waitingSort ? { sort: "waiting" } : {}),
+                ...(sort === "updated" ? {} : { sort }),
               }),
             ).toString("base64url")
           : null,
@@ -723,7 +748,7 @@ export function mountOperatorRoutes(app: App, s: Services) {
   });
 }
 
-function decodeCursor(cursor: string, sort: "updated" | "waiting") {
+function decodeCursor(cursor: string, sort: "updated" | "waiting" | "erasure") {
   try {
     if (cursor.length > 300) throw new Error("Invalid cursor");
     const value: unknown = JSON.parse(Buffer.from(cursor, "base64url").toString());

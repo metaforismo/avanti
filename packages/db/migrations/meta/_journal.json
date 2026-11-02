@@ -218,6 +218,13 @@
       "when": 1792344270000,
       "tag": "0030_document_rejection",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792365508866,
+      "tag": "0031_citizen_erasure_request",
+      "breakpoints": true
     }
   ]
 }

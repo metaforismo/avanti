@@ -19,6 +19,7 @@ import { errorMessage, format, LANGUAGE_NAMES, messagesFor } from "@/lib/citizen
 import { cn } from "@/lib/cn";
 import { browserLanguage, directionOf, useDocumentLanguage } from "@/lib/citizen/document-language";
 import { ErrorScreen } from "./error-screen";
+import { PrivacySheet } from "./privacy-sheet";
 
 const NON_LATIN = new Set<Language>(["ar", "bn"]);
 
@@ -54,6 +55,7 @@ export function OfficeStart({
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const [resumeToken, setResumeToken] = useState<string | null>(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
 
   useEffect(() => {
     if (initial) return;
@@ -283,10 +285,16 @@ export function OfficeStart({
             </p>
             <p className="text-ink-2">
               {format(m.start.privacy, { org: orgName })}{" "}
+              {/* Before hydration the full Italian notice; after, the short one in the chosen
+                  language, which links to the full one. */}
               <a
                 href="/privacy"
                 target="_blank"
                 rel="noopener"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setNoticeOpen(true);
+                }}
                 className="font-semibold text-stamp underline underline-offset-2"
               >
                 {m.start.privacyLink}
@@ -317,6 +325,13 @@ export function OfficeStart({
             {m.start.cta}
           </Button>
         </Form>
+        <PrivacySheet
+          open={noticeOpen}
+          onOpenChange={setNoticeOpen}
+          m={m}
+          language={language}
+          orgName={orgName}
+        />
 
         {info && (info.office.address || info.office.phone) && (
           <address className="mt-12 grid gap-2 border-t border-line pt-6 text-ink-2 not-italic">
