@@ -78,6 +78,7 @@ export function DocumentViewer({
 
   // After a decision, go straight to the next document whose item is still open: checking a
   // dossier becomes one pass through the files instead of back-and-forth with the list.
+  const focusOnArrival = useRef<string | null>(null);
   const decide = async (target: ChecklistItem, decision: "verified" | "reset", note?: string) => {
     const after = await actions.review(target.id, { decision, note });
     setFailedOn(after ? null : (doc?.id ?? null));
@@ -104,12 +105,16 @@ export function DocumentViewer({
       setAnnouncement(
         `${target.title}: verificato. Documento ${position} di ${list.length}: ${following.analysis?.detectedLabel ?? following.fileName}.`,
       );
-      // The panel is rebuilt for the next item: put the keyboard on its main action again.
-      requestAnimationFrame(() =>
-        document.querySelector<HTMLButtonElement>('[data-viewer-primary="true"]')?.focus(),
-      );
+      // The panel is rebuilt for the next item: put the keyboard on its main action again,
+      // once that item is on screen (the URL change lands a render or more later).
+      focusOnArrival.current = following.id;
     }
   };
+  useEffect(() => {
+    if (!doc || focusOnArrival.current !== doc.id) return;
+    focusOnArrival.current = null;
+    document.querySelector<HTMLButtonElement>('[data-viewer-primary="true"]')?.focus();
+  }, [doc]);
   const reject = async (target: ChecklistItem, note: string) => {
     const done = await actions.review(target.id, { decision: "rejected", note: note || undefined });
     setFailedOn(done ? null : (doc?.id ?? null));

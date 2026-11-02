@@ -2,6 +2,8 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
+  Archive,
   Check,
   FileQuestion,
   ChevronDown,
@@ -21,6 +23,7 @@ import { documentArchivePlan, type DocumentArchivePlan } from "@avanti/core/docu
 import type { Route } from "next";
 import type {
   CaseDossier,
+  CaseListResponse,
   CaseStatus,
   ChatMessage,
   DocumentSummary,
@@ -41,9 +44,10 @@ import { forgetCase, rememberCase, useQueueHref } from "@/lib/console/recent-cas
 import { useOperator } from "@/lib/console/operator-context";
 import { useDownload } from "@/lib/console/use-download";
 import { zipComplete } from "@/lib/console/zip-complete";
-import { useResource } from "@/lib/console/use-resource";
+import { moveInCachedList } from "@/lib/console/queue-params";
+import { updateCached, useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
-import { ChecklistSection } from "./checklist-section";
+import { ChecklistSection, firstDocumentToCheck } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
 import { CopilotPanel } from "./copilot-panel";
 import { NearReadyPanel } from "./near-ready-panel";
@@ -60,6 +64,17 @@ import { RequestDialog, type ReplyContext } from "./request-dialog";
 import { CitizenQuestions } from "./citizen-questions";
 import { CitizenNoticeDialog, printPath, type IssuedLink } from "../citizen-notice";
 import { AnswersSection, AssistantTurnsSection, ConversationSection } from "./secondary-sections";
+import { isTyping } from "../shortcuts-dialog";
+import { useNextCase } from "./use-next-case";
+
+/**
+ * Moving to another page of the console keeps no beforeunload: notes that failed to save would
+ * go silently. They are the only text on the dossier that lives outside a dialog.
+ */
+function mayLeave() {
+  if (!document.querySelector('[data-unsaved="true"]')) return true;
+  return window.confirm("Le note interne non sono salvate. Lasciare comunque la pratica?");
+}
 
 const CONFLICT_MESSAGE =
   "La pratica è cambiata nel frattempo (un collega, il cittadino o un'analisi appena conclusa). Ti mostriamo la versione aggiornata: controlla e ripeti l'azione se serve.";
@@ -104,6 +119,12 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [eraseFamily, setEraseFamily] = useState(false);
   const readyButton = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const nextButton = useRef<HTMLButtonElement>(null);
+  // Where the keyboard lands after «Chiudi e archivia»: back on the opener if cancelled, on
+  // «Prossima pratica» once the case is closed (the opener is gone by then).
+  const closeReturn = useRef<HTMLElement | null>(null);
+  const focusClose = useRef(false);
   // The open document lives in the URL: shareable with a colleague, closed by the Back button.
   const router = useRouter();
   const pathname = usePathname();
@@ -124,6 +145,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [chatOpen, setChatOpen] = useState(false);
   const files = useDownload();
   const queueHref = useQueueHref();
+  const next = useNextCase(caseId);
   // The sticky action bar's height (0 on phones, where it isn't a box): the error notice sticks
   // just below it, and the bar names the case once the h1 has scrolled under it.
   const [bar, setBar] = useState<HTMLDivElement | null>(null);
@@ -222,6 +244,28 @@ export function DossierView({ caseId }: { caseId: string }) {
       practice: loaded.practice ? PRACTICE_SHORT[loaded.practice.id] : null,
     });
   }, [loaded, operator.id]);
+
+  // A case that changes status leaves the cached queue lists it was in: back on the queue, the
+  // case just finished is not the first row while the list refreshes (and opened by mistake).
+  const shownStatus = useRef<{ id: string; status: CaseStatus } | null>(null);
+  useEffect(() => {
+    if (!loaded) return;
+    const before = shownStatus.current;
+    shownStatus.current = { id: loaded.id, status: loaded.status };
+    if (!before || before.id !== loaded.id || before.status === loaded.status) return;
+    // The erasure requests list every status: a case changing status stays in it.
+    updateCached<CaseListResponse>("/api/cases?", (list, path) =>
+      path.includes("erasure=")
+        ? null
+        : moveInCachedList(list, loaded.id, before.status, loaded.status),
+    );
+  }, [loaded]);
+
+  useEffect(() => {
+    if (!focusClose.current || loaded?.status !== "ready") return;
+    focusClose.current = false;
+    closeButton.current?.focus({ preventScroll: true });
+  }, [loaded?.status]);
 
   const notFound = dossier.error?.status === 404;
   useEffect(() => {
@@ -386,7 +430,25 @@ export function DossierView({ caseId }: { caseId: string }) {
     }
   };
 
-  const setStatus = (next: CaseStatus) => actions.update({ status: next });
+  const setStatus = (status: CaseStatus) => actions.update({ status });
+  const canReady = data.status === "in_review" || data.status === "submitted";
+  const markReady = async () => {
+    if (openIssues > 0) return setConfirmReady(true);
+    // The button goes once the case is ready: the keyboard moves on to the next step, once
+    // «Chiudi e archivia» is on screen.
+    if (await setStatus("ready")) focusClose.current = true;
+  };
+  const askClose = (opener: HTMLElement | null) => {
+    closeReturn.current = opener;
+    setConfirmClose(true);
+  };
+  const firstToCheck = firstDocumentToCheck(data);
+  const shortcuts: Shortcuts = {
+    v: firstToCheck ? () => actions.openDocument(firstToCheck) : undefined,
+    i: data.status !== "closed" && data.status !== "intake" ? () => void openRequest() : undefined,
+    p: canReady && !pending ? () => void markReady() : undefined,
+    n: () => mayLeave() && void next.go(),
+  };
   const exportAs = async (format: "pdf" | "json") => {
     setError(null);
     const problem = await files.download(
@@ -412,13 +474,35 @@ export function DossierView({ caseId }: { caseId: string }) {
             compact ? "lg:border-line" : "lg:border-transparent",
           )}
         >
-          <Link
-            href={queueHref as Route}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
-          >
-            <ArrowLeft className="rtl-flip size-4" aria-hidden />
-            Pratiche
-          </Link>
+          <div className="flex shrink-0 items-center gap-3">
+            <Link
+              href={queueHref as Route}
+              onClick={(event) => {
+                if (!mayLeave()) event.preventDefault();
+              }}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
+            >
+              <ArrowLeft className="rtl-flip size-4" aria-hidden />
+              Pratiche
+            </Link>
+            {/* The way on once this case is done: the next one of the same queue, no list in
+                between. Quiet while there is still work here. */}
+            <Button
+              ref={nextButton}
+              size="sm"
+              variant={
+                data.status === "needs_citizen" || data.status === "closed" ? "primary" : "ghost"
+              }
+              loading={next.pending}
+              onClick={() => mayLeave() && void next.go()}
+              aria-keyshortcuts="N"
+              title="Apri la pratica successiva della coda (N)"
+            >
+              {/* Icon only where the bar is tight: the actions stay on one row at 1024px. */}
+              <span className="lg:max-xl:sr-only">Prossima pratica</span>
+              <ArrowRight className="rtl-flip size-4" aria-hidden />
+            </Button>
+          </div>
           {compact && (
             <p
               aria-hidden
@@ -452,22 +536,36 @@ export function DossierView({ caseId }: { caseId: string }) {
             )}
             {data.status !== "closed" && data.status !== "intake" && (
               <Button
-                variant={openIssues > 0 ? "primary" : "secondary"}
+                // Already asked: waiting for the citizen is not a call to ask again.
+                variant={
+                  openIssues > 0 && data.status !== "needs_citizen" ? "primary" : "secondary"
+                }
                 onClick={() => void openRequest()}
+                aria-keyshortcuts="I"
+                title="Scorciatoia: I"
               >
                 <Send className="size-4" aria-hidden />
                 Chiedi integrazione
               </Button>
             )}
-            {(data.status === "in_review" || data.status === "submitted") && (
+            {canReady && (
               <Button
                 ref={readyButton}
                 variant={openIssues > 0 ? "secondary" : "primary"}
                 loading={pending === "update" && !confirmReady}
-                onClick={() => (openIssues > 0 ? setConfirmReady(true) : void setStatus("ready"))}
+                onClick={() => void markReady()}
+                aria-keyshortcuts="P"
+                title="Scorciatoia: P"
               >
                 <Check className="size-4" aria-hidden />
                 Segna come pronta
+              </Button>
+            )}
+            {/* Ready means «into the CAF's software»: closing is the step after, in reach. */}
+            {data.status === "ready" && (
+              <Button ref={closeButton} onClick={(event) => askClose(event.currentTarget)}>
+                <Archive className="size-4" aria-hidden />
+                Chiudi e archivia
               </Button>
             )}
             <DropdownMenu.Root>
@@ -520,7 +618,9 @@ export function DossierView({ caseId }: { caseId: string }) {
                       <MenuItem onSelect={() => setNewLink(true)}>
                         Nuovo link per il cittadino…
                       </MenuItem>
-                      <MenuItem onSelect={() => setConfirmClose(true)}>Chiudi e archivia…</MenuItem>
+                      <MenuItem onSelect={() => askClose(moreButton.current)}>
+                        Chiudi e archivia…
+                      </MenuItem>
                     </>
                   )}
                   <MenuItem onSelect={() => setReuse(true)}>
@@ -588,6 +688,24 @@ export function DossierView({ caseId }: { caseId: string }) {
         onEraseFamily={() => setEraseFamily(true)}
         onChanged={() => void dossier.reload()}
       />
+      <div role="status">
+        {next.message && (
+          <Notice
+            tone="neutral"
+            role="none"
+            className="mt-4"
+            onDismiss={next.dismiss}
+            dismissLabel="Chiudi avviso"
+            action={
+              <Button asChild variant="secondary" size="sm">
+                <Link href={queueHref as Route}>Torna alle pratiche</Link>
+              </Button>
+            }
+          >
+            {next.message}
+          </Notice>
+        )}
+      </div>
       {withdraw === "done" && (
         <Notice
           tone="ok"
@@ -654,6 +772,7 @@ export function DossierView({ caseId }: { caseId: string }) {
         <DossierAside dossier={data} actions={actions} onNotify={() => setNotifying(true)} />
       </div>
 
+      <DossierShortcuts keys={shortcuts} />
       <DocumentViewer
         caseId={data.id}
         doc={viewing}
@@ -716,7 +835,7 @@ export function DossierView({ caseId }: { caseId: string }) {
       <Dialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
-        returnFocusTo={moreButton}
+        returnFocusTo={closeReturn}
         title="Chiudere e archiviare la pratica?"
         description="Il cittadino non potrà più caricare documenti da questo link. Potrai riaprirla dal menu Altro."
       >
@@ -728,7 +847,9 @@ export function DossierView({ caseId }: { caseId: string }) {
             variant="danger"
             loading={pending === "update"}
             onClick={async () => {
-              if (await actions.update({ status: "closed" })) setConfirmClose(false);
+              if (!(await actions.update({ status: "closed" }))) return;
+              closeReturn.current = nextButton.current;
+              setConfirmClose(false);
             }}
           >
             Chiudi e archivia
@@ -738,7 +859,8 @@ export function DossierView({ caseId }: { caseId: string }) {
       <Dialog
         open={confirmReady}
         onOpenChange={setConfirmReady}
-        returnFocusTo={readyButton}
+        // Once ready, the ready button is gone and closing comes next.
+        returnFocusTo={data.status === "ready" ? closeButton : readyButton}
         title="Segnare come pronta anche se manca qualcosa?"
         description={`${[
           missingCount > 0 &&
@@ -767,7 +889,8 @@ export function DossierView({ caseId }: { caseId: string }) {
           <Button
             loading={pending === "update"}
             onClick={async () => {
-              if (await actions.update({ status: "ready" })) setConfirmReady(false);
+              if (!(await actions.update({ status: "ready" }))) return;
+              setConfirmReady(false);
             }}
           >
             Segna comunque come pronta
@@ -837,6 +960,28 @@ export function DossierView({ caseId }: { caseId: string }) {
       />
     </PageContainer>
   );
+}
+
+type Shortcuts = Partial<Record<"v" | "i" | "p" | "n", () => void>>;
+
+/** Single-key shortcuts for the steps every case goes through (listed under «?»). */
+function DossierShortcuts({ keys }: { keys: Shortcuts }) {
+  // Rebound every render: the handlers carry this render's dossier.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
+      if (isTyping(event.target)) return;
+      // The document viewer, menus and dialogs have keys of their own.
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      const run = keys[event.key.toLowerCase() as keyof Shortcuts];
+      if (!run) return;
+      event.preventDefault();
+      run();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  return null;
 }
 
 function MenuItem({ children, onSelect }: { children: React.ReactNode; onSelect: () => void }) {

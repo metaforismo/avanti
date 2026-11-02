@@ -243,6 +243,8 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
           if (state !== "saving") setState("idle");
         }}
         onBlur={() => void save()}
+        // Read by the dossier before it moves to another page in the app (no beforeunload there).
+        data-unsaved={state === "error" && dirty ? "true" : undefined}
         rows={4}
         maxLength={5000}
         placeholder="Visibili solo agli operatori del CAF…"
