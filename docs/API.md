@@ -45,25 +45,30 @@ Capability in `/c/:token`: 32 byte casuali base64url, solo SHA-256 in DB, scaden
 assistenza automatica/AI, verifica umana e possibilità di rivolgersi allo sportello.
 Il link è una credenziale: frontend/proxy devono oscurarlo dai log e applicare no-referrer.
 
-| Metodo | Percorso dopo `/c/:token` | Input                                    | Risposta                                    |
-| ------ | ------------------------- | ---------------------------------------- | ------------------------------------------- |
-| GET    | ``                        | —                                        | `CitizenCase`                               |
-| POST   | `/turn`                   | `IntakeTurn`                             | `IntakeTurnResponse` con `engine` opzionale |
-| PUT    | `/language`               | `UpdateLanguageRequest`                  | `CitizenCase`                               |
-| POST   | `/documents`              | multipart `file`, `UploadDocumentFields` | 201 `CitizenCase`                           |
-| PATCH  | `/documents/:id`          | `ReassignDocumentRequest`                | `CitizenCase`                               |
-| DELETE | `/documents/:id`          | —                                        | `CitizenCase`                               |
-| GET    | `/documents/:id/file`     | —                                        | allegato autorizzato                        |
-| POST   | `/submit`                 | `SubmitCaseRequest`                      | `CitizenCase` con stato submitted           |
-| GET    | `/export`                 | —                                        | ZIP: `dati.json` e file originali           |
-| DELETE | ``                        | `DeleteOwnCaseRequest`                   | 204; 409 dopo il primo invio                |
-| POST   | `/erasure-request`        | —                                        | `CitizenCase`; 409 prima del primo invio    |
+| Metodo | Percorso dopo `/c/:token` | Input                                    | Risposta                                     |
+| ------ | ------------------------- | ---------------------------------------- | -------------------------------------------- |
+| GET    | ``                        | —                                        | `CitizenCase`                                |
+| POST   | `/turn`                   | `IntakeTurn`                             | `IntakeTurnResponse` con `engine` opzionale  |
+| PUT    | `/language`               | `UpdateLanguageRequest`                  | `CitizenCase`                                |
+| POST   | `/documents`              | multipart `file`, `UploadDocumentFields` | 201 `CitizenCase`                            |
+| PATCH  | `/documents/:id`          | `ReassignDocumentRequest`                | `CitizenCase`                                |
+| DELETE | `/documents/:id`          | —                                        | `CitizenCase`                                |
+| GET    | `/documents/:id/file`     | —                                        | allegato autorizzato                         |
+| POST   | `/submit`                 | `SubmitCaseRequest`                      | `CitizenCase` con stato submitted            |
+| GET    | `/export`                 | —                                        | ZIP: `dati.json` e file originali            |
+| DELETE | ``                        | `DeleteOwnCaseRequest`                   | 204; 409 se non è la sua bozza (`canDelete`) |
+| POST   | `/erasure-request`        | —                                        | `CitizenCase`; 409 se può cancellare da sé   |
 
 `CitizenCase.privacy` dice al cittadino giorni di conservazione del CAF, cancellazione
 automatica al più tardi (`deleteBy` = scadenza link + giorni), se può cancellare da solo
-(`canDelete`, nessun primo invio) e l'eventuale richiesta già fatta. Copia, cancellazione e
+(`canDelete`: bozza mai inviata, in compilazione, aperta dal cittadino, fuori da famiglie e
+rinnovi, senza assegnatario né note, senza alcun evento di audit con attore operatore) e
+l'eventuale richiesta già fatta. Su un link ruotato la DELETE risponde 404 come un link mai
+esistito: il client non la legge come cancellazione riuscita. Copia, cancellazione e
 richiesta hanno la quota `citizenData` (5/min, 20/ora per link). La copia contiene solo la vista
-del cittadino, mai note interne o audit; HEAD non legge file né registra. La cancellazione
+del cittadino (con la sua nota all'invio e la conversazione con l'assistente), mai note interne,
+audit o documenti riusati che il cittadino non vede; un file mancante o alterato è registrato
+come `{op:"citizen_export", caseId, documentId, errorName}`; HEAD non legge file né registra. La cancellazione
 usa `eraseCase` come retention e admin; la richiesta revoca il consenso agli inviti e non
 cambia `updatedAt`. L'admin chiude una richiesta senza cancellare con
 `DELETE /api/cases/:id/erasure-request` (204, idempotente). `CaseListItem.erasureRequestedAt`
@@ -287,7 +292,10 @@ Inventario e limiti in [dsu-prospetto.md](research/dsu-prospetto.md).
 Lista ordinata per updatedAt e id decrescenti, cursore opaco base64url, limite default 50,
 max 100. Con `sort=waiting` l'ordine è per primo invio (`submittedAt`) e id crescenti, le
 pratiche mai inviate in fondo (indice `cases_org_status_submitted_idx`); il cursore vale solo
-per l'ordinamento che l'ha prodotto, altrimenti 400. Counts applica filtri della lista escluso lo stato selezionato. Il cursore non è
+per l'ordinamento che l'ha prodotto, altrimenti 400. Con `erasure=requested` restano solo le
+pratiche con una richiesta di cancellazione aperta, in ogni stato, per data della richiesta (la
+scadenza art. 12(3) più vicina) e id crescenti; prevale su `sort`. `erasureRequests` conta le
+richieste aperte di tutta l'organizzazione, qualunque filtro. Counts applica filtri della lista escluso lo stato selezionato. Il cursore non è
 una snapshot: modifiche concorrenti possono cambiare le pagine; ricaricare la prima pagina.
 
 Stati: submitted → in_review → ready → closed; in_review → needs_citizen → submitted

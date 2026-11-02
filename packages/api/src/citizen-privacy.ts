@@ -3,6 +3,7 @@ import { cases, type Database } from "@avanti/db";
 import {
   DeleteOwnCaseRequest,
   Id,
+  type AssistantTurn,
   type CitizenCase,
   type DocumentSummary,
 } from "@avanti/contracts";
@@ -10,12 +11,21 @@ import { renewalConsentEvidence } from "@avanti/core";
 import { eraseCase } from "./case-erasure";
 import { currentCitizenLink } from "./citizen-link";
 import { body, parse, type App, type Services } from "./context";
-import { audit, caseById, citizenView, loadViewData, type CaseRow } from "./dossier";
+import {
+  audit,
+  caseById,
+  citizenView,
+  loadViewData,
+  mapAssistantTurns,
+  type CaseRow,
+} from "./dossier";
 import { lockRenewalConsent, withdrawRenewalConsent } from "./renewal-consent";
 import { administer } from "./routes/administration";
 import { ApiFailure, hashBytes, sanitizeName } from "./security";
 import { retryStorageDeletions } from "./storage-cleanup";
 import { ArchiveIntegrityError, zipLength, zipStream, type ZipSource } from "./zip";
+
+import { citizenMayDelete } from "./privacy-view";
 
 export { citizenPrivacy } from "./privacy-view";
 
@@ -29,10 +39,15 @@ export function citizenCopyNames(files: readonly Pick<DocumentSummary, "fileName
 }
 
 /**
- * What the citizen sees, nothing more: answers, household, contacts, conversation, documents
- * with their automatic checks. Operator notes, the audit and other cases never enter the copy.
+ * What the citizen gave or was told, nothing more: answers, household, contacts, the note sent
+ * with the case, messages, the intake conversation and the assistant's, documents with their
+ * automatic checks. Internal notes, the audit and other cases never enter the copy.
  */
-export function citizenCopy(view: CitizenCase, now: Date) {
+export function citizenCopy(
+  view: CitizenCase,
+  now: Date,
+  own: { citizenNote: string | null; assistant: readonly AssistantTurn[] },
+) {
   return {
     format: "avanti-citizen-copy",
     version: 1,
@@ -50,6 +65,7 @@ export function citizenCopy(view: CitizenCase, now: Date) {
       renewalContactConsent: view.renewalContactConsent ?? false,
     },
     contact: view.contact,
+    citizenNote: own.citizenNote,
     answers: view.answered.map(({ question, answer, section }) => ({ section, question, answer })),
     household: view.household,
     documents: view.documents.map((document, index) => ({
@@ -70,6 +86,7 @@ export function citizenCopy(view: CitizenCase, now: Date) {
       text,
       createdAt,
     })),
+    assistant: own.assistant.map(({ role, text, createdAt }) => ({ role, text, createdAt })),
   };
 }
 
@@ -91,7 +108,16 @@ export function mountCitizenPrivacy(app: App, s: Services) {
     const now = s.clock();
     const data = await loadViewData(s.db, row, now);
     const view = await citizenView(s.db, row, now, row.language, false, data);
-    const json = new TextEncoder().encode(`${JSON.stringify(citizenCopy(view, now), null, 2)}\n`);
+    const json = new TextEncoder().encode(
+      `${JSON.stringify(
+        citizenCopy(view, now, {
+          citizenNote: row.citizenNote,
+          assistant: mapAssistantTurns(data.chat.filter((m) => m.kind === "citizen_assistant")),
+        }),
+        null,
+        2,
+      )}\n`,
+    );
     const stored = new Map(data.storedDocs.map((document) => [document.id, document]));
     const names = citizenCopyNames(view.documents);
     const sources: ZipSource[] = [
@@ -103,10 +129,20 @@ export function mountCitizenPrivacy(app: App, s: Services) {
           modified: new Date(document.uploadedAt),
           size: document.sizeBytes,
           read: async (signal) => {
-            const bytes = await s.storage.get(document.storageKey, signal);
-            if (bytes.length !== document.sizeBytes || hashBytes(bytes) !== document.sha256)
-              throw new ArchiveIntegrityError("Stored file differs from the recorded one");
-            return bytes;
+            try {
+              const bytes = await s.storage.get(document.storageKey, signal);
+              if (bytes.length !== document.sizeBytes || hashBytes(bytes) !== document.sha256)
+                throw new ArchiveIntegrityError("Stored file differs from the recorded one");
+              return bytes;
+            } catch (error) {
+              (s.storageLogger ?? console.error)({
+                op: "citizen_export",
+                caseId: row.id,
+                documentId: document.id,
+                errorName: error instanceof Error ? error.name : "Error",
+              });
+              throw error;
+            }
           },
         };
       }),
@@ -130,11 +166,11 @@ export function mountCitizenPrivacy(app: App, s: Services) {
     await s.db.transaction(async (tx) => {
       const now = s.clock();
       const current = await lockOwnCase(tx, authorized, now);
-      if (current.submittedAt !== null)
+      if (!(await citizenMayDelete(tx, current)))
         throw new ApiFailure(
           "conflict",
           409,
-          "La pratica è già stata inviata allo sportello: chiedi al CAF di cancellarla.",
+          "La pratica è già presso lo sportello: chiedi al CAF di cancellarla.",
         );
       await eraseCase(tx, current, now, "citizen");
     });
@@ -148,7 +184,7 @@ export function mountCitizenPrivacy(app: App, s: Services) {
     const row = await s.db.transaction(async (tx) => {
       const now = s.clock();
       const current = await lockOwnCase(tx, authorized, now);
-      if (current.submittedAt === null)
+      if (await citizenMayDelete(tx, current))
         throw new ApiFailure(
           "conflict",
           409,

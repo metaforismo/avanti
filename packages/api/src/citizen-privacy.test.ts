@@ -5,6 +5,7 @@ import {
   createDatabase,
   documents,
   events,
+  messages,
   offices,
   operators,
   organizations,
@@ -12,10 +13,18 @@ import {
   settings,
   type Database,
 } from "@avanti/db";
-import { ApiError, CaseDossier, CaseListResponse, CitizenCase } from "@avanti/contracts";
+import {
+  ApiError,
+  CaseDossier,
+  CaseListResponse,
+  CitizenCase,
+  CreateCaseResponse,
+  RegenerateLinkResponse,
+} from "@avanti/contracts";
 import { createApp } from "./app";
 import { GatewayIntelligence } from "./ai";
 import { citizenCopyNames, citizenPrivacy } from "./citizen-privacy";
+import { citizenOnlyDraft } from "./privacy-view";
 import { hashBytes, hashToken, newToken } from "./security";
 import { MemoryStorage } from "./storage";
 import { readZip } from "./test-zip";
@@ -81,14 +90,19 @@ beforeEach(() => {
   clockAt = new Date(clockAt.getTime() + 120_000);
 });
 
-async function fixture(submitted: boolean, consent = false) {
+async function fixture(
+  submitted: boolean,
+  consent = false,
+  overrides: Partial<typeof cases.$inferInsert> = {},
+) {
   const id = `case-${++sequence}`;
   const token = newToken();
   await db.insert(cases).values({
     id,
     organizationId: "a",
     officeId: "a",
-    reference: `AV-2027-${String(sequence).padStart(6, "0")}`,
+    // Far from the references the desk numbers from 1, so POST /cases never collides.
+    reference: `AV-2027-${900000 + sequence}`,
     tokenHash: hashToken(token),
     language: "ro",
     status: submitted ? "submitted" : "intake",
@@ -99,13 +113,14 @@ async function fixture(submitted: boolean, consent = false) {
       practice_year: 2027,
     },
     contact: { firstName: "Ioana", lastName: "Esempio", phone: "3330000000" },
-    internalNotes: "Nota riservata dello sportello",
+    internalNotes: submitted ? "Nota riservata dello sportello" : null,
     createdAt: start.toISOString(),
     updatedAt: start.toISOString(),
     submittedAt: submitted ? start.toISOString() : null,
     renewalContactConsentAt: consent ? start.toISOString() : null,
     renewalContactConsentVersion: consent ? "ro-1" : null,
     expiresAt: "2027-03-01T00:00:00Z",
+    ...overrides,
   });
   const bytes = new TextEncoder().encode(`%PDF-1.4 esempio ${id}`);
   const key = `${id}/doc`;
@@ -124,7 +139,7 @@ async function fixture(submitted: boolean, consent = false) {
   await db.insert(events).values({
     id: `${id}-created`,
     caseId: id,
-    caseReference: `AV-2027-${String(sequence).padStart(6, "0")}`,
+    caseReference: `AV-2027-${900000 + sequence}`,
     organizationId: "a",
     officeId: "a",
     actor: "citizen",
@@ -154,17 +169,42 @@ const erase = (token: string, body: unknown = { confirmed: true }) =>
   citizen(token, "", { method: "DELETE", body: JSON.stringify(body) });
 
 describe("citizenPrivacy", () => {
-  it("deletes by expiry plus retention and lets only an unsent case go alone", () => {
+  it("deletes by expiry plus retention, with the CAF's default when it set none", () => {
     const row = { expiresAt: "2027-03-01T00:00:00Z", erasureRequestedAt: null };
-    expect(citizenPrivacy({ ...row, submittedAt: null }, 30)).toEqual({
+    expect(citizenPrivacy(row, 30, true)).toEqual({
       retentionDays: 30,
       deleteBy: "2027-03-31T00:00:00.000Z",
       canDelete: true,
       erasureRequestedAt: null,
     });
-    const sent = citizenPrivacy({ ...row, submittedAt: "2027-01-01T00:00:00Z" }, null);
-    expect(sent.canDelete).toBe(false);
-    expect(sent.retentionDays).toBe(180);
+    expect(citizenPrivacy(row, null, false)).toMatchObject({
+      retentionDays: 180,
+      canDelete: false,
+    });
+  });
+
+  it("treats as the citizen's own draft only an unsent intake case no operator touched", () => {
+    const draft = {
+      submittedAt: null,
+      status: "intake" as const,
+      familyId: null,
+      renewalSourceId: null,
+      internalNotes: null,
+      assigneeId: null,
+    };
+    expect(citizenOnlyDraft(draft)).toBe(true);
+    expect(citizenOnlyDraft({ ...draft, internalNotes: "  " })).toBe(true);
+    for (const change of [
+      { submittedAt: "2027-01-01T00:00:00Z" },
+      // Reopened by the desk before any submission.
+      { status: "in_review" as const },
+      { status: "needs_citizen" as const },
+      { familyId: "family" },
+      { renewalSourceId: "last-year" },
+      { internalNotes: "Richiamare" },
+      { assigneeId: "desk" },
+    ])
+      expect(citizenOnlyDraft({ ...draft, ...change }), JSON.stringify(change)).toBe(false);
   });
 
   it("numbers the files so equal names stay apart and path tricks stay inside the folder", () => {
@@ -319,5 +359,192 @@ describe("citizen's own data", () => {
     expect((await erase(token)).status).toBe(410);
     expect((await citizen(token, "/export")).status).toBe(410);
     expect(await db.select().from(cases).where(eq(cases.id, id))).toHaveLength(1);
+  });
+  it("puts the citizen's note and the assistant conversation in the copy, not hidden documents", async () => {
+    const { id, token } = await fixture(true, false, { citizenNote: "Nota per lo sportello" });
+    await db.insert(messages).values([
+      {
+        id: `${id}-ask`,
+        caseId: id,
+        role: "citizen",
+        kind: "citizen_assistant",
+        text: "Serve il contratto d'affitto?",
+        createdAt: start.toISOString(),
+      },
+      {
+        id: `${id}-answer`,
+        caseId: id,
+        role: "assistant",
+        kind: "citizen_assistant",
+        text: "Sì, se vivi in affitto.",
+        createdAt: new Date(start.getTime() + 1000).toISOString(),
+      },
+    ]);
+    // A relative's document reused by the desk and not shown to this citizen (art. 15(4)).
+    const hidden = new TextEncoder().encode("%PDF-1.4 altro membro");
+    await storage.put(`${id}/hidden`, hidden);
+    await db.insert(documents).values({
+      id: `${id}-hidden`,
+      caseId: id,
+      fileName: "busta paga del fratello.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: hidden.length,
+      storageKey: `${id}/hidden`,
+      sha256: hashBytes(hidden),
+      uploadedAt: start.toISOString(),
+      status: "analyzed",
+      citizenVisible: false,
+    });
+    const zip = readZip(new Uint8Array(await (await citizen(token, "/export")).arrayBuffer()));
+    expect(zip.map((entry) => entry.name)).toEqual([
+      "dati.json",
+      "documenti/01-carta identità.pdf",
+    ]);
+    const text = new TextDecoder().decode(zip[0]!.data);
+    expect(text).not.toContain("fratello");
+    const copy = JSON.parse(text);
+    expect(copy.citizenNote).toBe("Nota per lo sportello");
+    expect(copy.assistant).toEqual([
+      { role: "citizen", text: "Serve il contratto d'affitto?", createdAt: start.toISOString() },
+      {
+        role: "assistant",
+        text: "Sì, se vivi in affitto.",
+        createdAt: new Date(start.getTime() + 1000).toISOString(),
+      },
+    ]);
+    // The assistant's turns are not duplicated among the messages with the desk.
+    expect(copy.messages.map((m: { text: string }) => m.text)).not.toContain(
+      "Sì, se vivi in affitto.",
+    );
+  });
+
+  it("logs a missing file in the copy by reference only", async () => {
+    const logged: unknown[] = [];
+    const logging = createApp({
+      db,
+      storage,
+      ai: new GatewayIntelligence(),
+      clock: () => clockAt,
+      publicUrl: `${origin}/`,
+      logger: () => {},
+      errorLogger: () => {},
+      storageLogger: (entry) => logged.push(entry),
+    });
+    const { id, token, key } = await fixture(true);
+    await storage.delete(key);
+    const response = await logging.request(`/api/c/${token}/export`, {
+      headers: { Origin: origin },
+    });
+    await response.arrayBuffer().catch(() => undefined);
+    expect(logged).toEqual([
+      { op: "citizen_export", caseId: id, documentId: `${id}-doc`, errorName: expect.any(String) },
+    ]);
+  });
+
+  it("refuses to erase a draft the desk created, and takes the request instead", async () => {
+    const response = await operator(desk, "cases", {
+      method: "POST",
+      body: JSON.stringify({ officeId: "a", practiceId: "isee_ordinario", language: "it" }),
+    });
+    const body = await response.json();
+    expect(response.status, JSON.stringify(body)).toBe(201);
+    const created = CreateCaseResponse.parse(body);
+    const token = created.citizenLink.split("/pratica/")[1]!;
+    const view = CitizenCase.parse(await (await citizen(token)).json());
+    expect(view.submittedAt).toBeNull();
+    expect(view.privacy?.canDelete).toBe(false);
+    expect((await erase(token)).status).toBe(409);
+    expect(await db.select().from(cases).where(eq(cases.id, created.case.id))).toHaveLength(1);
+    expect((await citizen(token, "/erasure-request", { method: "POST" })).status).toBe(200);
+  });
+
+  it("refuses to erase a citizen's draft once an operator wrote on it", async () => {
+    const { id, token } = await fixture(false);
+    await db.insert(events).values({
+      id: `${id}-copilot`,
+      caseId: id,
+      organizationId: "a",
+      actor: "operator",
+      actorId: "desk",
+      type: "copilot.asked",
+      at: start.toISOString(),
+      metadata: {},
+    });
+    expect(CitizenCase.parse(await (await citizen(token)).json()).privacy?.canDelete).toBe(false);
+    expect((await erase(token)).status).toBe(409);
+    expect(await db.select().from(cases).where(eq(cases.id, id))).toHaveLength(1);
+  });
+
+  it("refuses to erase a case reopened in review or back with the citizen", async () => {
+    const reopened = await fixture(false, false, { status: "in_review" });
+    expect((await erase(reopened.token)).status).toBe(409);
+    const asked = await fixture(true, false, { status: "needs_citizen" });
+    expect((await erase(asked.token)).status).toBe(409);
+    for (const { id } of [reopened, asked])
+      expect(await db.select().from(cases).where(eq(cases.id, id))).toHaveLength(1);
+  });
+
+  it("refuses to erase a reused case and leaves last year's shared file alone", async () => {
+    const source = await fixture(true, false, { familyId: "family-1" });
+    const reused = await fixture(false, false, { familyId: "family-1" });
+    await db.insert(documents).values({
+      id: `${reused.id}-shared`,
+      caseId: reused.id,
+      fileName: "isee 2026.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: source.bytes.length,
+      storageKey: source.key,
+      sha256: hashBytes(source.bytes),
+      uploadedAt: start.toISOString(),
+      status: "analyzed",
+      reusedFromYear: 2026,
+    });
+    expect((await erase(reused.token)).status).toBe(409);
+    expect(await storage.get(source.key)).toEqual(source.bytes);
+    expect(await db.select().from(cases).where(eq(cases.id, source.id))).toHaveLength(1);
+    expect(await db.select().from(cases).where(eq(cases.id, reused.id))).toHaveLength(1);
+  });
+
+  it("never confirms an erasure through a link the desk rotated", async () => {
+    const { id, token } = await fixture(false);
+    const rotated = RegenerateLinkResponse.parse(
+      await (await operator(desk, `cases/${id}/link`, { method: "POST" })).json(),
+    );
+    expect((await erase(token)).status).toBe(404);
+    expect((await citizen(token, "/export")).status).toBe(404);
+    expect(await db.select().from(cases).where(eq(cases.id, id))).toHaveLength(1);
+    // The new link belongs to a case the desk has now worked: the CAF decides.
+    const fresh = rotated.url.split("/pratica/")[1]!;
+    expect((await erase(fresh)).status).toBe(409);
+  });
+  it("lists every open request oldest first, in any status, and counts them whatever the filter", async () => {
+    const closed = await fixture(true, false, {
+      status: "closed",
+      erasureRequestedAt: "2026-12-02T10:00:00Z",
+    });
+    const reviewing = await fixture(true, false, {
+      status: "in_review",
+      erasureRequestedAt: "2026-12-01T10:00:00Z",
+    });
+    const open = await db.select().from(cases);
+    const total = open.filter((row) => row.erasureRequestedAt !== null).length;
+    const first = CaseListResponse.parse(
+      await (await operator(desk, "cases?erasure=requested&limit=1")).json(),
+    );
+    expect(first.items.map((item) => item.id)).toEqual([reviewing.id]);
+    expect(first.erasureRequests).toBe(total);
+    const second = CaseListResponse.parse(
+      await (
+        await operator(desk, `cases?erasure=requested&limit=1&cursor=${first.nextCursor}`)
+      ).json(),
+    );
+    expect(second.items.map((item) => item.id)).toEqual([closed.id]);
+    // A queue filtered elsewhere still carries the organization-wide count.
+    const filtered = CaseListResponse.parse(
+      await (await operator(desk, "cases?status=intake")).json(),
+    );
+    expect(filtered.erasureRequests).toBe(total);
+    // A cursor from another order is refused rather than misread.
+    expect((await operator(desk, `cases?cursor=${first.nextCursor}`)).status).toBe(400);
   });
 });
