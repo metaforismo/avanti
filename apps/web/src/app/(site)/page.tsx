@@ -15,6 +15,7 @@ import { DossierPreview } from "@/components/landing/dossier-preview";
 import { IntakeDemo } from "@/components/landing/intake-demo";
 import { LanguageShowcase } from "@/components/landing/language-showcase";
 import { PilotForm } from "@/components/landing/pilot-form";
+import { SectionIntro } from "@/components/landing/section-intro";
 import { Button } from "@/components/ui/button";
 
 const DESCRIPTION =
@@ -31,11 +32,21 @@ export const metadata: Metadata = {
 // Public demo office (seeded, fictitious data). Unset in environments without demo data.
 const DEMO_OFFICE = process.env.NEXT_PUBLIC_DEMO_OFFICE_SLUG;
 
-/** The three things a CAF manager asks before reading further. Each one is true today. */
+/** The three things a CAF manager asks before reading further. */
 const HERO_FACTS = [
   "Non presenta nulla all'INPS: la pratica la fa il vostro operatore",
   "Il CAF resta titolare dei dati, come oggi",
+  /* DA DECIDERE: gratuità del pilota fino al 31 marzo 2027 (docs/gtm/pilota.md è una proposta
+     da approvare). Confermare prima di pubblicare. */
   "Gratis per i CAF pilota fino al 31 marzo 2027",
+] as const;
+
+/** Short, checkable facts under the hero, in place of logos and testimonials we don't have. */
+const PROOF = [
+  { value: "8 lingue", label: "per il cittadino. La console resta in italiano" },
+  { value: "Nessuna app", label: "per il cittadino: un link o il QR dello sportello" },
+  { value: "Un'ora", label: "di formazione per gli operatori, su pratiche di prova" },
+  { value: "Fonti ufficiali", label: "INPS e Agenzia delle Entrate dietro ogni regola" },
 ] as const;
 
 const DESK_QUESTIONS = [
@@ -143,6 +154,7 @@ const AI_LIMITS = [
   "Non decide se un cittadino ha diritto a qualcosa e non manda nulla al suo posto: decide l'operatore.",
   "Non inventa documenti, anni o regole: quelle stanno nel motore di Avanti, con le fonti ufficiali.",
   "Se l'AI non risponde, Avanti continua con le regole: le pratiche non si fermano.",
+  "Dalle impostazioni il CAF può spegnere l'assistente dei cittadini e il copilota degli operatori.",
   "Ogni proposta dell'AI è etichettata come tale e diventa un dato solo quando una persona la conferma.",
 ] as const;
 
@@ -190,14 +202,15 @@ const NOT_DOING = [
   },
 ] as const;
 
-// Every line must match docs/SECURITY.md and docs/DEPLOY.md (pilot: Neon and Blob in Frankfurt).
+// Every line must match docs/SECURITY.md, docs/DEPLOY.md and docs/legal/sub-responsabili.md:
+// Frankfurt is the planned pilot region, and the providers' terms are still to be signed.
 const DATA_FACTS = [
   "Il CAF resta titolare dei dati. Avanti li tratta per suo conto, con un accordo di nomina a responsabile (art. 28 GDPR).",
-  "Per il pilota database e documenti stanno su server a Francoforte, nell'Unione europea.",
+  "Per il pilota prevediamo database e documenti su server a Francoforte, nell'Unione europea. Fornitori e regioni li mettiamo per iscritto nell'accordo.",
   "Il cittadino entra con un link personale che scade: niente password da ricordare, niente app.",
   "Ogni accesso al fascicolo resta registrato; il responsabile del CAF consulta ed esporta il registro.",
   "La conservazione la decide il CAF; su richiesta dell'interessato il fascicolo si cancella da Avanti.",
-  "All'AI arriva solo ciò che serve al singolo controllo, tramite fornitori impostati per non conservare i dati né usarli per addestrare modelli. Il CAF può spegnerla.",
+  "All'AI arriva solo ciò che serve al singolo controllo. I fornitori li approva il CAF prima del primo cittadino, con conservazione e uso per l'addestramento scritti nell'elenco; senza garanzie adeguate Avanti lavora con le sole regole.",
 ] as const;
 
 const PILOT_TIMELINE = [
@@ -215,6 +228,7 @@ const PILOT_TIMELINE = [
   },
   {
     when: "Entro il 31 marzo",
+    // DA DECIDERE: «nessun passaggio automatico a pagamento» (proposta in docs/gtm/pilota.md, da approvare).
     what: "Vi diamo i risultati, anche se non sono quelli sperati, e una proposta per continuare. Decidete voi: nessun passaggio automatico a pagamento.",
   },
 ] as const;
@@ -232,7 +246,7 @@ const FAQ = [
   },
   {
     q: "Dove finiscono i dati?",
-    a: "Per il pilota, database e documenti stanno su server a Francoforte, nell'Unione europea. All'AI arriva solo la parte che serve a ogni compito, mai note interne o altri fascicoli, tramite fornitori impostati per non conservarla e non usarla per addestrare modelli; l'elenco dei fornitori con regioni e garanzie è nell'accordo con il CAF. Prima del primo cittadino vero firmiamo insieme accordo di nomina, valutazione d'impatto e informativa nelle lingue dello sportello.",
+    a: "Per il pilota prevediamo database e documenti su server a Francoforte, nell'Unione europea. All'AI arriva solo la parte che serve a ogni compito, mai note interne o altri fascicoli. Fornitori, regioni, conservazione dei dati e uso per l'addestramento sono scritti nell'elenco allegato all'accordo e li approvate voi: senza garanzie adeguate, Avanti lavora con le sole regole. Prima del primo cittadino vero firmiamo insieme accordo di nomina, valutazione d'impatto e informativa nelle lingue dello sportello.",
   },
   {
     q: "Funziona con il nostro gestionale?",
@@ -256,7 +270,10 @@ const FAQ = [
   },
   {
     q: "Quanto costa? E se non fa per noi?",
-    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027, intelligenza artificiale inclusa: nessuna chiave da configurare, nessun costo a consumo. Dopo, un canone per sportello che definiamo con i piloti sulla base del tempo risparmiato misurato. Se il pilota non funziona per voi vi fermate: non c'è rinnovo automatico, vi restituiamo i dati e cancelliamo le copie in Avanti.",
+    // DA DECIDERE: gratuità fino al 31 marzo, «vi fermate», «nessun rinnovo automatico»
+    // (docs/gtm/pilota.md e prezzi.md sono proposte da approvare). Il prezzo dopo il pilota non
+    // è deciso: non citare canoni o modelli finché non lo è.
+    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027, intelligenza artificiale inclusa: nessuna chiave da configurare. Il prezzo per continuare non è ancora deciso: entro marzo vi facciamo un'offerta separata, costruita sui risultati misurati nel pilota. Se il pilota non funziona per voi vi fermate: non c'è rinnovo automatico, vi restituiamo i dati e cancelliamo le copie in Avanti.",
   },
 ] as const;
 
@@ -281,60 +298,81 @@ export default function HomePage() {
       />
 
       {/* Hero */}
-      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 pt-10 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pt-16 lg:pb-28">
-        <div className="flex flex-col justify-center">
-          <p className="mb-6 text-sm font-semibold tracking-[0.01em] text-stamp">
-            Per CAF e patronati · Pilota ISEE da gennaio 2027
-          </p>
-          <h1 className="font-display type-hero">Il fascicolo arriva pronto.</h1>
-          <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-ink-2 sm:text-xl">
-            Avanti prepara le pratiche ISEE prima dell&apos;appuntamento. Il cittadino risponde dal
-            telefono, anche nella sua lingua; allo sportello arriva un fascicolo in ordine, con
-            quello che manca già segnalato.
-          </p>
-          <div className="mt-9 grid gap-3 sm:flex sm:flex-wrap">
-            <Button asChild size="lg">
-              <a href="#pilota">Parliamo del pilota</a>
-            </Button>
-            <Button asChild size="lg" variant="secondary">
-              <a href="#come-funziona">Guarda come funziona</a>
-            </Button>
-          </div>
-          <ul className="mt-8 grid gap-2 text-ink-2">
-            {HERO_FACTS.map((fact) => (
-              <li key={fact} className="flex gap-2.5">
-                <Check className="mt-1 size-4 shrink-0 text-stamp" aria-hidden />
-                {fact}
-              </li>
-            ))}
-          </ul>
-          {DEMO_OFFICE && (
-            <p className="mt-6 text-ink-2">
-              Vuoi vederlo dal lato del cittadino?{" "}
-              <Link
-                href={`/s/${DEMO_OFFICE}`}
-                className="font-semibold text-stamp underline underline-offset-2"
-              >
-                Prova la demo dal telefono
-              </Link>
+      <section className="mx-auto max-w-6xl px-4 pt-8 pb-16 sm:px-6 lg:pt-14 lg:pb-20">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+          <div className="flex min-w-0 flex-col justify-center">
+            <p className="mb-6 inline-flex w-fit max-w-full items-center gap-2 rounded-2xl bg-surface py-1 ps-1.5 pe-3 text-sm font-semibold text-ink-2 shadow-raised ring-1 ring-line">
+              <span className="shrink-0 rounded-full bg-stamp-wash px-2 py-0.5 text-xs whitespace-nowrap text-stamp">
+                Pilota ISEE
+              </span>
+              <span className="min-w-0">
+                <span className="sm:hidden">CAF e patronati, gennaio 2027</span>
+                <span className="hidden sm:inline">Per CAF e patronati, da gennaio 2027</span>
+              </span>
             </p>
-          )}
+            <h1 className="font-display type-hero">Il fascicolo arriva pronto.</h1>
+            <p className="mt-6 max-w-[34rem] type-lead text-ink-2">
+              Avanti prepara le pratiche ISEE prima dell&apos;appuntamento. Il cittadino risponde
+              dal telefono, anche nella sua lingua; allo sportello arriva un fascicolo ordinato, con
+              i documenti mancanti e i dubbi da verificare già in cima. La pratica la fa il vostro
+              operatore.
+            </p>
+            <div className="mt-9 grid gap-3 sm:flex sm:flex-wrap">
+              <Button asChild size="lg">
+                <a href="#pilota">Parliamo del pilota ISEE</a>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <a href="#operatori">Guarda il fascicolo di esempio</a>
+              </Button>
+            </div>
+            <p className="mt-3 text-sm text-ink-3">
+              Prima una chiamata di mezz&apos;ora con il responsabile e un operatore. Nessun impegno
+              d&apos;acquisto.
+            </p>
+            <ul className="mt-8 grid gap-2 text-ink-2">
+              {HERO_FACTS.map((fact) => (
+                <li key={fact} className="flex gap-2.5">
+                  <Check className="mt-1 size-4 shrink-0 text-stamp" aria-hidden />
+                  {fact}
+                </li>
+              ))}
+            </ul>
+            {DEMO_OFFICE && (
+              <p className="mt-6 text-ink-2">
+                Vuoi vederlo dal lato del cittadino?{" "}
+                <Link
+                  href={`/s/${DEMO_OFFICE}`}
+                  className="font-semibold text-stamp underline underline-offset-2"
+                >
+                  Prova la demo dal telefono
+                </Link>
+              </p>
+            )}
+          </div>
+          <IntakeDemo />
         </div>
-        <IntakeDemo />
+
+        <dl className="mt-16 grid grid-cols-1 gap-x-8 gap-y-6 border-t border-line pt-8 min-[420px]:grid-cols-2 lg:mt-20 lg:grid-cols-4">
+          {PROOF.map((item) => (
+            <div key={item.value} className="min-w-0">
+              <dt className="font-display text-xl font-semibold tracking-[-0.01em] text-ink">
+                {item.value}
+              </dt>
+              <dd className="mt-1 text-body-sm text-ink-2">{item.label}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       {/* Desk questions */}
       <section aria-labelledby="sportello-title" className="border-y border-line bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-          <div className="max-w-2xl">
-            <h2 id="sportello-title" className="font-display type-section">
-              Prima di aprire la pratica, lo sportello fa domande. Sempre le stesse.
-            </h2>
-            <p className="mt-5 text-lg text-ink-2">
-              Capire cosa serve, chiedere i documenti, scoprire cosa manca, richiamare. Avanti fa
-              questa parte prima che il cittadino si sieda.
-            </p>
-          </div>
+          <SectionIntro
+            id="sportello-title"
+            eyebrow="Il lavoro di oggi"
+            title="Prima di aprire la pratica, lo sportello fa domande. Sempre le stesse."
+            lead="Capire cosa serve, chiedere i documenti, scoprire cosa manca, richiamare. Avanti fa questa parte prima che il cittadino si sieda."
+          />
           <dl className="mt-14 divide-y divide-line border-y border-line">
             {DESK_QUESTIONS.map((item) => (
               <div
@@ -359,23 +397,24 @@ export default function HomePage() {
         aria-labelledby="come-title"
         className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28"
       >
-        <h2 id="come-title" className="max-w-2xl font-display type-section">
-          Dal «devo fare l&apos;ISEE» al fascicolo, in quattro passaggi.
-        </h2>
-        <ol className="mt-14 grid gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <SectionIntro
+          id="come-title"
+          eyebrow="Come funziona"
+          title={<>Dal «devo fare l&apos;ISEE» al fascicolo, in quattro passaggi.</>}
+        />
+        <ol className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="relative">
-              <div className="flex items-center gap-3">
-                <span className="tabular grid size-9 place-items-center rounded-full bg-stamp font-display text-base font-bold text-on-stamp">
-                  {i + 1}
-                </span>
-                {i < STEPS.length - 1 && (
-                  <span aria-hidden className="hidden h-px flex-1 bg-line-strong lg:block" />
-                )}
-              </div>
-              <h3 className="mt-5 font-display text-2xl font-semibold tracking-[-0.015em]">
-                {step.title}
-              </h3>
+            <li
+              key={step.title}
+              className="rounded-lg bg-surface p-6 shadow-raised ring-1 ring-line"
+            >
+              <span
+                aria-hidden
+                className="tabular grid size-9 place-items-center rounded-full bg-stamp font-display text-base font-bold text-on-stamp"
+              >
+                {i + 1}
+              </span>
+              <h3 className="mt-5 font-display type-title">{step.title}</h3>
               <p className="mt-2 leading-relaxed text-ink-2">{step.body}</p>
             </li>
           ))}
@@ -386,18 +425,18 @@ export default function HomePage() {
       <section
         id="operatori"
         aria-labelledby="operatori-title"
-        className="bg-contrast text-on-contrast"
+        className="scroll-mt-4 bg-contrast text-on-contrast"
       >
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
-          <div>
-            <h2 id="operatori-title" className="font-display type-section">
-              L&apos;operatore apre il fascicolo e sa già dove guardare.
-            </h2>
-            <p className="mt-5 text-lg leading-relaxed text-on-contrast/75">
-              Ogni voce si verifica con un clic, anche da tastiera. Finché manca qualcosa, il
-              pulsante principale è «Chiedi integrazione».
-            </p>
-            <ul className="mt-10 grid gap-5">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
+            <SectionIntro
+              id="operatori-title"
+              inverted
+              eyebrow="Per l'operatore"
+              title="L'operatore apre il fascicolo e sa già dove guardare."
+              lead="Ogni voce si verifica con un clic, anche da tastiera. Finché manca qualcosa, il pulsante principale è «Chiedi integrazione»."
+            />
+            <ul className="grid content-end gap-5">
               {OPERATOR_FEATURES.map(({ icon: Icon, text }) => (
                 <li key={text} className="flex gap-3.5 text-on-contrast/90">
                   <Icon className="mt-0.5 size-5 shrink-0 text-marker" aria-hidden />
@@ -406,18 +445,21 @@ export default function HomePage() {
               ))}
             </ul>
           </div>
-          <DossierPreview />
+          <div className="mt-14 lg:mt-16">
+            <DossierPreview />
+          </div>
         </div>
       </section>
 
       {/* Handoff to the CAF's software */}
       <section aria-labelledby="gestionale-title" className="border-b border-line bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+          <p className="mb-4 type-eyebrow text-stamp">Dopo Avanti</p>
           <h2 id="gestionale-title" className="font-display type-subsection">
             Il lavoro prosegue nel vostro gestionale.
           </h2>
-          {/* Ruled columns, not a second row of blue discs: the four steps above are the
-              citizen's journey, these are what happens after it, at the desk. */}
+          {/* Ruled columns, not a second row of cards: the four steps above are the citizen's
+              journey, these are what happens after it, at the desk. */}
           <ol className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">
             {[
               "L'operatore verifica documenti e mancanti, voce per voce.",
@@ -437,24 +479,20 @@ export default function HomePage() {
           </ol>
           <p className="mt-8 max-w-3xl text-sm text-ink-3">
             Gli importi letti dall&apos;AI nei documenti restano proposte finché l&apos;operatore
-            non li conferma sul file. Avanti non invia nulla agli enti; i collegamenti diretti con i
-            gestionali si definiscono con i piloti.
+            non li conferma sul file. Avanti non invia nulla agli enti e oggi non si collega in
+            automatico al gestionale; i collegamenti diretti si definiscono con i piloti.
           </p>
         </div>
       </section>
 
       {/* AI */}
       <section aria-labelledby="ai-title" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-        <div className="max-w-2xl">
-          <h2 id="ai-title" className="font-display type-section">
-            L&apos;intelligenza artificiale, dove fa risparmiare tempo.
-          </h2>
-          <p className="mt-5 text-lg text-ink-2">
-            Non un chatbot appoggiato sopra: l&apos;AI lavora dentro il percorso, accanto a regole
-            scritte con le fonti ufficiali che decidono cosa chiedere e cosa serve. È inclusa nel
-            servizio: niente chiavi da configurare né costi a consumo.
-          </p>
-        </div>
+        <SectionIntro
+          id="ai-title"
+          eyebrow="Intelligenza artificiale"
+          title="L'intelligenza artificiale, dove fa risparmiare tempo."
+          lead="Non un chatbot appoggiato sopra: l'AI lavora dentro il percorso, accanto a regole scritte con le fonti ufficiali che decidono cosa chiedere e cosa serve. È inclusa: il CAF non deve configurare chiavi né account con i fornitori."
+        />
         {/* Subgrid: the two examples share one row height, so the lists under them start on
             the same line. */}
         <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-y-0">
@@ -465,7 +503,7 @@ export default function HomePage() {
             ] as const
           ).map(([title, items], index) => (
             <div key={title} className="lg:row-span-3 lg:grid lg:grid-rows-subgrid">
-              <h3 className="font-display text-2xl font-semibold tracking-[-0.015em]">{title}</h3>
+              <h3 className="font-display type-title">{title}</h3>
               <div className="mt-6 grid">
                 {index === 0 ? <CitizenSnippet /> : <OperatorSnippet />}
               </div>
@@ -480,12 +518,12 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-        <div className="mt-14 rounded-lg bg-surface p-6 ring-1 ring-line">
-          <h3 className="flex items-center gap-2 font-semibold">
-            <ShieldCheck className="size-5 text-stamp" aria-hidden />
+        <div className="mt-14 rounded-lg bg-surface p-6 shadow-raised ring-1 ring-line sm:p-8">
+          <h3 className="flex items-center gap-2 font-display type-title">
+            <ShieldCheck className="size-6 shrink-0 text-stamp" aria-hidden />
             Cosa resta alle persone
           </h3>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-5 grid gap-x-8 gap-y-3 sm:grid-cols-2">
             {AI_LIMITS.map((line) => (
               <li key={line} className="flex gap-2.5 leading-relaxed text-ink-2">
                 <Check className="mt-1 size-4 shrink-0 text-stamp" aria-hidden />
@@ -503,16 +541,12 @@ export default function HomePage() {
         className="border-y border-line bg-surface"
       >
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-          <div className="max-w-2xl">
-            <h2 id="lingue-title" className="font-display type-section">
-              Ognuno risponde nella sua lingua. Lo sportello legge in italiano.
-            </h2>
-            <p className="mt-5 text-lg text-ink-2">
-              Per chi è arrivato da poco, la parte difficile non è la pratica: è capire cosa
-              chiedono. Avanti spiega con parole semplici e lascia in italiano i nomi che si
-              troveranno scritti sui documenti.
-            </p>
-          </div>
+          <SectionIntro
+            id="lingue-title"
+            eyebrow="Lingue"
+            title="Ognuno risponde nella sua lingua. Lo sportello legge in italiano."
+            lead="Per chi è arrivato da poco, la parte difficile non è la pratica: è capire cosa chiedono. Avanti spiega con parole semplici e lascia in italiano i nomi che si troveranno scritti sui documenti."
+          />
           {/* Skipped until near the viewport: its Arabic and Bengali glyphs (270 KB of fonts) are
               then fetched only by visitors who scroll this far. */}
           <div className="mt-12 [contain-intrinsic-size:auto_32rem] [content-visibility:auto]">
@@ -527,14 +561,13 @@ export default function HomePage() {
         aria-labelledby="pratiche-title"
         className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-28"
       >
-        <div>
-          <h2 id="pratiche-title" className="font-display type-section">
-            Si parte dall&apos;ISEE. Il resto segue il calendario dei CAF.
-          </h2>
-          <p className="mt-5 text-lg text-ink-2">
-            Gennaio è il mese più pesante per l&apos;ISEE, aprile apre la campagna 730. Ogni pratica
-            arriva quando è verificata con chi la fa ogni giorno.
-          </p>
+        <div className="min-w-0">
+          <SectionIntro
+            id="pratiche-title"
+            eyebrow="Pratiche"
+            title="Si parte dall'ISEE. Il resto segue il calendario dei CAF."
+            lead="Gennaio è il mese più pesante per l'ISEE, aprile apre la campagna 730. Ogni pratica arriva quando è verificata con chi la fa ogni giorno."
+          />
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             {FACTS.map((fact) => (
               <p key={fact.value} className="border-t-2 border-ink pt-3">
@@ -555,7 +588,7 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-        <ol className="relative grid gap-0 border-s border-line-strong ps-8">
+        <ol className="relative grid content-center gap-0 border-s border-line-strong ps-8">
           {/* Dots centred on the 1px rule (ps-8 + border) and on the date line (20px). */}
           {PRACTICES.map((p) => (
             <li key={p.name} className="relative pb-8 last:pb-0">
@@ -582,14 +615,14 @@ export default function HomePage() {
       {/* Data, security and boundaries */}
       <section id="dati" aria-labelledby="dati-title" className="border-y border-line bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-          <h2 id="dati-title" className="max-w-2xl font-display type-section">
-            Documenti di persone vere, trattati di conseguenza.
-          </h2>
+          <SectionIntro
+            id="dati-title"
+            eyebrow="Dati e responsabilità"
+            title="Documenti di persone vere, trattati di conseguenza."
+          />
           <div className="mt-14 grid gap-14 lg:grid-cols-[1fr_1.15fr] lg:gap-16">
             <div>
-              <h3 className="font-display text-2xl font-semibold tracking-[-0.015em]">
-                Cosa Avanti non fa, di proposito
-              </h3>
+              <h3 className="font-display type-title">Cosa Avanti non fa, di proposito</h3>
               <dl className="mt-6 grid gap-6">
                 {NOT_DOING.map((item) => (
                   <div key={item.title} className="border-t border-line pt-4">
@@ -600,7 +633,7 @@ export default function HomePage() {
               </dl>
             </div>
             <div className="rounded-xl bg-folder/55 p-6 sm:p-8">
-              <h3 className="flex items-center gap-2.5 font-display text-2xl font-semibold tracking-[-0.015em]">
+              <h3 className="flex items-center gap-2.5 font-display type-title">
                 <ShieldCheck className="size-6 shrink-0 text-stamp" aria-hidden />
                 Come trattiamo i dati
               </h3>
@@ -613,13 +646,13 @@ export default function HomePage() {
                 ))}
               </ul>
               <p className="mt-6 border-t border-ink/10 pt-5 leading-relaxed text-ink-2">
-                Prima del primo cittadino vero firmiamo con il CAF l&apos;accordo di nomina e la
-                valutazione d&apos;impatto, e prepariamo l&apos;informativa nelle lingue dello
-                sportello.
+                Prima del primo cittadino vero firmiamo con il CAF l&apos;accordo di nomina,
+                l&apos;elenco dei fornitori e la valutazione d&apos;impatto, e prepariamo
+                l&apos;informativa nelle lingue dello sportello.
               </p>
               <Link
                 href="/sicurezza"
-                className="mt-4 inline-block font-semibold text-stamp underline underline-offset-2"
+                className="mt-4 inline-flex min-h-11 items-center font-semibold text-stamp underline underline-offset-2"
               >
                 Tutti i controlli di sicurezza
               </Link>
@@ -631,14 +664,16 @@ export default function HomePage() {
       {/* Pilot */}
       <section id="pilota" aria-labelledby="pilota-title" className="bg-sunk/60">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:py-28">
-          <div>
-            <h2 id="pilota-title" className="font-display type-section">
-              Cerchiamo tre sportelli per il picco ISEE di gennaio.
-            </h2>
-            <p className="mt-5 text-lg text-ink-2">
-              Gratis fino al 31 marzo 2027, intelligenza artificiale inclusa. Potete fermarvi quando
-              volete.
-            </p>
+          <div className="min-w-0">
+            {/* DA DECIDERE: gratuità fino al 31 marzo 2027, «potete fermarvi quando volete» e
+                tetto di pratiche del pilota (docs/gtm/pilota.md propone 500 fascicoli per sede, da
+                approvare). Finché non è deciso il tetto resta «volumi concordati», senza numeri. */}
+            <SectionIntro
+              id="pilota-title"
+              eyebrow="Pilota 2027"
+              title="Cerchiamo tre sportelli per il picco ISEE di gennaio."
+              lead="Gratis fino al 31 marzo 2027, intelligenza artificiale inclusa, con volumi concordati prima di partire. Potete fermarvi quando volete."
+            />
             <h3 className="mt-10 font-semibold">Come si svolge</h3>
             <ol className="mt-4 grid gap-0 border-s border-line-strong">
               {PILOT_TIMELINE.map((step) => (
@@ -661,11 +696,15 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
-            <h3 className="mt-10 font-semibold">La prova che stiamo cercando</h3>
-            <p className="mt-3 leading-relaxed text-ink-2">
-              Con i primi sportelli misureremo minuti di lavoro, completezza al primo invio e tempo
-              di copia nel gestionale. Pubblicheremo metodo, campione e limiti del risultato.
-            </p>
+            <div className="mt-10 border-t border-line-strong pt-6">
+              <h3 className="font-semibold">Perché qui non trovate loghi né testimonianze</h3>
+              <p className="mt-2 leading-relaxed text-ink-2">
+                Siamo all&apos;inizio: il pilota serve proprio a raccogliere le prove. Con i primi
+                sportelli misureremo minuti di lavoro, completezza al primo invio e tempo di copia
+                nel gestionale, e pubblicheremo metodo, campione e limiti del risultato, anche se
+                non è quello sperato.
+              </p>
+            </div>
           </div>
           <PilotForm />
         </div>
@@ -676,9 +715,7 @@ export default function HomePage() {
         aria-labelledby="faq-title"
         className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:py-28"
       >
-        <h2 id="faq-title" className="font-display type-section">
-          Domande dei CAF
-        </h2>
+        <SectionIntro id="faq-title" eyebrow="Domande" title="Domande dei CAF" />
         <div className="mt-10 divide-y divide-line border-y border-line">
           {FAQ.map((item) => (
             <details key={item.q} className="group">
@@ -703,13 +740,33 @@ export default function HomePage() {
             </details>
           ))}
         </div>
-        <p className="mt-8 text-ink-2">
-          Un&apos;altra domanda?{" "}
-          <a href="#pilota" className="font-semibold text-stamp underline underline-offset-2">
-            Scrivetecela nel modulo del pilota
-          </a>
-          : rispondiamo noi, senza impegno.
-        </p>
+      </section>
+
+      {/* Closing call to action */}
+      <section
+        aria-labelledby="chiusura-title"
+        className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:pb-28"
+      >
+        <div className="grid gap-8 rounded-xl bg-contrast px-6 py-12 text-on-contrast sm:px-10 md:grid-cols-[1fr_auto] md:items-center lg:px-14 lg:py-14">
+          <div className="max-w-2xl">
+            <h2 id="chiusura-title" className="font-display type-subsection">
+              Mezz&apos;ora per capire se fa per il vostro sportello.
+            </h2>
+            <p className="mt-4 type-lead text-on-contrast/80">
+              Vi mostriamo una pratica di prova dall&apos;inizio alla fine, con una famiglia
+              inventata, e proviamo insieme il passaggio nel vostro gestionale. Un&apos;altra
+              domanda? Scrivetecela nel modulo: rispondiamo noi, senza impegno.
+            </p>
+          </div>
+          <Button
+            asChild
+            size="lg"
+            variant="marker"
+            className="w-full focus-visible:outline-marker md:w-auto"
+          >
+            <a href="#pilota">Parliamo del pilota ISEE</a>
+          </Button>
+        </div>
       </section>
     </>
   );

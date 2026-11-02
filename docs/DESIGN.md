@@ -160,6 +160,26 @@ sfondo chiaro e per quello scuro.
 - Un badge di stato si anima solo quando cambia (documento caricato, voce verificata), non
   all'apertura della pagina (`components/ui/use-changed.ts`).
 
+## Landing
+
+Pubblico e tono in [gtm/pubblico.md](gtm/pubblico.md). Ogni sezione si apre con
+`SectionIntro` (etichetta, titolo, lead) e alterna carta e fasce bianche; la fascia scura è
+riservata alla sezione operatori e al richiamo finale, così il prodotto spicca. Le immagini del
+prodotto sono componenti disegnati sulle pagine vere (`intake-demo`, `dossier-preview` con coda e
+fascicolo, `ai-snippets`), con «Dati inventati» in didascalia: niente screenshot che invecchiano,
+niente illustrazioni generiche, niente loghi o testimonianze finché non ci sono clienti veri.
+Sotto l'hero, quattro fatti verificabili prendono il posto della prova sociale.
+
+Movimento della landing (verificato): l'unico momento orchestrato è l'evidenziatore della demo,
+che parte quando è in vista. È l'unica transizione che non usa `transform`/`opacity`
+(`background-size` del tratto, che segue le righe a capo e non si può fare con una scala); dura
+500 ms una volta sola su poche parole. Con `prefers-reduced-motion` la demo mostra subito il
+fascicolo finito. Il resto: dissolvenze, rotazione dell'icona delle FAQ, pressione dei pulsanti.
+
+Controlli prima di cambiarla: 320, 375, 768 e 1440 px senza scorrimento orizzontale, zoom al
+200% (viewport di 720 px), testi lunghi nei nomi della coda (troncati: sono decorativi) e
+nell'email della conferma (`break-all`).
+
 ## Cosa non diciamo
 
 Niente statistiche inventate, niente "primo", "zero errori" o percentuali di risparmio prima di

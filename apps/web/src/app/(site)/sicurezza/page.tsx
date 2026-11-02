@@ -44,7 +44,7 @@ const CONTROLS = [
   },
   {
     title: "AI con il minimo indispensabile",
-    body: "A ogni compito arriva solo ciò che serve: il messaggio del cittadino con le domande aperte, il singolo documento da leggere, il fascicolo senza contatti, note interne né nomi dei file per il riepilogo dell'operatore. Usiamo fornitori configurati per non conservare i dati e non usarli per addestrare modelli; fornitori, regioni e garanzie sono elencati nell'accordo con il CAF. Avanti non salva le registrazioni vocali. Il testo dei cittadini è trattato come dato, mai come istruzione. Il CAF può spegnere l'AI per i cittadini o per gli operatori: senza AI Avanti funziona con le regole. Nulla di ciò che propone l'AI diventa una risposta o un valore senza la conferma di una persona.",
+    body: "A ogni compito arriva solo ciò che serve: il messaggio del cittadino con le domande aperte, il singolo documento da leggere, il fascicolo senza contatti, note interne né nomi dei file per il riepilogo dell'operatore. Fornitori, regioni, conservazione dei dati e uso per l'addestramento sono scritti nell'elenco allegato all'accordo e li approva il CAF prima del primo cittadino; senza garanzie adeguate Avanti lavora con le sole regole. Avanti non salva le registrazioni vocali. Il testo dei cittadini è trattato come dato, mai come istruzione. Dalle impostazioni il CAF può spegnere l'assistente dei cittadini e il copilota degli operatori: senza, intervista e controlli funzionano con le regole. Nulla di ciò che propone l'AI diventa una risposta o un valore senza la conferma di una persona.",
   },
 ] as const;
 
