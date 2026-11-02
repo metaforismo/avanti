@@ -108,8 +108,9 @@ un lease valido. Storage fallito conserva il lease fino a scadenza. Test locali 
 su Postgres effettivo. Il lease non è exactly-once per chiamate esterne interrotte.
 
 `CRON_SECRET`, distinto dal segreto rate limit, autentica il Bearer con confronto
-costante; assente/errato dà 401. Il cron recupera fino a 4 documenti/run, cancella
-25 fascicoli oltre retention e ritenta 100 cancellazioni file; cooldown per istanza.
+costante; assente/errato dà 401. Il cron recupera fino a 4 documenti/run; la retention
+lavora a lotti (25 fascicoli, 1.000 eventi audit, 500 candidature, 100 file), ciascuno in
+una propria transazione, finché c'è lavoro o finché non esaurisce 75 secondi; cooldown per istanza.
 Cron automatico solo Production: staging e Preview devono avere risorse isolate.
 [Configurazione](https://vercel.com/docs/project-configuration/vercel-json),
 [piani cron](https://vercel.com/docs/cron-jobs/usage-and-pricing).
@@ -197,8 +198,10 @@ della cronologia attraverso la pratica. Nessun nome, email, CF, testo libero, pa
 token, hash di credenziali o contenuto di documento è aggiunto all’audit. I file locali o
 Blob sono cancellati dopo il commit; un errore lascia una tombstone in
 `storage_deletions`, ritentata con backoff fino alla conferma dello storage. Il job
-ritenta al massimo 100 file per esecuzione ed è idempotente; i fascicoli in uso da
-una transazione vengono saltati. Le richieste utente non eseguono il purge.
+ritenta i file a lotti di 100 entro il budget della retention ed è idempotente; i fascicoli
+in uso da una transazione vengono saltati. Ogni cancellazione file blocca la propria riga con
+`FOR UPDATE SKIP LOCKED` e la ricontrolla: un caricamento che sta confermando il documento
+proprio mentre il suo lease scade tiene la stessa riga, quindi vince uno solo dei due. Le richieste utente non eseguono il purge.
 
 L’amministratore può anticipare la cancellazione con `DELETE /api/cases/:id`,
 confermando il riferimento; usa la stessa cancellazione e lo stesso retry dei file.
@@ -295,7 +298,9 @@ enrichment o dati dei cittadini. Questa finalità è distinta dal trattamento CA
 la richiesta di contatto non iscrive a una newsletter. Informativa e procedura
 devono chiarire la base del ricontatto richiesto (art. 6(1)(a) ove basato su consenso,
 o 6(1)(b) per misure precontrattuali richieste, quando applicabile), senza dedurla
-dal solo nome del campo tecnico `privacyAccepted`.
+dal solo nome del campo tecnico `privacyAccepted`. Le candidature (`leads`) e le loro
+notifiche sono cancellate automaticamente 730 giorni dopo l'arrivo: coprono una stagione
+pilota e la successiva; un CAF che firma conserva i propri dati contrattuali altrove.
 Il riepilogo agli operatori attivi contiene solo il numero di pratiche
 `submitted`/`in_review` del CAF, senza nomi, riferimenti o altri dati del fascicolo.
 [GDPR, artt. 5, 6, 9, 13 e 28](https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita).

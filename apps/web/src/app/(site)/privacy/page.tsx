@@ -25,6 +25,7 @@ const SECTIONS = [
     title: "Per quanto tempo",
     body: [
       "Il link personale scade dopo il periodo stabilito dal CAF. Alla fine del periodo di conservazione scelto dal CAF il fascicolo e i documenti vengono cancellati da Avanti automaticamente; eventuali obblighi di conservazione a carico del CAF riguardano il suo archivio.",
+      "Le candidature inviate con il modulo «Diventa CAF pilota» vengono cancellate automaticamente due anni dopo l'invio.",
     ],
   },
   {

@@ -4,6 +4,7 @@ import {
   cases,
   documents,
   events,
+  settings,
   notifications,
   operationalCounters,
   systemJobs,
@@ -14,6 +15,7 @@ import { ApiFailure } from "./security";
 import { deadline } from "./deadline";
 import { aiBudget } from "./ai-usage";
 import { utcHour } from "./operational-telemetry";
+import { AUDIT_RETENTION_DAYS } from "./audit-log";
 
 type Component = SystemStatus["components"]["database"];
 const DAY = 86_400_000;
@@ -149,6 +151,16 @@ async function snapshot(s: Services, organizationId: string, now: Date) {
           links: sql<number>`(select count(*)::int from ${cases} c where c.organization_id = ${organizationId}
         and c.status <> 'closed' and c.expires_at > ${now.toISOString()}::timestamptz
         and c.expires_at <= ${new Date(now.getTime() + 7 * DAY).toISOString()}::timestamptz)`,
+          // Rows kept past their period by more than two days: the daily cron fell behind.
+          retentionOverdue: sql<number>`((select count(*)::int from ${cases} c
+        left join ${settings} st on st.organization_id = c.organization_id
+        where c.organization_id = ${organizationId}
+        and ((c.status = 'closed' and c.closed_at < ${now.toISOString()}::timestamptz
+            - (coalesce(st.retention_days, 180) + 2) * interval '1 day')
+          or c.expires_at < ${now.toISOString()}::timestamptz
+            - (coalesce(st.retention_days, 180) + 2) * interval '1 day'))
+        + (select count(*)::int from ${events} e where e.organization_id = ${organizationId}
+        and e.at < ${new Date(now.getTime() - (AUDIT_RETENTION_DAYS + 2) * DAY).toISOString()}::timestamptz))`,
         })
         .from(sql`(select 1) as status_counts`);
       if (!counts) throw new Error("Missing status counts");
@@ -283,6 +295,7 @@ export function mountSystemStatus(app: App, s: Services) {
         5,
         "recent_errors",
       ),
+      retentionOverdue: countStatus(data?.counts.retentionOverdue ?? null, 25),
       notificationsQueued: {
         ...countStatus(data?.email.queuedOver1Hour ?? null, 5),
         count: data?.email.queued ?? null,
