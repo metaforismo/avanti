@@ -166,6 +166,14 @@
   /* Side panels, from the inline end (mirrored in RTL). */
   --animate-panel-in: panel-in 300ms var(--ease-drawer) both;
   --animate-panel-out: panel-out 180ms var(--ease-out) both;
+  /* Citizen steps: the next one rises into place, a step back settles from above (--step-dir: 1
+     forward, -1 back). Vertical on purpose: a sideways slide pushes a phone page into
+     horizontal scroll for its duration. */
+  --animate-step-in: step-in 320ms var(--ease-out) backwards;
+  /* The case reference handed over like the paper ticket at the desk. */
+  --animate-ticket-in: ticket-in 560ms var(--ease-out) both;
+  /* A confirmation mark pressed in, with a small overshoot. */
+  --animate-check-in: check-in 420ms var(--ease-out) both;
 
   @keyframes fade-in {
     from {
@@ -208,6 +216,31 @@
   @keyframes panel-in {
     from {
       transform: translateX(calc(100% * var(--inline-sign, 1)));
+    }
+  }
+  @keyframes step-in {
+    from {
+      opacity: 0;
+      transform: translateY(calc(12px * var(--step-dir, 1)));
+    }
+  }
+  @keyframes ticket-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px) rotate(-2deg) scale(0.97);
+    }
+  }
+  @keyframes check-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.06);
+    }
+    100% {
+      transform: scale(1);
     }
   }
   @keyframes panel-out {
@@ -428,7 +461,10 @@
   [class*="animate-pop"],
   [class*="animate-sheet-in"],
   [class*="animate-dock-in"],
-  [class*="animate-panel-in"] {
+  [class*="animate-panel-in"],
+  [class*="animate-step-in"],
+  [class*="animate-ticket-in"],
+  [class*="animate-check-in"] {
     animation-name: fade-in !important;
     animation-duration: 150ms !important;
   }
