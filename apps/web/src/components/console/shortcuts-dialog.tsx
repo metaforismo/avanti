@@ -16,11 +16,21 @@ const GROUPS = [
     keys: [[["/"], "Va alla ricerca nella coda; Esc la svuota"]],
   },
   {
+    title: "Fascicolo",
+    keys: [
+      [["V"], "Controlla i documenti uno per uno"],
+      [["I"], "Chiedi un'integrazione"],
+      [["P"], "Segna come pronta"],
+      [["N"], "Prossima pratica della coda, con gli stessi filtri"],
+    ],
+  },
+  {
     title: "Visore dei documenti",
     keys: [
-      [["V"], "Verifica la voce"],
+      [["V"], "Verifica la voce e passa al documento successivo"],
       [["R"], "Rifiuta la voce, con il motivo"],
       [["←", "→"], "Documento precedente e successivo"],
+      [["Invio"], "Torna al fascicolo, finito il controllo"],
     ],
   },
 ] as const;

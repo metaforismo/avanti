@@ -75,6 +75,15 @@ export function rememberQueue(params: URLSearchParams) {
   }
 }
 
+/** The queue the operator last looked at, as its address bar had it (empty: the default). */
+export function rememberedQueue() {
+  try {
+    return new URLSearchParams(sessionStorage.getItem(QUEUE_KEY) ?? "");
+  } catch {
+    return new URLSearchParams();
+  }
+}
+
 /** Where «← Pratiche» leads: the queue as the operator left it, or the default one. */
 export function rememberedQueueHref() {
   let search = "";

@@ -46,7 +46,12 @@ import {
 import { queueIsIdle } from "@/lib/console/first-steps";
 import { useOperator } from "@/lib/console/operator-context";
 import { rememberQueue } from "@/lib/console/recent-cases";
-import { QUEUE_SEARCH_MAX, readQueueParams, uniqueById } from "@/lib/console/queue-params";
+import {
+  QUEUE_SEARCH_MAX,
+  queueApiPath,
+  readQueueParams,
+  uniqueById,
+} from "@/lib/console/queue-params";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 
@@ -110,17 +115,19 @@ function Queue() {
     router.replace(`/console?${next.toString()}` as Route, { scroll: false });
   };
 
-  const query = useMemo(() => {
-    // Every status at once, nearest art. 12(3) deadline first: nothing else filters this list.
-    if (erasure) return "/api/cases?erasure=requested&limit=50";
-    const q = new URLSearchParams({ status, limit: "50" });
-    if (practice) q.set("practiceId", practice);
-    if (assignee) q.set("assignee", assignee);
-    if (priority) q.set("ai", priority);
-    if (deferredSearch) q.set("q", deferredSearch);
-    if (longestWaiting) q.set("sort", "waiting");
-    return `/api/cases?${q.toString()}`;
-  }, [status, practice, assignee, priority, deferredSearch, longestWaiting, erasure]);
+  const query = useMemo(
+    () =>
+      queueApiPath({
+        status,
+        practice,
+        assignee,
+        priority,
+        longestWaiting,
+        erasure,
+        q: deferredSearch,
+      }),
+    [status, practice, assignee, priority, deferredSearch, longestWaiting, erasure],
+  );
 
   const list = useResource<CaseListResponse>(query);
   const [extra, setExtra] = useState<{

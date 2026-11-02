@@ -25,6 +25,15 @@ import { useChanged } from "@/components/ui/use-changed";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
 
+/** The first file still waiting for a decision: the viewer then walks through the others. */
+export function firstDocumentToCheck(dossier: CaseDossier): DocumentSummary | undefined {
+  if (dossier.status === "closed" || dossier.status === "intake") return undefined;
+  return dossier.documents.find((doc) => {
+    const item = dossier.checklist.find((i) => i.id === doc.checklistItemId);
+    return item !== undefined && !DECIDED.has(item.status);
+  });
+}
+
 export function ChecklistSection({
   dossier,
   actions,
@@ -44,13 +53,7 @@ export function ChecklistSection({
   ).length;
   const unmatched = dossier.documents.filter((d) => !d.checklistItemId);
   const readOnly = dossier.status === "closed" || dossier.status === "intake";
-  // The first file still waiting for a decision: the viewer then walks through the others.
-  const firstToCheck = readOnly
-    ? undefined
-    : dossier.documents.find((doc) => {
-        const item = dossier.checklist.find((i) => i.id === doc.checklistItemId);
-        return item !== undefined && !DECIDED.has(item.status);
-      });
+  const firstToCheck = firstDocumentToCheck(dossier);
 
   return (
     // Focusable: the document viewer returns the keyboard here when its opener is gone.
@@ -73,6 +76,8 @@ export function ChecklistSection({
               <Button
                 variant="secondary"
                 size="sm"
+                aria-keyshortcuts="V"
+                title="Scorciatoia: V"
                 onClick={() => actions.openDocument(firstToCheck)}
               >
                 Controlla uno per uno
