@@ -984,7 +984,7 @@ describe("erasure and automatic retention", () => {
       await db.select().from(events).where(eq(events.type, "case.retention_deleted")),
     ).toHaveLength(3);
   });
-  it("limits each cron to one batch, has no user-request purge, and retries failed retention files", async () => {
+  it("drains more than one batch per cron, has no user-request purge, and retries failed retention files", async () => {
     for (let index = 0; index <= RETENTION_BATCH_SIZE; index++)
       await caseFixture(`batch-${index}`, { expiresAt: "2026-01-01T00:00:00Z" });
     await fileFixture("batch-0");
@@ -994,12 +994,15 @@ describe("erasure and automatic retention", () => {
       .mockRejectedValueOnce(new Error("Temporary storage failure"));
     expect((await request("/settings", "PATCH", { retentionDays: 30 }, admin)).status).toBe(200);
     expect(await db.select().from(cases)).toHaveLength(RETENTION_BATCH_SIZE + 1);
-    expect(await (await cron()).json()).toMatchObject({ deletedCases: RETENTION_BATCH_SIZE });
-    expect(await db.select().from(cases)).toHaveLength(1);
+    expect(await (await cron()).json()).toMatchObject({
+      deletedCases: RETENTION_BATCH_SIZE + 1,
+      retentionBacklog: false,
+    });
+    expect(await db.select().from(cases)).toHaveLength(0);
     expect(await db.select().from(storageDeletions)).toHaveLength(1);
     remove.mockImplementation(realDelete);
     now = new Date(now.getTime() + 61000);
-    expect(await (await cron()).json()).toMatchObject({ deletedCases: 1 });
+    expect(await (await cron()).json()).toMatchObject({ deletedCases: 0 });
     expect(await db.select().from(cases)).toHaveLength(0);
     expect(await db.select().from(storageDeletions)).toHaveLength(0);
     expect(

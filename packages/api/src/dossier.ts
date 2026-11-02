@@ -52,6 +52,7 @@ import { reuseNotice } from "./reuse-copy";
 import { notFound } from "./security";
 import { automaticAssistanceNotice } from "./disclosure";
 import { officeView, organizationView } from "./views";
+import { citizenMayDelete, citizenPrivacy } from "./privacy-view";
 
 export type CaseRow = typeof cases.$inferSelect;
 export const iso = (value: string) => new Date(value).toISOString();
@@ -401,6 +402,11 @@ export async function citizenView(
           .map(({ operatorMessage: _operatorMessage, ...finding }) => finding),
     submittedAt: row.submittedAt ? iso(row.submittedAt) : null,
     expiresAt: iso(row.expiresAt),
+    privacy: citizenPrivacy(
+      row,
+      organization.nearReadyPolicy?.retentionDays,
+      await citizenMayDelete(db, row),
+    ),
   };
 }
 export async function dossierView(
@@ -458,6 +464,7 @@ export async function dossierView(
     createdAt: iso(row.createdAt),
     updatedAt: iso(row.updatedAt),
     submittedAt: view.submittedAt,
+    erasureRequestedAt: row.erasureRequestedAt ? iso(row.erasureRequestedAt) : null,
     citizen: {
       firstName: row.contact?.firstName ?? null,
       lastName: row.contact?.lastName ?? null,
@@ -553,6 +560,7 @@ export const caseListColumns = {
   createdAt: cases.createdAt,
   updatedAt: cases.updatedAt,
   submittedAt: cases.submittedAt,
+  erasureRequestedAt: cases.erasureRequestedAt,
 };
 type CaseListRow = Pick<CaseRow, Exclude<keyof typeof caseListColumns, "aiPriority">> & {
   aiPriority: "quick_review" | "attention" | "citizen_question" | "near_ready" | null;
@@ -621,6 +629,7 @@ export async function caseListViews(db: Database, rows: CaseListRow[], now: Date
       createdAt: iso(row.createdAt),
       updatedAt: iso(row.updatedAt),
       submittedAt: row.submittedAt ? iso(row.submittedAt) : null,
+      erasureRequestedAt: row.erasureRequestedAt ? iso(row.erasureRequestedAt) : null,
     };
   });
 }
@@ -633,7 +642,7 @@ export async function assistantTurns(db: Database, caseId: string): Promise<Assi
     .orderBy(asc(messages.createdAt), asc(messages.id));
   return mapAssistantTurns(rows);
 }
-function mapAssistantTurns(rows: ViewData["chat"]): AssistantTurn[] {
+export function mapAssistantTurns(rows: ViewData["chat"]): AssistantTurn[] {
   return rows.map((m) =>
     AssistantTurn.parse({
       id: m.id,

@@ -510,12 +510,13 @@ it("preserves audit independently of case erasure and purges it at its own cutof
     type: "auth.login_failed",
     at: new Date(cutoff.getTime() - 1).toISOString(),
   });
+  // One call is one bounded batch; the cron repeats batches until the backlog is gone.
+  expect(await purgeAuditEvents(db, now)).toBe(AUDIT_RETENTION_BATCH);
   const cron = await app.request("/api/cron/maintenance", {
     headers: { Authorization: "Bearer audit-test-cron" },
   });
   expect(cron.status).toBe(200);
-  expect(await cron.json()).toMatchObject({ deletedAuditEvents: AUDIT_RETENTION_BATCH });
-  expect(await purgeAuditEvents(db, now)).toBe(2);
+  expect(await cron.json()).toMatchObject({ deletedAuditEvents: 2 });
   expect(await purgeAuditEvents(db, now)).toBe(0);
   expect(await db.select().from(events).where(eq(events.id, "boundary"))).toHaveLength(1);
   expect(

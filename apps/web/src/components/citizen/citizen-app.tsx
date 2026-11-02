@@ -20,6 +20,7 @@ import { DoneStep } from "./done-step";
 import { ErrorScreen } from "./error-screen";
 import { ConversationStep } from "./conversation-step";
 import { NeedStep } from "./need-step";
+import { PrivacyLink, PrivacySheet } from "./privacy-sheet";
 import { ReviewStep } from "./review-step";
 
 export type { View };
@@ -53,6 +54,9 @@ export function CitizenApp({ token }: { token: string }) {
     [],
   );
   const firstStep = useRef(true);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  // The citizen erased the practice from this page: the link is gone on purpose.
+  const [erased, setErased] = useState(false);
 
   const { state } = api;
   useEffect(() => {
@@ -81,6 +85,19 @@ export function CitizenApp({ token }: { token: string }) {
     setView(next);
     window.scrollTo({ top: 0 });
   };
+
+  if (erased) {
+    const m = messagesFor(language);
+    return (
+      <ErrorScreen
+        title={m.privacy.deletedTitle}
+        body={m.privacy.deletedBody}
+        tone="done"
+        lang={language}
+        dir={directionOf(language)}
+      />
+    );
+  }
 
   if (state.kind === "loading")
     return <LoadingShell label={messagesFor(language).common.loading} />;
@@ -129,7 +146,25 @@ export function CitizenApp({ token }: { token: string }) {
           {current === "documents" && <DocumentsStep {...props} />}
           {current === "review" && <ReviewStep {...props} />}
           {current === "submitted" && <DoneStep {...props} />}
+          <PrivacyLink label={m.privacy.open} onOpen={() => setPrivacyOpen(true)} />
         </main>
+        <PrivacySheet
+          open={privacyOpen}
+          onOpenChange={setPrivacyOpen}
+          m={m}
+          language={data.language}
+          orgName={data.organization.name}
+          practice={{
+            data,
+            token,
+            onChanged: () => void api.reload(),
+            onErased: () => {
+              forgetCaseToken(token);
+              setPrivacyOpen(false);
+              setErased(true);
+            },
+          }}
+        />
         <AssistantSheet
           open={assistant.open}
           onOpenChange={(open) => setAssistant((a) => ({ ...a, open }))}

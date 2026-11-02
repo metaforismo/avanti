@@ -211,6 +211,11 @@
       "code": "available",
       "count": 0
     },
+    "retentionOverdue": {
+      "status": "ok",
+      "code": "available",
+      "count": 0
+    },
     "notificationsQueued": {
       "status": "ok",
       "code": "available",

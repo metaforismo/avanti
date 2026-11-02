@@ -66,6 +66,13 @@ export const RATE_POLICIES = {
   // Every original of a case read from storage at once: a handful a minute is a busy desk, a
   // loop over the archive is not.
   archive: { category: "archive", primary: [minute(6), hour(60)], ip: [minute(60)] },
+  // The citizen's copy, erasure and erasure request: a person does each once or twice; every
+  // copy reads all of the case's files from storage.
+  citizenData: {
+    category: "citizenData",
+    primary: [minute(5), hour(20)],
+    ip: [minute(200), hour(2000)],
+  },
 } satisfies Record<string, Policy>;
 function policy(path: string, method: string): Policy | null {
   if (path === "/api/renewals")
@@ -79,6 +86,12 @@ function policy(path: string, method: string): Policy | null {
   if (method === "PUT" && /^\/api\/c\/[^/]+\/renewal-consent$/.test(path))
     return RATE_POLICIES.turn;
   if (method === "PUT" && /^\/api\/c\/[^/]+\/language$/.test(path)) return RATE_POLICIES.language;
+  if (
+    (method === "GET" && /^\/api\/c\/[^/]+\/export$/.test(path)) ||
+    (method === "DELETE" && /^\/api\/c\/[^/]+$/.test(path)) ||
+    (method === "POST" && /^\/api\/c\/[^/]+\/erasure-request$/.test(path))
+  )
+    return RATE_POLICIES.citizenData;
   if (method === "GET" && /^\/api\/cases\/[^/]+\/ai\/(brief|consistency|dsu-prefill)$/.test(path))
     return RATE_POLICIES.copilotRead;
   if (method === "POST" && /^\/api\/cases\/[^/]+\/near-ready\/evaluate$/.test(path))

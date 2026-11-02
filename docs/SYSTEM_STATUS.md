@@ -84,6 +84,7 @@ Le soglie sono operative, non normative, e seguono il cron giornaliero UTC.
 | Pratiche in `needs_citizen` da **più di** 7 giorni | 0                                                       | 1–9                                                          | ≥10                                                                             |
 | Link validi in scadenza entro 7 giorni             | 0                                                       | 1–9                                                          | ≥10                                                                             |
 | Errori API recenti (HTTP 5xx)                      | 0                                                       | 1–4                                                          | ≥5                                                                              |
+| Fascicoli ed eventi audit oltre retention da >2 g  | 0                                                       | 1–24                                                         | ≥25                                                                             |
 | Email con provider `console`                       | Non previsto                                            | `email_simulated` se non ci sono anomalie più gravi          | Come coda/fallimenti; conteggi illeggibili                                      |
 | Email in `pending/sending` da **più di** 1 ora     | 0                                                       | 1–4, `email_backlog`                                         | ≥5, `email_backlog`                                                             |
 | Email definitivamente `failed` nelle ultime 24 h   | 0                                                       | 1–4, `email_failed`                                          | ≥5, `email_failed`                                                              |
@@ -100,6 +101,9 @@ pratiche in attesa si usa l'ultima richiesta al cittadino (`case.requested` o
 fascicoli precedenti senza questi eventi si usa `updatedAt`; anche la scadenza della
 retention dell'audit può imporre questo ripiego. I link conteggiano fascicoli non chiusi,
 con `expiresAt > now` e `<= now + 7 giorni`: quelli già scaduti sono esclusi.
+`retentionOverdue` conta fascicoli del CAF ed eventi audit rimasti più di due giorni oltre il
+proprio periodo: con il cron giornaliero deve restare a zero, altrimenti la pulizia non tiene
+il passo. Un run che esaurisce il budget con lavoro rimasto registra `retention` fallito.
 I conteggi illeggibili sono sempre `null/problem`.
 
 Per la coda email si usa `createdAt < now - 1 ora`, mai l'ultimo retry: a un'ora

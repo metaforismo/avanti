@@ -542,6 +542,8 @@ export function mountCitizenRoutes(app: App, s: Services) {
         const current = await currentCitizenLink(tx, initial, s.clock(), true);
         if (await replayOf(tx, action, s.clock())) throw new ReplayedUpload(current);
         mutableCitizen(current);
+        // Locked until commit: the cleanup claims the same row with SKIP LOCKED, so it can
+        // neither delete this file mid-commit nor be overtaken by a commit after deleting it.
         const [lease] = await tx
           .select()
           .from(storageDeletions)
@@ -550,7 +552,8 @@ export function mountCitizenRoutes(app: App, s: Services) {
               eq(storageDeletions.id, leaseId),
               gt(storageDeletions.nextAttemptAt, s.clock().toISOString()),
             ),
-          );
+          )
+          .for("update");
         if (!lease)
           throw new ApiFailure("conflict", 409, "Il caricamento è scaduto. Riprova il file.");
         const fresh = await citizenView(tx, current, s.clock(), "it", true);

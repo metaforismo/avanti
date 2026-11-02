@@ -5,7 +5,7 @@ import { createApp } from "./app";
 import { ConsoleEmail } from "./email";
 import { MemoryStorage } from "./storage";
 
-it("review: lead personal data survives maintenance after ten years while its outbox payload expires", async () => {
+it("review: a lead stays for two years, its outbox payload expires sooner, then both go", async () => {
   const { db, close } = await createDatabase({ memory: true });
   try {
     let now = new Date("2027-01-15T10:00:00.000Z");
@@ -38,12 +38,13 @@ it("review: lead personal data survives maintenance after ten years while its ou
     expect(before).toMatchObject({ state: "pending", kind: "pilot_lead" });
     expect(before?.envelope).toBeTypeOf("string");
 
-    now = new Date(now.getTime() + 3651 * 86400_000);
+    // Day 729: the payload expired long ago, the application is still there.
+    now = new Date(now.getTime() + 729 * 86400_000);
     const maintenance = await app.request("/api/cron/maintenance", {
       headers: { Authorization: "Bearer review-cron" },
     });
     expect(maintenance.status).toBe(200);
-    expect(await maintenance.json()).toMatchObject({ ok: true, deletedCases: 0 });
+    expect(await maintenance.json()).toMatchObject({ ok: true, deletedCases: 0, deletedLeads: 0 });
     const [retained] = await db.select().from(leads);
     expect(retained).toMatchObject({
       name: input.name,
@@ -60,6 +61,14 @@ it("review: lead personal data survives maintenance after ten years while its ou
         lastError: "payload_expired",
       }),
     ]);
+
+    now = new Date(now.getTime() + 2 * 86400_000);
+    const later = await app.request("/api/cron/maintenance", {
+      headers: { Authorization: "Bearer review-cron" },
+    });
+    expect(await later.json()).toMatchObject({ deletedLeads: 1 });
+    expect(await db.select().from(leads)).toEqual([]);
+    expect(await db.select().from(notifications)).toEqual([]);
   } finally {
     await close();
   }

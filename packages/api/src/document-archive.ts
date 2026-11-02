@@ -3,6 +3,7 @@ import { documentArchiveName, documentArchivePlan } from "@avanti/core";
 import { parse, type App, type Services } from "./context";
 import { audit, caseById, citizenView, loadViewData } from "./dossier";
 import { ApiFailure, hashBytes } from "./security";
+import { safeError } from "./logging";
 import { ArchiveIntegrityError, zipLength, zipStream, type ZipSource } from "./zip";
 
 function attachment(name: string) {
@@ -49,7 +50,7 @@ export function mountDocumentArchive(app: App, s: Services) {
               op: "archive",
               caseId: row.id,
               documentId: document.id,
-              errorName: error instanceof Error ? error.name : "Error",
+              errorName: safeError(error).name,
             });
             throw error;
           }
