@@ -109,7 +109,7 @@ export function IntakeDemo() {
           ))}
         </div>
 
-        <figure className="relative rounded-[1.75rem] bg-surface p-2 shadow-frame ring-1 ring-line">
+        <figure className="card-premium relative rounded-[1.75rem] p-2">
           <div className="rounded-[1.25rem] bg-paper ring-1 ring-line/70">
             <figcaption className="flex items-center justify-between border-b border-line px-4 py-3 text-sm">
               <span className="font-semibold text-ink">CAF di prova · ISEE</span>
@@ -179,7 +179,7 @@ export function IntakeDemo() {
 
           <section
             aria-label="Fascicolo per l'operatore"
-            className="relative overflow-hidden rounded-xl bg-surface shadow-frame ring-1 ring-line"
+            className="card-premium relative overflow-hidden rounded-xl"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line px-5 py-4 pe-28 sm:px-6 sm:pe-32">
               <p className="font-display text-lg font-semibold">Fascicolo per l&apos;operatore</p>

@@ -25,7 +25,7 @@ const NAV = ["Pratiche", "Rinnovi ISEE", "Metriche", "Sportelli e QR"] as const;
  */
 export function DossierPreview() {
   return (
-    <figure className="overflow-hidden rounded-xl bg-paper text-ink shadow-frame ring-1 ring-on-contrast/10">
+    <figure className="card-premium card-premium-dark overflow-hidden rounded-2xl bg-paper text-ink">
       {/* Drawn, not real controls: the whole figure is a picture of the console. */}
       <div
         aria-hidden
@@ -58,7 +58,7 @@ export function DossierPreview() {
               <li
                 key={row.name}
                 className={cn(
-                  "rounded-md px-2.5 py-2 text-sm",
+                  "scroll-compose rounded-md px-2.5 py-2 text-sm",
                   "current" in row && row.current && "bg-stamp-wash ring-1 ring-stamp/20",
                 )}
               >
@@ -101,7 +101,7 @@ export function DossierPreview() {
           </div>
 
           <div className="grid gap-3 p-4 sm:p-5 lg:grid-cols-2">
-            <section className="overflow-hidden rounded-lg bg-surface ring-1 ring-line lg:col-span-2">
+            <section className="scroll-compose overflow-hidden rounded-lg bg-surface ring-1 ring-line lg:col-span-2">
               <p className="flex flex-wrap items-baseline gap-x-2 px-4 pt-3 pb-2 font-display text-lg font-semibold">
                 Da guardare
                 <span className="font-sans text-sm font-normal text-ink-3">
@@ -125,7 +125,7 @@ export function DossierPreview() {
               </div>
             </section>
 
-            <ul className="divide-y divide-line rounded-lg bg-surface text-sm ring-1 ring-line">
+            <ul className="scroll-compose divide-y divide-line rounded-lg bg-surface text-sm ring-1 ring-line">
               {PRESENT.map(([label, note]) => (
                 <li key={label} className="flex items-start gap-2.5 px-4 py-2.5">
                   <Check className="mt-0.5 size-4 shrink-0 text-ok" aria-label="Verificato" />
@@ -137,7 +137,7 @@ export function DossierPreview() {
               ))}
             </ul>
 
-            <div className="grid content-start gap-2 rounded-lg bg-surface p-4 text-sm ring-1 ring-line">
+            <div className="scroll-compose grid content-start gap-2 rounded-lg bg-surface p-4 text-sm ring-1 ring-line">
               <p className="font-semibold">Consegna al gestionale</p>
               <p className="text-ink-2">
                 Prospetto DSU nell&apos;ordine del modello, riepilogo in PDF e originali.

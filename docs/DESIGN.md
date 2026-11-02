@@ -225,14 +225,21 @@ del sito stanno in `components/landing`, gli oggetti di brand in `components/bra
 
 ## Landing
 
-Pubblico e tono in [gtm/pubblico.md](gtm/pubblico.md). Ritmo delle sezioni: hero su carta con
-righe del registro e piano di lavoro con grana → domande dello sportello (bianco) → passaggi
-(carta) → **operatori (scuro)** con la console disegnata → gestionale (bianco) → AI (carta) →
-lingue (bianco) → pratiche con cifre e fonti (carta) → **dati (scuro)** → pilota con modulo
-fisso a lato (incassato) → FAQ → **chiusura (scuro)**. Le immagini del prodotto sono componenti
-disegnati sulle pagine vere, con «Dati inventati» in didascalia: niente screenshot che
-invecchiano, niente illustrazioni generiche, niente loghi o testimonianze finché non ci sono
-clienti veri. Sotto l'hero, quattro fatti verificabili prendono il posto della prova sociale.
+Pubblico e tono in [gtm/pubblico.md](gtm/pubblico.md). **Less is better:** ogni sezione ha un
+titolo forte, al massimo una riga di lead e un'immagine che porta il messaggio; i dettagli stanno
+nelle FAQ chiuse e nelle pagine dedicate. Sequenza: hero centrato con la demo su un piano di lavoro
+→ «Come funziona» con l'immagine fissa che cambia a ogni passaggio (`HowItWorks`) → **operatori
+(scuro)** con la console che si inclina e si compone allo scroll → AI («L'AI propone, l'operatore
+decide») → cifre con fonte e pratiche → **dati (scuro)** in quattro celle → pilota con modulo
+fisso → FAQ → **chiusura (scuro)**. Un solo accento per sezione: blu sul chiaro, giallo sullo
+scuro. Le immagini del prodotto (`card-premium`: bordo di 1 px traslucido, luce in alto, tre
+ombre) sono disegnate sulle pagine vere, con «Dati inventati»; niente loghi né testimonianze
+finché non ci sono clienti veri (lo spiega una FAQ).
+
+Scroll-linked dove il browser supporta le animazioni guidate dallo scroll (`scroll-tilt`,
+`scroll-compose` in `site.css`, ognuna sulla propria `view()` timeline): altrove, o con
+movimento ridotto, l'immagine è semplicemente completa. Nei passaggi i testi non attivi si
+attenuano con il colore (`ink-3`), non con l'opacità, così restano AA.
 
 La demo dell'hero è l'unico momento orchestrato: parte quando è in vista; frase evidenziata →
 fatto nel fascicolo (5 volte), checklist spuntata riga per riga, poi timbro «Consegnato allo

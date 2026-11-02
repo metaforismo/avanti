@@ -55,6 +55,79 @@
     transform-origin: right center;
   }
 
+  /*
+   * Product pictures: a 1px translucent edge, a top highlight and three stacked shadows (contact,
+   * near, far) instead of one blurry one. On dark bands the edge turns light.
+   */
+  .card-premium {
+    background: var(--surface);
+    border-radius: 1rem;
+    box-shadow:
+      0 0 0 1px rgb(20 27 45 / 0.07),
+      inset 0 1px 0 rgb(255 255 255 / 0.7),
+      0 1px 2px rgb(20 27 45 / 0.05),
+      0 8px 16px -6px rgb(20 27 45 / 0.08),
+      0 32px 64px -24px rgb(20 27 45 / 0.22);
+  }
+  .card-premium-dark {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.1),
+      0 1px 2px rgb(0 0 0 / 0.2),
+      0 24px 48px -12px rgb(0 0 0 / 0.45),
+      0 60px 120px -40px rgb(0 0 0 / 0.6);
+  }
+
+  /* A soft light behind a picture: a radial wash, no blur filter to pay for. */
+  .glow {
+    position: relative;
+    isolation: isolate;
+  }
+  .glow::before {
+    content: "";
+    position: absolute;
+    inset: -12% -8%;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      50% 50% at 50% 45%,
+      var(--glow-color, rgb(36 64 179 / 0.12)),
+      transparent 70%
+    );
+  }
+
+  /*
+   * Scroll-linked, where the browser supports scroll-driven animations: each element runs on its
+   * own view timeline, so rows of a picture compose one after another as the page scrolls. Where
+   * it isn't supported, or with reduced motion, the picture is simply complete.
+   */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .scroll-tilt {
+        transform-origin: 50% 0;
+        animation: scroll-tilt linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 35%;
+      }
+      .scroll-compose {
+        animation: scroll-compose linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 30%;
+      }
+    }
+  }
+  @keyframes scroll-tilt {
+    from {
+      opacity: 0.5;
+      transform: perspective(1800px) rotateX(16deg) scale(0.92) translateY(24px);
+    }
+  }
+  @keyframes scroll-compose {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 16px, 0);
+    }
+  }
+
   /* The hero arrives on load, from CSS: it must not wait for hydration. */
   .hero-in {
     animation: site-rise 900ms var(--ease-out-expo) both;
