@@ -37,6 +37,18 @@ function remember(path: string, data: unknown) {
   if (cache.size > CACHE_SIZE) cache.delete(cache.keys().next().value!);
 }
 
+/**
+ * Rewrites cached answers in place (not their order): a change made on one screen shows at once
+ * on another that opens from the cache. `update` returns null to leave an entry as it is.
+ */
+export function updateCached<T>(prefix: string, update: (data: T, path: string) => T | null) {
+  for (const [path, data] of cache) {
+    if (!path.startsWith(prefix)) continue;
+    const next = update(data as T, path);
+    if (next !== null) cache.set(path, next);
+  }
+}
+
 /** Everything an operator's session leaves in this browser goes with it (logout, expiry, login). */
 export function clearResourceCache() {
   cache.clear();
