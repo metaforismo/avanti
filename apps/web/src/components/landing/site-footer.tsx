@@ -1,71 +1,73 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 
+const COLUMNS = [
+  {
+    title: "Prodotto",
+    links: [
+      { href: "/#come-funziona", label: "Come funziona" },
+      { href: "/#operatori", label: "Per gli operatori" },
+      { href: "/#pratiche", label: "Pratiche" },
+      { href: "/#pilota", label: "Pilota 2027" },
+    ],
+  },
+  {
+    title: "Fiducia",
+    links: [
+      { href: "/sicurezza", label: "Sicurezza e dati" },
+      { href: "/privacy", label: "Privacy" },
+      { href: "/accessibilita", label: "Accessibilità" },
+    ],
+  },
+  {
+    title: "Accesso",
+    links: [
+      { href: "/console/accedi", label: "Console operatori" },
+      { href: "/#pilota", label: "Contatti" },
+    ],
+  },
+] as const;
+
 export function SiteFooter() {
   return (
-    <footer className="border-t border-line">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-4 pt-14 pb-12 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div className="col-span-2 md:col-span-1">
+    <footer id="footer" className="border-t border-line bg-surface">
+      <div className="mx-auto grid max-w-6xl gap-x-8 gap-y-12 px-4 pt-16 pb-12 sm:px-6 md:grid-cols-[1.3fr_2fr]">
+        <div>
           <Logo />
           <p className="mt-4 max-w-sm text-ink-2">
             Il front office AI per CAF e patronati. Prepara il lavoro, non sostituisce chi lo fa.
           </p>
         </div>
-        <nav aria-label="Prodotto">
-          <h2 className="text-sm font-semibold text-ink">Prodotto</h2>
-          <ul className="mt-2 grid text-ink-2 [&_a]:inline-flex [&_a]:min-h-10 [&_a]:items-center">
-            <li>
-              <Link className="hover:text-ink" href="/#come-funziona">
-                Come funziona
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:text-ink" href="/#pratiche">
-                Pratiche
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:text-ink" href="/#pilota">
-                Pilota 2027
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:text-ink" href="/console/accedi">
-                Accesso operatori
-              </Link>
-            </li>
-          </ul>
-        </nav>
-        <nav aria-label="Informazioni">
-          <h2 className="text-sm font-semibold text-ink">Informazioni</h2>
-          <ul className="mt-2 grid text-ink-2 [&_a]:inline-flex [&_a]:min-h-10 [&_a]:items-center">
-            <li>
-              <Link className="hover:text-ink" href="/sicurezza">
-                Sicurezza e dati
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:text-ink" href="/privacy">
-                Privacy
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:text-ink" href="/accessibilita">
-                Accessibilità
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:text-ink" href="/#pilota">
-                Contatti
-              </Link>
-            </li>
-          </ul>
-        </nav>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3">
+          {COLUMNS.map((column) => (
+            <nav key={column.title} aria-label={column.title}>
+              <h2 className="type-eyebrow text-ink-3">{column.title}</h2>
+              <ul className="mt-3 grid">
+                {column.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="inline-flex min-h-10 items-center rounded-sm text-ink-2 transition-colors hover:text-ink"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
       </div>
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <p className="border-t border-line py-6 text-sm text-ink-3">
-          Avanti non è un servizio della Pubblica Amministrazione e non è un CAF.
-        </p>
+      <div className="mx-auto max-w-6xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6">
+        <div className="flex flex-col gap-2 border-t border-line pt-6 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between">
+          <p>Avanti non è un servizio della Pubblica Amministrazione e non è un CAF.</p>
+          <p>Gli esempi sul sito usano dati inventati.</p>
+        </div>
+      </div>
+      {/* The wordmark, cut by the page's bottom edge: the last thing on the page is the name.
+          Generated content: it is decoration, not text to read or to check for contrast. */}
+      <div aria-hidden className="mx-auto max-w-6xl overflow-hidden px-4 sm:px-6">
+        <div className="translate-y-[22%] font-display text-[clamp(5rem,19vw,15rem)] leading-none font-bold tracking-[-0.01em] text-sunk [font-stretch:92%] select-none before:content-['Avanti']" />
       </div>
     </footer>
   );
