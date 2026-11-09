@@ -14,6 +14,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { MISSING } from "@/components/ui/missing";
 import { cn } from "@/lib/cn";
 import { spreadsheetRows } from "@/lib/console/spreadsheet-safe";
 import { useResource } from "@/lib/console/use-resource";
@@ -352,7 +353,7 @@ function PrefillProposal({
 const TONES = {
   answer: "bg-ok",
   document: "bg-stamp",
-  missing: "bg-warn",
+  missing: MISSING.operator.dot,
   caf: "bg-ink-3",
 } as const;
 

@@ -41,6 +41,7 @@ import { isTyping, ShortcutsDialog } from "./shortcuts-dialog";
 import { CommandPalette } from "./command-palette";
 import { initialsOf } from "@/lib/console/initials";
 import { useRecentCases } from "@/lib/console/recent-cases";
+import "./console-theme.css";
 import "./motion.css";
 
 type NavItem = {
@@ -311,8 +312,10 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
             </Link>
           </div>
           <div className="grid gap-1.5 px-2.5 pt-3 lg:pt-1">
+            {/* Tinted, not filled: the one filled button on screen belongs to the page. */}
             <Button
               size="sm"
+              variant="tinted"
               className="h-9 w-full justify-start px-2.5"
               onClick={() => setCreating(true)}
             >

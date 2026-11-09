@@ -1,6 +1,7 @@
 import { AlertOctagon, AlertTriangle, ChevronDown, FileQuestion, FileSearch } from "lucide-react";
 import { useId, type ReactNode } from "react";
 import type { CaseDossier, DocumentSummary, Finding } from "@avanti/contracts";
+import { MISSING } from "@/components/ui/missing";
 import { Notice } from "@/components/ui/notice";
 import { cn } from "@/lib/cn";
 
@@ -66,7 +67,10 @@ export function FindingsSummary({
       <ul className="divide-y divide-line bg-surface">
         {missing.length > 0 && (
           <li className="flex gap-3 bg-danger-wash/40 px-5 py-3">
-            <FileQuestion className="mt-0.5 size-4.5 shrink-0 text-danger" aria-hidden />
+            <FileQuestion
+              className={cn("mt-0.5 size-4.5 shrink-0", MISSING.operator.text)}
+              aria-hidden
+            />
             <div className="min-w-0 flex-1">
               <p className="font-semibold">
                 {missing.length === 1

@@ -4,14 +4,17 @@ import { cn } from "@/lib/cn";
 import { Spinner } from "./spinner";
 
 const variants = {
+  // The fill has its own variables: the dark console fills with a deeper blue than the stamp
+  // used for links and text (see components/console/console-theme.css); elsewhere it is stamp.
   primary:
-    "bg-stamp text-on-stamp shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] hover:bg-stamp-hover active:bg-stamp-hover",
-  secondary: "bg-surface text-ink ring-1 ring-line-strong ring-inset hover:bg-sunk",
-  ghost: "text-ink-2 hover:bg-sunk hover:text-ink",
-  danger: "bg-surface text-danger ring-1 ring-danger/30 ring-inset hover:bg-danger-wash",
-  marker: "bg-marker text-ink hover:bg-marker-hover",
+    "bg-[var(--stamp-fill,var(--stamp))] text-[var(--on-stamp-fill,var(--on-stamp))] shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] not-disabled:hover:bg-[var(--stamp-fill-hover,var(--stamp-hover))] not-disabled:active:bg-[var(--stamp-fill-hover,var(--stamp-hover))]",
+  secondary: "bg-surface text-ink ring-1 ring-line-strong ring-inset not-disabled:hover:bg-sunk",
+  ghost: "text-ink-2 not-disabled:hover:bg-sunk not-disabled:hover:text-ink",
+  danger:
+    "bg-surface text-danger ring-1 ring-danger/30 ring-inset not-disabled:hover:bg-danger-wash",
+  marker: "bg-marker text-ink not-disabled:hover:bg-marker-hover",
   // A quiet call to action beside a primary one, or the main one inside a card.
-  tinted: "bg-stamp-wash text-stamp hover:bg-folder active:bg-folder",
+  tinted: "bg-stamp-wash text-stamp not-disabled:hover:bg-folder not-disabled:active:bg-folder",
 } as const;
 
 const sizes = {
@@ -55,7 +58,8 @@ export function Button({
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center font-semibold whitespace-nowrap select-none",
         "transition-[background-color,color,box-shadow,transform] duration-150 ease-(--ease-out)",
-        "active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 aria-busy:cursor-wait",
+        // Disabled reads as off, not as a paler colour: no hover, no press, the not-allowed cursor.
+        "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:saturate-50 disabled:active:scale-100 aria-busy:cursor-wait",
         variants[variant],
         sizes[size],
         className,

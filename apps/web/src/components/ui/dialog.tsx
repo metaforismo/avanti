@@ -15,6 +15,7 @@ export function Dialog({
   returnFocusTo,
   closeLabel = "Chiudi",
   dismissible = true,
+  focusContent = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -28,12 +29,22 @@ export function Dialog({
   closeLabel?: string;
   /** False for content shown once (a temporary password): only its own button closes it. */
   dismissible?: boolean;
+  /**
+   * Focus the sheet itself on open, not its first control: for content to read (a list of
+   * shortcuts), where a ring on the close button looks like a selection.
+   */
+  focusContent?: boolean;
 }) {
   return (
     <Primitive.Root open={open} onOpenChange={onOpenChange}>
       <Primitive.Portal>
         <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim data-[state=closed]:animate-fade-out" />
         <Primitive.Content
+          onOpenAutoFocus={(event) => {
+            if (!focusContent) return;
+            event.preventDefault();
+            (event.currentTarget as HTMLElement).focus();
+          }}
           onEscapeKeyDown={(event) => !dismissible && event.preventDefault()}
           onInteractOutside={(event) => !dismissible && event.preventDefault()}
           onCloseAutoFocus={(event) => {

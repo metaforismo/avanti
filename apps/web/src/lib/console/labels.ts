@@ -5,6 +5,7 @@ import type {
   PracticeId,
   Severity,
 } from "@avanti/contracts";
+import { MISSING } from "@/components/ui/missing";
 
 export const CASE_STATUS: Record<CaseStatus, { label: string; tone: Tone; hint: string }> = {
   submitted: {
@@ -34,13 +35,32 @@ export const STATUS_ORDER: CaseStatus[] = [
 ];
 
 export const CHECKLIST_STATUS: Record<ChecklistStatus, { label: string; tone: Tone }> = {
-  missing: { label: "Mancante", tone: "danger" },
+  missing: { label: "Mancante", tone: MISSING.operator.tone },
   uploaded: { label: "Da verificare", tone: "stamp" },
   issue: { label: "Con problemi", tone: "warn" },
   verified: { label: "Verificato", tone: "ok" },
   rejected: { label: "Rifiutato", tone: "danger" },
   waived: { label: "Non necessario", tone: "muted" },
 };
+
+/**
+ * «Saldo e dati del rapporto · Maria»: the item and whose it is. An account item's title already
+ * ends with the bank's name, and when that name is the person's (demo data, a self-named
+ * account) the suffix would say it twice.
+ */
+export function withMember(item: { title: string; memberName: string | null }, separator = " · ") {
+  const name = memberSuffix(item);
+  return name ? `${item.title}${separator}${name}` : item.title;
+}
+
+/** The person to name after an item's title, or null when the title already ends with it. */
+export function memberSuffix(item: { title: string; memberName: string | null }) {
+  const name = item.memberName?.trim();
+  if (!name) return null;
+  const fold = (value: string) => value.toLocaleLowerCase("it").replace(/\s+/g, " ").trim();
+  const title = fold(item.title);
+  return title.endsWith(`· ${fold(name)}`) || title === fold(name) ? null : name;
+}
 
 /** Items the operator has already decided on: nothing left to check there. */
 export const DECIDED: ReadonlySet<ChecklistStatus> = new Set(["verified", "rejected", "waived"]);
