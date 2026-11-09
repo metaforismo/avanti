@@ -23,6 +23,8 @@ import { Notice } from "@/components/ui/notice";
 import { cn } from "@/lib/cn";
 import { STEP_TITLE_ID, stillToDo } from "@/lib/citizen/view";
 import type { StepProps } from "./citizen-app";
+import { Bidi } from "./bidi";
+import { ItemLabel } from "./item-label";
 import { SaveLinkActions } from "./save-link";
 import { rise } from "./motion";
 
@@ -82,7 +84,8 @@ export function DoneStep({ api, data, m, token }: StepProps) {
             {m.done.reference}
           </dt>
           <dd
-            className="tabular mt-2 font-mono text-[1.75rem] leading-none font-semibold tracking-wide rtl:text-right"
+            // On one line at 320 px too: it is what the citizen reads out at the desk.
+            className="tabular mt-2 font-mono text-[clamp(1.25rem,7.4vw,1.75rem)] leading-none font-semibold tracking-[0.01em] whitespace-nowrap rtl:text-right"
             dir="ltr"
             translate="no"
           >
@@ -99,7 +102,9 @@ export function DoneStep({ api, data, m, token }: StepProps) {
           )}
         />
         <div className="flex items-center gap-4 px-6 py-4">
-          <p className="min-w-0 flex-1 truncate font-semibold">{data.practice?.name}</p>
+          <p className="min-w-0 flex-1 truncate font-semibold">
+            <Bidi text={data.practice?.name ?? ""} />
+          </p>
           <svg viewBox="11 9 9.5 14" aria-hidden className="rtl-flip h-7 w-5 shrink-0">
             <path
               d={CHEVRON_PATH}
@@ -142,12 +147,9 @@ export function DoneStep({ api, data, m, token }: StepProps) {
                 {/* An empty box: something still to do, ticked by the citizen on the way. */}
                 <span
                   aria-hidden
-                  className="mt-0.5 size-5 shrink-0 rounded-md border-[1.5px] border-warn/60 bg-surface"
+                  className="mt-[0.1875rem] size-[1.125rem] shrink-0 rounded-[4px] border-[1.5px] border-line-field bg-surface"
                 />
-                <span dir="auto">
-                  {item.title}
-                  {item.memberName && <span className="text-ink-2"> ({item.memberName})</span>}
-                </span>
+                <ItemLabel item={item} />
               </li>
             ))}
           </ul>
