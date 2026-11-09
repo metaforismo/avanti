@@ -34,3 +34,34 @@ describe("genericChecklistTitle", () => {
     expect(genericChecklistTitle("unknown", "isee_ordinario", {}, "ar")).toBeNull();
   });
 });
+
+describe("checklist titles with a person", () => {
+  const holder = { id: "m1", role: "richiedente" as const, firstName: "Prova" };
+  const named = (bank: string) =>
+    buildChecklist(
+      "isee_ordinario",
+      {
+        members: [holder],
+        household_count: 1,
+        accounts_count: 1,
+        account_owner_0: holder.id,
+        account_bank_0: bank,
+        account_type_0: "deposit",
+      },
+      [holder],
+      "it",
+    ).filter((item) => item.memberId === holder.id && item.requirementId.startsWith("account"));
+
+  it("drops a bank label that is only the holder's name, so the name is said once", () => {
+    const items = named(" prova ");
+    expect(items.map((item) => item.requirementId)).toEqual(["account_balance", "account_average"]);
+    for (const item of items) {
+      expect(item.title).not.toContain("·");
+      expect(item.memberName).toBe("Prova");
+    }
+  });
+
+  it("keeps a real bank next to the title", () => {
+    for (const item of named("Fineco")) expect(item.title).toMatch(/ · Fineco$/);
+  });
+});

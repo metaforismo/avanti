@@ -17,6 +17,13 @@ export function genericChecklistTitle(
   return requirementText(requirementId, language, referenceYearFor(practiceId, answers)).title;
 }
 
+/**
+ * The bank typed for an account is sometimes its holder's name. Every screen already shows the
+ * person next to the title, so the same name in the title read «Saldo · Prova (Prova)».
+ */
+const sameName = (label: string, name: string | null) =>
+  name !== null && label.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase();
+
 export function buildChecklist(
   practiceId: PracticeId,
   answers: Answers,
@@ -43,7 +50,7 @@ export function buildChecklist(
       requirementId,
       group: definition.group,
       ...text,
-      title: text.title + (suffix ? ` · ${suffix}` : ""),
+      title: text.title + (suffix && !sameName(suffix, memberName) ? ` · ${suffix}` : ""),
       required,
       memberId: member?.id ?? null,
       memberName,
