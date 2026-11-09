@@ -21,7 +21,14 @@ test("a citizen downloads a copy and erases a practice never sent", async ({ pag
   await page.goto(`/pratica/${token}`);
   await page.getByRole("button", { name: "I tuoi dati e la privacy" }).click();
   const sheet = page.getByRole("dialog", { name: "I tuoi dati" });
+  // The short answer first: who sees the data and until when, with the two actions under it.
+  await expect(sheet.getByText("CAF Demo Milano", { exact: true })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Scarica la copia" })).toBeInViewport();
+  // The details stay one tap away.
+  await expect(sheet.getByText(/i dati restano ancora \d+ giorni/)).toBeHidden();
+  await sheet.locator("summary", { hasText: "Per quanto tempo" }).click();
   await expect(sheet.getByText(/i dati restano ancora \d+ giorni/)).toBeVisible();
+  await sheet.locator("summary", { hasText: "Cosa conserviamo" }).click();
   await expect(sheet.getByText("Non hai ancora caricato documenti.")).toBeVisible();
 
   const download = page.waitForEvent("download");
