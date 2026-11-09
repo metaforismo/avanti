@@ -187,8 +187,8 @@ export function OperatorsSection() {
                 <span
                   aria-hidden
                   className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-full bg-contrast text-xs font-bold text-on-contrast",
-                    !operator.active && "opacity-40",
+                    "grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold",
+                    operator.active ? "bg-contrast text-on-contrast" : "bg-sunk text-ink-2",
                   )}
                 >
                   {operator.name
