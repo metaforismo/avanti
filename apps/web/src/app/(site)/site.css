@@ -119,6 +119,12 @@
         animation-timeline: view();
         animation-range: entry 10% cover 30%;
       }
+      /* The closing ticket settles into its tilt as the card comes up. */
+      .scroll-ticket {
+        animation: scroll-ticket linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 45%;
+      }
     }
   }
   @keyframes scroll-tilt {
@@ -131,6 +137,195 @@
     from {
       opacity: 0;
       transform: translate3d(0, 16px, 0);
+    }
+  }
+
+  /*
+   * The hero title, word by word: each word rises out of its own line box. The padding gives
+   * descenders, accents and the marker stroke room inside the clip; the negative margin keeps
+   * the layout as if it weren't there.
+   */
+  .hero-word {
+    display: inline-block;
+    overflow: clip;
+    padding: 0.04em 0.12em 0.16em;
+    margin: -0.04em -0.12em -0.16em;
+    vertical-align: top;
+  }
+  .hero-word > span {
+    display: inline-block;
+    animation: word-rise 1100ms var(--ease-out-expo) both;
+    animation-delay: var(--d, 0ms);
+  }
+
+  /*
+   * The stage under the hero: it arrives tilted back, as if laid on the desk, and stands up.
+   * One transform, once; the perspective is part of it so no wrapper flattens the 3D.
+   */
+  .hero-stage {
+    transform-origin: 50% 0;
+    animation: stage-rise 1500ms var(--ease-out-expo) both;
+    animation-delay: var(--d, 0ms);
+  }
+
+  /*
+   * The stage surface: a light from the top edge, a 1px rim brighter on top than at the
+   * bottom, and the faint dot grid of a cutting mat that fades towards the edges.
+   */
+  .stage {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(70% 55% at 50% 0%, rgb(255 255 255 / 0.9), transparent 70%),
+      linear-gradient(180deg, color-mix(in srgb, var(--sunk) 55%, var(--paper)), var(--sunk));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      inset 0 0 0 1px rgb(20 27 45 / 0.06),
+      0 1px 2px rgb(20 27 45 / 0.04),
+      0 40px 80px -40px rgb(20 27 45 / 0.25);
+  }
+  .stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image: radial-gradient(rgb(20 27 45 / 0.13) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+    background-position: 11px 11px;
+    mask-image: radial-gradient(85% 75% at 50% 45%, #000 30%, transparent 85%);
+  }
+
+  /* A very soft wash of the stamp blue and the marker yellow behind the hero title. */
+  .hero-aura {
+    background:
+      radial-gradient(38% 46% at 32% 18%, rgb(36 64 179 / 0.07), transparent 70%),
+      radial-gradient(30% 40% at 70% 22%, rgb(255 228 92 / 0.12), transparent 70%);
+  }
+
+  /*
+   * The hand-off between the citizen's words and the dossier: a short track with the brand
+   * chevron in the middle. Each fact that lands sends a dot along it (keyed in React, so the
+   * animation restarts). Horizontal from lg, vertical when the two pictures are stacked.
+   */
+  .flow-dot {
+    animation: flow-y 620ms var(--ease-in-out) both;
+  }
+  .flow-pulse {
+    animation: flow-pulse 620ms var(--ease-out) both;
+  }
+  @media (width >= 64rem) {
+    .flow-dot {
+      animation-name: flow-x;
+    }
+  }
+  [dir="rtl"] .flow-dot {
+    --flow-dir: -1;
+  }
+  /* The row of the dossier that just got its fact: one flash of the marker, then gone. */
+  .land-flash {
+    animation: land-flash 1100ms var(--ease-out) both;
+  }
+
+  /* Dark bands: light falling from above the section, and a bright hairline on the top edge
+     of the picture, as on glass. */
+  .band-light {
+    background:
+      radial-gradient(60% 50% at 50% 0%, rgb(84 110 230 / 0.28), transparent 70%),
+      radial-gradient(40% 30% at 50% 100%, rgb(84 110 230 / 0.12), transparent 70%);
+  }
+  .closing-light {
+    background:
+      radial-gradient(50% 70% at 50% 120%, rgb(84 110 230 / 0.45), transparent 70%),
+      radial-gradient(40% 50% at 50% -20%, rgb(84 110 230 / 0.16), transparent 70%);
+  }
+  .edge-light {
+    position: relative;
+  }
+  .edge-light::after {
+    content: "";
+    position: absolute;
+    inset-inline: 8%;
+    top: -1px;
+    height: 1px;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.85) 30%,
+      rgb(255 228 92 / 0.9) 50%,
+      rgb(255 255 255 / 0.85) 70%,
+      transparent
+    );
+  }
+
+  /* A rule that draws itself downwards (the pilot calendar). */
+  [data-reveal] .draw-y {
+    transform-origin: center top;
+    transition: transform 1400ms var(--ease-out-expo) 150ms;
+  }
+
+  /* Squares of a 10×10 figure filling one after another (--i is the index). */
+  [data-reveal] .fill-in {
+    transition:
+      opacity 400ms var(--ease-out),
+      transform 500ms var(--ease-out-expo);
+    transition-delay: calc(var(--i, 0) * 9ms + 200ms);
+  }
+
+  /* A stamp pressed when its picture scrolls into view. */
+  [data-revealed] .press-on-reveal {
+    animation: stamp-press 520ms var(--ease-out) 500ms both;
+  }
+
+  /*
+   * A pointer light that follows the cursor across a grid of cells on a dark band. It sits
+   * under the cells, so only the 1px gaps between them light up, plus a faint glow above.
+   * Moved with transform only (spotlight-grid.tsx).
+   */
+  .spotlight {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28rem;
+    height: 28rem;
+    margin: -14rem 0 0 -14rem;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(closest-side, var(--spot, rgb(255 228 92 / 0.55)), transparent);
+    opacity: 0;
+    transition: opacity 300ms var(--ease-out);
+  }
+  [data-spot-on] > .spotlight {
+    opacity: 1;
+  }
+
+  /* Primary CTAs: a soft sheen crosses the button once on hover. */
+  .cta-sheen {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .cta-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      100deg,
+      transparent 30%,
+      rgb(255 255 255 / 0.28) 50%,
+      transparent 70%
+    );
+    transform: translateX(-110%);
+  }
+  @media (hover: hover) {
+    .cta-sheen:hover::after {
+      transform: translateX(110%);
+      transition: transform 800ms var(--ease-out-expo);
     }
   }
 
@@ -188,7 +383,7 @@
     border-radius: 0.06em;
     background: var(--marker);
     transform-origin: left center;
-    animation: marker-draw 800ms var(--ease-out-expo) 600ms both;
+    animation: marker-draw 800ms var(--ease-out-expo) 820ms both;
   }
   [dir="rtl"] .marker-draw::before {
     transform-origin: right center;
@@ -205,6 +400,66 @@
     animation: tick-in 360ms var(--ease-out) both;
   }
 
+  @keyframes word-rise {
+    from {
+      transform: translate3d(0, 108%, 0);
+    }
+  }
+  @keyframes stage-rise {
+    from {
+      opacity: 0;
+      transform: perspective(2400px) translate3d(0, 64px, 0) rotateX(18deg) scale(0.94);
+    }
+  }
+  @keyframes flow-x {
+    from {
+      opacity: 0;
+      transform: translate3d(calc(-2rem * var(--flow-dir, 1)), 0, 0) scale(0.6);
+    }
+    30%,
+    70% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      transform: translate3d(calc(2rem * var(--flow-dir, 1)), 0, 0) scale(0.6);
+    }
+  }
+  @keyframes flow-y {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -1.25rem, 0) scale(0.6);
+    }
+    30%,
+    70% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      transform: translate3d(0, 1.25rem, 0) scale(0.6);
+    }
+  }
+  @keyframes flow-pulse {
+    40% {
+      transform: scale(1.12);
+    }
+  }
+  @keyframes land-flash {
+    from {
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes scroll-ticket {
+    from {
+      transform: translate3d(0, 40px, 0) rotate(18deg);
+    }
+  }
   @keyframes site-rise {
     from {
       opacity: 0;
@@ -243,6 +498,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .hero-word > span,
+    .hero-stage,
     .hero-in,
     .marker-draw::before,
     .stamp-press,
@@ -252,6 +509,15 @@
     }
     html:has(.site) {
       scroll-behavior: auto;
+    }
+    .flow-dot,
+    .flow-pulse,
+    .land-flash {
+      animation: none;
+    }
+    .cta-sheen::after,
+    .spotlight {
+      display: none;
     }
   }
 }

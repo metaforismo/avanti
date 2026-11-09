@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Fragment, type CSSProperties } from "react";
 import {
   ArrowRight,
   BadgeCheck,
   Building2,
+  Check,
   FileArchive,
   FileWarning,
   History,
@@ -18,6 +20,7 @@ import { HowItWorks } from "@/components/landing/how-it-works";
 import { IntakeDemo } from "@/components/landing/intake-demo";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { SectionIntro } from "@/components/landing/section-intro";
+import { SpotlightGrid } from "@/components/landing/spotlight-grid";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -36,6 +39,9 @@ export const metadata: Metadata = {
 const DEMO_OFFICE = process.env.NEXT_PUBLIC_DEMO_OFFICE_SLUG;
 
 /** The three things a CAF manager asks before reading further. */
+/** Split by word: each one rises on its own (site.css, .hero-word). */
+const HERO_TITLE = ["Il", "fascicolo", "arriva", "pronto."] as const;
+
 const HERO_FACTS = [
   "Nessun invio all'INPS",
   "Il CAF resta titolare dei dati",
@@ -180,6 +186,24 @@ function Arrow({ className }: { className?: string }) {
   );
 }
 
+/** «85 out of 100», drawn: a 10×10 figure whose squares fill in order when it comes into view. */
+function HundredGrid({ value }: { value: number }) {
+  return (
+    <span aria-hidden className="mb-2 grid shrink-0 grid-cols-10 gap-[3px] sm:gap-1">
+      {Array.from({ length: 100 }, (_, i) => (
+        <span
+          key={i}
+          className={cn(
+            "size-[7px] rounded-[2px] sm:size-2",
+            i < value ? "fill-in bg-stamp" : "bg-line",
+          )}
+          style={i < value ? ({ "--i": i } as CSSProperties) : undefined}
+        />
+      ))}
+    </span>
+  );
+}
+
 export default function HomePage() {
   return (
     <>
@@ -192,9 +216,13 @@ export default function HomePage() {
       {/* Hero */}
       <section id="hero" aria-labelledby="hero-title" className="relative">
         <div aria-hidden className="ruled pointer-events-none absolute inset-x-0 top-0 h-[44rem]" />
-        <div className="relative mx-auto max-w-6xl px-4 pt-12 pb-20 sm:px-6 lg:pt-20 lg:pb-28">
+        <div
+          aria-hidden
+          className="hero-aura pointer-events-none absolute inset-x-0 top-0 h-[40rem]"
+        />
+        <div className="relative mx-auto max-w-6xl px-4 pt-10 pb-20 sm:px-6 lg:pt-14 lg:pb-28">
           <div className="mx-auto max-w-4xl text-center">
-            <p className="hero-in mx-auto mb-8 inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-surface py-1 ps-1.5 pe-3 text-sm font-semibold text-ink-2 shadow-raised ring-1 ring-line">
+            <p className="hero-in mx-auto mb-8 inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-surface/80 py-1 ps-1.5 pe-3 text-sm font-semibold text-ink-2 shadow-raised ring-1 ring-line">
               <span className="shrink-0 rounded-full bg-stamp-wash px-2 py-0.5 text-xs whitespace-nowrap text-stamp">
                 Pilota ISEE
               </span>
@@ -203,15 +231,27 @@ export default function HomePage() {
                 <span className="hidden sm:inline">Per CAF e patronati, da gennaio 2027</span>
               </span>
             </p>
-            <h1 id="hero-title" className="hero-in font-display type-hero [--d:60ms]">
-              Il fascicolo arriva <span className="marker-draw">pronto.</span>
+            <h1 id="hero-title" className="font-display type-hero">
+              {HERO_TITLE.map((word, i) => (
+                <Fragment key={word}>
+                  {i > 0 && " "}
+                  <span className="hero-word">
+                    <span
+                      className={cn(i === HERO_TITLE.length - 1 && "marker-draw")}
+                      style={{ "--d": `${80 + i * 70}ms` } as CSSProperties}
+                    >
+                      {word}
+                    </span>
+                  </span>
+                </Fragment>
+              ))}
             </h1>
-            <p className="hero-in mx-auto mt-7 max-w-2xl type-lead text-ink-2 [--d:140ms]">
+            <p className="hero-in mx-auto mt-6 max-w-2xl type-lead text-ink-2 [--d:420ms]">
               Il cittadino prepara l&apos;ISEE dal telefono, nella sua lingua. Il vostro operatore
               trova tutto in ordine, con i mancanti in cima.
             </p>
-            <div className="hero-in mt-10 flex flex-col justify-center gap-3 [--d:200ms] sm:flex-row">
-              <Button asChild size="lg" className="group">
+            <div className="hero-in mt-9 flex flex-col justify-center gap-3 [--d:500ms] sm:flex-row">
+              <Button asChild size="lg" className="cta-sheen group">
                 <a href="#pilota">
                   Parliamo del pilota ISEE
                   <Arrow />
@@ -221,16 +261,16 @@ export default function HomePage() {
                 <a href="#come-funziona">Guarda come funziona</a>
               </Button>
             </div>
-            <ul className="hero-in mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-2 [--d:260ms]">
+            <ul className="hero-in mt-7 flex flex-col items-center gap-x-6 gap-y-2 text-sm text-ink-2 [--d:580ms] sm:flex-row sm:flex-wrap sm:justify-center">
               {HERO_FACTS.map((fact) => (
                 <li key={fact} className="flex items-center gap-2">
-                  <span aria-hidden className="size-1.5 rounded-full bg-stamp" />
+                  <Check className="size-3.5 shrink-0 text-stamp" strokeWidth={2.5} aria-hidden />
                   {fact}
                 </li>
               ))}
             </ul>
             {DEMO_OFFICE && (
-              <p className="hero-in mt-5 text-sm text-ink-2 [--d:300ms]">
+              <p className="hero-in mt-5 text-sm text-ink-2 [--d:620ms]">
                 <Link
                   href={`/s/${DEMO_OFFICE}`}
                   className="font-semibold text-stamp underline underline-offset-4"
@@ -242,7 +282,7 @@ export default function HomePage() {
           </div>
 
           {/* The stage: the live example on a desk surface. */}
-          <div className="hero-in grain glow relative mt-16 rounded-[2rem] bg-sunk/70 p-4 ring-1 ring-line [--d:340ms] sm:p-6 lg:mt-20 lg:p-12">
+          <div className="hero-stage stage relative mt-14 rounded-[2rem] p-4 [--d:560ms] sm:p-6 lg:mt-16 lg:p-12">
             <IntakeDemo />
           </div>
         </div>
@@ -272,7 +312,8 @@ export default function HomePage() {
         aria-labelledby="operatori-title"
         className="grain grain-dark relative scroll-mt-16 overflow-hidden bg-contrast text-on-contrast"
       >
-        <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:pt-32">
+        <div aria-hidden className="band-light pointer-events-none absolute inset-0" />
+        <div className="relative mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:pt-32">
           <SectionIntro
             id="operatori-title"
             inverted
@@ -287,13 +328,18 @@ export default function HomePage() {
           >
             {OPERATOR_FEATURES.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-2.5">
-                <Icon className="size-4.5 text-marker" aria-hidden />
+                <span
+                  aria-hidden
+                  className="grid size-8 place-items-center rounded-lg bg-on-contrast/[0.06] ring-1 ring-on-contrast/10"
+                >
+                  <Icon className="size-4 text-marker" />
+                </span>
                 {text}
               </li>
             ))}
           </ul>
           <div className="glow mt-16 [--glow-color:rgb(123_144_255/0.18)] lg:mt-20">
-            <div className="scroll-tilt">
+            <div className="scroll-tilt edge-light">
               <DossierPreview />
             </div>
           </div>
@@ -343,11 +389,14 @@ export default function HomePage() {
             eyebrow="Pratiche"
             title="Si parte dall'ISEE, quando serve di più."
           />
-          <div data-reveal="stagger" className="mt-14 grid gap-10 sm:grid-cols-2 lg:gap-16">
+          <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:gap-16">
             {FACTS.map((fact) => (
-              <p key={fact.value} className="border-t-2 border-ink pt-5">
-                <span className="block font-display text-[clamp(4.5rem,10vw,8rem)] leading-none font-semibold tracking-[-0.01em]">
-                  <CountUp value={fact.value} suffix="%" />
+              <p key={fact.value} data-reveal className="border-t-2 border-ink pt-5">
+                <span className="flex items-end justify-between gap-6">
+                  <span className="block font-display text-[clamp(4.5rem,10vw,8rem)] leading-none font-semibold tracking-[-0.01em]">
+                    <CountUp value={fact.value} suffix="%" />
+                  </span>
+                  <HundredGrid value={fact.value} />
                 </span>
                 <span className="mt-3 block text-xl text-ink">{fact.label}</span>
                 <a
@@ -396,18 +445,28 @@ export default function HomePage() {
             eyebrow="Dati e responsabilità"
             title="Documenti di persone vere, trattati di conseguenza."
           />
-          <dl
-            data-reveal="stagger"
+          <SpotlightGrid
+            as="dl"
             className="mt-14 grid gap-px overflow-hidden rounded-2xl bg-on-contrast/10 sm:grid-cols-2"
           >
-            {DATA_FACTS.map(({ icon: Icon, title, body }) => (
-              <div key={title} className="bg-contrast p-7 sm:p-8">
-                <Icon className="size-5 text-marker" aria-hidden />
+            {DATA_FACTS.map(({ icon: Icon, title, body }, i) => (
+              <div
+                key={title}
+                data-reveal
+                style={{ "--reveal-delay": `${(i % 2) * 80}ms` } as CSSProperties}
+                className="bg-contrast p-7 sm:p-8"
+              >
+                <span
+                  aria-hidden
+                  className="grid size-10 place-items-center rounded-xl bg-on-contrast/[0.06] ring-1 ring-on-contrast/10"
+                >
+                  <Icon className="size-5 text-marker" />
+                </span>
                 <dt className="mt-5 font-display text-xl font-semibold">{title}</dt>
                 <dd className="mt-1.5 text-on-contrast/75">{body}</dd>
               </div>
             ))}
-          </dl>
+          </SpotlightGrid>
           <Link
             href="/sicurezza"
             className="group mt-10 inline-flex min-h-11 items-center gap-2 rounded-sm font-semibold text-marker underline-offset-4 hover:underline focus-visible:outline-marker"
@@ -431,12 +490,16 @@ export default function HomePage() {
               title="Tre sportelli per il picco di gennaio."
               lead="Gratis fino al 31 marzo 2027, intelligenza artificiale inclusa, con volumi concordati prima di partire. Potete fermarvi quando volete."
             />
-            <ol data-reveal="stagger" className="mt-12 grid border-s border-line-strong">
+            <ol data-reveal="stagger" className="relative mt-12 grid">
+              <span
+                aria-hidden
+                className="draw-y absolute inset-y-0 start-0 w-px bg-gradient-to-b from-stamp via-line-strong to-line-strong"
+              />
               {PILOT_TIMELINE.map((step) => (
                 <li key={step.when} className="relative ps-6 pb-7 last:pb-0">
                   <span
                     aria-hidden
-                    className="absolute -start-[5px] top-[7px] size-2.5 rounded-full bg-stamp ring-4 ring-paper"
+                    className="absolute -start-[4.5px] top-[7px] size-2.5 rounded-full bg-stamp ring-4 ring-paper"
                   />
                   <p className="font-semibold text-ink">{step.when}</p>
                   <p className="mt-0.5 text-ink-2">{step.what}</p>
@@ -493,24 +556,27 @@ export default function HomePage() {
       >
         <div
           data-reveal
-          className="grain grain-dark relative rounded-[2rem] bg-contrast px-6 py-16 text-center text-on-contrast sm:px-10 lg:py-24"
+          className="grain grain-dark relative overflow-hidden rounded-[2rem] bg-contrast px-6 py-16 text-center text-on-contrast shadow-[0_40px_80px_-40px_rgb(20_27_45/0.5)] sm:px-10 lg:py-24"
         >
-          <QueueTicket
-            number="A 319"
-            label="Il prossimo"
-            className="absolute end-12 top-10 hidden rotate-[6deg] [--notch:var(--contrast)] lg:inline-flex"
-          />
-          <h2 id="chiusura-title" className="mx-auto max-w-2xl font-display type-section">
+          <div aria-hidden className="closing-light pointer-events-none absolute inset-0 -z-0" />
+          <div className="scroll-ticket absolute end-12 top-10 hidden lg:block">
+            <QueueTicket
+              number="A 319"
+              label="Il prossimo"
+              className="rotate-[6deg] [--notch:var(--contrast)]"
+            />
+          </div>
+          <h2 id="chiusura-title" className="relative mx-auto max-w-2xl font-display type-section">
             Mezz&apos;ora per capire se fa per voi.
           </h2>
-          <p className="mx-auto mt-5 max-w-xl type-lead text-on-contrast/75">
+          <p className="relative mx-auto mt-5 max-w-xl type-lead text-on-contrast/75">
             Una pratica di prova, dall&apos;inizio al vostro gestionale.
           </p>
           <Button
             asChild
             size="lg"
             variant="marker"
-            className="group mt-10 w-full focus-visible:outline-marker sm:w-auto"
+            className="cta-sheen group mt-10 w-full focus-visible:outline-marker sm:w-auto"
           >
             <a href="#pilota">
               Parliamo del pilota ISEE
