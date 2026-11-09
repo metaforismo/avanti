@@ -8,7 +8,7 @@ const HIDDEN = [
   "[data-reveal]:not([data-revealed]),[data-reveal=stagger]:not([data-revealed])>*{opacity:0;transform:translate3d(0,var(--reveal-distance),0)}",
   "[data-reveal=stagger]:not([data-revealed]){opacity:1;transform:none}",
   "[data-reveal]:not([data-revealed]) .draw-x{transform:scaleX(0)}",
-  "[data-reveal]:not([data-revealed]) .draw-y{transform:scaleY(0)}",
+  "[data-reveal]:not([data-revealed]).draw-y::before{transform:scaleY(0)}",
   "[data-reveal]:not([data-revealed]) .fill-in{opacity:0;transform:scale(0.3)}",
   "[data-reveal]:not([data-revealed]) .press-on-reveal{opacity:0}",
 ].join("");

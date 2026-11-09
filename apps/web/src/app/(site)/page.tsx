@@ -232,19 +232,23 @@ export default function HomePage() {
               </span>
             </p>
             <h1 id="hero-title" className="font-display type-hero">
-              {HERO_TITLE.map((word, i) => (
-                <Fragment key={word}>
-                  {i > 0 && " "}
-                  <span className="hero-word">
-                    <span
-                      className={cn(i === HERO_TITLE.length - 1 && "marker-draw")}
-                      style={{ "--d": `${80 + i * 70}ms` } as CSSProperties}
-                    >
-                      {word}
+              {/* Screen readers get one sentence: inline-block words can be read one by one. */}
+              <span className="sr-only">{HERO_TITLE.join(" ")}</span>
+              <span aria-hidden>
+                {HERO_TITLE.map((word, i) => (
+                  <Fragment key={word}>
+                    {i > 0 && " "}
+                    <span className="hero-word">
+                      <span
+                        className={cn(i === HERO_TITLE.length - 1 && "marker-draw")}
+                        style={{ "--d": `${80 + i * 70}ms` } as CSSProperties}
+                      >
+                        {word}
+                      </span>
                     </span>
-                  </span>
-                </Fragment>
-              ))}
+                  </Fragment>
+                ))}
+              </span>
             </h1>
             <p className="hero-in mx-auto mt-6 max-w-2xl type-lead text-ink-2 [--d:420ms]">
               Il cittadino prepara l&apos;ISEE dal telefono, nella sua lingua. Il vostro operatore
@@ -447,7 +451,8 @@ export default function HomePage() {
           />
           <SpotlightGrid
             as="dl"
-            className="mt-14 grid gap-px overflow-hidden rounded-2xl bg-on-contrast/10 sm:grid-cols-2"
+            className="mt-14 overflow-hidden rounded-2xl bg-on-contrast/10"
+            gridClassName="grid gap-px sm:grid-cols-2"
           >
             {DATA_FACTS.map(({ icon: Icon, title, body }, i) => (
               <div
@@ -490,11 +495,7 @@ export default function HomePage() {
               title="Tre sportelli per il picco di gennaio."
               lead="Gratis fino al 31 marzo 2027, intelligenza artificiale inclusa, con volumi concordati prima di partire. Potete fermarvi quando volete."
             />
-            <ol data-reveal="stagger" className="relative mt-12 grid">
-              <span
-                aria-hidden
-                className="draw-y absolute inset-y-0 start-0 w-px bg-gradient-to-b from-stamp via-line-strong to-line-strong"
-              />
+            <ol data-reveal="stagger" className="draw-y relative mt-12 grid">
               {PILOT_TIMELINE.map((step) => (
                 <li key={step.when} className="relative ps-6 pb-7 last:pb-0">
                   <span
