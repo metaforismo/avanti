@@ -14,7 +14,6 @@ import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { useHashTarget } from "@/lib/console/use-hash-target";
 import { useWarnBeforeUnload } from "@/lib/use-warn-before-unload";
-import { cn } from "@/lib/cn";
 import { focusFirstError } from "@/lib/validation";
 
 const LIMITS = {
@@ -80,6 +79,11 @@ function SettingsForm({
   const dirty = state === "dirty";
   useWarnBeforeUnload(dirty);
   const [formError, setFormError] = useState<string | null>(null);
+  useEffect(() => {
+    if (state !== "saved") return;
+    const id = window.setTimeout(() => setState((s) => (s === "saved" ? "idle" : s)), 2500);
+    return () => window.clearTimeout(id);
+  }, [state]);
   // Requiring it before having it would lock the admin out of the console until set up.
   const canRequireMfa = useOperator().mfaEnabled;
 
@@ -155,7 +159,7 @@ function SettingsForm({
       onChange={() => {
         if (state !== "saving") setState(snapshot() === saved.current ? "idle" : "dirty");
       }}
-      className="mt-4 grid gap-7"
+      className="mt-4 grid gap-7 pb-24"
     >
       <SettingGroup title="Pratiche e conservazione">
         <ValueRow
@@ -334,22 +338,44 @@ function SettingsForm({
       </SettingGroup>
 
       {formError && <Notice tone="danger">{formError}</Notice>}
-      {/* Sticky: with the form taller than the screen, saving is always one click away. */}
-      <div className="sticky bottom-0 z-10 -mx-4 flex items-center gap-3 border-t border-line bg-paper px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
-        <Button type="submit" loading={state === "saving"}>
-          Salva parametri
-        </Button>
-        <span
-          role="status"
-          className={cn(
-            "flex items-center gap-1.5 text-sm",
-            state === "saved" ? "text-ok" : "text-ink-3",
-          )}
-        >
-          {state === "saved" && <Check className="size-4 animate-check-in" aria-hidden />}
-          {state === "saved" ? "Salvati" : dirty ? "Modifiche non ancora salvate" : ""}
-        </span>
-      </div>
+      {/* Appears only while there is something to save, and closes itself after «Salvati». The form
+          keeps room below its last row so the bar never sits on top of a setting. */}
+      {state !== "idle" && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex justify-center px-4 pb-[env(safe-area-inset-bottom)] lg:start-56">
+          <div
+            role="status"
+            className="pointer-events-auto flex animate-dock-in items-center gap-3 rounded-lg bg-surface py-2 ps-4 pe-2 shadow-float ring-1 ring-line-strong"
+          >
+            {state === "saved" ? (
+              <span className="flex items-center gap-1.5 py-1.5 pe-2 text-sm font-semibold text-ok">
+                <Check className="size-4 animate-check-in" aria-hidden />
+                Salvati
+              </span>
+            ) : (
+              <>
+                <span className="text-sm text-ink-2">Modifiche non ancora salvate</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={state === "saving"}
+                  onClick={() => {
+                    form.current?.reset();
+                    setErrors({});
+                    setFormError(null);
+                    setState("idle");
+                  }}
+                >
+                  Annulla
+                </Button>
+                <Button type="submit" size="sm" loading={state === "saving"}>
+                  Salva parametri
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </form>
   );
 }

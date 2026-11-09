@@ -176,7 +176,13 @@ function MetricsView() {
 
           <DailyChart daily={data.daily} />
 
-          <div className="grid gap-6 md:grid-cols-2">
+          {/* One or two kinds of practice are a strip, not half a page: side by side only when both lists are long. */}
+          <div
+            className={cn(
+              "grid items-start gap-6",
+              data.byPractice.length >= 4 && "md:grid-cols-2",
+            )}
+          >
             <Breakdown
               title="Per pratica"
               rows={data.byPractice.map((row) => ({
