@@ -26,6 +26,7 @@ import { Composer } from "./composer";
 import type { StepProps } from "./citizen-app";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
 import { QuestionCard } from "./question-card";
+import { rise } from "./motion";
 
 const MIN_LENGTH = 3;
 
@@ -59,16 +60,16 @@ export function NeedStep({ api, data, m, token }: StepProps) {
   }
 
   return (
-    <div className="grid gap-8 pt-2 sm:pt-8">
-      <div className="text-center">
+    <div className="grid gap-7 pt-2 sm:pt-8">
+      <div {...rise(0, "text-center")}>
         <h1
           id={STEP_TITLE_ID}
           tabIndex={-1}
-          className="font-display text-[2.25rem] leading-[1.05] font-bold tracking-[-0.03em] outline-none sm:text-[2.75rem]"
+          className="font-display text-[clamp(1.875rem,10vw,2.375rem)] leading-[1.04] font-bold tracking-[-0.03em] outline-none sm:text-[2.75rem]"
         >
           <label htmlFor={textareaId}>{m.need.title}</label>
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-lg text-ink-2">{m.need.hint}</p>
+        <p className="mx-auto mt-3 max-w-sm text-lg text-ink-2">{m.need.hint}</p>
       </div>
 
       {assistant && (
@@ -80,7 +81,7 @@ export function NeedStep({ api, data, m, token }: StepProps) {
       )}
       {data.nextQuestion && <QuestionCard api={api} question={data.nextQuestion} m={m} />}
 
-      <div className="grid gap-3">
+      <div {...rise(1, "grid gap-3")}>
         <Composer
           token={token}
           language={data.language}
@@ -106,11 +107,11 @@ export function NeedStep({ api, data, m, token }: StepProps) {
         <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
       </div>
 
-      <section aria-labelledby="examples-label">
+      <section aria-labelledby="examples-label" {...rise(2)}>
         <h2 id="examples-label" className="mb-2 px-1 text-sm text-ink-3">
           {m.need.examplesLabel}
         </h2>
-        <ul className="divide-y divide-line overflow-hidden rounded-xl bg-surface ring-1 ring-line">
+        <ul className="divide-y divide-line overflow-hidden rounded-xl bg-surface shadow-raised ring-1 ring-line">
           {m.need.examples.map((example, index) => {
             const Icon = EXAMPLE_ICONS[index % EXAMPLE_ICONS.length]!;
             return (
@@ -119,10 +120,10 @@ export function NeedStep({ api, data, m, token }: StepProps) {
                   type="button"
                   disabled={sending}
                   onClick={() => void send(example)}
-                  className="group flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none active:bg-sunk disabled:opacity-50"
+                  className="group flex min-h-16 w-full items-center gap-3.5 px-4 py-3 text-start transition-[background-color,transform] duration-150 ease-(--ease-out) hover:bg-paper focus-visible:bg-paper focus-visible:outline-none active:scale-[0.985] active:bg-sunk disabled:opacity-50"
                 >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-md bg-stamp-wash text-stamp">
-                    <Icon className="size-4.5" aria-hidden />
+                  <span className="grid size-10 shrink-0 place-items-center rounded-[0.75rem] bg-stamp-wash text-stamp">
+                    <Icon className="size-5" aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1 text-ink">{example}</span>
                   <ArrowUpRight
@@ -136,12 +137,12 @@ export function NeedStep({ api, data, m, token }: StepProps) {
         </ul>
       </section>
 
-      <div ref={listRef} className="scroll-mt-28">
+      <div ref={listRef} className="cz-in scroll-mt-28" style={rise(3).style}>
         <button
           type="button"
           aria-expanded={showList}
           onClick={() => setShowList((v) => !v)}
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-start font-semibold text-stamp ring-1 ring-line transition-colors hover:bg-surface active:bg-stamp-wash"
+          className="flex min-h-14 w-full items-center gap-3 rounded-xl px-4 py-3.5 text-start font-semibold text-stamp ring-1 ring-line transition-[background-color,transform] duration-150 ease-(--ease-out) hover:bg-surface active:scale-[0.985] active:bg-stamp-wash"
         >
           <ListChecks className="size-5 shrink-0" aria-hidden />
           <span className="flex-1">{m.need.pick}</span>

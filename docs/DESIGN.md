@@ -182,14 +182,28 @@ Console e cittadino:
   ⌘K si apre di colpo, il visore cambia documento con le frecce senza transizioni.
 - Un badge di stato si anima solo quando cambia (documento caricato, voce verificata), non
   all'apertura della pagina (`components/ui/use-changed.ts`).
-- Passaggi del cittadino (`animate-step-in`, 320 ms): il passo successivo sale di 12 px, tornare
-  indietro lo fa scendere dall'alto (`--step-dir`). Verticale di proposito: uno slittamento
-  laterale manda la pagina del telefono in scorrimento orizzontale per tutta la sua durata.
-  Il contenitore che si anima sposta anche i figli `fixed`: le barre in basso dei passaggi
-  vanno in un portale (`createPortal` su `body`) con `lang` e `dir` propri.
-- Conferme (`animate-check-in`, 420 ms con un piccolo rimbalzo): la spunta di una voce pronta,
-  della lingua scelta, del passo inviato. Il biglietto con il codice pratica entra con
-  `animate-ticket-in` (560 ms), una volta.
+- Passaggi del cittadino (`citizen.css`, caricato solo dal flusso del cittadino): il passo entra
+  con una dissolvenza (`cz-step`, 180 ms) e i suoi blocchi salgono di 14 px uno dopo l'altro
+  (`cz-in`, 420 ms, 55 ms tra l'uno e l'altro, al massimo sei: `rise(i)` in `motion.ts`).
+  Tornare indietro li fa scendere dall'alto (`--step-dir`). Verticale di proposito: uno
+  slittamento laterale manda la pagina del telefono in scorrimento orizzontale per tutta la sua
+  durata. Il contenitore che si anima sposta anche i figli `fixed`: le barre in basso dei passaggi
+  vanno in un portale (`createPortal` su `body`) con `lang` e `dir` propri. Con movimento ridotto
+  restano solo 150 ms di dissolvenza, senza ritardi.
+- Conferme: `cz-pop` (460 ms, piccolo rimbalzo) con `cz-ring`, un anello che esce dal segno una
+  volta sola (scala e opacità, colore da `--cz-ring-color`): la voce che diventa pronta, la
+  pratica inviata. Il biglietto con il codice entra con `cz-ticket` (640 ms, si assesta con una
+  piccola rotazione). Un segno che c'era già all'apertura non si anima (`useChanged`).
+- Fogli (`components/citizen/sheet.tsx`, `sheet-drag.ts`): sul telefono salgono dal bordo (340 ms,
+  `--ease-drawer`) e seguono il dito 1:1 verso il basso dalla maniglia o dal titolo, mai dal
+  contenuto che scorre; al rilascio si chiudono per distanza (> 110 px) o velocità (> 0,6 px/ms),
+  altrimenti tornano su con una molla di 320 ms; verso l'alto la resistenza è 1/6. Niente
+  render per movimento: la `transform` si scrive sull'elemento. Da `sm` il foglio è una scheda al
+  centro e non si trascina. Il pannello dell'assistente si chiude allo stesso modo dalla barra del
+  titolo.
+- Caricamento foto: la miniatura è la foto scattata (URL locale, revocato a fine caricamento)
+  sotto un velo che si alza con l'avanzamento, poi uno spinner mentre Avanti la legge; PDF e HEIC
+  mostrano l'icona del file.
 - Console: niente entrate di pagina, transizioni di colore a 100 ms su voci e righe. Tutto il
   resto sotto 200 ms.
 
@@ -238,18 +252,26 @@ del sito stanno in `components/landing`, gli oggetti di brand in `components/bra
 Un'app, non un sito: un compito per schermo, l'azione principale sotto il pollice, nessun
 paragrafo che ripete il titolo.
 
-| Pattern                 | Dove                            | Regola                                                                                                                             |
-| ----------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Barra d'azione in basso | sportello («Inizia»), documenti | `fixed`, `shadow-dock`, `env(safe-area-inset-bottom)`; il contenuto lascia `pb-32/40`; dentro il `<form>` se invia                 |
-| Controlli dell'header   | aiuto, lingua                   | Pillole piene (`bg-stamp-wash` / `bg-sunk`) alte 44 px, scendono a 0,96; padding superiore con `safe-area-inset-top`               |
-| Avanzamento             | header dei passaggi             | Tre segmenti; il riempimento cresce da `origin-left` (`rtl:origin-right`) con `scale-x`, verde per i passi fatti                   |
-| Scelta a pillola        | lingua dello sportello          | Stato letto dal radio (`has-checked:`), non da React: la scelta fatta prima dell'idratazione si vede; spunta a fine riga           |
-| Voce della checklist    | documenti                       | Segno tondo a inizio scheda (tratteggiato da fare, pieno `ok` pronto, `warn` da rivedere) + riga di stato colorata sotto il titolo |
-| Caricamento             | voce della checklist            | Sul telefono «Scatta una foto» `tinted` e «Scegli un file» neutro, alti 48 px; col mouse solo «Carica» `tinted`                    |
-| Biglietto della pratica | inviata                         | Fondo `stamp`, tacche `paper`, freccia `marker` a fine riga (specchiata in RTL), codice in mono `dir="ltr"`                        |
-| Mancanti da portare     | inviata                         | Caselle vuote, non puntini: sono cose ancora da fare                                                                               |
-| Bolla del cittadino     | conversazione, aiuto            | `bg-stamp`, angolo d'origine stretto (`rounded-ee-md`), cresce da quell'angolo; la risposta dell'assistente resta testo semplice   |
-| Foglio                  | dialoghi sul telefono           | Maniglia di 40 × 6 px in alto (`sm:hidden`); argomenti separati da filetti, non da spazio                                          |
+| Pattern                  | Dove                             | Regola                                                                                                                                   |
+| ------------------------ | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Barra d'azione in basso  | sportello («Inizia»), documenti  | `fixed`, `shadow-dock`, `env(safe-area-inset-bottom)`; il contenuto lascia `pb-32/40`; dentro il `<form>` se invia                       |
+| Controlli dell'header    | aiuto, lingua                    | Pillole piene (`bg-stamp-wash` / `bg-sunk`) alte 44 px, scendono a 0,96; padding superiore con `safe-area-inset-top`                     |
+| Avanzamento              | header dei passaggi              | Tre segmenti; il riempimento cresce da `origin-left` (`rtl:origin-right`) con `scale-x`, verde per i passi fatti                         |
+| Scelta a pillola         | lingua dello sportello           | Stato letto dal radio (`has-checked:`), non da React: la scelta fatta prima dell'idratazione si vede; spunta a fine riga                 |
+| Voce della checklist     | documenti                        | Segno tondo a inizio scheda (tratteggiato da fare, pieno `ok` pronto, `warn` da rivedere) + riga di stato colorata sotto il titolo       |
+| Caricamento              | voce della checklist             | Sul telefono «Scatta una foto» `tinted` e «Scegli un file» neutro, alti 48 px; col mouse solo «Carica» `tinted`                          |
+| Biglietto della pratica  | inviata                          | Fondo `stamp`, tacche `paper`, freccia `marker` a fine riga (specchiata in RTL), codice in mono `dir="ltr"`                              |
+| Mancanti da portare      | inviata                          | Caselle vuote, non puntini: sono cose ancora da fare                                                                                     |
+| Bolla del cittadino      | conversazione, aiuto             | `bg-stamp`, angolo d'origine stretto (`rounded-ee-md`), cresce da quell'angolo; la risposta dell'assistente resta testo semplice         |
+| Foglio                   | dialoghi sul telefono            | Maniglia di 40 × 6 px, raggio 28 px, trascinabile verso il basso (vedi Motion); argomenti separati da filetti, non da spazio             |
+| Profondità               | tutto il flusso                  | Ciò che aspetta il cittadino si solleva (`bg-surface` + `shadow-raised`, raggio `xl`); ciò che è fatto resta piatto (solo anello `line`) |
+| Piastrella icona         | sportello, riepilogo, inviata    | 40 px, raggio 12 px, fondo `stamp-wash` e icona `stamp` (`ok-wash` per la privacy): sostituisce i punti elenco                           |
+| Scelta con segno         | domande                          | Cerchio a inizio riga che si riempie con la spunta (`aria-pressed`); Sì/No sono due tasti affiancati alti 64 px; più risposte: casella   |
+| Spiegazioni dopo i tasti | domande                          | «Perché te lo chiediamo» e «Chiedi all'assistente» stanno sotto le risposte: il pollice arriva prima ai tasti                            |
+| Sezione per persona      | documenti                        | Iniziale in un cerchio `folder`, nome, contatore a pillola (`ok-wash` con spunta quando la persona è a posto)                            |
+| Foto in arrivo           | documenti                        | Miniatura reale con velo e avanzamento, vedi Motion                                                                                      |
+| Biglietto con strappo    | inviata                          | Due metà separate da una linea tratteggiata con le due tacche; sopra il codice, sotto la pratica e la freccia; ombra del colore `stamp`  |
+| Identità dello sportello | intestazione dei passi, ingresso | Nome del CAF su due righe al massimo (mai troncato con «…»); all'ingresso anche l'iniziale su un quadrato scuro                          |
 
 ### Console
 

@@ -144,7 +144,7 @@ export function Composer({
           if (event.target === event.currentTarget) field.current?.focus();
         }}
         className={cn(
-          "grid rounded-xl bg-surface shadow-raised ring-1 ring-line-strong transition-shadow",
+          "grid rounded-[1.375rem] bg-surface shadow-raised ring-1 ring-line-strong transition-shadow",
           "focus-within:ring-2 focus-within:ring-stamp/60",
           invalid && "ring-2 ring-danger/70",
           recording && "ring-2 ring-danger",
@@ -202,7 +202,7 @@ export function Composer({
               aria-pressed={recording}
               aria-label={recording ? m.conversation.stop : m.conversation.speak}
               className={cn(
-                "grid size-11 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none disabled:opacity-50",
+                "grid size-11 shrink-0 place-items-center rounded-full transition-[background-color,color,transform] duration-150 ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none active:scale-[0.9] disabled:opacity-50",
                 recording
                   ? "bg-danger-wash text-danger"
                   : "text-ink-2 hover:bg-sunk hover:text-ink",
@@ -222,8 +222,8 @@ export function Composer({
             disabled={busy || recording || transcribing}
             aria-label={sendLabel ?? m.conversation.send}
             className={cn(
-              "grid size-11 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none disabled:cursor-not-allowed",
-              empty ? "bg-sunk text-ink-3" : "bg-contrast text-on-contrast hover:opacity-90",
+              "grid size-11 shrink-0 place-items-center rounded-full transition-[background-color,color,transform] duration-150 ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none active:scale-[0.9] disabled:cursor-not-allowed",
+              empty ? "bg-sunk text-ink-3" : "bg-stamp text-on-stamp hover:bg-stamp-hover",
             )}
           >
             {busy ? <Spinner className="size-5" /> : <ArrowUp className="size-5" aria-hidden />}
