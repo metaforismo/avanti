@@ -335,9 +335,9 @@ function Queue() {
               title={CASE_STATUS[key].hint}
               onClick={() => setParam("stato", key === "submitted" ? "" : key)}
               className={cn(
-                "flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm transition-colors",
+                "flex h-8 shrink-0 items-center gap-2 rounded-sm px-3 text-sm transition-colors duration-100",
                 active
-                  ? "bg-contrast font-semibold text-on-contrast"
+                  ? "bg-surface font-semibold text-ink shadow-[0_1px_2px_rgb(20_27_45/0.08)] ring-1 ring-line"
                   : "text-ink-2 hover:bg-sunk hover:text-ink",
               )}
             >
@@ -345,12 +345,12 @@ function Queue() {
               {count !== undefined && (
                 <span
                   className={cn(
-                    "tabular min-w-5 rounded-full px-1.5 text-center text-xs",
-                    active
-                      ? "bg-on-contrast/20"
-                      : key === "submitted" && count > 0
-                        ? "bg-stamp text-on-stamp"
-                        : "bg-sunk",
+                    "tabular min-w-5 rounded-full px-1.5 text-center text-xs font-medium",
+                    key === "submitted" && count > 0
+                      ? "bg-stamp text-on-stamp"
+                      : active
+                        ? "bg-sunk text-ink-2"
+                        : "text-ink-3",
                   )}
                 >
                   {count}
@@ -511,7 +511,12 @@ function Queue() {
           )
         ) : (
           <>
-            <div className={cn("flex items-center text-xs text-ink-3 md:pb-2", admin && "pb-2")}>
+            <div
+              className={cn(
+                "flex items-center text-xs font-medium text-ink-3 md:pb-1.5",
+                admin && "pb-1.5",
+              )}
+            >
               {admin && (
                 <SelectAll
                   checked={allSelected}
@@ -543,7 +548,7 @@ function Queue() {
                 </span>
               )}
             </div>
-            <ul className="divide-y divide-line overflow-hidden rounded-lg bg-surface ring-1 ring-line">
+            <ul className="divide-y divide-line overflow-hidden rounded-md bg-surface ring-1 ring-line">
               {items.map((item) => (
                 <QueueRow
                   key={item.id}
@@ -675,15 +680,21 @@ function QueueRow({
         onPointerEnter={prefetch}
         onFocus={prefetch}
         className={cn(
-          "grid min-w-0 flex-1 gap-x-4 gap-y-2 px-4 py-3.5 focus-visible:outline-offset-[-2px] md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] md:items-center xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]",
+          "grid min-w-0 flex-1 gap-x-4 gap-y-2 px-4 py-3 focus-visible:outline-offset-[-2px] md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] md:items-center xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]",
           selection && "ps-1",
         )}
       >
         <span className="min-w-0">
-          <span className="block truncate font-semibold" title={item.citizenName ?? undefined}>
-            {item.citizenName ?? "Cittadino senza nome"}
+          {/* The AI's suggestion sits by the name: the name yields (truncates), the hint stays. */}
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate font-semibold" title={item.citizenName ?? undefined}>
+              {item.citizenName ?? "Cittadino senza nome"}
+            </span>
+            {item.aiPriority && <PriorityBadge item={item} />}
           </span>
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-ink-3">
+          {/* One meta line: reference, language, wait and flags side by side, wrapping only
+              when the column is narrow. The row stays one height across the queue. */}
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-3">
             <span className="font-mono text-xs whitespace-nowrap" translate="no">
               {item.reference}
             </span>
@@ -696,22 +707,21 @@ function QueueRow({
             {item.waiting && !item.waiting.overdue && (
               <span className="whitespace-nowrap">in attesa {waitingSince(item.waiting.days)}</span>
             )}
-          </span>
-          {item.waiting?.overdue && (
-            <span title="Nessuno l'ha presa in carico da più di 2 giorni lavorativi">
-              <Pill tone="warn" className="mt-1 w-fit">
-                <Clock aria-hidden />
-                In attesa {waitingSince(item.waiting.days)}
+            {item.waiting?.overdue && (
+              <span title="Nessuno l'ha presa in carico da più di 2 giorni lavorativi">
+                <Pill tone="warn">
+                  <Clock aria-hidden />
+                  In attesa {waitingSince(item.waiting.days)}
+                </Pill>
+              </span>
+            )}
+            {item.erasureRequestedAt && (
+              <Pill tone="danger">
+                Chiede la cancellazione · entro il{" "}
+                {formatDeadline(erasureDeadline(item.erasureRequestedAt))}
               </Pill>
-            </span>
-          )}
-          {item.erasureRequestedAt && (
-            <Pill tone="danger" className="mt-1 w-fit">
-              Chiede la cancellazione · entro il{" "}
-              {formatDeadline(erasureDeadline(item.erasureRequestedAt))}
-            </Pill>
-          )}
-          {item.aiPriority && <PriorityBadge item={item} />}
+            )}
+          </span>
         </span>
         <span className="min-w-0 text-body-sm">
           <span className="sr-only">Pratica: </span>
@@ -738,27 +748,27 @@ function QueueRow({
             {documentsDone}/{documentsRequired}
           </span>
         </span>
-        <span className="flex items-center gap-1.5 text-sm">
+        <span className="flex items-center gap-3 text-sm">
           {item.blockers > 0 && (
             <span
               title={
                 item.blockers === 1 ? "1 problema bloccante" : `${item.blockers} problemi bloccanti`
               }
             >
-              <Pill tone="danger" size="sm" className="py-0.5">
-                <AlertOctagon aria-hidden />
+              <span className="tabular inline-flex items-center gap-1 font-medium text-danger">
+                <AlertOctagon className="size-3.5" aria-hidden />
                 {item.blockers}
                 <span className="sr-only">bloccanti</span>
-              </Pill>
+              </span>
             </span>
           )}
           {item.warnings > 0 && (
             <span title={item.warnings === 1 ? "1 avviso" : `${item.warnings} avvisi`}>
-              <Pill tone="warn" size="sm" className="py-0.5">
-                <AlertTriangle aria-hidden />
+              <span className="tabular inline-flex items-center gap-1 font-medium text-warn">
+                <AlertTriangle className="size-3.5" aria-hidden />
                 {item.warnings}
                 <span className="sr-only">avvisi</span>
-              </Pill>
+              </span>
             </span>
           )}
           {item.blockers === 0 && item.warnings === 0 && <span className="text-ok">Nessuno</span>}
@@ -809,7 +819,7 @@ function PriorityBadge({ item }: { item: CaseListItem }) {
         ? CheckCheck
         : Sparkles;
   return (
-    <Pill tone={PRIORITY[key].tone} className="mt-1 w-fit whitespace-normal">
+    <Pill tone={PRIORITY[key].tone} className="min-w-0 shrink truncate">
       <Icon aria-hidden />
       {PRIORITY[key].badge}
       {key === "attention" && item.aiAttention ? `: ${item.aiAttention}` : ""}

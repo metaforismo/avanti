@@ -10,6 +10,8 @@ const variants = {
   ghost: "text-ink-2 hover:bg-sunk hover:text-ink",
   danger: "bg-surface text-danger ring-1 ring-danger/30 ring-inset hover:bg-danger-wash",
   marker: "bg-marker text-ink hover:bg-marker-hover",
+  // A quiet call to action beside a primary one, or the main one inside a card.
+  tinted: "bg-stamp-wash text-stamp hover:bg-folder active:bg-folder",
 } as const;
 
 const sizes = {

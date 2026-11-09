@@ -12,11 +12,13 @@ import {
   Phone,
 } from "lucide-react";
 import { useState } from "react";
+import { CHEVRON_PATH } from "@/components/brand/mark";
 import { officePlace } from "@/lib/office-place";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiFetch } from "@/lib/api";
 import { Notice } from "@/components/ui/notice";
+import { cn } from "@/lib/cn";
 import { STEP_TITLE_ID, stillToDo } from "@/lib/citizen/view";
 import type { StepProps } from "./citizen-app";
 import { SaveLinkActions } from "./save-link";
@@ -37,7 +39,7 @@ export function DoneStep({ api, data, m, token }: StepProps) {
   return (
     <div className="grid gap-8 pt-4">
       <div>
-        <span className="grid size-16 animate-pop place-items-center rounded-full bg-ok text-white">
+        <span className="grid size-16 animate-check-in place-items-center rounded-full bg-ok text-white shadow-[0_10px_24px_-12px_var(--ok)]">
           <Check className="size-8" strokeWidth={2.5} aria-hidden />
         </span>
         <h1
@@ -51,16 +53,42 @@ export function DoneStep({ api, data, m, token }: StepProps) {
         {statusLine && <Notice tone="info" size="md" title={statusLine} className="mt-3" />}
       </div>
 
-      <dl className="rounded-lg bg-surface p-5 ring-1 ring-line">
-        <dt className="text-sm text-ink-3">{m.done.reference}</dt>
-        <dd
-          className="mt-1 font-mono text-2xl font-semibold tracking-wide"
-          dir="ltr"
-          translate="no"
-        >
-          {data.reference}
-        </dd>
-        {data.practice && <dd className="mt-1 text-ink-2">{data.practice.name}</dd>}
+      {/* The reference as the paper ticket taken at the desk: what the citizen shows there. */}
+      <dl
+        className={cn(
+          "relative animate-ticket-in overflow-hidden rounded-[14px] bg-stamp px-6 py-5 text-on-stamp shadow-raised [animation-delay:120ms]",
+          // The two half-moon notches of a tear-off ticket, cut by the paper behind it.
+          "before:absolute before:-start-2.5 before:top-1/2 before:size-5 before:-translate-y-1/2 before:rounded-full before:bg-paper",
+          "after:absolute after:-end-2.5 after:top-1/2 after:size-5 after:-translate-y-1/2 after:rounded-full after:bg-paper",
+        )}
+      >
+        <div className="flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <dt className="text-xs font-semibold tracking-[0.12em] uppercase opacity-80">
+              {m.done.reference}
+            </dt>
+            <dd
+              className="tabular mt-1.5 font-mono text-[1.625rem] leading-none font-semibold tracking-wide rtl:text-right"
+              dir="ltr"
+              translate="no"
+            >
+              {data.reference}
+            </dd>
+            {data.practice && (
+              <dd className="mt-2 text-body-sm opacity-85">{data.practice.name}</dd>
+            )}
+          </div>
+          <svg viewBox="11 9 9.5 14" aria-hidden className="rtl-flip h-12 w-8 shrink-0 opacity-90">
+            <path
+              d={CHEVRON_PATH}
+              fill="none"
+              stroke="var(--marker)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
       </dl>
 
       {data.office?.bookingUrl && (
@@ -83,10 +111,14 @@ export function DoneStep({ api, data, m, token }: StepProps) {
             <FileWarning className="mt-0.5 size-5 shrink-0 text-warn" aria-hidden />
             {m.done.bringMissing}
           </h2>
-          <ul className="mt-2 grid gap-1.5">
+          <ul className="mt-3 grid gap-2">
             {missing.map((item) => (
-              <li key={item.id} className="flex gap-2">
-                <span aria-hidden>•</span>
+              <li key={item.id} className="flex gap-3">
+                {/* An empty box: something still to do, ticked by the citizen on the way. */}
+                <span
+                  aria-hidden
+                  className="mt-1 size-4 shrink-0 rounded-xs border-[1.5px] border-warn/60 bg-surface"
+                />
                 <span dir="auto">
                   {item.title}
                   {item.memberName && <span className="text-ink-2"> ({item.memberName})</span>}

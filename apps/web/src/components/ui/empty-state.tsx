@@ -19,13 +19,18 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "grid place-items-center rounded-lg border-2 border-dashed border-line px-6 py-14 text-center",
+        "grid animate-fade-in place-items-center rounded-lg bg-surface/60 px-6 py-16 text-center ring-1 ring-line",
         className,
       )}
     >
-      {Icon && <Icon className="size-8 text-ink-3" aria-hidden />}
-      <p className={cn("text-lg font-semibold", Icon && "mt-4")}>{title}</p>
-      {children && <div className="mt-1 max-w-sm text-ink-2">{children}</div>}
+      {/* The icon on a small raised tile, like an object left on the desk. */}
+      {Icon && (
+        <span className="grid size-12 place-items-center rounded-md bg-surface text-ink-3 shadow-raised ring-1 ring-line">
+          <Icon className="size-5.5" aria-hidden />
+        </span>
+      )}
+      <p className={cn("text-base font-semibold", Icon && "mt-5")}>{title}</p>
+      {children && <div className="mt-1 max-w-sm text-body-sm text-ink-3">{children}</div>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );

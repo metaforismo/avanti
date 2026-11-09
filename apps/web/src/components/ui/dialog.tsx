@@ -48,6 +48,11 @@ export function Dialog({
             className,
           )}
         >
+          {/* The grabber of a phone sheet: says "this came up from below" at a glance. */}
+          <div
+            aria-hidden
+            className="mx-auto -mt-3 mb-4 h-1.5 w-10 rounded-full bg-line sm:hidden"
+          />
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <Primitive.Title className="font-display text-2xl font-semibold tracking-[-0.015em]">

@@ -182,6 +182,16 @@ Console e cittadino:
   ⌘K si apre di colpo, il visore cambia documento con le frecce senza transizioni.
 - Un badge di stato si anima solo quando cambia (documento caricato, voce verificata), non
   all'apertura della pagina (`components/ui/use-changed.ts`).
+- Passaggi del cittadino (`animate-step-in`, 320 ms): il passo successivo sale di 12 px, tornare
+  indietro lo fa scendere dall'alto (`--step-dir`). Verticale di proposito: uno slittamento
+  laterale manda la pagina del telefono in scorrimento orizzontale per tutta la sua durata.
+  Il contenitore che si anima sposta anche i figli `fixed`: le barre in basso dei passaggi
+  vanno in un portale (`createPortal` su `body`) con `lang` e `dir` propri.
+- Conferme (`animate-check-in`, 420 ms con un piccolo rimbalzo): la spunta di una voce pronta,
+  della lingua scelta, del passo inviato. Il biglietto con il codice pratica entra con
+  `animate-ticket-in` (560 ms), una volta.
+- Console: niente entrate di pagina, transizioni di colore a 100 ms su voci e righe. Tutto il
+  resto sotto 200 ms.
 
 Sito pubblico (`app/(site)/site.css`, caricato solo lì):
 
@@ -222,6 +232,37 @@ del sito stanno in `components/landing`, gli oggetti di brand in `components/bra
 | FAQ                         | `details` nativo                                      | Risposta che sale all'apertura, icona + che ruota di 45° e si riempie di `stamp`                                                                   |
 | Numeri con fonte            | `CountUp`                                             | Il server scrive il valore finale; conta solo se arriva da sotto la piega; fonte linkata sotto                                                     |
 | Focus                       | globale                                               | Contorno `stamp` di 2 px a 2 px di distanza; su fondo scuro `outline-marker`                                                                       |
+
+### Cittadino
+
+Un'app, non un sito: un compito per schermo, l'azione principale sotto il pollice, nessun
+paragrafo che ripete il titolo.
+
+| Pattern                 | Dove                            | Regola                                                                                                                             |
+| ----------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Barra d'azione in basso | sportello («Inizia»), documenti | `fixed`, `shadow-dock`, `env(safe-area-inset-bottom)`; il contenuto lascia `pb-32/40`; dentro il `<form>` se invia                 |
+| Controlli dell'header   | aiuto, lingua                   | Pillole piene (`bg-stamp-wash` / `bg-sunk`) alte 44 px, scendono a 0,96; padding superiore con `safe-area-inset-top`               |
+| Avanzamento             | header dei passaggi             | Tre segmenti; il riempimento cresce da `origin-left` (`rtl:origin-right`) con `scale-x`, verde per i passi fatti                   |
+| Scelta a pillola        | lingua dello sportello          | Stato letto dal radio (`has-checked:`), non da React: la scelta fatta prima dell'idratazione si vede; spunta a fine riga           |
+| Voce della checklist    | documenti                       | Segno tondo a inizio scheda (tratteggiato da fare, pieno `ok` pronto, `warn` da rivedere) + riga di stato colorata sotto il titolo |
+| Caricamento             | voce della checklist            | Sul telefono «Scatta una foto» `tinted` e «Scegli un file» neutro, alti 48 px; col mouse solo «Carica» `tinted`                    |
+| Biglietto della pratica | inviata                         | Fondo `stamp`, tacche `paper`, freccia `marker` a fine riga (specchiata in RTL), codice in mono `dir="ltr"`                        |
+| Mancanti da portare     | inviata                         | Caselle vuote, non puntini: sono cose ancora da fare                                                                               |
+| Bolla del cittadino     | conversazione, aiuto            | `bg-stamp`, angolo d'origine stretto (`rounded-ee-md`), cresce da quell'angolo; la risposta dell'assistente resta testo semplice   |
+| Foglio                  | dialoghi sul telefono           | Maniglia di 40 × 6 px in alto (`sm:hidden`); argomenti separati da filetti, non da spazio                                          |
+
+### Console
+
+Il riferimento è Linear: tante pratiche al giorno, la gerarchia la fa il peso, non il colore.
+
+| Pattern          | Dove                    | Regola                                                                                                                           |
+| ---------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Barra laterale   | `ConsoleShell`          | 14 rem, voci alte 36 px in `text-sm`; attiva su `bg-sunk` con l'icona `stamp`, le altre icone `ink-3`                            |
+| Schede di stato  | coda                    | Segmenti alti 32 px; l'attiva è una scheda `surface` con anello `line`, mai invertita; il conteggio da revisionare resta `stamp` |
+| Riga della coda  | coda                    | Nome + suggerimento AI sulla stessa riga (il nome si tronca), poi una sola riga di metadati con codice, lingua, attesa e avvisi  |
+| Problemi         | coda                    | Numero colorato con icona da 14 px, senza pillola: si leggono a colpo d'occhio senza fare rumore                                 |
+| Titolo di pagina | `PageHeader`, fascicolo | 28 px bold, lead in `text-body-sm` `ink-3`                                                                                       |
+| Empty state      | `EmptyState`            | Icona su una piastrella `surface` con `shadow-raised`, titolo a 16 px, testo `ink-3`; nessun bordo tratteggiato                  |
 
 ## Landing
 

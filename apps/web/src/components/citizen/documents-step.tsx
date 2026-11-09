@@ -7,7 +7,6 @@ import {
   Camera,
   Check,
   ChevronDown,
-  CircleDashed,
   FileText,
   FileUp,
   History,
@@ -16,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ChecklistItem, CitizenCase, DocumentSummary, Finding } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -35,6 +35,7 @@ import {
 } from "@/lib/citizen/messages";
 import type { CitizenCaseApi, PendingUpload } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
+import { directionOf } from "@/lib/citizen/document-language";
 import { documentCountsOf, readinessOf, splitRequest } from "@/lib/citizen/view";
 import type { Readiness } from "@avanti/core/readiness";
 import { requestLabel } from "@avanti/core/request-labels";
@@ -89,7 +90,6 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
         >
           {m.docs.title}
         </h1>
-        <p className="mt-2 text-lg text-ink-2">{m.docs.lead}</p>
         {/* With documents still being read the label grows: on a narrow phone it drops under the
             bar instead of squeezing it. */}
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -97,7 +97,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
             value={counts.required ? (counts.ready / counts.required) * 100 : 100}
             label={progressLabel}
             tone={counts.ready === counts.required ? "ok" : "stamp"}
-            className="min-w-24 flex-1"
+            className="h-2 min-w-24 flex-1"
           />
           <span className="tabular text-sm font-semibold text-ink-2">{progressLabel}</span>
         </div>
@@ -161,13 +161,19 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
           aria-labelledby={`section-${section.key}`}
           className="grid grid-cols-[minmax(0,1fr)] gap-3"
         >
-          <h2
-            id={`section-${section.key}`}
-            className="font-display text-xl font-semibold tracking-[-0.01em]"
-          >
-            {section.title}
-          </h2>
-          <ul className="grid grid-cols-[minmax(0,1fr)] gap-3">
+          <div className="flex items-baseline justify-between gap-3 px-1">
+            <h2
+              id={`section-${section.key}`}
+              className="min-w-0 font-display text-xl font-semibold tracking-[-0.01em]"
+            >
+              {section.title}
+            </h2>
+            <span aria-hidden className="tabular shrink-0 text-sm font-medium text-ink-3">
+              {section.items.filter((item) => readinessOf(item, data) !== "todo").length}/
+              {section.items.length}
+            </span>
+          </div>
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-2.5">
             {section.items.map((item) => (
               <ChecklistCard key={item.id} item={item} data={data} api={api} m={m} token={token} />
             ))}
@@ -197,9 +203,9 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
         </section>
       )}
 
-      <section className="rounded-lg border-2 border-dashed border-line-strong p-5">
+      <section className="rounded-lg border-[1.5px] border-dashed border-line-strong p-4">
         <h2 className="font-semibold">{m.docs.uploadAny}</h2>
-        <p className="mt-1 text-ink-2">{m.docs.uploadAnyHint}</p>
+        <p className="mt-1 text-body-sm text-ink-3">{m.docs.uploadAnyHint}</p>
         <PendingUploads
           uploads={api.uploads.filter((u) => u.checklistItemId === null)}
           api={api}
@@ -209,45 +215,54 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
       </section>
 
       {counts.todo > 0 && (
-        <section
-          aria-labelledby="resume-later"
-          className="rounded-lg bg-surface p-4 ring-1 ring-line"
-        >
+        <section aria-labelledby="resume-later" className="px-1">
           <h2 id="resume-later" className="flex items-center gap-2 font-semibold">
             <Bookmark className="size-5 shrink-0 text-stamp" aria-hidden />
             {m.docs.resumeTitle}
           </h2>
-          <p className="mt-1 mb-3 text-ink-2">{m.docs.resumeBody}</p>
+          <p className="mt-1 mb-3 text-body-sm text-ink-3">{m.docs.resumeBody}</p>
           <SaveLinkActions m={m} title={data.reference} />
         </section>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface shadow-dock">
-        <div className="mx-auto flex max-w-xl flex-col gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <p
-            className={cn(
-              "text-sm",
-              counts.todo + counts.checking === 0 ? "font-semibold text-ok" : "text-ink-2",
-            )}
-          >
-            {counts.todo > 0
-              ? plural(data.language, counts.todo, m.docs.missing)
-              : counts.checking > 0
-                ? plural(data.language, counts.checking, m.docs.allUploaded)
-                : m.docs.allDone}
-          </p>
-          {/* While documents are missing, uploading is the next step: the way on stays, quieter. */}
-          <Button
-            size="lg"
-            variant={counts.todo > 0 ? "secondary" : "primary"}
-            className="w-full"
-            onClick={() => goTo("review")}
-            disabled={api.uploads.some((u) => !u.error)}
-          >
-            {m.docs.toReview}
-          </Button>
-        </div>
-      </div>
+      {/* Portalled: the step's entrance animation moves its content, and a moving ancestor
+          would carry a fixed bar along with it. */}
+      {createPortal(
+        <div
+          lang={data.language}
+          dir={directionOf(data.language)}
+          className="fixed inset-x-0 bottom-0 z-20 animate-dock-in border-t border-line bg-surface shadow-dock"
+        >
+          <div className="mx-auto flex max-w-xl flex-col gap-2 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <p
+              className={cn(
+                "flex items-center gap-2 text-sm",
+                counts.todo + counts.checking === 0 ? "font-semibold text-ok" : "text-ink-2",
+              )}
+            >
+              {counts.todo + counts.checking === 0 && (
+                <Check className="size-4 shrink-0 animate-check-in" aria-hidden />
+              )}
+              {counts.todo > 0
+                ? plural(data.language, counts.todo, m.docs.missing)
+                : counts.checking > 0
+                  ? plural(data.language, counts.checking, m.docs.allUploaded)
+                  : m.docs.allDone}
+            </p>
+            {/* While documents are missing, uploading is the next step: the way on stays, quieter. */}
+            <Button
+              size="lg"
+              variant={counts.todo > 0 ? "secondary" : "primary"}
+              className="w-full"
+              onClick={() => goTo("review")}
+              disabled={api.uploads.some((u) => !u.error)}
+            >
+              {m.docs.toReview}
+            </Button>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
@@ -308,26 +323,54 @@ function shownStatus(item: ChecklistItem, readiness: Readiness) {
   return readiness === "todo" && item.status === "uploaded" ? "issue" : item.status;
 }
 
-function StatusBadge({ item, readiness, m }: { item: ChecklistItem; readiness: Readiness; m: M }) {
-  // Pops when an upload or the operator changes it, not on every badge when the page opens.
+/**
+ * Where the item stands: a round mark at the start of the card and a short coloured line under
+ * the title. The mark pops when an upload or the operator changes it, not when the page opens.
+ */
+function useStatus(item: ChecklistItem, readiness: Readiness) {
   const status = shownStatus(item, readiness);
   const shown = readiness === "checking" ? "checking" : status;
-  const changed = useChanged(shown);
   const warn = status === "issue" || status === "rejected";
-  const tone = readiness === "ready" ? "ok" : warn ? "warn" : "neutral";
+  return { status, shown, warn, changed: useChanged(shown) };
+}
+
+function StatusMark({
+  readiness,
+  warn,
+  shown,
+  changed,
+}: {
+  readiness: Readiness;
+  warn: boolean;
+  shown: string;
+  changed: boolean;
+}) {
   return (
-    <Pill key={shown} tone={tone} size="sm" className={changed ? "animate-pop" : undefined}>
-      {readiness === "checking" ? (
-        <Spinner className="size-3.5" />
-      ) : readiness === "ready" ? (
-        <Check aria-hidden />
-      ) : warn ? (
-        <AlertTriangle aria-hidden />
-      ) : (
-        <CircleDashed aria-hidden />
+    <span
+      key={shown}
+      aria-hidden
+      className={cn(
+        "mt-0.5 grid size-8 shrink-0 place-items-center rounded-full",
+        readiness === "ready"
+          ? "bg-ok text-white"
+          : warn
+            ? "bg-warn-wash text-warn"
+            : readiness === "checking"
+              ? "bg-stamp-wash text-stamp"
+              : "border-[1.5px] border-dashed border-line-strong text-ink-3",
+        changed && "animate-check-in",
       )}
-      {readiness === "checking" ? m.docs.statusChecking : m.docs.status[status]}
-    </Pill>
+    >
+      {readiness === "checking" ? (
+        <Spinner className="size-4" />
+      ) : readiness === "ready" ? (
+        <Check className="size-4.5" strokeWidth={2.75} />
+      ) : warn ? (
+        <AlertTriangle className="size-4" />
+      ) : (
+        <FileUp className="size-4" />
+      )}
+    </span>
   );
 }
 
@@ -356,6 +399,7 @@ function ChecklistCard({
   );
   const uploads = api.uploads.filter((u) => u.checklistItemId === item.id);
   const readiness = readinessOf(item, data);
+  const { status, shown, warn, changed } = useStatus(item, readiness);
   // Ready or being read: nothing for the citizen to do, so the card stops explaining.
   const done = readiness !== "todo";
 
@@ -364,22 +408,32 @@ function ChecklistCard({
       id={itemId(item.id)}
       aria-labelledby={`${itemId(item.id)}-title`}
       className={cn(
-        "rounded-lg bg-surface p-4 ring-1 transition-shadow outline-none data-jumped:ring-2 data-jumped:ring-stamp sm:p-5",
-        ["rejected", "issue"].includes(shownStatus(item, readiness)) ? "ring-warn/40" : "ring-line",
-        done && "bg-surface/70",
+        "rounded-lg bg-surface p-4 ring-1 transition-shadow outline-none data-jumped:ring-2 data-jumped:ring-stamp",
+        warn ? "ring-warn/40" : "ring-line",
+        done && "py-3.5",
       )}
     >
-      {/* On narrow phones the badge drops below the title instead of squeezing it. */}
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-        <div className="min-w-0 grow basis-52">
-          <h3 id={`${itemId(item.id)}-title`} className="text-lg leading-snug font-semibold">
+      <div className="flex items-start gap-3">
+        <StatusMark readiness={readiness} warn={warn} shown={shown} changed={changed} />
+        <div className="min-w-0 flex-1">
+          <h3
+            id={`${itemId(item.id)}-title`}
+            className="text-[1.0625rem] leading-snug font-semibold"
+          >
             {item.title}
           </h3>
-          {!item.required && <p className="mt-0.5 text-sm text-ink-3">{m.docs.optional}</p>}
+          <p
+            className={cn(
+              "mt-0.5 text-sm font-medium",
+              readiness === "ready" ? "text-ok" : warn ? "text-warn" : "text-ink-3",
+            )}
+          >
+            {readiness === "checking" ? m.docs.statusChecking : m.docs.status[status]}
+            {!item.required && <span className="font-normal text-ink-3"> · {m.docs.optional}</span>}
+          </p>
         </div>
-        <StatusBadge item={item} readiness={readiness} m={m} />
       </div>
-      {!done && <p className="mt-2 text-ink-2">{item.description}</p>}
+      {!done && <p className="mt-3 text-ink-2">{item.description}</p>}
 
       {item.note && (
         <p className="mt-3 rounded-sm bg-warn-wash px-3 py-2.5 text-ink">
@@ -508,8 +562,8 @@ function UploadButtons({
       <Button
         size="touch"
         type="button"
-        variant="secondary"
-        className="hidden min-w-40 flex-1 text-stamp pointer-coarse:inline-flex"
+        variant="tinted"
+        className="hidden min-h-12 min-w-40 flex-1 pointer-coarse:inline-flex"
         onClick={() => cameraRef.current?.click()}
       >
         <Camera className="size-4" aria-hidden />
@@ -518,8 +572,9 @@ function UploadButtons({
       <Button
         size="touch"
         type="button"
-        variant="secondary"
-        className="text-stamp pointer-coarse:min-w-40 pointer-coarse:flex-1 pointer-coarse:text-ink"
+        variant="tinted"
+        // On phones the camera is the main way in; choosing a file steps back to a plain button.
+        className="pointer-coarse:min-h-12 pointer-coarse:min-w-40 pointer-coarse:flex-1 pointer-coarse:bg-surface pointer-coarse:text-ink pointer-coarse:ring-1 pointer-coarse:ring-line-strong pointer-coarse:ring-inset"
         onClick={() => fileRef.current?.click()}
       >
         <FileUp className="size-4" aria-hidden />
@@ -644,7 +699,7 @@ function DocumentRow({
     "grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-sunk ring-1 ring-line";
 
   return (
-    <li className="rounded-md bg-paper p-3 ring-1 ring-line">
+    <li className="rounded-md bg-paper p-2.5 ring-1 ring-line">
       <div className="flex items-center gap-3">
         {/* Files are served as downloads: photos open here, other files are saved. */}
         {isImage ? (

@@ -29,13 +29,15 @@ export function ChatBubble({
 }) {
   if (from === "citizen") {
     return (
-      <li data-from="citizen" className="flex animate-fade-in scroll-mt-40 justify-end">
-        <div className="max-w-[85%] rounded-3xl bg-sunk px-4 py-2.5 text-ink">
+      <li data-from="citizen" className="flex scroll-mt-40 justify-end">
+        {/* The citizen's own words in the ink of the stamp, growing from the corner they were
+            sent from, like a message in any chat app. */}
+        <div className="max-w-[85%] origin-bottom-right animate-pop rounded-3xl rounded-ee-md bg-stamp px-4 py-2.5 text-on-stamp rtl:origin-bottom-left">
           {/* The question first, then who answered: «Hai un'auto? Tu: No», not «Tu: Hai un'auto?». */}
           {context && (
             <blockquote
               dir="auto"
-              className="mb-1 line-clamp-3 border-s-2 border-line-strong ps-2 text-sm leading-snug break-words text-ink-3"
+              className="mb-1 line-clamp-3 border-s-2 border-on-stamp/40 ps-2 text-sm leading-snug break-words text-on-stamp/80"
             >
               {context}
             </blockquote>

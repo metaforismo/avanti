@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { CitizenCase, CitizenContact } from "@avanti/contracts";
 import {
   directionOf,
@@ -41,6 +41,30 @@ export type ContactDraft = Partial<CitizenContact> & { note?: string };
 
 const SUBMITTED_STATUSES = new Set(["submitted", "in_review", "ready", "closed"]);
 
+const STEP_ORDER: Record<View, number> = {
+  need: 0,
+  interview: 1,
+  documents: 2,
+  review: 3,
+  submitted: 4,
+};
+
+/**
+ * Which way the citizen just moved, for the entrance of the new step: 1 forward, -1 back to
+ * edit. Derived during render (React's "previous value" pattern) so the first frame of the new
+ * step already slides the right way.
+ */
+function useStepDirection(view: View | null) {
+  const [seen, setSeen] = useState<{ view: View | null; dir: 1 | -1 }>({ view, dir: 1 });
+  if (seen.view !== view) {
+    const dir =
+      seen.view !== null && view !== null && STEP_ORDER[view] < STEP_ORDER[seen.view] ? -1 : 1;
+    setSeen({ view, dir });
+    return dir;
+  }
+  return seen.dir;
+}
+
 export function CitizenApp({ token }: { token: string }) {
   const api = useCitizenCase(token);
   // Local navigation on top of the server step: going back to edit, or forward to review.
@@ -76,6 +100,14 @@ export function CitizenApp({ token }: { token: string }) {
     }
     document.getElementById(STEP_TITLE_ID)?.focus({ preventScroll: true });
   }, [stepKey, state.kind]);
+
+  const shownView: View | null =
+    state.kind === "ready"
+      ? SUBMITTED_STATUSES.has(state.data.status)
+        ? "submitted"
+        : resolveView(view, state.data)
+      : null;
+  const stepDir = useStepDirection(shownView);
 
   const deviceLanguage = useBrowserLanguage();
   const language = state.kind === "ready" ? state.data.language : deviceLanguage;
@@ -141,11 +173,18 @@ export function CitizenApp({ token }: { token: string }) {
         </a>
         <CitizenHeader data={data} m={m} view={current} api={api} onNavigate={goTo} />
         <main id="contenuto" className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-32">
-          {current === "need" && <NeedStep {...props} />}
-          {current === "interview" && <ConversationStep {...props} />}
-          {current === "documents" && <DocumentsStep {...props} />}
-          {current === "review" && <ReviewStep {...props} />}
-          {current === "submitted" && <DoneStep {...props} />}
+          {/* One element per step, so each step enters on its own; transform only, no layout. */}
+          <div
+            key={current}
+            className="animate-step-in"
+            style={{ "--step-dir": stepDir } as CSSProperties}
+          >
+            {current === "need" && <NeedStep {...props} />}
+            {current === "interview" && <ConversationStep {...props} />}
+            {current === "documents" && <DocumentsStep {...props} />}
+            {current === "review" && <ReviewStep {...props} />}
+            {current === "submitted" && <DoneStep {...props} />}
+          </div>
           <PrivacyLink label={m.privacy.open} onOpen={() => setPrivacyOpen(true)} />
         </main>
         <PrivacySheet
@@ -186,19 +225,22 @@ function LoadingShell({ label }: { label: string }) {
       <p role="status" className="sr-only">
         {label}
       </p>
+      {/* The same shapes as the header and first step: the page fills in, it doesn't jump. */}
       <div className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-4">
-          <div className="flex-1 space-y-2">
+        <div className="mx-auto flex max-w-xl items-center gap-2 px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5">
+          <div className="flex-1 space-y-2 py-1">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-3 w-24" />
           </div>
+          <Skeleton className="h-11 w-20 rounded-full" />
+          <Skeleton className="h-11 w-16 rounded-full" />
         </div>
       </div>
       <div className="mx-auto max-w-xl space-y-4 px-4 pt-8">
-        <Skeleton className="h-8 w-3/4 rounded-sm" />
+        <Skeleton className="h-9 w-3/4 rounded-sm" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="mt-8 h-32 rounded-lg" />
+        <Skeleton className="mt-8 h-36 rounded-xl" />
       </div>
     </div>
   );

@@ -71,7 +71,7 @@ export function CitizenHeader({
 
   return (
     <header ref={header} className="sticky top-0 z-30 border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-xl items-center gap-3 px-4 pt-3 pb-2.5">
+      <div className="mx-auto flex max-w-xl items-center gap-2 px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5">
         <div className="min-w-0 flex-1">
           <p
             className="truncate font-display text-base leading-tight font-semibold"
@@ -88,7 +88,7 @@ export function CitizenHeader({
         <AssistantButton label={m.assistant.open} />
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
-            className="inline-flex h-11 items-center gap-1.5 rounded-sm px-2.5 text-sm font-semibold text-ink-2 ring-1 ring-line-strong ring-inset hover:bg-sunk data-[state=open]:bg-sunk"
+            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-sunk px-3 text-sm font-semibold text-ink-2 transition-[background-color,transform] duration-150 ease-(--ease-out) hover:bg-line active:scale-[0.96] data-[state=open]:bg-line"
             aria-label={`${m.common.language}: ${LANGUAGE_NAMES[data.language].native}`}
           >
             {switching ? <Spinner className="size-4" /> : <Globe className="size-4" aria-hidden />}
@@ -142,12 +142,20 @@ export function CitizenHeader({
                     aria-current={i === activeIndex ? "step" : undefined}
                     className="group block min-h-11 w-full py-1 text-start disabled:cursor-default"
                   >
-                    <span
-                      className={cn(
-                        "block h-1 rounded-full transition-colors duration-300",
-                        i === activeIndex ? "bg-stamp" : i < reached ? "bg-ok" : "bg-sunk",
-                      )}
-                    />
+                    {/* The fill grows from the start edge when a step is reached: transform
+                        only, mirrored in RTL. */}
+                    <span className="block h-1 overflow-hidden rounded-full bg-sunk">
+                      <span
+                        className={cn(
+                          "block h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-(--ease-out) rtl:origin-right",
+                          i === activeIndex
+                            ? "scale-x-100 bg-stamp"
+                            : i < reached
+                              ? "scale-x-100 bg-ok"
+                              : "scale-x-0 bg-stamp",
+                        )}
+                      />
+                    </span>
                     <span
                       className={cn(
                         "mt-1.5 block truncate text-sm",
@@ -185,7 +193,7 @@ function AssistantButton({ label }: { label: string }) {
     <button
       type="button"
       onClick={() => open()}
-      className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-sm px-2.5 text-sm font-semibold text-stamp ring-1 ring-stamp/30 ring-inset hover:bg-stamp-wash"
+      className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-full bg-stamp-wash px-3 text-sm font-semibold text-stamp transition-[background-color,transform] duration-150 ease-(--ease-out) hover:bg-folder active:scale-[0.96]"
     >
       <MessageCircleQuestion className="size-4" aria-hidden />
       {/* On the narrowest phones the icon alone leaves room for the CAF's name. */}

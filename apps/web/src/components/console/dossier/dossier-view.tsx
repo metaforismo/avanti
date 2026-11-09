@@ -672,13 +672,11 @@ export function DossierView({ caseId }: { caseId: string }) {
             ordinario» in a day, and the name is what tells them apart (as in the queue). */}
           <h1
             ref={setTitle}
-            className="mt-2 font-display text-3xl leading-tight font-bold tracking-[-0.025em]"
+            className="mt-2 font-display text-[1.75rem] leading-tight font-bold tracking-[-0.022em]"
           >
             {citizenName ?? data.headline}
           </h1>
-          <p className="mt-1 text-lg text-ink-2">
-            {citizenName ? data.headline : "Cittadino senza nome"}
-          </p>
+          <p className="mt-1 text-ink-2">{citizenName ? data.headline : "Cittadino senza nome"}</p>
         </header>
       </div>
       <ErasureRequestNotice

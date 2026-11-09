@@ -1,6 +1,6 @@
 "use client";
 
-import { History, MapPin, Phone, Sparkles } from "lucide-react";
+import { Check, Clock, History, MapPin, Phone, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -173,7 +173,7 @@ export function OfficeStart({
   return (
     <div lang={language} dir={dir} className="min-h-dvh">
       <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-4">
+        <div className="mx-auto flex max-w-xl items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
           {info ? (
             <div className="min-w-0 flex-1">
               <p className="truncate font-display text-lg leading-tight font-semibold">
@@ -194,7 +194,8 @@ export function OfficeStart({
         </div>
       </header>
 
-      <main className="mx-auto max-w-xl px-4 pt-8 pb-16">
+      {/* Room at the bottom for the pinned «Inizia» bar. */}
+      <main className="mx-auto max-w-xl px-4 pt-8 pb-40">
         {resumeToken && (
           <Notice
             tone="info"
@@ -222,16 +223,21 @@ export function OfficeStart({
           />
         )}
 
-        <h1 className="font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em] sm:text-[2.5rem]">
+        <h1 className="animate-rise font-display text-[2.125rem] leading-[1.04] font-bold tracking-[-0.025em] sm:text-[2.5rem]">
           {m.start.title}
         </h1>
-        <p className="mt-3 text-lg text-ink-2">{m.start.lead}</p>
-        <p className="mt-2 text-ink-3">
-          {m.start.time} {m.start.noAccount}
+        <p className="mt-3 animate-rise text-lg text-ink-2 [animation-delay:40ms]">
+          {m.start.lead}
+        </p>
+        <p className="mt-4 flex animate-rise items-start gap-2 text-ink-3 [animation-delay:80ms]">
+          <Clock className="mt-1 size-4 shrink-0" aria-hidden />
+          <span>
+            {m.start.time} {m.start.noAccount}
+          </span>
         </p>
 
         <Form onSubmit={start} className="mt-10 grid gap-8">
-          <fieldset>
+          <fieldset className="animate-rise [animation-delay:120ms]">
             <legend className="mb-3 text-lg font-semibold">{m.start.chooseLanguage}</legend>
             <div className="grid grid-cols-2 gap-2">
               {LANGUAGES.map((code) => (
@@ -240,9 +246,10 @@ export function OfficeStart({
                   lang={code}
                   dir={RTL_LANGUAGES.includes(code) ? "rtl" : "ltr"}
                   className={cn(
-                    "flex min-h-14 cursor-pointer items-center gap-3 rounded-md bg-surface px-4 text-lg ring-1 ring-line-strong transition-[background-color,box-shadow] duration-150 select-none ring-inset active:bg-stamp-wash",
+                    "flex min-h-14 cursor-pointer items-center justify-between gap-2 rounded-md bg-surface px-4 text-[1.0625rem] ring-1 ring-line transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) select-none ring-inset active:scale-[0.97]",
                     "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
-                    language === code && "font-semibold ring-2 ring-stamp",
+                    // From the radio, not from state: a choice made before hydration shows too.
+                    "group has-checked:bg-stamp-wash has-checked:font-semibold has-checked:text-stamp has-checked:ring-2 has-checked:ring-stamp",
                   )}
                 >
                   <input
@@ -253,15 +260,6 @@ export function OfficeStart({
                     onChange={() => setLanguage(code)}
                     className="sr-only"
                   />
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "grid size-5 shrink-0 place-items-center rounded-full ring-2 ring-line-strong",
-                      language === code && "ring-stamp",
-                    )}
-                  >
-                    {language === code && <span className="size-2.5 rounded-full bg-stamp" />}
-                  </span>
                   {/* System font for the other scripts' names: one word isn't worth a 100–200 KB font
                       on the waiting-room network. Choosing the language loads the real one. */}
                   <span
@@ -273,17 +271,22 @@ export function OfficeStart({
                   >
                     {LANGUAGE_NAMES[code].native}
                   </span>
+                  <Check
+                    className="hidden size-5 shrink-0 animate-check-in group-has-checked:block"
+                    strokeWidth={2.5}
+                    aria-hidden
+                  />
                 </label>
               ))}
             </div>
           </fieldset>
 
           <div className="grid gap-3">
-            <p className="flex gap-3 rounded-md bg-folder/60 p-4 text-ink-2">
-              <Sparkles className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
+            <p className="flex gap-3 text-ink-2">
+              <Sparkles className="mt-1 size-4 shrink-0 text-stamp" aria-hidden />
               {m.start.aiNotice}
             </p>
-            <p className="text-ink-2">
+            <p className="ps-7 text-ink-2">
               {format(m.start.privacy, { org: orgName })}{" "}
               {/* Before hydration the full Italian notice; after, the short one in the chosen
                   language, which links to the full one. */}
@@ -321,9 +324,21 @@ export function OfficeStart({
             </Notice>
           )}
 
-          <Button type="submit" size="lg" loading={starting} disabled={!info} className="w-full">
-            {m.start.cta}
-          </Button>
+          {/* Pinned to the thumb, like the main action of an app; inside the form, so a tap
+              before hydration is still held and sent (components/ui/form). */}
+          <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 shadow-dock">
+            <div className="mx-auto max-w-xl px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <Button
+                type="submit"
+                size="lg"
+                loading={starting}
+                disabled={!info}
+                className="min-h-13 w-full text-[1.0625rem]"
+              >
+                {m.start.cta}
+              </Button>
+            </div>
+          </div>
         </Form>
         <PrivacySheet
           open={noticeOpen}

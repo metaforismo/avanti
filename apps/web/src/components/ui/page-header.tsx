@@ -49,11 +49,11 @@ export function PageHeader({
   return (
     <div className={cn("flex flex-wrap items-end justify-between gap-4", className)}>
       <div className="min-w-0">
-        <h1 className="flex items-center gap-2 font-display text-3xl font-bold tracking-[-0.025em]">
+        <h1 className="flex items-center gap-2 font-display text-[1.75rem] leading-tight font-bold tracking-[-0.022em]">
           {icon}
           {title}
         </h1>
-        {lead && <p className="mt-1 max-w-2xl text-ink-2">{lead}</p>}
+        {lead && <p className="mt-1 max-w-2xl text-body-sm text-ink-3">{lead}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -91,7 +91,7 @@ export function SectionHeader({
           {icon}
           {title}
         </Heading>
-        {lead && <p className="mt-1 max-w-2xl text-ink-2">{lead}</p>}
+        {lead && <p className="mt-1 max-w-2xl text-body-sm text-ink-3">{lead}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>

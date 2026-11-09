@@ -128,7 +128,7 @@ export function PrivacySheet({
         description={p.lead}
         closeLabel={m.common.close}
       >
-        <div className="grid gap-6 text-ink-2">
+        <div className="grid gap-5 text-ink-2">
           <Section title={p.whoTitle}>
             <p>{format(p.who, org)}</p>
           </Section>
@@ -264,7 +264,8 @@ export function PrivacySheet({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section>
+    // Hairlines between topics instead of more space: the sheet reads as one calm list.
+    <section className="border-t border-line pt-5 first:border-0 first:pt-0">
       <h3 className="mb-1 font-semibold text-ink">{title}</h3>
       {children}
     </section>
