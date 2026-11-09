@@ -155,7 +155,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
       <ActionErrorNotice error={api.actionError} m={m} onDismiss={api.clearActionError} />
 
       <div {...rise(2)}>
-        <PhotoTips m={m} />
+        <PhotoTips m={m} defaultOpen={data.documents.length === 0} />
       </div>
 
       {sections.map((section, index) => {
@@ -462,16 +462,7 @@ function ChecklistCard({
           </p>
         </div>
       </div>
-      {!done && (
-        <p
-          className={cn(
-            "mt-3 text-body-sm text-ink-2",
-            item.howToGet && !howOpen && "line-clamp-2",
-          )}
-        >
-          {item.description}
-        </p>
-      )}
+      {!done && <p className="mt-3 text-body-sm text-ink-2">{item.description}</p>}
 
       {item.note && (
         <p className="mt-3 rounded-sm bg-warn-wash px-3 py-2.5 text-ink">

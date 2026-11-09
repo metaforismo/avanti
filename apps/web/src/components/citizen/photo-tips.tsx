@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Camera, ChevronDown, Files, Frame, Sun, ZapOff } from "lucide-react";
 import type { CitizenMessages, Widen } from "@/lib/citizen/messages";
 
 /**
  * Most unusable uploads are bad photos, and every one costs the CAF a phone call.
- * Closed: the first screen of documents is for the camera buttons, the tips are one tap away.
+ * Open until the first document arrives, closed after; decided once, so the first upload doesn't
+ * fold them away under the citizen's eyes.
  */
-export function PhotoTips({ m }: { m: Widen<CitizenMessages> }) {
+export function PhotoTips({ m, defaultOpen }: { m: Widen<CitizenMessages>; defaultOpen: boolean }) {
+  const [open] = useState(defaultOpen);
   const tips = [
     { icon: Sun, text: m.docs.photoTip1 },
     { icon: Frame, text: m.docs.photoTip2 },
@@ -13,7 +16,7 @@ export function PhotoTips({ m }: { m: Widen<CitizenMessages> }) {
     { icon: Files, text: m.docs.photoTip4 },
   ];
   return (
-    <details className="group rounded-xl bg-folder/50 ring-1 ring-folder">
+    <details open={open} className="group rounded-xl bg-folder/50 ring-1 ring-folder">
       <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3 font-semibold [&::-webkit-details-marker]:hidden">
         <Camera className="size-5 shrink-0 text-stamp" aria-hidden />
         <span className="flex-1">{m.docs.photoTipsTitle}</span>

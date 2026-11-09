@@ -24,6 +24,10 @@ export function useSheetDrag(onDismiss: () => void) {
     if (window.matchMedia("(min-width: 640px)").matches) return;
     // A close or any other control inside the header keeps its own tap.
     if ((event.target as HTMLElement).closest("button, a, input, textarea")) return;
+    // While the entrance plays the computed offset is most of the sheet's height: starting from
+    // it, a plain tap would count as a long pull and close the sheet.
+    if (el.getAnimations().some((a) => a instanceof CSSAnimation && a.playState === "running"))
+      return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const current = new DOMMatrixReadOnly(getComputedStyle(el).transform).m42;
     drag.current = {

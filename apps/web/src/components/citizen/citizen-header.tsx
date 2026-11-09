@@ -166,7 +166,7 @@ export function CitizenHeader({
                       {i < activeIndex && (
                         <Check className="size-3.5 shrink-0 text-ok" strokeWidth={3} aria-hidden />
                       )}
-                      <span className="truncate">{m.steps[step.key]}</span>
+                      <span className="min-w-0 truncate">{m.steps[step.key]}</span>
                     </span>
                   </button>
                 </li>
