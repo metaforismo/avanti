@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 import type { Metrics } from "@avanti/contracts";
+import { BarChart3 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/cn";
@@ -58,7 +59,7 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
   return (
     <section
       aria-labelledby={titleId}
-      className="rounded-lg bg-surface p-5 ring-1 ring-line sm:p-6"
+      className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:p-6"
     >
       <SectionHeader
         id={titleId}
@@ -90,7 +91,9 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
       />
 
       {empty ? (
-        <EmptyState title="Nessuna pratica nel periodo." className="mt-6 py-10" />
+        <EmptyState icon={BarChart3} title="Nessuna pratica nel periodo." className="mt-6 py-10">
+          Il grafico compare appena un cittadino avvia una pratica.
+        </EmptyState>
       ) : asTable ? (
         <div className="mt-4 max-h-80 overflow-auto">
           <table className="w-full text-sm">
@@ -138,13 +141,14 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
                   y2={y(tick)}
                   stroke="var(--line)"
                   strokeWidth={1}
+                  strokeDasharray={tick === 0 ? undefined : "2 4"}
                 />
                 <text
                   x={PAD.left - 8}
                   y={y(tick)}
                   dy="0.32em"
                   textAnchor="end"
-                  className="tabular fill-ink-3 text-[11px]"
+                  className="tabular fill-ink-3 text-[12px]"
                 >
                   {tick}
                 </text>
@@ -157,7 +161,7 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
                   x={x(i)}
                   y={HEIGHT - 8}
                   textAnchor="middle"
-                  className="fill-ink-3 text-[11px]"
+                  className="fill-ink-3 text-[12px]"
                 >
                   {dayLabel.format(new Date(d.date))}
                 </text>
@@ -173,12 +177,18 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
                 strokeDasharray="3 3"
               />
             )}
+            {/* A flat tint under the sent line: the shape of the day reads before the numbers. */}
+            <polygon
+              fill="var(--chart-submitted)"
+              fillOpacity={0.08}
+              points={`${x(0)},${y(0)} ${daily.map((d, i) => `${x(i)},${y(d.submitted)}`).join(" ")} ${x(daily.length - 1)},${y(0)}`}
+            />
             {SERIES.map((s) => (
               <g key={s.key}>
                 <polyline
                   fill="none"
                   stroke={s.color}
-                  strokeWidth={2}
+                  strokeWidth={2.25}
                   strokeLinejoin="round"
                   strokeLinecap="round"
                   points={daily.map((d, i) => `${x(i)},${y(d[s.key])}`).join(" ")}
@@ -199,7 +209,7 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
           {hovered && hover !== null && (
             <div
               className={cn(
-                "pointer-events-none absolute top-0 rounded-md bg-contrast px-3 py-2 text-sm text-on-contrast shadow-float",
+                "pointer-events-none absolute top-0 rounded-md bg-contrast px-3 py-2 text-sm text-on-contrast shadow-float ring-1 ring-on-contrast/10",
                 hover > daily.length / 2 ? "-translate-x-[calc(100%+12px)]" : "translate-x-3",
               )}
               style={{ left: `${(x(hover) / WIDTH) * 100}%` }}

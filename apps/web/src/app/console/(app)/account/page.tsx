@@ -14,7 +14,7 @@ export default function AccountPage() {
   return (
     <PageContainer width="3xl">
       <PageHeader title="Account" />
-      <dl className="mt-6 grid gap-3 rounded-lg bg-surface p-5 ring-1 ring-line sm:grid-cols-3">
+      <dl className="mt-6 grid gap-3 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:grid-cols-3">
         <div>
           <dt className="text-sm text-ink-3">Nome</dt>
           <dd className="font-semibold">{operator.name}</dd>

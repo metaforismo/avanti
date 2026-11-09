@@ -236,7 +236,7 @@ function ReportView() {
       />
 
       <form
-        className="mt-6 flex flex-wrap items-end gap-3 rounded-lg bg-surface p-4 ring-1 ring-line"
+        className="mt-6 flex flex-wrap items-end gap-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-line"
         onSubmit={(e) => e.preventDefault()}
       >
         <SegmentedControl
@@ -376,7 +376,7 @@ function ReportView() {
               }))}
             />
           </div>
-          <details className="group rounded-lg bg-surface ring-1 ring-line">
+          <details className="group rounded-lg bg-surface shadow-raised ring-1 ring-line">
             <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-5 py-4 font-display text-lg font-semibold [&::-webkit-details-marker]:hidden">
               <span className="flex-1">Come contiamo</span>
               <ChevronDown
@@ -423,7 +423,7 @@ function Thresholds({ group }: { group: PilotReportGroup }) {
           return (
             <li
               key={threshold.id}
-              className="flex flex-col rounded-lg bg-surface p-5 ring-1 ring-line"
+              className="flex flex-col rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line"
             >
               <h3 className="font-semibold">{copy.title}</h3>
               <p className="mt-1 text-sm text-ink-2">{copy.target}</p>
@@ -452,7 +452,7 @@ function Totals({ group, report }: { group: PilotReportGroup; report: PilotRepor
   return (
     <section aria-labelledby="totals-title">
       <SectionHeader id="totals-title" title="Cosa è successo nel periodo" />
-      <dl className="mt-4 grid gap-px overflow-hidden rounded-lg bg-line ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-4 grid gap-px overflow-hidden rounded-lg bg-line shadow-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="Pratiche avviate" value={count(group.starts)} />
         <Tile
           label="Inviate allo sportello"
@@ -470,7 +470,7 @@ function Totals({ group, report }: { group: PilotReportGroup; report: PilotRepor
           note={`Su ${count(group.integrations.cases)} ${group.integrations.cases === 1 ? "pratica" : "pratiche"}`}
         />
       </dl>
-      <div className="mt-4 grid gap-4 rounded-lg bg-surface p-5 ring-1 ring-line sm:grid-cols-3">
+      <div className="mt-4 grid gap-4 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:grid-cols-3">
         <Figure
           label="Dalla creazione al primo invio"
           value={formatMinutes(toSubmission?.value ?? null)}
@@ -513,7 +513,7 @@ function Offices({ offices }: { offices: PilotReportGroup[] }) {
   return (
     <section aria-labelledby="offices-title">
       <SectionHeader id="offices-title" title="Per sportello" />
-      <div className="mt-4 overflow-x-auto rounded-lg bg-surface ring-1 ring-line">
+      <div className="mt-4 overflow-x-auto rounded-lg bg-surface shadow-raised ring-1 ring-line">
         <table className="w-full text-sm">
           <thead className="text-ink-2">
             <tr className="border-b border-line">
@@ -564,7 +564,7 @@ function Distribution({
   rows: { key: string; label: string; count: PilotCount }[];
 }) {
   return (
-    <section className="rounded-lg bg-surface p-5 ring-1 ring-line">
+    <section className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line">
       <h2 className="font-display text-lg font-semibold">{title}</h2>
       {rows.length === 0 ? (
         <p className="mt-3 text-ink-3">Nessuna pratica nel periodo.</p>

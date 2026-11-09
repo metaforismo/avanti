@@ -55,7 +55,7 @@ export function NearReadyPilot() {
               .
             </Notice>
           )}
-          <dl className="grid gap-px overflow-hidden rounded-lg bg-line ring-1 ring-line sm:grid-cols-4">
+          <dl className="grid gap-px overflow-hidden rounded-lg bg-line shadow-raised ring-1 ring-line sm:grid-cols-4">
             {(
               [
                 ["Valutate", String(data.total.evaluated)],

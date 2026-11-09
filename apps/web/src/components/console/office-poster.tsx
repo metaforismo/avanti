@@ -4,7 +4,7 @@ import { Printer } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Office, OrganizationPublic } from "@avanti/contracts";
-import { LogoMark } from "@/components/brand/logo";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { QrCode } from "@/components/ui/qr-code";
@@ -71,67 +71,77 @@ export function OfficePoster({ officeSlug }: { officeSlug: string }) {
 
   return (
     <>
-      <style>{`@page { size: A4 portrait; margin: 0 } @media print { body { background: #fff } }`}</style>
+      <style>{`@page { size: A4 portrait; margin: 0 } @media print { body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact } }`}</style>
       <div className="flex justify-center gap-3 p-4 print:hidden">
         <Button onClick={() => window.print()}>
           <Printer className="size-4" aria-hidden />
           Stampa
         </Button>
       </div>
-      <article className="mx-auto flex aspect-[210/297] w-full max-w-[210mm] flex-col bg-white px-[14mm] py-[14mm] text-ink shadow-float print:max-w-none print:shadow-none">
-        <header className="flex items-start justify-between gap-6">
-          <div>
-            <p className="font-display text-[20pt] leading-tight font-bold">
-              {data.organization.name}
-            </p>
-            <p className="text-[12pt] text-ink-2">{data.office.name}</p>
-          </div>
-          <span className="flex items-center gap-1.5 text-[10pt] text-ink-3">
-            <LogoMark className="size-5" />
-            Avanti
-          </span>
-        </header>
+      <article className="mx-auto flex aspect-[210/297] w-full max-w-[210mm] flex-col overflow-hidden bg-white text-[#141b2d] shadow-float print:max-w-none print:shadow-none">
+        {/* The stamp-blue edge: the only solid colour, so a black-and-white copy stays clean. */}
+        <div aria-hidden className="h-[5mm] shrink-0 bg-stamp" />
+        <div className="flex flex-1 flex-col px-[15mm] pt-[11mm] pb-[12mm]">
+          <header className="flex items-start justify-between gap-6">
+            <div>
+              <p className="text-[9.5pt] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+                {data.office.name}
+              </p>
+              <p className="mt-0.5 font-display text-[17pt] leading-tight font-bold">
+                {data.organization.name}
+              </p>
+            </div>
+            <Logo />
+          </header>
 
-        <h1 className="mt-[10mm] font-display text-[40pt] leading-[0.98] font-bold tracking-[-0.03em] [font-stretch:88%]">
-          Prepara la tua pratica dal telefono
-        </h1>
-        <ul className="mt-[5mm] grid grid-cols-2 gap-x-6 gap-y-1 text-[11.5pt] text-ink-2">
-          {HEADLINES.map((h) => (
-            <li key={h.lang} lang={h.lang} dir={"dir" in h ? h.dir : "ltr"}>
-              {h.text}
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-[8mm] flex flex-1 items-center gap-[10mm]">
-          <QrCode
-            value={link}
-            label="QR per iniziare la pratica"
-            className="w-[78mm] shrink-0 [&_svg]:size-full"
-          />
-          <ol className="grid gap-[6mm] text-[15pt]">
-            {[
-              "Inquadra il QR con la fotocamera",
-              "Scegli la tua lingua",
-              "Rispondi e fotografa i documenti",
-            ].map((step, i) => (
-              <li key={step} className="flex items-start gap-3">
-                <span className="grid size-[9mm] shrink-0 place-items-center rounded-full bg-stamp font-display text-[13pt] font-bold text-white">
-                  {i + 1}
-                </span>
-                <span className="pt-0.5 font-semibold">{step}</span>
+          <h1 className="mt-[12mm] font-display text-[44pt] leading-[0.96] font-bold tracking-[-0.03em] [font-stretch:90%]">
+            Prepara la tua pratica dal <span className="marker">telefono</span>
+          </h1>
+          <ul className="mt-[6mm] grid grid-cols-2 gap-x-8 text-[11pt] text-ink-2">
+            {HEADLINES.map((h) => (
+              <li
+                key={h.lang}
+                lang={h.lang}
+                dir={"dir" in h ? h.dir : "ltr"}
+                className="border-t border-line py-[1.6mm]"
+              >
+                {h.text}
               </li>
             ))}
-          </ol>
-        </div>
+          </ul>
 
-        <footer className="mt-[8mm] border-t border-line pt-[5mm] text-[10.5pt] text-ink-2">
-          <p>
-            Non serve registrarsi. Ti guida un assistente automatico basato su intelligenza
-            artificiale; un operatore del CAF controlla tutto prima di fare la pratica.
-          </p>
-          <p className="mt-1 font-mono text-[9pt] text-ink-3">{link}</p>
-        </footer>
+          <div className="mt-[9mm] flex flex-1 items-center gap-[11mm]">
+            <div className="relative shrink-0 rounded-[3mm] p-[4mm] ring-[0.6mm] ring-[#141b2d]">
+              <QrCode
+                value={link}
+                label="QR per iniziare la pratica"
+                className="w-[80mm] [&_svg]:size-full"
+              />
+            </div>
+            <ol className="grid gap-[7mm]">
+              {[
+                "Inquadra il QR con la fotocamera",
+                "Scegli la tua lingua",
+                "Rispondi e fotografa i documenti",
+              ].map((step, i) => (
+                <li key={step} className="flex items-start gap-[4mm]">
+                  <span className="font-display text-[26pt] leading-none font-bold text-stamp tabular-nums">
+                    {i + 1}
+                  </span>
+                  <span className="pt-[1mm] text-[14pt] leading-snug font-semibold">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <footer className="mt-[8mm] border-t border-line pt-[4mm] text-[10pt] text-ink-2">
+            <p className="max-w-[150mm]">
+              Non serve registrarsi. Ti guida un assistente automatico basato su intelligenza
+              artificiale; un operatore del CAF controlla tutto prima di fare la pratica.
+            </p>
+            <p className="mt-1.5 font-mono text-[9pt] text-ink-3">{link}</p>
+          </footer>
+        </div>
       </article>
     </>
   );

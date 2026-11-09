@@ -148,16 +148,25 @@ function StatusBody({ data }: { data: SystemStatus }) {
       <section
         aria-label="Riepilogo"
         className={cn(
-          "flex items-center gap-4 rounded-lg p-5 ring-1",
+          "flex items-center gap-5 rounded-lg p-6 shadow-raised ring-1",
           data.status === "ok" && "bg-ok-wash ring-ok/20",
-          data.status === "attention" && "bg-warn-wash ring-warn/20",
-          data.status === "problem" && "bg-danger-wash ring-danger/20",
+          data.status === "attention" && "bg-warn-wash ring-warn/25",
+          data.status === "problem" && "bg-danger-wash ring-danger/25",
         )}
       >
-        <overall.icon className={cn("size-7 shrink-0", overall.tone)} aria-hidden />
+        <span
+          className={cn(
+            "grid size-12 shrink-0 place-items-center rounded-full bg-surface shadow-raised ring-1 ring-line",
+            overall.tone,
+          )}
+        >
+          <overall.icon className="size-6" aria-hidden />
+        </span>
         <div>
-          <p className="font-display text-xl font-semibold">{overall.headline}</p>
-          <p className="text-sm text-ink-2">
+          <p className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.02em]">
+            {overall.headline}
+          </p>
+          <p className="mt-0.5 text-sm text-ink-2">
             {onlyNotStarted(data) &&
               "Alcune attività non sono ancora partite: nei primi giorni è normale. Se resta così per più di un giorno, contatta il supporto. "}
             Controllato il {formatDateTime(data.generatedAt)}
@@ -169,7 +178,7 @@ function StatusBody({ data }: { data: SystemStatus }) {
 
       <section aria-labelledby="components-title">
         <SectionHeader id="components-title" title="Componenti" />
-        <ul className="mt-3 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
+        <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
           <ComponentRow name="Database" level={database.status} code={database.code} />
           <ComponentRow name="Archivio documenti" level={storage.status} code={storage.code} />
           <ComponentRow
@@ -203,7 +212,7 @@ function StatusBody({ data }: { data: SystemStatus }) {
 
       <section aria-labelledby="counters-title">
         <SectionHeader id="counters-title" title={<>Da tenere d&apos;occhio</>} />
-        <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Counter
             label="Documenti in analisi da più di 10 minuti"
             level={counters.documentsProcessingOver10Minutes.status}
@@ -270,15 +279,27 @@ function ComponentRow({
 }) {
   const { icon: Icon, label, tone } = LEVEL[level];
   return (
-    <li className="grid gap-2 px-4 py-3.5">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Icon className={cn("size-5 shrink-0", tone)} aria-hidden />
+    <li className="grid gap-2 px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <p className="font-semibold">{name}</p>
-        <span className={cn("text-sm font-semibold", tone)}>{label}</span>
-        {extra && <span className="text-sm text-ink-3">· {extra}</span>}
+        <span className="flex items-center gap-3 text-sm">
+          {extra && <span className="text-ink-3">{extra}</span>}
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-semibold",
+              level === "ok" && "bg-ok-wash",
+              level === "attention" && "bg-warn-wash",
+              level === "problem" && "bg-danger-wash",
+              tone,
+            )}
+          >
+            <Icon className="size-3.5" aria-hidden />
+            {label}
+          </span>
+        </span>
       </div>
-      <p className="ps-8 text-sm text-ink-2">{CODES[code]}</p>
-      {children && <div className="ps-8">{children}</div>}
+      <p className="max-w-2xl text-sm text-ink-3">{CODES[code]}</p>
+      {children && <div className="mt-1">{children}</div>}
     </li>
   );
 }
@@ -297,14 +318,14 @@ function Counter({
   // An unmeasured value gets no verdict: a green tick would read as "all good".
   const { icon: Icon, tone } = count === null ? { icon: Minus, tone: "text-ink-3" } : LEVEL[level];
   return (
-    <div className="rounded-lg bg-surface p-4 ring-1 ring-line">
+    <div className="flex flex-col justify-between gap-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-line">
       <dt className="text-sm text-ink-2">{label}</dt>
-      <dd className="mt-1 flex items-center gap-2">
-        <Icon className={cn("size-4.5 shrink-0", tone)} aria-hidden />
+      <dd className="flex items-center gap-2">
         {/* null means "not measured": never show it as zero. */}
-        <span className="font-display text-2xl font-semibold tabular-nums">
+        <span className="font-display text-[2rem] leading-none font-semibold tracking-[-0.02em] tabular-nums">
           {count === null ? "—" : count.toLocaleString("it-IT")}
         </span>
+        <Icon className={cn("size-4.5 shrink-0", tone)} aria-hidden />
         {count === null && <span className="text-sm text-ink-3">non disponibile</span>}
         {href && count !== null && count > 0 && (
           <Link href={href} className="ms-auto text-sm font-semibold text-stamp hover:underline">
@@ -433,12 +454,17 @@ function UsageCard({ usage }: { usage: NonNullable<SystemStatus["usage"]> }) {
   const tone =
     percent === null || percent < 90 ? "bg-stamp" : percent < 100 ? "bg-warn" : "bg-danger";
   return (
-    <section aria-labelledby="usage-title" className="rounded-lg bg-surface p-5 ring-1 ring-line">
+    <section
+      aria-labelledby="usage-title"
+      className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line"
+    >
       <h2 id="usage-title" className="text-sm font-semibold text-ink-2">
         Uso del piano, {monthName(usage.month)}
       </h2>
-      <p className="mt-1 font-display text-2xl font-semibold">
-        <span className="tabular">{usage.delivered}</span>{" "}
+      <p className="mt-2 font-display text-2xl font-semibold">
+        <span className="tabular text-[2.5rem] leading-none tracking-[-0.03em]">
+          {usage.delivered}
+        </span>{" "}
         {usage.delivered === 1 ? "fascicolo consegnato" : "fascicoli consegnati"}
         {usage.cap !== null && (
           <span className="text-base font-normal text-ink-2">
