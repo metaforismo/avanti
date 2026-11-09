@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  AlertOctagon,
+  AlertTriangle,
   ArrowRight,
   Check,
   Download,
@@ -133,6 +135,8 @@ export function ChecklistSection({
 const LARGE_ARCHIVE = 50_000_000;
 // A row with many files repeats a warning per file: the first ones say what kind, the rest wait.
 const FINDINGS_SHOWN = 2;
+/** Past this length a warning likely runs over its two lines: offer the full text. */
+const LONG_FINDING = 140;
 
 /** What the ZIP will hold, said before the download so nobody is surprised by what is missing. */
 function archiveSummary({ plan }: DossierActions["archive"]) {
@@ -250,27 +254,38 @@ function ChecklistRow({
             <p className="font-semibold">{item.title}</p>
             {!item.required && <span className="text-xs text-ink-3">facoltativo</span>}
           </div>
-          {(allFindings ? findings : findings.slice(0, FINDINGS_SHOWN)).map((finding) => (
-            <p
-              key={finding.id}
-              className={cn(
-                "mt-1 text-sm",
-                finding.severity === "blocker" ? "text-danger" : "text-warn",
-              )}
-            >
-              {finding.message}
-            </p>
-          ))}
-          {findings.length > FINDINGS_SHOWN && (
+          {/* The item's own warnings read as notes, not as the loudest block of the page: the
+              colour is in the icon, the text stays ink, two lines at most until asked. */}
+          {(allFindings ? findings : findings.slice(0, FINDINGS_SHOWN)).map((finding) => {
+            const Icon = finding.severity === "blocker" ? AlertOctagon : AlertTriangle;
+            return (
+              <p key={finding.id} className="mt-1 flex gap-1.5 text-sm text-ink-2">
+                <Icon
+                  className={cn(
+                    "mt-0.5 size-3.5 shrink-0",
+                    finding.severity === "blocker" ? "text-danger" : "text-warn",
+                  )}
+                  aria-label={finding.severity === "blocker" ? "Bloccante" : "Avviso"}
+                />
+                <span className={cn("min-w-0", !allFindings && "line-clamp-2")}>
+                  {finding.message}
+                </span>
+              </p>
+            );
+          })}
+          {(findings.length > FINDINGS_SHOWN ||
+            findings.some((finding) => finding.message.length > LONG_FINDING)) && (
             <button
               type="button"
               aria-expanded={allFindings}
               onClick={() => setAllFindings((v) => !v)}
-              className="mt-1 rounded-xs text-sm font-medium text-ink-3 hover:text-ink"
+              className="ms-5 mt-1 rounded-xs text-sm font-medium text-ink-3 hover:text-ink"
             >
               {allFindings
                 ? "Mostra meno"
-                : `e ${plural("it", findings.length - FINDINGS_SHOWN, { one: "un altro avviso", other: "altri {n} avvisi" })}`}
+                : findings.length > FINDINGS_SHOWN
+                  ? `e ${plural("it", findings.length - FINDINGS_SHOWN, { one: "un altro avviso", other: "altri {n} avvisi" })}`
+                  : "Mostra tutto"}
             </button>
           )}
           {item.note && <p className="mt-1 text-sm text-ink-2">Nota: {item.note}</p>}

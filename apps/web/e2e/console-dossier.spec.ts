@@ -41,23 +41,87 @@ test("at 1024px the action bar stays on one row and in reach", async ({ page }) 
   await logIn(page, DEMO);
   await caseWithTwoFiles(page, "Stretto");
 
-  const take = page.getByRole("button", { name: "Prendi in carico" });
+  const request = page.getByRole("button", { name: "Chiedi integrazione" });
   const ready = page.getByRole("button", { name: "Segna come pronta" });
+  const more = page.getByRole("button", { name: "Altro" });
   const back = backToQueue(page);
-  const [takeBox, readyBox, backBox] = await Promise.all([
-    take.boundingBox(),
+  const [requestBox, readyBox, moreBox, backBox] = await Promise.all([
+    request.boundingBox(),
     ready.boundingBox(),
+    more.boundingBox(),
     back.boundingBox(),
   ]);
-  // One row: the back link and every action share the same vertical band.
-  for (const box of [takeBox!, readyBox!]) {
+  // One row of 32px controls: the back link and every action share the same vertical band.
+  for (const box of [requestBox!, readyBox!, moreBox!]) {
     expect(Math.abs(box.y + box.height / 2 - (backBox!.y + backBox!.height / 2))).toBeLessThan(4);
+    expect(box.height).toBe(32);
   }
+  // Taking the case sits by the assignee, under the name, not in the bar.
+  await expect(page.locator("header").getByRole("button", { name: "Assegna a me" })).toBeVisible();
 
   await page.getByRole("heading", { name: "Documenti", exact: true }).scrollIntoViewIfNeeded();
   await expect(ready).toBeInViewport();
   const after = (await ready.boundingBox())!;
   expect(after.y).toBeLessThan(40);
+});
+
+test("«Chiedi al fascicolo» never covers the dossier, on a desktop or a phone", async ({
+  page,
+}) => {
+  await logIn(page, DEMO);
+  await caseWithTwoFiles(page, "Copertura");
+
+  // Desktop: a quiet action of the top bar, nothing floating over the page.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const ask = page.getByRole("button", { name: "Chiedi", exact: true });
+  await expect(ask).toBeVisible();
+  expect((await ask.boundingBox())!.y).toBeLessThan(40);
+  const notes = page.getByRole("textbox", { name: /Note interne/ });
+  for (const target of [page.getByRole("heading", { name: "Cronologia" }), notes]) {
+    await target.scrollIntoViewIfNeeded();
+    await page.mouse.wheel(0, 2000);
+    const box = (await target.boundingBox())!;
+    const covered = await target.evaluate(
+      (el, at) => {
+        const hit = document.elementFromPoint(at.x, at.y);
+        return !(hit === el || el.contains(hit));
+      },
+      { x: box.x + box.width - 4, y: Math.min(box.y + box.height - 4, 900 - 4) },
+    );
+    expect(covered, "the bottom-right corner of the aside is visible").toBe(false);
+  }
+  await ask.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  // ⌘J / Ctrl+J opens it from anywhere on the dossier.
+  await page.keyboard.press("ControlOrMeta+j");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // Phone: the actions are a bar under the thumb, and the page ends above it.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dock = page.getByRole("toolbar", { name: "Azioni sulla pratica" });
+  await expect(dock).toBeVisible();
+  await expect(dock.getByRole("button", { name: "Chiedi integrazione" })).toBeVisible();
+  await page.mouse.wheel(0, 20_000);
+  await page.waitForFunction(
+    () => Math.abs(window.scrollY + window.innerHeight - document.body.scrollHeight) < 2,
+  );
+  const dockTop = (await dock.boundingBox())!.y;
+  const lastBottom = await page.evaluate(() => {
+    const main = document.querySelector("main")!;
+    let bottom = 0;
+    for (const el of main.querySelectorAll("section, aside > *")) {
+      const rect = el.getBoundingClientRect();
+      if (rect.height > 0) bottom = Math.max(bottom, rect.bottom);
+    }
+    return bottom;
+  });
+  expect(lastBottom, "the last section ends above the action bar").toBeLessThanOrEqual(dockTop);
+  // «Chiedi al fascicolo» is in «Altro» there, with the steps the bar has no room for.
+  await dock.getByRole("button", { name: "Altro" }).click();
+  await page.getByRole("menuitem", { name: "Chiedi al fascicolo" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
 });
 
 test("a type guessed without AI has an Italian label and says where it comes from", async ({

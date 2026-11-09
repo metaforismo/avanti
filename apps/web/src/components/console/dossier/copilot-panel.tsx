@@ -4,9 +4,8 @@ import {
   AlertOctagon,
   AlertTriangle,
   CheckCircle2,
-  CornerDownRight,
+  ArrowRight,
   Info,
-  MessageSquare,
   RefreshCw,
   Sparkles,
 } from "lucide-react";
@@ -37,12 +36,9 @@ import type { DossierActions } from "./dossier-view";
 export function CopilotPanel({
   dossier,
   actions,
-  onAsk,
 }: {
   dossier: CaseDossier;
   actions: DossierActions;
-  /** Opens the chat about this dossier. */
-  onAsk?: () => void;
 }) {
   const base = `/api/cases/${encodeURIComponent(dossier.id)}/ai`;
   const brief = useResource<DossierBrief>(`${base}/brief`);
@@ -83,6 +79,7 @@ export function CopilotPanel({
   // Rule findings are listed right below (FindingsSummary): here only the cross-checks.
   const findingIds = new Set(dossier.findings.map((f) => f.id));
   const issues = (consistency.data?.issues ?? []).filter((issue) => !findingIds.has(issue.id));
+  const attention = brief.data ? attentionBeyondFindings(brief.data, dossier) : [];
 
   return (
     <section
@@ -103,12 +100,6 @@ export function CopilotPanel({
             <span title={`Generato il ${formatDateTime(brief.data.generatedAt)}`}>
               {engineLabel(brief.data.engine, brief.data.model)}
             </span>
-          )}
-          {onAsk && (
-            <Button variant="secondary" size="sm" onClick={onAsk}>
-              <MessageSquare className="size-3.5" aria-hidden />
-              Chiedi
-            </Button>
           )}
           <Button
             variant="ghost"
@@ -135,23 +126,16 @@ export function CopilotPanel({
           {error && <Notice tone="danger">{error}</Notice>}
           <p className="text-body-sm leading-relaxed">{brief.data.situation}</p>
 
-          {brief.data.attention.length > 0 && (
+          {attention.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-ink-2">Da controllare</h3>
               <ol className="mt-2 grid gap-2">
-                {brief.data.attention.map((item, i) => (
+                {attention.map((item, i) => (
                   <li key={i} className="flex gap-2.5 text-body-sm">
                     <span className="tabular mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-sunk text-xs font-semibold text-ink-2">
                       {i + 1}
                     </span>
-                    <span className="min-w-0">
-                      {item.text}
-                      <EvidenceChips
-                        evidence={item.evidence}
-                        text={item.text}
-                        onOpen={onEvidence}
-                      />
-                    </span>
+                    <SourcedText text={item.text} evidence={item.evidence} onOpen={onEvidence} />
                   </li>
                 ))}
               </ol>
@@ -184,14 +168,7 @@ export function CopilotPanel({
                     )}
                   >
                     <SeverityIcon severity={issue.severity} />
-                    <span className="min-w-0">
-                      {issue.text}
-                      <EvidenceChips
-                        evidence={issue.evidence}
-                        text={issue.text}
-                        onOpen={onEvidence}
-                      />
-                    </span>
+                    <SourcedText text={issue.text} evidence={issue.evidence} onOpen={onEvidence} />
                   </li>
                 ))}
               </ul>
@@ -214,6 +191,58 @@ export function CopilotPanel({
   );
 }
 
+const RULE_MISSING = new Set(["checklist.missing", "checklist.rejected"]);
+
+/**
+ * The brief's points that «Da guardare» does not already list. Missing and rejected documents
+ * live there only: five «Richiedi… manca il documento obbligatorio» here and the same six
+ * below read as twelve problems. Without AI the brief's points are the rule findings
+ * themselves, all of them listed below.
+ */
+function attentionBeyondFindings(brief: DossierBrief, dossier: CaseDossier) {
+  const findings = new Map(dossier.findings.map((f) => [f.id, f]));
+  const missing = new Set(brief.missing);
+  const listed = (e: Evidence) =>
+    e.kind === "finding"
+      ? brief.engine === "heuristic"
+        ? findings.has(e.id)
+        : RULE_MISSING.has(findings.get(e.id)?.code ?? "")
+      : e.kind === "checklist" && missing.has(e.id);
+  return brief.attention.filter(
+    (item) =>
+      !item.evidence.some((e) => e.kind === "finding" && listed(e)) &&
+      !(item.evidence.length > 0 && item.evidence.every(listed)),
+  );
+}
+
+/**
+ * A sentence with the way to its sources. The arrow that ends a sentence travels with its last
+ * word: alone at the start of a line it reads as a stray symbol.
+ */
+function SourcedText({
+  text,
+  evidence,
+  onOpen,
+}: {
+  text: string;
+  evidence: Evidence[];
+  onOpen: (evidence: Evidence) => void;
+}) {
+  const split = text.search(/\S+\s*$/);
+  const head = split > 0 ? text.slice(0, split) : "";
+  const tail = split > 0 ? text.slice(split).trimEnd() : text;
+  return (
+    <span className="min-w-0">
+      {head}
+      <span className="whitespace-nowrap">
+        {tail}
+        <EvidenceChips evidence={evidence} text={text} onOpen={onOpen} arrowsOnly />
+      </span>
+      <EvidenceChips evidence={evidence} text={text} onOpen={onOpen} labelsOnly />
+    </span>
+  );
+}
+
 const OPEN_LABEL: Record<Exclude<Evidence["kind"], "finding">, string> = {
   answer: "Vedi la risposta",
   document: "Apri il documento",
@@ -226,18 +255,23 @@ export function EvidenceChips({
   evidence,
   text,
   onOpen,
+  arrowsOnly = false,
+  labelsOnly = false,
 }: {
   evidence: Evidence[];
   /** The sentence the chips belong to: a chip that would only repeat it becomes a short link. */
   text?: string;
   onOpen: (evidence: Evidence) => void;
+  /** Only the arrows that end the sentence, or only the labelled chips under it. */
+  arrowsOnly?: boolean;
+  labelsOnly?: boolean;
 }) {
   // A finding's label is its own sentence: as a chip it would only repeat the text above.
   const chips = evidence.filter((e) => e.kind !== "finding");
   if (chips.length === 0) return null;
   const said = text ? fold(text) : "";
-  const repeated = chips.filter((e) => said.includes(fold(e.label)));
-  const labelled = chips.filter((e) => !said.includes(fold(e.label)));
+  const repeated = labelsOnly ? [] : chips.filter((e) => said.includes(fold(e.label)));
+  const labelled = arrowsOnly ? [] : chips.filter((e) => !said.includes(fold(e.label)));
   return (
     <>
       {/* A source the sentence already names: one small arrow at its end, not a second line
@@ -251,7 +285,7 @@ export function EvidenceChips({
           aria-label={`${OPEN_LABEL[e.kind as keyof typeof OPEN_LABEL]}: ${e.label}`}
           className="-my-0.5 ms-1 inline-grid size-6 place-items-center rounded-xs align-[-0.3em] text-stamp transition-colors duration-100 hover:bg-stamp-wash"
         >
-          <CornerDownRight className="rtl-flip size-3.5" aria-hidden />
+          <ArrowRight className="rtl-flip size-3.5" aria-hidden />
         </button>
       ))}
       {labelled.length > 0 && (

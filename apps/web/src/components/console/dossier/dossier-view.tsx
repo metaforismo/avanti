@@ -8,6 +8,7 @@ import {
   FileQuestion,
   ChevronDown,
   Download,
+  MoreHorizontal,
   FileArchive,
   FileJson,
   Printer,
@@ -38,6 +39,7 @@ import { Notice } from "@/components/ui/notice";
 import { PageContainer } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip } from "@/components/ui/tooltip";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { CASE_STATUS, fullName, LANGUAGE_IT, PRACTICE_SHORT } from "@/lib/console/labels";
 import { forgetCase, rememberCase, useQueueHref } from "@/lib/console/recent-cases";
@@ -46,6 +48,7 @@ import { useDownload } from "@/lib/console/use-download";
 import { zipComplete } from "@/lib/console/zip-complete";
 import { moveInCachedList } from "@/lib/console/queue-params";
 import { updateCached, useResource } from "@/lib/console/use-resource";
+import { useDesktop } from "@/lib/console/use-media-query";
 import { cn } from "@/lib/cn";
 import { ChecklistSection, firstDocumentToCheck } from "./checklist-section";
 import { DeleteCaseDialog } from "./delete-case-dialog";
@@ -119,6 +122,13 @@ export function DossierView({ caseId }: { caseId: string }) {
   const [eraseFamily, setEraseFamily] = useState(false);
   const readyButton = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
+  // The «Altro» button as state too: menu items hand it to a confirmation as the place where
+  // focus returns, and render code may not read a ref.
+  const [moreTrigger, setMoreTrigger] = useState<HTMLButtonElement | null>(null);
+  const setMore = (node: HTMLButtonElement | null) => {
+    moreButton.current = node;
+    setMoreTrigger(node);
+  };
   const closeButton = useRef<HTMLButtonElement>(null);
   const nextButton = useRef<HTMLButtonElement>(null);
   // Where the keyboard lands after «Chiudi e archivia»: back on the opener if cancelled, on
@@ -146,6 +156,7 @@ export function DossierView({ caseId }: { caseId: string }) {
   const files = useDownload();
   const queueHref = useQueueHref();
   const next = useNextCase(caseId);
+  const desktop = useDesktop();
   // The sticky action bar's height (0 on phones, where it isn't a box): the error notice sticks
   // just below it, and the bar names the case once the h1 has scrolled under it.
   const [bar, setBar] = useState<HTMLDivElement | null>(null);
@@ -458,227 +469,322 @@ export function DossierView({ caseId }: { caseId: string }) {
     if (problem) setFailure({ message: `Download non riuscito. ${problem}`, status: 0 });
   };
 
+  // One filled button at a time: the step this case is waiting for. The others stay quiet.
+  const requestPrimary =
+    openIssues > 0 && (data.status === "submitted" || data.status === "in_review");
+  const nextPrimary = data.status === "needs_citizen" || data.status === "closed";
+  const flow: FlowAction[] = [
+    ...(data.status !== "closed" && data.status !== "intake"
+      ? [
+          {
+            id: "request" as const,
+            label: "Chiedi integrazione",
+            icon: Send,
+            primary: requestPrimary,
+            keys: ["I"],
+          },
+        ]
+      : []),
+    ...(canReady
+      ? [
+          {
+            id: "ready" as const,
+            label: "Segna come pronta",
+            icon: Check,
+            primary: !requestPrimary,
+            keys: ["P"],
+            loading: pending === "update" && !confirmReady,
+          },
+        ]
+      : []),
+    // Ready means «into the CAF's software»: closing is the step after, in reach.
+    ...(data.status === "ready"
+      ? [
+          {
+            id: "close" as const,
+            label: "Chiudi e archivia",
+            icon: Archive,
+            primary: true,
+          },
+        ]
+      : []),
+  ];
+  // On a phone the step waiting for this case is the wide button of the bottom bar; with no
+  // step left (closed, waiting for the citizen) the way on is the next case.
+  const mobileMain = flow.find((action) => action.primary) ?? null;
+  // Gets the control that ran it: focus goes back there when a confirmation is cancelled.
+  const runFlow = (id: FlowAction["id"], opener: HTMLElement | null) => {
+    if (id === "request") void openRequest();
+    else if (id === "ready") void markReady();
+    else askClose(opener);
+  };
+  const canAsk = data.status !== "intake";
+  const openChat = () => setChatOpen(true);
+  const assignedName = data.assignee
+    ? assignedToMe
+      ? "Assegnata a te"
+      : `Assegnata a ${data.assignee.name}`
+    : "Non assegnata";
+
+  const nextAction = (className?: string) => (
+    <Tooltip label="Apri la pratica successiva della coda" keys={["N"]}>
+      <Button
+        ref={nextButton}
+        size="sm"
+        variant={nextPrimary ? "primary" : "ghost"}
+        loading={next.pending}
+        onClick={() => mayLeave() && void next.go()}
+        aria-keyshortcuts="N"
+        className={className}
+      >
+        {/* Icon only where the bar is tight: the actions stay on one row at 1024px. */}
+        <span className="lg:max-xl:sr-only">Prossima pratica</span>
+        <ArrowRight className="rtl-flip size-4" aria-hidden />
+      </Button>
+    </Tooltip>
+  );
+
+  const moreMenu = (trigger: React.ReactElement, phone: boolean) => (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          side={phone ? "top" : "bottom"}
+          sideOffset={6}
+          collisionPadding={8}
+          className="z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop overflow-y-auto rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
+        >
+          {/* On a phone the bottom bar holds one action: the rest of the case's steps and the
+              question to the dossier come first here. */}
+          {phone && (
+            <>
+              {flow
+                .filter((action) => action !== mobileMain)
+                .map((action) => (
+                  <MenuItem key={action.id} onSelect={() => runFlow(action.id, moreTrigger)}>
+                    <action.icon className="me-2.5 size-4 text-ink-3" aria-hidden />
+                    {action.label}
+                  </MenuItem>
+                ))}
+              {canAsk && (
+                <MenuItem onSelect={openChat}>
+                  <Sparkles className="me-2.5 size-4 text-stamp" aria-hidden />
+                  Chiedi al fascicolo
+                </MenuItem>
+              )}
+              {(canAsk || flow.some((action) => action !== mobileMain)) && (
+                <DropdownMenu.Separator className="my-1 h-px bg-line" />
+              )}
+            </>
+          )}
+          <MenuItem onSelect={() => void exportAs("pdf")}>
+            <Download className="me-2.5 size-4 text-ink-3" aria-hidden />
+            Scarica fascicolo PDF
+          </MenuItem>
+          <MenuItem onSelect={() => void exportAs("json")}>
+            <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
+            Scarica dati JSON
+          </MenuItem>
+          {actions.archive.plan.entries.length > 0 && (
+            <MenuItem onSelect={() => void actions.archive.download()}>
+              <FileArchive className="me-2.5 size-4 text-ink-3" aria-hidden />
+              Scarica tutti i documenti (ZIP)
+            </MenuItem>
+          )}
+          {data.practice && data.status !== "closed" && (
+            <MenuItem onSelect={() => window.open(printPath(data.id), "_blank", "noopener")}>
+              <Printer className="me-2.5 size-4 text-ink-3" aria-hidden />
+              Stampa i documenti da portare
+            </MenuItem>
+          )}
+          <DropdownMenu.Separator className="my-1 h-px bg-line" />
+          {data.status === "closed" ? (
+            <MenuItem onSelect={() => void setStatus("in_review")}>Riapri la pratica</MenuItem>
+          ) : (
+            <>
+              {data.status === "ready" && (
+                <MenuItem onSelect={() => void setStatus("in_review")}>Torna in revisione</MenuItem>
+              )}
+              <MenuItem onSelect={() => setNewLink(true)}>Nuovo link per il cittadino…</MenuItem>
+              <MenuItem onSelect={() => askClose(moreTrigger)}>Chiudi e archivia…</MenuItem>
+            </>
+          )}
+          <MenuItem onSelect={() => setReuse(true)}>Nuova pratica per questa famiglia…</MenuItem>
+          {data.practice?.id === "isee_ordinario" && (
+            <MenuItem
+              onSelect={() => {
+                setWithdrawError(null);
+                setWithdraw("ask");
+              }}
+            >
+              Revoca l&apos;avviso di rinnovo…
+            </MenuItem>
+          )}
+          {assignedToMe && (
+            <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
+              Lascia la pratica
+            </MenuItem>
+          )}
+          {operator.role === "admin" && (
+            <>
+              <DropdownMenu.Separator className="my-1 h-px bg-line" />
+              <MenuItem onSelect={() => setConfirmDelete(true)}>
+                <span className="text-danger">Elimina definitivamente…</span>
+              </MenuItem>
+              <MenuItem onSelect={() => setEraseFamily(true)}>
+                <span className="text-danger">Cancella tutta la famiglia…</span>
+              </MenuItem>
+            </>
+          )}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+
   return (
-    // Bottom room for the floating «Chiedi al fascicolo», so it never hides the last row.
-    // Names and file names come from citizens and can be one unbroken word in any script.
-    <PageContainer width="7xl" className="pb-24 wrap-anywhere lg:pt-2 lg:pb-24">
+    // Names and file names come from citizens and can be one unbroken word in any script. On a
+    // phone the bottom room is the action bar's, so the last section never sits under it.
+    <PageContainer
+      width="7xl"
+      className="wrap-anywhere max-lg:pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pt-2"
+    >
       {/* The case's actions stay in reach while the operator works far down the dossier: on a
           desktop this bar sticks to the top, and once the title has scrolled away it names the
-          case (aria-hidden: the h1 already does). On a phone the actions follow the title.
-          `contents` keeps the bar's sticky range the whole page, not this wrapper. */}
-      <div className="flex flex-col items-start lg:contents">
-        <div
-          ref={setBar}
-          className={cn(
-            "max-lg:contents lg:sticky lg:top-0 lg:z-20 lg:-mx-10 lg:flex lg:min-h-16 lg:items-center lg:gap-4 lg:border-b lg:bg-paper lg:px-10 lg:py-3",
-            compact ? "lg:border-line" : "lg:border-transparent",
-          )}
-        >
-          <div className="flex shrink-0 items-center gap-3">
-            <Link
-              href={queueHref as Route}
-              onClick={(event) => {
-                if (!mayLeave()) event.preventDefault();
-              }}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
-            >
-              <ArrowLeft className="rtl-flip size-4" aria-hidden />
-              Pratiche
-            </Link>
-            {/* The way on once this case is done: the next one of the same queue, no list in
-                between. Quiet while there is still work here. */}
-            <Button
-              ref={nextButton}
-              size="sm"
-              variant={
-                data.status === "needs_citizen" || data.status === "closed" ? "primary" : "ghost"
-              }
-              loading={next.pending}
-              onClick={() => mayLeave() && void next.go()}
-              aria-keyshortcuts="N"
-              title="Apri la pratica successiva della coda (N)"
-            >
-              {/* Icon only where the bar is tight: the actions stay on one row at 1024px. */}
-              <span className="lg:max-xl:sr-only">Prossima pratica</span>
-              <ArrowRight className="rtl-flip size-4" aria-hidden />
-            </Button>
-          </div>
-          {compact && (
-            <p
-              aria-hidden
-              className="hidden min-w-0 flex-1 animate-fade-in items-baseline gap-2 border-s border-line ps-4 xl:flex"
-            >
-              <span className="min-w-0 truncate font-semibold" title={citizenName ?? data.headline}>
-                {citizenName ?? data.headline}
-              </span>
-              <span
-                // Up to 1536px the actions leave room for the name only.
-                className="hidden shrink-0 font-mono text-xs text-ink-3 2xl:inline"
-                translate="no"
-              >
-                {data.reference}
-              </span>
-            </p>
-          )}
-          <div className="mt-4 flex flex-wrap items-center gap-2 max-lg:order-2 lg:ms-auto lg:mt-0">
-            {!assignedToMe && data.status !== "closed" && (
-              <Button
-                variant="secondary"
-                loading={pending === "update"}
-                onClick={() => void actions.update({ assigneeId: operator.id })}
-                // Between 1024 and 1280px the bar has room for one row only if this one is an icon.
-                title="Prendi in carico"
-                className="lg:max-xl:px-3"
-              >
-                <UserCheck className="size-4" aria-hidden />
-                <span className="lg:max-xl:sr-only">Prendi in carico</span>
-              </Button>
-            )}
-            {data.status !== "closed" && data.status !== "intake" && (
-              <Button
-                // Already asked: waiting for the citizen is not a call to ask again.
-                variant={
-                  openIssues > 0 && data.status !== "needs_citizen" ? "primary" : "secondary"
-                }
-                onClick={() => void openRequest()}
-                aria-keyshortcuts="I"
-                title="Scorciatoia: I"
-              >
-                <Send className="size-4" aria-hidden />
-                Chiedi integrazione
-              </Button>
-            )}
-            {canReady && (
-              <Button
-                ref={readyButton}
-                variant={openIssues > 0 ? "secondary" : "primary"}
-                loading={pending === "update" && !confirmReady}
-                onClick={() => void markReady()}
-                aria-keyshortcuts="P"
-                title="Scorciatoia: P"
-              >
-                <Check className="size-4" aria-hidden />
-                Segna come pronta
-              </Button>
-            )}
-            {/* Ready means «into the CAF's software»: closing is the step after, in reach. */}
-            {data.status === "ready" && (
-              <Button ref={closeButton} onClick={(event) => askClose(event.currentTarget)}>
-                <Archive className="size-4" aria-hidden />
-                Chiudi e archivia
-              </Button>
-            )}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <Button ref={moreButton} variant="secondary">
-                  Altro
-                  <ChevronDown className="size-4" aria-hidden />
-                </Button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  align="end"
-                  sideOffset={6}
-                  className="z-50 min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
-                >
-                  <MenuItem onSelect={() => void exportAs("pdf")}>
-                    <Download className="me-2.5 size-4 text-ink-3" aria-hidden />
-                    Scarica fascicolo PDF
-                  </MenuItem>
-                  <MenuItem onSelect={() => void exportAs("json")}>
-                    <FileJson className="me-2.5 size-4 text-ink-3" aria-hidden />
-                    Scarica dati JSON
-                  </MenuItem>
-                  {actions.archive.plan.entries.length > 0 && (
-                    <MenuItem onSelect={() => void actions.archive.download()}>
-                      <FileArchive className="me-2.5 size-4 text-ink-3" aria-hidden />
-                      Scarica tutti i documenti (ZIP)
-                    </MenuItem>
-                  )}
-                  {data.practice && data.status !== "closed" && (
-                    <MenuItem
-                      onSelect={() => window.open(printPath(data.id), "_blank", "noopener")}
-                    >
-                      <Printer className="me-2.5 size-4 text-ink-3" aria-hidden />
-                      Stampa i documenti da portare
-                    </MenuItem>
-                  )}
-                  <DropdownMenu.Separator className="my-1 h-px bg-line" />
-                  {data.status === "closed" ? (
-                    <MenuItem onSelect={() => void setStatus("in_review")}>
-                      Riapri la pratica
-                    </MenuItem>
-                  ) : (
-                    <>
-                      {data.status === "ready" && (
-                        <MenuItem onSelect={() => void setStatus("in_review")}>
-                          Torna in revisione
-                        </MenuItem>
-                      )}
-                      <MenuItem onSelect={() => setNewLink(true)}>
-                        Nuovo link per il cittadino…
-                      </MenuItem>
-                      <MenuItem onSelect={() => askClose(moreButton.current)}>
-                        Chiudi e archivia…
-                      </MenuItem>
-                    </>
-                  )}
-                  <MenuItem onSelect={() => setReuse(true)}>
-                    Nuova pratica per questa famiglia…
-                  </MenuItem>
-                  {data.practice?.id === "isee_ordinario" && (
-                    <MenuItem
-                      onSelect={() => {
-                        setWithdrawError(null);
-                        setWithdraw("ask");
-                      }}
-                    >
-                      Revoca l&apos;avviso di rinnovo…
-                    </MenuItem>
-                  )}
-                  {assignedToMe && (
-                    <MenuItem onSelect={() => void actions.update({ assigneeId: null })}>
-                      Lascia la pratica
-                    </MenuItem>
-                  )}
-                  {operator.role === "admin" && (
-                    <>
-                      <DropdownMenu.Separator className="my-1 h-px bg-line" />
-                      <MenuItem onSelect={() => setConfirmDelete(true)}>
-                        <span className="text-danger">Elimina definitivamente…</span>
-                      </MenuItem>
-                      <MenuItem onSelect={() => setEraseFamily(true)}>
-                        <span className="text-danger">Cancella tutta la famiglia…</span>
-                      </MenuItem>
-                    </>
-                  )}
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-          </div>
+          case (aria-hidden: the h1 already does). On a phone they live in a bar at the bottom,
+          under the thumb, and only the way back and the next case stay at the top. */}
+      <div
+        ref={setBar}
+        className={cn(
+          "flex min-h-11 items-center gap-3 lg:sticky lg:top-0 lg:z-20 lg:-mx-10 lg:min-h-14 lg:border-b lg:bg-paper lg:px-10 lg:py-2.5",
+          compact ? "lg:border-line" : "lg:border-transparent",
+        )}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-1 lg:flex-none">
+          <Link
+            href={queueHref as Route}
+            onClick={(event) => {
+              if (!mayLeave()) event.preventDefault();
+            }}
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-sm pe-2 text-sm text-ink-2 hover:text-ink"
+          >
+            <ArrowLeft className="rtl-flip size-4" aria-hidden />
+            Pratiche
+          </Link>
+          {/* The way on once this case is done: the next one of the same queue, no list in
+              between. Quiet while there is still work here. */}
+          {(desktop || mobileMain) && nextAction("max-lg:ms-auto")}
         </div>
-
-        <header className="mt-3 min-w-0 max-lg:order-1 lg:mt-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Pill tone={status.tone}>{status.label}</Pill>
-            <span className="font-mono text-sm text-ink-3" translate="no">
+        {compact && desktop && (
+          <p
+            aria-hidden
+            className="hidden min-w-0 flex-1 animate-fade-in items-baseline gap-2 border-s border-line ps-4 xl:flex"
+          >
+            <span className="min-w-0 truncate font-semibold" title={citizenName ?? data.headline}>
+              {citizenName ?? data.headline}
+            </span>
+            <span
+              // Up to 1536px the actions leave room for the name only.
+              className="hidden shrink-0 font-mono text-xs text-ink-3 2xl:inline"
+              translate="no"
+            >
               {data.reference}
             </span>
-            {data.language !== "it" && (
-              <Pill tone="neutral">Cittadino in {LANGUAGE_IT[data.language].toLowerCase()}</Pill>
+          </p>
+        )}
+        {desktop && (
+          <div className="ms-auto flex shrink-0 items-center gap-1">
+            {canAsk && (
+              <>
+                <Tooltip label="Chiedi al fascicolo" keys={["⌘", "J"]}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={openChat}
+                    aria-keyshortcuts="Meta+J Control+J"
+                  >
+                    <Sparkles className="size-4 text-stamp" aria-hidden />
+                    Chiedi
+                  </Button>
+                </Tooltip>
+                <span aria-hidden className="mx-1 h-5 w-px bg-line" />
+              </>
+            )}
+            {/* Quiet steps first, the filled one last, next to «Altro». */}
+            {[...flow.filter((a) => !a.primary), ...flow.filter((a) => a.primary)].map((action) => (
+              <Tooltip key={action.id} label={action.label} keys={action.keys}>
+                <Button
+                  ref={
+                    action.id === "ready"
+                      ? readyButton
+                      : action.id === "close"
+                        ? closeButton
+                        : undefined
+                  }
+                  size="sm"
+                  variant={action.primary ? "primary" : "ghost"}
+                  loading={action.loading}
+                  onClick={(event) => runFlow(action.id, event.currentTarget)}
+                  aria-keyshortcuts={action.keys?.join("+")}
+                  className={cn(action.primary && "ms-1")}
+                >
+                  <action.icon className="size-4" aria-hidden />
+                  {action.label}
+                </Button>
+              </Tooltip>
+            ))}
+            {moreMenu(
+              <Button ref={setMore} variant="ghost" size="sm" className="ms-1">
+                Altro
+                <ChevronDown className="size-4" aria-hidden />
+              </Button>,
+              false,
             )}
           </div>
-          {/* The person, not the practice, is the title: a January desk sees forty «ISEE
-            ordinario» in a day, and the name is what tells them apart (as in the queue). */}
-          <h1
-            ref={setTitle}
-            className="mt-2 font-display text-[1.75rem] leading-tight font-bold tracking-[-0.022em]"
-          >
-            {citizenName ?? data.headline}
-          </h1>
-          <p className="mt-1 text-ink-2">{citizenName ? data.headline : "Cittadino senza nome"}</p>
-        </header>
+        )}
       </div>
+
+      <header className="mt-3 min-w-0 lg:mt-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Pill tone={status.tone}>{status.label}</Pill>
+          <span className="font-mono text-sm text-ink-3" translate="no">
+            {data.reference}
+          </span>
+          {data.language !== "it" && (
+            <Pill tone="neutral">Cittadino in {LANGUAGE_IT[data.language].toLowerCase()}</Pill>
+          )}
+        </div>
+        {/* The person, not the practice, is the title: a January desk sees forty «ISEE
+            ordinario» in a day, and the name is what tells them apart (as in the queue). */}
+        <h1
+          ref={setTitle}
+          className="mt-2 font-display text-[1.75rem] leading-tight font-[650] tracking-[-0.012em] text-balance"
+        >
+          {citizenName ?? data.headline}
+        </h1>
+        {/* What and who in one line: taking the case sits by the person it is assigned to. */}
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-2">
+          <span>{citizenName ? data.headline : "Cittadino senza nome"}</span>
+          <span aria-hidden className="text-ink-3">
+            ·
+          </span>
+          <span className={cn("text-body-sm", data.assignee ? "text-ink-2" : "text-ink-3")}>
+            {assignedName}
+          </span>
+          {!assignedToMe && data.status !== "closed" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={pending === "update"}
+              onClick={() => void actions.update({ assigneeId: operator.id })}
+              className="-my-1 h-7 px-2 text-stamp not-disabled:hover:text-stamp"
+            >
+              <UserCheck className="size-3.5" aria-hidden />
+              Assegna a me
+            </Button>
+          )}
+        </p>
+      </header>
       <ErasureRequestNotice
         dossier={data}
         isAdmin={operator.role === "admin"}
@@ -742,9 +848,7 @@ export function DossierView({ caseId }: { caseId: string }) {
             onReply={(question) => void openReply(question)}
           />
           {data.nearReady && <NearReadyPanel dossier={data} actions={actions} />}
-          {data.status !== "intake" && (
-            <CopilotPanel dossier={data} actions={actions} onAsk={() => setChatOpen(true)} />
-          )}
+          {data.status !== "intake" && <CopilotPanel dossier={data} actions={actions} />}
           <FindingsSummary dossier={data} onOpenDocument={actions.openDocument} />
           {data.facts.length > 0 && (
             <section aria-labelledby="facts-title">
@@ -770,7 +874,7 @@ export function DossierView({ caseId }: { caseId: string }) {
         <DossierAside dossier={data} actions={actions} onNotify={() => setNotifying(true)} />
       </div>
 
-      <DossierShortcuts keys={shortcuts} />
+      <DossierShortcuts keys={shortcuts} onAsk={canAsk ? openChat : undefined} />
       <DocumentViewer
         caseId={data.id}
         doc={viewing}
@@ -914,24 +1018,44 @@ export function DossierView({ caseId }: { caseId: string }) {
         dossier={data}
         returnFocusTo={moreButton}
       />
-      {data.status !== "intake" && (
-        <>
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            // A quiet floating pill: always in reach, never louder than the case's own actions.
-            className="fixed end-5 bottom-5 z-30 inline-flex h-11 items-center gap-2 rounded-full bg-surface px-4.5 text-body-sm font-semibold text-ink shadow-float ring-1 ring-line transition-[transform,box-shadow] duration-150 ease-(--ease-out) hover:-translate-y-0.5 hover:ring-line-strong focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none active:translate-y-0 active:scale-[0.97]"
-          >
-            <Sparkles className="size-4 text-stamp" aria-hidden />
-            Chiedi al fascicolo
-          </button>
-          <DossierChat
-            open={chatOpen}
-            onOpenChange={setChatOpen}
-            dossier={data}
-            actions={actions}
-          />
-        </>
+      {!desktop && (
+        <ActionDock>
+          {mobileMain ? (
+            <Button
+              ref={
+                mobileMain.id === "ready"
+                  ? readyButton
+                  : mobileMain.id === "close"
+                    ? closeButton
+                    : undefined
+              }
+              size="lg"
+              loading={mobileMain.loading}
+              onClick={(event) => runFlow(mobileMain.id, event.currentTarget)}
+              className="min-w-0 flex-1"
+            >
+              <mobileMain.icon className="size-5" aria-hidden />
+              {mobileMain.label}
+            </Button>
+          ) : (
+            nextAction("h-12 min-w-0 flex-1 rounded-md text-base")
+          )}
+          {moreMenu(
+            <Button
+              ref={setMore}
+              variant="secondary"
+              size="icon"
+              aria-label="Altro"
+              className="size-12 rounded-md"
+            >
+              <MoreHorizontal className="size-5" aria-hidden />
+            </Button>,
+            true,
+          )}
+        </ActionDock>
+      )}
+      {canAsk && (
+        <DossierChat open={chatOpen} onOpenChange={setChatOpen} dossier={data} actions={actions} />
       )}
       <RequestDialog
         open={requesting}
@@ -964,10 +1088,23 @@ export function DossierView({ caseId }: { caseId: string }) {
 type Shortcuts = Partial<Record<"v" | "i" | "p" | "n", () => void>>;
 
 /** Single-key shortcuts for the steps every case goes through (listed under «?»). */
-function DossierShortcuts({ keys }: { keys: Shortcuts }) {
+function DossierShortcuts({ keys, onAsk }: { keys: Shortcuts; onAsk?: () => void }) {
   // Rebound every render: the handlers carry this render's dossier.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // ⌘J / Ctrl+J asks the dossier, also from a field: it is a chord, not a letter typed.
+      if (
+        onAsk &&
+        (event.metaKey || event.ctrlKey) &&
+        !event.altKey &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === "j"
+      ) {
+        if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+        event.preventDefault();
+        onAsk();
+        return;
+      }
       if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
       if (isTyping(event.target)) return;
       // The document viewer, menus and dialogs have keys of their own.
@@ -981,6 +1118,46 @@ function DossierShortcuts({ keys }: { keys: Shortcuts }) {
     return () => window.removeEventListener("keydown", onKey);
   });
   return null;
+}
+
+type FlowAction = {
+  id: "request" | "ready" | "close";
+  label: string;
+  icon: typeof Send;
+  primary: boolean;
+  keys?: string[];
+  loading?: boolean;
+};
+
+/**
+ * The phone's action bar: fixed under the thumb, above the safe area. While it is on screen the
+ * page scrolls focused fields clear of it (scroll-padding), so the keyboard never lands behind.
+ */
+function ActionDock({ children }: { children: React.ReactNode }) {
+  const [dock, setDock] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!dock) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(([entry]) => {
+      const height = Math.round(entry?.borderBoxSize[0]?.blockSize ?? 0);
+      root.style.scrollPaddingBottom = `${height + 16}px`;
+    });
+    observer.observe(dock);
+    return () => {
+      observer.disconnect();
+      root.style.scrollPaddingBottom = "";
+    };
+  }, [dock]);
+  return (
+    <div
+      ref={setDock}
+      role="toolbar"
+      aria-label="Azioni sulla pratica"
+      className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-line bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-dock"
+    >
+      {children}
+    </div>
+  );
 }
 
 function MenuItem({ children, onSelect }: { children: React.ReactNode; onSelect: () => void }) {
@@ -1001,7 +1178,7 @@ function MenuItem({ children, onSelect }: { children: React.ReactNode; onSelect:
 function DossierSkeleton({ queueHref }: { queueHref: string }) {
   return (
     <PageContainer width="7xl" className="lg:pt-2">
-      <div className="lg:flex lg:min-h-16 lg:items-center">
+      <div className="flex min-h-11 items-center lg:min-h-14 lg:py-2.5">
         <Link
           href={queueHref as Route}
           className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-2 hover:text-ink"
@@ -1015,8 +1192,6 @@ function DossierSkeleton({ queueHref }: { queueHref: string }) {
         <Skeleton className="h-5 w-48 rounded-full" />
         <Skeleton className="mt-3 h-9 w-full max-w-sm" />
         <Skeleton className="mt-2.5 h-6 w-48" />
-        {/* On a phone the actions sit under the title (in the bar from lg). */}
-        <Skeleton className="mt-4 h-10 w-full max-w-md lg:hidden" />
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="grid content-start gap-8">
             <Skeleton className="h-48 rounded-lg" />
