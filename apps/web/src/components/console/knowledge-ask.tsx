@@ -65,7 +65,10 @@ export function KnowledgeAsk() {
   }
 
   return (
-    <section aria-labelledby="ask-title" className="rounded-lg bg-surface p-5 ring-1 ring-line">
+    <section
+      aria-labelledby="ask-title"
+      className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line"
+    >
       <SectionHeader
         id="ask-title"
         icon={<BookOpen className="size-5 text-stamp" aria-hidden />}

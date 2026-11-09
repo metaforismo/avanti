@@ -243,9 +243,9 @@ export default function RenewalsPage() {
                 reset();
               }}
               className={cn(
-                "flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm transition-colors",
+                "flex h-8 shrink-0 items-center gap-2 rounded-sm px-3 text-sm transition-colors duration-100",
                 active
-                  ? "bg-contrast font-semibold text-on-contrast"
+                  ? "bg-surface font-semibold text-ink shadow-raised ring-1 ring-line"
                   : "text-ink-2 hover:bg-sunk hover:text-ink",
               )}
             >
@@ -254,7 +254,7 @@ export default function RenewalsPage() {
                 <span
                   className={cn(
                     "tabular min-w-5 rounded-full px-1.5 text-center text-xs",
-                    active ? "bg-on-contrast/20" : "bg-sunk",
+                    active ? "bg-stamp-wash text-stamp" : "bg-sunk",
                   )}
                 >
                   {count}
@@ -315,41 +315,43 @@ export default function RenewalsPage() {
           )
         ) : (
           <>
-            <div className="hidden grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-4 px-4 pb-2 text-xs text-ink-3 md:grid">
-              {selectable ? (
-                <input
-                  type="checkbox"
-                  aria-label="Seleziona tutte le famiglie mostrate"
-                  checked={allSelected}
-                  onChange={() =>
-                    setSelected(
-                      allSelected
-                        ? new Set()
-                        : new Set(items.slice(0, BATCH).map((item) => item.sourceCaseId)),
-                    )
-                  }
-                  className="size-4.5 accent-stamp"
-                />
-              ) : (
-                <span />
-              )}
-              <span>Famiglia</span>
-              <span>Nucleo</span>
-              <span>Documenti dell&apos;anno scorso</span>
-              <span>Rinnovo</span>
+            <div className="overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
+              <div className="hidden grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-4 border-b border-line bg-sunk/60 px-4 py-2 text-xs font-semibold text-ink-3 md:grid">
+                {selectable ? (
+                  <input
+                    type="checkbox"
+                    aria-label="Seleziona tutte le famiglie mostrate"
+                    checked={allSelected}
+                    onChange={() =>
+                      setSelected(
+                        allSelected
+                          ? new Set()
+                          : new Set(items.slice(0, BATCH).map((item) => item.sourceCaseId)),
+                      )
+                    }
+                    className="size-4.5 accent-stamp"
+                  />
+                ) : (
+                  <span />
+                )}
+                <span>Famiglia</span>
+                <span>Nucleo</span>
+                <span>Documenti dell&apos;anno scorso</span>
+                <span>Rinnovo</span>
+              </div>
+              <ul className="divide-y divide-line">
+                {items.map((item) => (
+                  <RenewalRow
+                    key={item.sourceCaseId}
+                    item={item}
+                    selectable={selectable}
+                    checked={selected.has(item.sourceCaseId)}
+                    onToggle={() => toggle(item.sourceCaseId)}
+                    onWithdraw={() => setWithdrawing(item)}
+                  />
+                ))}
+              </ul>
             </div>
-            <ul className="divide-y divide-line overflow-hidden rounded-lg bg-surface ring-1 ring-line">
-              {items.map((item) => (
-                <RenewalRow
-                  key={item.sourceCaseId}
-                  item={item}
-                  selectable={selectable}
-                  checked={selected.has(item.sourceCaseId)}
-                  onToggle={() => toggle(item.sourceCaseId)}
-                  onWithdraw={() => setWithdrawing(item)}
-                />
-              ))}
-            </ul>
             {next && (
               <div className="mt-4 grid justify-items-center">
                 <Button variant="secondary" loading={loadingMore} onClick={() => void loadMore()}>
@@ -455,7 +457,7 @@ function RenewalRow({
   return (
     <li
       className={cn(
-        "grid gap-x-4 gap-y-2 px-4 py-3.5 md:grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] md:items-center",
+        "grid gap-x-4 gap-y-2 px-4 py-3.5 transition-colors duration-100 hover:bg-sunk/40 md:grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] md:items-center",
         checked && "bg-stamp-wash/50",
       )}
     >

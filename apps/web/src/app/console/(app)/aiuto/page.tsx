@@ -85,7 +85,7 @@ export default function HelpPage() {
 
       <section className="mt-10" aria-labelledby="queue">
         <SectionHeader id="queue" title="Gli stati della coda" />
-        <dl className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
+        <dl className="mt-4 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
           {QUEUE.map(([term, description]) => (
             <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[12rem_1fr]">
               <dt className="font-semibold">{term}</dt>

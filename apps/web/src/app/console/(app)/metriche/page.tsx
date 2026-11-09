@@ -126,34 +126,29 @@ function MetricsView() {
         <div
           className={cn("mt-8 grid gap-8 transition-opacity", metrics.refreshing && "opacity-60")}
         >
-          <dl className="grid gap-px overflow-hidden rounded-lg bg-line ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
+          <dl className="grid gap-px overflow-hidden rounded-lg bg-line shadow-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
             <Tile label="Pratiche avviate" value={String(data.casesStarted)} />
             <Tile label="Inviate allo sportello" value={String(data.casesSubmitted)} />
             <Tile
               label="Complete al primo invio"
               value={percent(data.completeAtFirstSubmission)}
+              share={data.completeAtFirstSubmission}
               note="Senza problemi bloccanti quando arrivano"
             />
             <Tile
               label="Richieste di integrazione"
               value={percent(data.needsCitizenRate)}
+              share={data.needsCitizenRate}
               note="Pratiche rimandate al cittadino"
             />
           </dl>
 
           <section
             aria-labelledby="time-title"
-            className="rounded-lg bg-surface p-5 ring-1 ring-line sm:p-6"
+            className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:p-6"
           >
             <SectionHeader id="time-title" title="Tempo per pratica" />
-            <div className="mt-5 grid gap-6 sm:grid-cols-3">
-              <TimeFigure label="Revisione dell'operatore" value={data.avgReviewMinutes} emphasis />
-              <TimeFigure
-                label="Prima, a mano (dichiarato dal CAF)"
-                value={data.baselineMinutesPerCase}
-              />
-              <TimeFigure label="Compilazione del cittadino" value={data.avgCitizenMinutes} />
-            </div>
+            <TimeBars metrics={data} />
             {data.baselineMinutesPerCase !== null && data.avgReviewMinutes !== null && (
               <p className="mt-5 border-t border-line pt-4 text-ink-2">
                 {data.avgReviewMinutes < data.baselineMinutesPerCase
@@ -205,39 +200,78 @@ function MetricsView() {
   );
 }
 
-function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
+function Tile({
+  label,
+  value,
+  note,
+  share,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  /** 0–1: a thin meter under the figure for the two percentages. */
+  share?: number | null;
+}) {
   return (
-    <div className="bg-surface px-5 py-4">
-      <dt className="text-sm text-ink-2">{label}</dt>
-      <dd className="tabular mt-1 font-display text-4xl font-semibold tracking-[-0.02em]">
+    <div className="bg-surface px-5 py-5">
+      <dt className="text-sm font-medium text-ink-3">{label}</dt>
+      <dd className="tabular mt-2 font-display text-[2.75rem] leading-none font-semibold tracking-[-0.03em]">
         {value}
       </dd>
-      {note && <dd className="mt-1 text-xs text-ink-3">{note}</dd>}
+      {share !== undefined && share !== null && (
+        <dd aria-hidden className="mt-3 h-1 overflow-hidden rounded-full bg-sunk">
+          <span
+            className="block h-full origin-left rounded-full bg-stamp"
+            style={{ transform: `scaleX(${Math.min(1, Math.max(0, share))})` }}
+          />
+        </dd>
+      )}
+      {note && <dd className="mt-2 text-xs text-ink-3">{note}</dd>}
     </div>
   );
 }
 
-function TimeFigure({
-  label,
-  value,
-  emphasis = false,
-}: {
-  label: string;
-  value: number | null;
-  emphasis?: boolean;
-}) {
+/** The three durations as bars on one scale, so «prima» and «dopo» compare at a glance. */
+function TimeBars({ metrics }: { metrics: Metrics }) {
+  const rows = [
+    { label: "Revisione dell'operatore", value: metrics.avgReviewMinutes, tone: "bg-stamp" },
+    {
+      label: "Prima, a mano (dichiarato dal CAF)",
+      value: metrics.baselineMinutesPerCase,
+      tone: "bg-line-strong",
+    },
+    { label: "Compilazione del cittadino", value: metrics.avgCitizenMinutes, tone: "bg-ink-3" },
+  ];
+  const max = Math.max(1, ...rows.map((row) => row.value ?? 0));
   return (
-    <div>
-      <p className="text-sm text-ink-2">{label}</p>
-      <p
-        className={cn(
-          "tabular mt-1 font-display font-semibold",
-          emphasis ? "text-4xl text-stamp" : "text-3xl",
-        )}
-      >
-        {formatMinutes(value)}
-      </p>
-    </div>
+    <ul className="mt-5 grid gap-5">
+      {rows.map((row, i) => (
+        <li
+          key={row.label}
+          className="grid gap-2 sm:grid-cols-[14rem_minmax(0,1fr)_5.5rem] sm:items-center sm:gap-4"
+        >
+          <span className={cn("text-sm", i === 0 ? "font-semibold text-ink" : "text-ink-2")}>
+            {row.label}
+          </span>
+          <span aria-hidden className="h-2.5 overflow-hidden rounded-full bg-sunk">
+            {row.value !== null && (
+              <span
+                className={cn("block h-full origin-left rounded-full", row.tone)}
+                style={{ transform: `scaleX(${row.value / max})` }}
+              />
+            )}
+          </span>
+          <span
+            className={cn(
+              "tabular font-display font-semibold sm:text-end",
+              i === 0 ? "text-2xl text-stamp" : "text-xl",
+            )}
+          >
+            {formatMinutes(row.value)}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -251,10 +285,12 @@ function Breakdown({
   const sorted = [...rows].sort((a, b) => b.value - a.value);
   const max = Math.max(1, ...sorted.map((r) => r.value));
   return (
-    <section className="rounded-lg bg-surface p-5 ring-1 ring-line">
-      <h2 className="font-display text-lg font-semibold">{title}</h2>
+    <section className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line">
+      <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">{title}</h2>
       {sorted.length === 0 ? (
-        <p className="mt-3 text-ink-3">Nessun dato nel periodo.</p>
+        <p className="mt-4 rounded-md bg-sunk px-4 py-6 text-center text-sm text-ink-3">
+          Nessun dato nel periodo.
+        </p>
       ) : (
         <ul className="mt-4 grid gap-3">
           {sorted.map((row) => (
@@ -263,7 +299,7 @@ function Breakdown({
               className="grid grid-cols-[8rem_1fr_2.5rem] items-center gap-3 text-sm"
             >
               <span className="truncate text-ink-2">{row.label}</span>
-              <span className="h-2 overflow-hidden rounded-full bg-sunk">
+              <span className="h-1.5 overflow-hidden rounded-full bg-sunk">
                 <span
                   className="block h-full rounded-full bg-stamp"
                   style={{ width: `${(row.value / max) * 100}%` }}

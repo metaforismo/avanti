@@ -89,7 +89,7 @@ export function MfaAccountSection() {
           }}
         />
       ) : (
-        <div className="flex flex-wrap items-center gap-4 rounded-lg bg-surface p-5 ring-1 ring-line">
+        <div className="flex flex-wrap items-center gap-4 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line">
           <ShieldAlert className="size-6 shrink-0 text-warn" aria-hidden />
           <p className="min-w-0 flex-1">
             <span className="font-semibold">Non attiva.</span>{" "}
@@ -120,7 +120,7 @@ function Enabled({
 }) {
   const few = status.recoveryCodesRemaining <= 3;
   return (
-    <div className="grid gap-4 rounded-lg bg-surface p-5 ring-1 ring-line">
+    <div className="grid gap-4 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line">
       <p className="flex items-center gap-3">
         <ShieldCheck className="size-6 shrink-0 text-ok" aria-hidden />
         <span>

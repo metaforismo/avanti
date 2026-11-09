@@ -39,22 +39,29 @@ export default function OfficesPage() {
         {operator.offices.map((office) => {
           const link = origin ? `${origin}/s/${office.slug}` : "";
           return (
-            <li key={office.id} className="flex gap-5 rounded-lg bg-surface p-5 ring-1 ring-line">
-              <div className="w-28 shrink-0">
+            <li
+              key={office.id}
+              className="flex gap-5 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line"
+            >
+              <div className="size-32 shrink-0 self-start rounded-md bg-white p-2 ring-1 ring-line">
                 {link ? (
                   <QrCode
                     value={link}
                     label={`QR dello sportello ${office.name}`}
-                    className="rounded-sm bg-white [&_svg]:size-full"
+                    className="[&_svg]:size-full"
                   />
                 ) : (
                   <Skeleton className="aspect-square rounded-sm" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="font-display text-xl font-semibold">{office.name}</h2>
-                <p className="text-ink-2">{officePlace(office)}</p>
-                <p className="mt-2 truncate font-mono text-xs text-ink-3">{link}</p>
+                <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">
+                  {office.name}
+                </h2>
+                <p className="text-body-sm text-ink-3">{officePlace(office)}</p>
+                <p className="mt-2 truncate rounded-xs bg-sunk px-2 py-1 font-mono text-xs text-ink-2">
+                  {link}
+                </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button asChild size="sm">
                     <Link
