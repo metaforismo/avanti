@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Spinner } from "@/components/ui/spinner";
 import { apiDownload, ApiRequestError } from "@/lib/api";
 
 type State =
@@ -38,14 +37,19 @@ export function PdfPreview({ url, title }: { url: string; title: string }) {
 
   if (state.kind === "loading") {
     return (
-      <div className="grid min-h-[70dvh] place-items-center text-ink-3">
-        <Spinner label="Caricamento del documento" />
+      // The page about to appear, at A4 proportions: the panel keeps its shape while it loads.
+      <div role="status" className="grid min-h-[70dvh] place-items-center p-6">
+        <span className="sr-only">Caricamento del documento</span>
+        <div
+          aria-hidden
+          className="aspect-[1/1.414] h-[min(70dvh,calc(100dvh-9rem))] max-w-full animate-pulse rounded-xs bg-surface shadow-raised ring-1 ring-line"
+        />
       </div>
     );
   }
   if (state.kind === "error") {
     return (
-      <p role="alert" className="p-8 text-center text-ink-2">
+      <p role="alert" className="mx-auto max-w-sm p-8 text-center text-body-sm text-ink-2">
         Anteprima non disponibile.{" "}
         {state.message ?? "Usa il pulsante di download per aprire il file."}
       </p>

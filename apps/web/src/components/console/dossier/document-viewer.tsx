@@ -148,7 +148,7 @@ export function DocumentViewer({
   return (
     <Primitive.Root open={Boolean(doc)} onOpenChange={(open) => !open && onClose()}>
       <Primitive.Portal>
-        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim" />
+        <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim data-[state=closed]:animate-fade-out" />
         <Primitive.Content
           onOpenAutoFocus={() => {
             opener.current = document.activeElement as HTMLElement | null;
@@ -158,58 +158,59 @@ export function DocumentViewer({
             event.preventDefault();
             document.getElementById("checklist-section")?.focus();
           }}
-          className="fixed inset-0 z-50 flex animate-fade-in flex-col bg-surface outline-none lg:inset-y-3 lg:right-3 lg:left-auto lg:w-[min(64rem,calc(100vw-1.5rem))] lg:rounded-xl lg:shadow-float"
+          className="console-viewer fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface outline-none lg:inset-y-3 lg:start-auto lg:end-3 lg:w-[min(64rem,calc(100vw-1.5rem))] lg:rounded-xl lg:shadow-float lg:ring-1 lg:ring-line xl:w-[min(80rem,calc(100vw-1.5rem))]"
         >
           {doc && (
             <>
-              <div className="flex items-center gap-3 border-b border-line px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <Primitive.Title className="truncate font-semibold">
+              <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line ps-4 pe-2">
+                <div className="min-w-0 flex-1 pe-3">
+                  <Primitive.Title className="truncate text-body-sm font-semibold">
                     {analysis?.detectedLabel ?? doc.fileName}
                   </Primitive.Title>
-                  <Primitive.Description className="truncate text-sm text-ink-3">
+                  <Primitive.Description className="truncate text-xs text-ink-3">
                     {doc.fileName} · caricato {formatDateTime(doc.uploadedAt)}
                   </Primitive.Description>
                 </div>
-                <span className="tabular text-sm text-ink-3">
+                <span className="tabular px-2 text-sm text-ink-3">
                   {index + 1} / {docs.length}
                 </span>
-                <NavButton
+                <IconButton
                   label="Documento precedente"
+                  shortcut="ArrowLeft"
                   disabled={!prev}
                   onClick={() => prev && onNavigate(prev)}
                 >
-                  <ChevronLeft className="size-5" />
-                </NavButton>
-                <NavButton
+                  <ChevronLeft className="rtl-flip size-4.5" aria-hidden />
+                </IconButton>
+                <IconButton
                   label="Documento successivo"
+                  shortcut="ArrowRight"
                   disabled={!next}
                   onClick={() => next && onNavigate(next)}
                 >
-                  <ChevronRight className="size-5" />
-                </NavButton>
-                <button
-                  type="button"
+                  <ChevronRight className="rtl-flip size-4.5" aria-hidden />
+                </IconButton>
+                <span aria-hidden className="mx-1.5 h-5 w-px bg-line" />
+                <IconButton
+                  label="Scarica il file"
+                  disabled={files.pending === url}
                   onClick={async () => {
                     const problem = await files.download(url, doc.fileName);
                     setDownloadError(problem ? { doc: doc.id, message: problem } : null);
                   }}
-                  disabled={files.pending === url}
-                  className="rounded-sm p-2 text-ink-2 hover:bg-sunk hover:text-ink disabled:opacity-50"
-                  aria-label="Scarica il file"
                 >
-                  <Download className="size-5" />
-                </button>
-                <Primitive.Close
-                  className="rounded-sm p-2 text-ink-2 hover:bg-sunk hover:text-ink"
-                  aria-label="Chiudi"
-                >
-                  <X className="size-5" />
+                  <Download className="size-4.5" aria-hidden />
+                </IconButton>
+                <Primitive.Close asChild>
+                  <IconButton label="Chiudi" shortcut="Escape">
+                    <X className="size-4.5" aria-hidden />
+                  </IconButton>
                 </Primitive.Close>
               </div>
 
-              <div className="grid min-h-0 flex-1 lg:grid-cols-[1fr_20rem]">
-                <div className="min-h-[50dvh] overflow-auto bg-sunk">
+              <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_20rem] lg:overflow-hidden xl:grid-cols-[14rem_minmax(0,1fr)_20rem]">
+                <DocumentRail dossier={dossier} current={doc.id} onNavigate={onNavigate} />
+                <div className="min-h-[60dvh] overflow-auto bg-sunk lg:min-h-0">
                   {doc.mimeType === "application/pdf" ? (
                     <PdfPreview key={doc.id} url={url} title={doc.fileName} />
                   ) : doc.mimeType === "image/heic" ? (
@@ -225,29 +226,28 @@ export function DocumentViewer({
                   )}
                 </div>
 
-                <aside className="overflow-y-auto border-t border-line p-5 lg:border-s lg:border-t-0">
+                <aside className="min-h-0 overflow-y-auto border-t border-line lg:border-s lg:border-t-0">
                   <p role="status" className="sr-only">
                     {announcement}
                   </p>
-                  {failure && (
-                    <Notice tone="danger" className="mb-4">
-                      {failure}
-                    </Notice>
-                  )}
-                  {item && finishedOn === doc.id && DECIDED.has(item.status) && (
-                    <Notice
-                      tone="ok"
-                      role="none"
-                      className="mb-4"
-                      title="Nessun altro documento da controllare."
-                      action={
-                        <Primitive.Close asChild>
-                          <Button size="sm" autoFocus>
-                            Torna al fascicolo
-                          </Button>
-                        </Primitive.Close>
-                      }
-                    />
+                  {(failure || (item && finishedOn === doc.id && DECIDED.has(item.status))) && (
+                    <div className="grid gap-3 px-5 pt-5">
+                      {failure && <Notice tone="danger">{failure}</Notice>}
+                      {item && finishedOn === doc.id && DECIDED.has(item.status) && (
+                        <Notice
+                          tone="ok"
+                          role="none"
+                          title="Nessun altro documento da controllare."
+                          action={
+                            <Primitive.Close asChild>
+                              <Button size="sm" autoFocus>
+                                Torna al fascicolo
+                              </Button>
+                            </Primitive.Close>
+                          }
+                        />
+                      )}
+                    </div>
                   )}
                   {item && canDecide && (
                     <Decision
@@ -261,56 +261,61 @@ export function DocumentViewer({
                       onReject={(note) => void reject(item, note)}
                     />
                   )}
-                  <h3 className="font-semibold">Controllo automatico</h3>
-                  {!analysis ? (
-                    <p className="mt-2 text-sm text-ink-3">
-                      {doc.status === "processing"
-                        ? "Analisi in corso…"
-                        : "Analisi non disponibile: verifica a vista."}
-                    </p>
-                  ) : (
-                    <>
-                      <p className="mt-1 text-sm text-ink-3">
-                        {analysis.engine === "ai" ? "Analisi AI" : "Analisi euristica (senza AI)"},
-                        certezza{" "}
-                        <span
-                          className={cn(
-                            "font-semibold",
-                            analysis.confidence < 0.6 ? "text-warn" : "text-ink-2",
-                          )}
-                        >
-                          {Math.round(analysis.confidence * 100)}%
-                        </span>
+                  <section aria-labelledby="viewer-analysis" className="px-5 py-5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <h3 id="viewer-analysis" className="text-sm font-semibold">
+                        Controllo automatico
+                      </h3>
+                      {analysis && (
+                        <p className="text-xs text-ink-3">
+                          {analysis.engine === "ai" ? "AI" : "Senza AI"} · certezza{" "}
+                          <span
+                            className={cn(
+                              "tabular font-semibold",
+                              analysis.confidence < 0.6 ? "text-warn" : "text-ink-2",
+                            )}
+                          >
+                            {Math.round(analysis.confidence * 100)}%
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                    {!analysis ? (
+                      <p className="mt-2 text-sm text-ink-3">
+                        {doc.status === "processing"
+                          ? "Analisi in corso…"
+                          : "Analisi non disponibile: verifica a vista."}
                       </p>
-                      <dl className="mt-4 grid gap-3 text-body-sm">
-                        <Row
-                          label="Abbinato a"
-                          value={
-                            item
-                              ? `${item.title}${item.memberName ? `, ${item.memberName}` : ""}`
-                              : "Nessuna voce"
-                          }
-                        />
-                        <Row label="Intestatario" value={analysis.ownerName} />
-                        <Row
-                          label="Anno di riferimento"
-                          value={analysis.referenceYear?.toString() ?? null}
-                        />
-                        <Row
-                          label="Scadenza"
-                          value={
-                            analysis.expiresOn
-                              ? // A calendar date: read it in UTC so it never shifts by a day.
-                                new Date(
-                                  `${analysis.expiresOn.slice(0, 10)}T00:00:00Z`,
-                                ).toLocaleDateString("it-IT", { timeZone: "UTC" })
-                              : null
-                          }
-                        />
-                        <Row label="Pagine" value={doc.pages?.toString() ?? null} />
-                        <div>
-                          <dt className="text-sm text-ink-3">Leggibilità</dt>
-                          <dd className="mt-1 flex flex-wrap gap-1.5">
+                    ) : (
+                      <>
+                        {analysis.engine === "heuristic" && (
+                          <p className="sr-only">Analisi euristica, senza AI.</p>
+                        )}
+                        <dl className="mt-3 grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-x-3 gap-y-2.5 text-sm">
+                          <Row
+                            label="Abbinato a"
+                            value={
+                              item
+                                ? `${item.title}${item.memberName ? `, ${item.memberName}` : ""}`
+                                : "Nessuna voce"
+                            }
+                          />
+                          <Row label="Intestatario" value={analysis.ownerName} />
+                          <Row label="Anno" value={analysis.referenceYear?.toString() ?? null} />
+                          <Row
+                            label="Scadenza"
+                            value={
+                              analysis.expiresOn
+                                ? // A calendar date: read it in UTC so it never shifts by a day.
+                                  new Date(
+                                    `${analysis.expiresOn.slice(0, 10)}T00:00:00Z`,
+                                  ).toLocaleDateString("it-IT", { timeZone: "UTC" })
+                                : null
+                            }
+                          />
+                          <Row label="Pagine" value={doc.pages?.toString() ?? null} />
+                          <dt className="text-ink-3">Leggibilità</dt>
+                          <dd className="flex flex-wrap gap-1.5">
                             {/* Without AI nothing was read: "not legible" would be a false alarm. */}
                             {analysis.engine === "heuristic" ? (
                               <Pill tone="muted">Da controllare a vista</Pill>
@@ -323,30 +328,30 @@ export function DocumentViewer({
                               <Pill tone="warn">Pagine mancanti</Pill>
                             )}
                           </dd>
-                        </div>
-                      </dl>
-                      {analysis.findings.filter((f) => f.severity !== "ok").length > 0 && (
-                        <ul className="mt-5 grid gap-2">
-                          {analysis.findings
-                            .filter((f) => f.severity !== "ok")
-                            .map((finding) => (
-                              <li key={finding.id}>
-                                <Notice
-                                  tone={finding.severity === "blocker" ? "danger" : "warn"}
-                                  role="none"
-                                >
-                                  {finding.message}
-                                </Notice>
-                              </li>
-                            ))}
-                        </ul>
-                      )}
-                    </>
-                  )}
-                  <p className="mt-6 text-xs text-ink-3">
-                    Il controllo automatico può sbagliare: la verifica finale spetta
-                    all&apos;operatore.
-                  </p>
+                        </dl>
+                        {analysis.findings.filter((f) => f.severity !== "ok").length > 0 && (
+                          <ul className="mt-4 grid gap-2">
+                            {analysis.findings
+                              .filter((f) => f.severity !== "ok")
+                              .map((finding) => (
+                                <li key={finding.id}>
+                                  <Notice
+                                    tone={finding.severity === "blocker" ? "danger" : "warn"}
+                                    role="none"
+                                  >
+                                    {finding.message}
+                                  </Notice>
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                      </>
+                    )}
+                    <p className="mt-5 text-xs text-ink-3">
+                      Il controllo automatico può sbagliare: la verifica finale spetta
+                      all&apos;operatore.
+                    </p>
+                  </section>
                 </aside>
               </div>
             </>
@@ -355,6 +360,93 @@ export function DocumentViewer({
       </Primitive.Portal>
     </Primitive.Root>
   );
+}
+
+/**
+ * Every file of the dossier, with where each one stands: the operator sees how far the pass
+ * through the documents has gone and jumps anywhere in it. Wide screens only: on smaller ones
+ * the arrows do the same and the preview needs the room.
+ */
+function DocumentRail({
+  dossier,
+  current,
+  onNavigate,
+}: {
+  dossier: CaseDossier;
+  current: string;
+  onNavigate: (doc: DocumentSummary) => void;
+}) {
+  const list = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    list.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "nearest" });
+  }, [current]);
+  return (
+    <nav
+      aria-label="Documenti del fascicolo"
+      className="hidden min-h-0 flex-col border-e border-line bg-paper xl:flex"
+    >
+      <ol ref={list} className="grid min-h-0 flex-1 content-start gap-px overflow-y-auto p-2">
+        {dossier.documents.map((d, i) => {
+          const item = dossier.checklist.find((it) => it.id === d.checklistItemId);
+          const state = railState(item);
+          const active = d.id === current;
+          return (
+            <li key={d.id}>
+              <button
+                type="button"
+                aria-current={active || undefined}
+                onClick={() => !active && onNavigate(d)}
+                className={cn(
+                  "grid w-full grid-cols-[1rem_minmax(0,1fr)] items-start gap-x-2 rounded-sm px-2 py-1.5 text-start transition-colors duration-100",
+                  active ? "bg-surface shadow-xs ring-1 ring-line" : "hover:bg-sunk",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn("mt-1.5 size-2 justify-self-center rounded-full", state.dot)}
+                />
+                <span className="min-w-0">
+                  <span className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                    <span className="tabular shrink-0 text-xs text-ink-3">{i + 1}</span>
+                    {/* A file name in Arabic keeps its own direction instead of scrambling. */}
+                    <span
+                      dir="auto"
+                      className={cn("truncate", active ? "font-semibold text-ink" : "text-ink-2")}
+                    >
+                      {d.analysis?.detectedLabel ?? d.fileName}
+                    </span>
+                  </span>
+                  <span className="block truncate text-xs text-ink-3">
+                    {state.label}
+                    {item?.memberName ? ` · ${item.memberName}` : ""}
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="flex items-center gap-1.5 border-t border-line px-4 py-2.5 text-xs text-ink-3">
+        <Kbd>←</Kbd>
+        <Kbd>→</Kbd>
+        <span>per scorrere</span>
+      </p>
+    </nav>
+  );
+}
+
+function railState(item: ChecklistItem | undefined) {
+  if (!item) return { label: "Non abbinato", dot: "bg-line-strong" };
+  const status = CHECKLIST_STATUS[item.status];
+  const dot = {
+    stamp: "bg-stamp",
+    ok: "bg-ok",
+    warn: "bg-warn",
+    danger: "bg-danger",
+    neutral: "bg-line-strong",
+    muted: "bg-line-strong",
+  }[status.tone];
+  return { label: status.label, dot };
 }
 
 function ImagePreview({ url, alt }: { url: string; alt: string }) {
@@ -367,13 +459,16 @@ function ImagePreview({ url, alt }: { url: string; alt: string }) {
       </p>
     );
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- authenticated private file
-    <img
-      src={url}
-      alt={alt}
-      onError={() => setFailed(true)}
-      className="mx-auto max-h-full object-contain p-4"
-    />
+    // A sheet on the desk: the edge shows where the photo ends on the grey background.
+    <div className="grid min-h-full place-items-center p-6">
+      {/* eslint-disable-next-line @next/next/no-img-element -- authenticated private file */}
+      <img
+        src={url}
+        alt={alt}
+        onError={() => setFailed(true)}
+        className="max-h-[calc(100dvh-9rem)] rounded-xs bg-surface object-contain shadow-raised ring-1 ring-line"
+      />
+    </div>
   );
 }
 
@@ -402,22 +497,23 @@ function Decision({
     onReject(String(new FormData(event.currentTarget).get("note") ?? "").trim());
   };
   return (
-    <section aria-label="Decisione sulla voce" className="mb-6 rounded-md bg-paper p-4">
-      <p className="text-sm text-ink-3">Voce</p>
-      <p className="font-semibold">
-        {item.title}
-        {item.memberName && <span className="font-normal text-ink-3"> · {item.memberName}</span>}
-      </p>
-      <div className="mt-2">
-        <Pill tone={status.tone}>{status.label}</Pill>
+    <section aria-label="Decisione sulla voce" className="border-b border-line px-5 py-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="min-w-0 font-semibold">
+          {item.title}
+          {item.memberName && <span className="font-normal text-ink-3"> · {item.memberName}</span>}
+        </p>
+        <Pill tone={status.tone} className="mt-0.5">
+          {status.label}
+        </Pill>
       </div>
       {decided ? (
-        <Button variant="ghost" size="sm" className="mt-3" loading={busy} onClick={onReset}>
+        <Button variant="ghost" size="sm" className="-ms-3 mt-3" loading={busy} onClick={onReset}>
           <RotateCcw className="size-4" aria-hidden />
           Annulla decisione
         </Button>
       ) : rejecting ? (
-        <form onSubmit={submit} className="mt-3 grid gap-2">
+        <form onSubmit={submit} className="mt-4 grid gap-2">
           <label htmlFor={`viewer-note-${item.id}`} className="text-sm text-ink-2">
             Motivo per il cittadino (in italiano, viene tradotto)
           </label>
@@ -440,7 +536,7 @@ function Decision({
         </form>
       ) : (
         <>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 grid grid-cols-2 gap-2">
             <Button
               size="sm"
               loading={busy}
@@ -450,6 +546,7 @@ function Decision({
             >
               <Check className="size-4" aria-hidden />
               Verifica
+              <KeyHint>V</KeyHint>
             </Button>
             <Button
               size="sm"
@@ -458,11 +555,11 @@ function Decision({
               aria-keyshortcuts="R"
             >
               Rifiuta
+              <KeyHint>R</KeyHint>
             </Button>
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-ink-3">
-            Tasti: <Kbd>V</Kbd> verifica, <Kbd>R</Kbd> rifiuta, <Kbd>←</Kbd> <Kbd>→</Kbd> documenti.
-            Dopo la verifica passa al prossimo documento da controllare.
+          <p className="mt-2.5 text-xs text-ink-3">
+            Poi passa al prossimo documento da controllare.
           </p>
         </>
       )}
@@ -470,35 +567,53 @@ function Decision({
   );
 }
 
-function Row({ label, value }: { label: string; value: string | null }) {
+/** The key inside a button: out of the accessible name, which aria-keyshortcuts already carries. */
+function KeyHint({ children }: { children: string }) {
   return (
-    <div>
-      <dt className="text-sm text-ink-3">{label}</dt>
-      <dd className={cn("mt-0.5", value ? "font-semibold" : "text-ink-3")}>
-        {value ?? "Non rilevato"}
-      </dd>
-    </div>
+    <span
+      aria-hidden
+      className="ms-1 grid h-4.5 min-w-4.5 place-items-center rounded-xs bg-current/15 px-1 font-mono text-[0.6875rem] leading-none"
+    >
+      {children}
+    </span>
   );
 }
 
-function NavButton({
+function Row({ label, value }: { label: string; value: string | null }) {
+  return (
+    <>
+      <dt className="text-ink-3">{label}</dt>
+      <dd className={cn("min-w-0", value ? "font-medium text-ink" : "text-ink-3")}>
+        {value ?? "Non rilevato"}
+      </dd>
+    </>
+  );
+}
+
+function IconButton({
   label,
+  shortcut,
   disabled,
   onClick,
   children,
+  ...props
 }: {
   label: string;
-  disabled: boolean;
-  onClick: () => void;
+  shortcut?: string;
+  disabled?: boolean;
+  onClick?: () => void;
   children: React.ReactNode;
-}) {
+} & Omit<React.ComponentProps<"button">, "children">) {
   return (
     <button
       type="button"
       aria-label={label}
+      title={label}
+      aria-keyshortcuts={shortcut}
       disabled={disabled}
       onClick={onClick}
-      className="rounded-sm p-2 text-ink-2 hover:bg-sunk hover:text-ink disabled:opacity-30"
+      {...props}
+      className="grid size-9 place-items-center rounded-sm text-ink-2 transition-[background-color,color,transform] duration-100 ease-(--ease-out) hover:bg-sunk hover:text-ink active:scale-[0.94] disabled:pointer-events-none disabled:opacity-30"
     >
       {children}
     </button>
