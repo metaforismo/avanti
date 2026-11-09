@@ -44,7 +44,10 @@ export function Dialog({
           className={cn(
             // On a phone a sheet that slides from the bottom edge; from sm up a centred card.
             "fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] animate-sheet-in overflow-y-auto overscroll-contain rounded-t-xl bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-float outline-none data-[state=closed]:animate-sheet-out",
-            "sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:animate-pop sm:rounded-xl sm:data-[state=closed]:animate-sink",
+            "sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:animate-pop sm:rounded-xl sm:ring-1 sm:ring-line sm:data-[state=closed]:animate-sink",
+            // The console reads denser: a smaller title, as on its pages. Its dark theme needs
+            // the 1px ring above, where a shadow on a dark scrim no longer draws the edge.
+            "[:root.console_&]:sm:p-5",
             className,
           )}
         >
@@ -55,11 +58,11 @@ export function Dialog({
           />
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <Primitive.Title className="font-display text-2xl font-semibold tracking-[-0.015em]">
+              <Primitive.Title className="font-display text-2xl font-semibold tracking-[-0.015em] [:root.console_&]:text-xl">
                 {title}
               </Primitive.Title>
               {description ? (
-                <Primitive.Description className="mt-1 text-ink-2">
+                <Primitive.Description className="mt-1 text-ink-2 [:root.console_&]:text-body-sm">
                   {description}
                 </Primitive.Description>
               ) : (

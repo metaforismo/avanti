@@ -1,6 +1,7 @@
 "use client";
 
 import { KeyRound, ShieldOff, UserPlus } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { OperatorSummary, TemporaryPasswordResponse } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -175,14 +176,28 @@ export function OperatorsSection() {
       ) : !list.data ? (
         <Skeleton className="mt-4 h-32 rounded-lg" />
       ) : (
-        <ul className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
+        <ul className="mt-4 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
           {list.data.map((operator) => {
             const isMe = operator.id === me.id;
             return (
               <li
                 key={operator.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 transition-colors duration-100 hover:bg-sunk/40"
               >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold",
+                    operator.active ? "bg-contrast text-on-contrast" : "bg-sunk text-ink-2",
+                  )}
+                >
+                  {operator.name
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </span>
                 <div className="min-w-0 flex-1 basis-56">
                   <p className="flex flex-wrap items-center gap-2 font-semibold">
                     {operator.name}
@@ -201,7 +216,7 @@ export function OperatorsSection() {
                 {!isMe && (
                   <div className="flex flex-wrap gap-1.5">
                     <Button
-                      variant="secondary"
+                      variant="ghost"
                       size="sm"
                       onClick={() => ask("password", operator)}
                       disabled={!operator.active}
@@ -210,7 +225,7 @@ export function OperatorsSection() {
                       Nuova password
                     </Button>
                     {operator.mfaEnabled && (
-                      <Button variant="secondary" size="sm" onClick={() => ask("mfa", operator)}>
+                      <Button variant="ghost" size="sm" onClick={() => ask("mfa", operator)}>
                         <ShieldOff className="size-4" aria-hidden />
                         Azzera verifica
                       </Button>

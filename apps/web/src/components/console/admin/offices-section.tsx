@@ -51,7 +51,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
           </Button>
         }
       />
-      <ul className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
+      <ul className="mt-4 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
         {offices.map((office) => (
           <li key={office.id} className="flex items-center gap-4 px-4 py-3">
             <div className="min-w-0 flex-1">

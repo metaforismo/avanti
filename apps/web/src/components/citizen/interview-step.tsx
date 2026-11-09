@@ -13,6 +13,7 @@ import { AssistantMessage, lastMessage } from "./assistant-message";
 import type { StepProps } from "./citizen-app";
 import { InterviewProgressBar, RemainingQuestions } from "./interview-progress";
 import { QuestionCard } from "./question-card";
+import { rise } from "./motion";
 
 export function InterviewStep({ api, data, m }: StepProps) {
   const question = data.nextQuestion;
@@ -21,7 +22,7 @@ export function InterviewStep({ api, data, m }: StepProps) {
 
   return (
     <div className="grid gap-5">
-      <div>
+      <div {...rise(0)}>
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h1
             id={STEP_TITLE_ID}
@@ -163,8 +164,8 @@ export function AnsweredList({ api, data, m }: Pick<StepProps, "api" | "data" | 
   // Nothing to review yet: an empty «Your answers (0)» only adds noise to the first screen.
   if (answered.length === 0) return null;
   return (
-    <details className="group rounded-lg ring-1 ring-line">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-4 py-3.5 font-semibold [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-xl bg-surface ring-1 ring-line">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3.5 font-semibold [&::-webkit-details-marker]:hidden">
         <span>
           {m.interview.yourAnswers}
           <span className="tabular ms-2 font-normal text-ink-3">{answered.length}</span>

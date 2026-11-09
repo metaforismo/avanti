@@ -53,7 +53,7 @@ export function OperatorSnippet() {
             </span>
           </p>
         </div>
-        <Stamp className="absolute end-5 bottom-5 hidden text-[0.6875rem] [--stamp-rotate:-8deg] sm:inline-flex">
+        <Stamp className="press-on-reveal absolute end-5 bottom-5 hidden text-[0.6875rem] [--stamp-rotate:-8deg] sm:inline-flex">
           <span>Decide</span>
           <span className="mt-0.5">l&apos;operatore</span>
         </Stamp>

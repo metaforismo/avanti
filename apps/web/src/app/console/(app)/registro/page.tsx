@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ChevronDown, Download, Search } from "lucide-react";
+import { AlertTriangle, ChevronDown, Download, Search, SearchX } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import type { Route } from "next";
@@ -224,14 +224,26 @@ function AuditLog() {
         ) : !page.data ? (
           <Skeleton className="h-64 rounded-lg" />
         ) : items.length === 0 ? (
-          <EmptyState title="Nessuna attività con questi filtri." className="py-12" />
+          <EmptyState icon={SearchX} title="Nessuna attività con questi filtri.">
+            Allarga il periodo o scegli «Tutte le attività».
+          </EmptyState>
         ) : (
           <>
-            <ol className="divide-y divide-line overflow-hidden rounded-lg bg-surface ring-1 ring-line">
-              {groupRuns(items).map((run) => (
-                <EventRun key={run[0]!.id} run={run} names={names} />
-              ))}
-            </ol>
+            <div className="overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
+              <div
+                aria-hidden
+                className="hidden gap-4 border-b border-line bg-sunk/60 px-4 py-2 text-xs font-semibold tracking-wide text-ink-3 uppercase md:grid md:grid-cols-[11rem_minmax(0,1fr)_10rem]"
+              >
+                <span>Quando</span>
+                <span>Attività</span>
+                <span className="text-end">Pratica</span>
+              </div>
+              <ol className="divide-y divide-line">
+                {groupRuns(items).map((run) => (
+                  <EventRun key={run[0]!.id} run={run} names={names} />
+                ))}
+              </ol>
+            </div>
             {cursor && (
               <div className="mt-4 flex justify-center">
                 <Button variant="secondary" loading={loadingMore} onClick={() => void loadMore()}>
@@ -317,8 +329,8 @@ function EventRow({
   return (
     <li
       className={cn(
-        "grid gap-1 px-4 py-3 md:grid-cols-[11rem_minmax(0,1fr)_10rem] md:items-center md:gap-4",
-        failed && "bg-warn-wash/50",
+        "grid gap-1 px-4 py-3 transition-colors duration-100 hover:bg-sunk/40 md:grid-cols-[11rem_minmax(0,1fr)_10rem] md:items-center md:gap-4",
+        failed && "bg-warn-wash/50 shadow-[inset_3px_0_0_var(--warn)] hover:bg-warn-wash/70",
       )}
     >
       <time dateTime={event.at} className="text-sm text-ink-3 tabular-nums">

@@ -8,7 +8,7 @@ tante pratiche al giorno, ogni minuto conta). Il sistema visivo è unico, la den
 
 Avanti si presenta come un oggetto da sportello, non come una startup: carta d'ufficio,
 inchiostro blu del timbro, l'evidenziatore giallo con cui l'operatore segna ciò che conta.
-Nessun gradiente, nessuna illustrazione generica, nessuna icona "AI" con scintille in primo piano:
+Nessun gradiente vistoso (solo luci radiali appena percettibili sul sito), nessuna illustrazione generica, nessuna icona "AI" con scintille in primo piano:
 il prodotto si mostra com'è, con dati inventati dichiarati.
 
 ### Marchio
@@ -182,29 +182,57 @@ Console e cittadino:
   ⌘K si apre di colpo, il visore cambia documento con le frecce senza transizioni.
 - Un badge di stato si anima solo quando cambia (documento caricato, voce verificata), non
   all'apertura della pagina (`components/ui/use-changed.ts`).
-- Passaggi del cittadino (`animate-step-in`, 320 ms): il passo successivo sale di 12 px, tornare
-  indietro lo fa scendere dall'alto (`--step-dir`). Verticale di proposito: uno slittamento
-  laterale manda la pagina del telefono in scorrimento orizzontale per tutta la sua durata.
-  Il contenitore che si anima sposta anche i figli `fixed`: le barre in basso dei passaggi
-  vanno in un portale (`createPortal` su `body`) con `lang` e `dir` propri.
-- Conferme (`animate-check-in`, 420 ms con un piccolo rimbalzo): la spunta di una voce pronta,
-  della lingua scelta, del passo inviato. Il biglietto con il codice pratica entra con
-  `animate-ticket-in` (560 ms), una volta.
+- Passaggi del cittadino (`citizen.css`, caricato solo dal flusso del cittadino): il passo entra
+  con una dissolvenza (`cz-step`, 180 ms) e i suoi blocchi salgono di 14 px uno dopo l'altro
+  (`cz-in`, 420 ms, 55 ms tra l'uno e l'altro, al massimo sei: `rise(i)` in `motion.ts`).
+  Tornare indietro li fa scendere dall'alto (`--step-dir`). Verticale di proposito: uno
+  slittamento laterale manda la pagina del telefono in scorrimento orizzontale per tutta la sua
+  durata. Il contenitore che si anima sposta anche i figli `fixed`: le barre in basso dei passaggi
+  vanno in un portale (`createPortal` su `body`) con `lang` e `dir` propri. Con movimento ridotto
+  restano solo 150 ms di dissolvenza, senza ritardi.
+- Conferme: `cz-pop` (460 ms, piccolo rimbalzo) con `cz-ring`, un anello che esce dal segno una
+  volta sola (scala e opacità, colore da `--cz-ring-color`): la voce che diventa pronta, la
+  pratica inviata. Il biglietto con il codice entra con `cz-ticket` (640 ms, si assesta con una
+  piccola rotazione). Un segno che c'era già all'apertura non si anima (`useChanged`).
+- Fogli (`components/citizen/sheet.tsx`, `sheet-drag.ts`): sul telefono salgono dal bordo (340 ms,
+  `--ease-drawer`) e seguono il dito 1:1 verso il basso dalla maniglia o dal titolo, mai dal
+  contenuto che scorre; al rilascio si chiudono per distanza (> 110 px) o velocità (> 0,6 px/ms),
+  altrimenti tornano su con una molla di 320 ms; verso l'alto la resistenza è 1/6. Niente
+  render per movimento: la `transform` si scrive sull'elemento. Da `sm` il foglio è una scheda al
+  centro e non si trascina. Il pannello dell'assistente si chiude allo stesso modo dalla barra del
+  titolo.
+- Caricamento foto: la miniatura è la foto scattata (URL locale, revocato a fine caricamento)
+  sotto un velo che si alza con l'avanzamento, poi uno spinner mentre Avanti la legge; PDF e HEIC
+  mostrano l'icona del file.
 - Console: niente entrate di pagina, transizioni di colore a 100 ms su voci e righe. Tutto il
-  resto sotto 200 ms.
+  resto sotto 200 ms. Le classi stanno in `components/console/motion.css` (importato dalla
+  shell, non in `globals.css`): `console-viewer` fa entrare il visore dal bordo destro in 200 ms
+  (e si chiude di colpo: il contenuto segue l’URL, già vuoto), `console-arrive` fa salire di 4 px una conferma o un errore appena arrivati.
+  Con movimento ridotto restano dissolvenze di 120 ms. La barra di avanzamento dei documenti
+  nella coda anima `scaleX`, non la larghezza.
 
 Sito pubblico (`app/(site)/site.css`, caricato solo lì):
 
-| Classe / attributo        | Cosa fa                                                            |
-| ------------------------- | ------------------------------------------------------------------ |
-| `hero-in` + `--d`         | Entrata al caricamento, da CSS (non aspetta l'idratazione), 900 ms |
-| `data-reveal`             | Sale di 14 px e compare quando entra in vista, una volta           |
-| `data-reveal="stagger"`   | Lo stesso per i figli, 60 ms l'uno dall'altro (massimo 300 ms)     |
-| `draw-x`                  | Una linea dentro un reveal si disegna da sinistra (`scaleX`)       |
-| `marker-draw`             | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)   |
-| `stamp-press` / `tick-in` | Timbro premuto con piccolo rimbalzo; spunta che compare in scala   |
-| `grain` / `grain-dark`    | Grana della carta (SVG di rumore) su fondi chiari o scuri          |
-| `ruled`                   | Righe del registro che sfumano in alto negli hero                  |
+| Classe / attributo          | Cosa fa                                                                 |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `hero-in` + `--d`           | Entrata al caricamento, da CSS (non aspetta l'idratazione), 900 ms      |
+| `data-reveal`               | Sale di 14 px e compare quando entra in vista, una volta                |
+| `data-reveal="stagger"`     | Lo stesso per i figli, 60 ms l'uno dall'altro (massimo 300 ms)          |
+| `draw-x`                    | Una linea dentro un reveal si disegna da sinistra (`scaleX`)            |
+| `marker-draw`               | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)        |
+| `stamp-press` / `tick-in`   | Timbro premuto con piccolo rimbalzo; spunta che compare in scala        |
+| `grain` / `grain-dark`      | Grana della carta (SVG di rumore) su fondi chiari o scuri               |
+| `ruled`                     | Righe del registro che sfumano in alto negli hero                       |
+| `hero-word`                 | Titolo dell'hero parola per parola, ognuna sale dalla sua riga          |
+| `hero-stage` + `stage`      | Il banco della demo arriva inclinato e si raddrizza; luce e puntini     |
+| `flow-dot` / `flow-pulse`   | Passaggio cittadino → fascicolo: un punto per fatto, freccia Avanti     |
+| `land-flash`                | La riga del fascicolo che riceve un fatto lampeggia di giallo           |
+| `fill-in` + `--i`           | Quadretti della figura 10×10 dei numeri, uno dopo l'altro               |
+| `draw-y`                    | Filo del calendario del pilota disegnato verso il basso                 |
+| `press-on-reveal`           | Timbro premuto quando la sua immagine entra in vista                    |
+| `spotlight`                 | Luce sotto le celle delle fasce scure che segue il puntatore            |
+| `cta-sheen`                 | Riflesso che attraversa la CTA principale all'hover, una volta          |
+| `band-light` / `edge-light` | Luce dall'alto sulle fasce scure; filo luminoso sul bordo dell'immagine |
 
 I reveal partono dopo l'idratazione (`lib/site/reveal.ts`): un attributo aggiunto prima
 all'HTML del server è un errore di idratazione. Quello che è già a schermo viene segnato come
@@ -238,31 +266,49 @@ del sito stanno in `components/landing`, gli oggetti di brand in `components/bra
 Un'app, non un sito: un compito per schermo, l'azione principale sotto il pollice, nessun
 paragrafo che ripete il titolo.
 
-| Pattern                 | Dove                            | Regola                                                                                                                             |
-| ----------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Barra d'azione in basso | sportello («Inizia»), documenti | `fixed`, `shadow-dock`, `env(safe-area-inset-bottom)`; il contenuto lascia `pb-32/40`; dentro il `<form>` se invia                 |
-| Controlli dell'header   | aiuto, lingua                   | Pillole piene (`bg-stamp-wash` / `bg-sunk`) alte 44 px, scendono a 0,96; padding superiore con `safe-area-inset-top`               |
-| Avanzamento             | header dei passaggi             | Tre segmenti; il riempimento cresce da `origin-left` (`rtl:origin-right`) con `scale-x`, verde per i passi fatti                   |
-| Scelta a pillola        | lingua dello sportello          | Stato letto dal radio (`has-checked:`), non da React: la scelta fatta prima dell'idratazione si vede; spunta a fine riga           |
-| Voce della checklist    | documenti                       | Segno tondo a inizio scheda (tratteggiato da fare, pieno `ok` pronto, `warn` da rivedere) + riga di stato colorata sotto il titolo |
-| Caricamento             | voce della checklist            | Sul telefono «Scatta una foto» `tinted` e «Scegli un file» neutro, alti 48 px; col mouse solo «Carica» `tinted`                    |
-| Biglietto della pratica | inviata                         | Fondo `stamp`, tacche `paper`, freccia `marker` a fine riga (specchiata in RTL), codice in mono `dir="ltr"`                        |
-| Mancanti da portare     | inviata                         | Caselle vuote, non puntini: sono cose ancora da fare                                                                               |
-| Bolla del cittadino     | conversazione, aiuto            | `bg-stamp`, angolo d'origine stretto (`rounded-ee-md`), cresce da quell'angolo; la risposta dell'assistente resta testo semplice   |
-| Foglio                  | dialoghi sul telefono           | Maniglia di 40 × 6 px in alto (`sm:hidden`); argomenti separati da filetti, non da spazio                                          |
+| Pattern                  | Dove                             | Regola                                                                                                                                   |
+| ------------------------ | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Barra d'azione in basso  | sportello («Inizia»), documenti  | `fixed`, `shadow-dock`, `env(safe-area-inset-bottom)`; il contenuto lascia `pb-32/40`; dentro il `<form>` se invia                       |
+| Controlli dell'header    | aiuto, lingua                    | Pillole piene (`bg-stamp-wash` / `bg-sunk`) alte 44 px, scendono a 0,96; padding superiore con `safe-area-inset-top`                     |
+| Avanzamento              | header dei passaggi              | Tre segmenti; il riempimento cresce da `origin-left` (`rtl:origin-right`) con `scale-x`, verde per i passi fatti                         |
+| Scelta a pillola         | lingua dello sportello           | Stato letto dal radio (`has-checked:`), non da React: la scelta fatta prima dell'idratazione si vede; spunta a fine riga                 |
+| Voce della checklist     | documenti                        | Segno tondo a inizio scheda (tratteggiato da fare, pieno `ok` pronto, `warn` da rivedere) + riga di stato colorata sotto il titolo       |
+| Caricamento              | voce della checklist             | Sul telefono «Scatta una foto» `tinted` e «Scegli un file» neutro, alti 48 px; col mouse solo «Carica» `tinted`                          |
+| Biglietto della pratica  | inviata                          | Fondo `stamp`, tacche `paper`, freccia `marker` a fine riga (specchiata in RTL), codice in mono `dir="ltr"`                              |
+| Mancanti da portare      | inviata                          | Caselle vuote, non puntini: sono cose ancora da fare                                                                                     |
+| Bolla del cittadino      | conversazione, aiuto             | `bg-stamp`, angolo d'origine stretto (`rounded-ee-md`), cresce da quell'angolo; la risposta dell'assistente resta testo semplice         |
+| Foglio                   | dialoghi sul telefono            | Maniglia di 40 × 6 px, raggio 28 px, trascinabile verso il basso (vedi Motion); argomenti separati da filetti, non da spazio             |
+| Profondità               | tutto il flusso                  | Ciò che aspetta il cittadino si solleva (`bg-surface` + `shadow-raised`, raggio `xl`); ciò che è fatto resta piatto (solo anello `line`) |
+| Piastrella icona         | sportello, riepilogo, inviata    | 40 px, raggio 12 px, fondo `stamp-wash` e icona `stamp` (`ok-wash` per la privacy): sostituisce i punti elenco                           |
+| Scelta con segno         | domande                          | Cerchio a inizio riga che si riempie con la spunta (`aria-pressed`); Sì/No sono due tasti affiancati alti 64 px; più risposte: casella   |
+| Spiegazioni dopo i tasti | domande                          | «Perché te lo chiediamo» e «Chiedi all'assistente» stanno sotto le risposte: il pollice arriva prima ai tasti                            |
+| Sezione per persona      | documenti                        | Iniziale in un cerchio `folder`, nome, contatore a pillola (`ok-wash` con spunta quando la persona è a posto)                            |
+| Foto in arrivo           | documenti                        | Miniatura reale con velo e avanzamento, vedi Motion                                                                                      |
+| Biglietto con strappo    | inviata                          | Due metà separate da una linea tratteggiata con le due tacche; sopra il codice, sotto la pratica e la freccia; ombra del colore `stamp`  |
+| Identità dello sportello | intestazione dei passi, ingresso | Nome del CAF su due righe al massimo (mai troncato con «…»); all'ingresso anche l'iniziale su un quadrato scuro                          |
 
 ### Console
 
 Il riferimento è Linear: tante pratiche al giorno, la gerarchia la fa il peso, non il colore.
 
-| Pattern          | Dove                    | Regola                                                                                                                           |
-| ---------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Barra laterale   | `ConsoleShell`          | 14 rem, voci alte 36 px in `text-sm`; attiva su `bg-sunk` con l'icona `stamp`, le altre icone `ink-3`                            |
-| Schede di stato  | coda                    | Segmenti alti 32 px; l'attiva è una scheda `surface` con anello `line`, mai invertita; il conteggio da revisionare resta `stamp` |
-| Riga della coda  | coda                    | Nome + suggerimento AI sulla stessa riga (il nome si tronca), poi una sola riga di metadati con codice, lingua, attesa e avvisi  |
-| Problemi         | coda                    | Numero colorato con icona da 14 px, senza pillola: si leggono a colpo d'occhio senza fare rumore                                 |
-| Titolo di pagina | `PageHeader`, fascicolo | 28 px bold, lead in `text-body-sm` `ink-3`                                                                                       |
-| Empty state      | `EmptyState`            | Icona su una piastrella `surface` con `shadow-raised`, titolo a 16 px, testo `ink-3`; nessun bordo tratteggiato                  |
+| Pattern            | Dove                    | Regola                                                                                                                                                                                                                                                    |
+| ------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Barra laterale     | `ConsoleShell`          | 14 rem, voci alte 36 px in `text-sm`; attiva su `bg-sunk` con l'icona `stamp`, le altre icone `ink-3`                                                                                                                                                     |
+| Schede di stato    | coda                    | Segmenti alti 32 px; l'attiva è una scheda `surface` con anello `line`, mai invertita; il conteggio da revisionare resta `stamp`                                                                                                                          |
+| Riga della coda    | coda                    | Nome + suggerimento AI sulla stessa riga (il nome si tronca), poi una sola riga di metadati con codice, lingua, attesa e avvisi                                                                                                                           |
+| Problemi           | coda                    | Numero colorato con icona da 14 px, senza pillola: si leggono a colpo d'occhio senza fare rumore                                                                                                                                                          |
+| Titolo di pagina   | `PageHeader`, fascicolo | 28 px bold, lead in `text-body-sm` `ink-3`                                                                                                                                                                                                                |
+| Empty state        | `EmptyState`            | Icona su una piastrella `surface` con `shadow-raised`, titolo a 16 px, testo `ink-3`; nessun bordo tratteggiato; il titolo è una frase («Nessuna pratica chiusa»)                                                                                         |
+| Barra laterale (2) | `ConsoleShell`          | Tre gruppi: lavoro, «Amministrazione» (solo admin, con etichetta), «Aiuto» in fondo sopra l'operatore; «Cerca» è disegnato come un campo                                                                                                                  |
+| Tabella della coda | coda                    | Le intestazioni stanno nella fascia alta della scheda (`bg-paper/70`, 36 px); lo scheletro ha le stesse colonne e la stessa altezza di riga                                                                                                               |
+| Selezione          | `QueueAssign`           | Barra fluttuante centrata sulla colonna del contenuto (`shadow-float`, anello `line`), non una fascia a tutta larghezza                                                                                                                                   |
+| Tasto              | `Kbd`                   | Un tasto visto dall'alto: 20 px, fondo `surface`, bordo inferiore `line-strong`; dentro un pulsante il tasto è `aria-hidden` (lo dice `aria-keyshortcuts`)                                                                                                |
+| Palette ⌘K         | `CommandPalette`        | Righe di 40 px su una riga sola (nome, poi dettagli in `ink-3`, stato come pillola in fondo); evidenziata su `sunk`, senza movimento; piè con ↑ ↓ ↵                                                                                                       |
+| Visore             | `DocumentViewer`        | Da `xl` tre colonne: elenco dei file con il punto di stato (14 rem), anteprima su `sunk` come un foglio sul tavolo, decisione e controllo automatico (20 rem). La decisione è in cima con i tasti nei pulsanti; i dati letti sono coppie etichetta/valore |
+| Evidenza           | «Da guardare», copilota | Ogni punto che viene da un file ha «Documento», che lo apre nel visore; se la frase nomina già la voce, la fonte è una freccia in fondo alla frase, non una riga «Vai alla voce»                                                                          |
+| Avvisi ripetuti    | voce della checklist    | Al massimo due avvisi per voce, poi «e altri N avvisi»: con molti file uguali la voce resta leggibile                                                                                                                                                     |
+| Dialoghi           | `Dialog` nella console  | Titolo a 20 px e padding di 20 px sotto `:root.console`; anello `line` di 1 px che nel tema scuro disegna il bordo                                                                                                                                        |
+| Dati del cittadino | ovunque                 | Nomi e nomi di file con `dir="auto"`: un nome arabo tiene la sua direzione anche in una riga italiana                                                                                                                                                     |
 
 ## Landing
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, MessageCircleQuestion, Minus, Plus } from "lucide-react";
+import { Check, ChevronDown, MessageCircleQuestion, Minus, Plus } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { AnswerValue, MemberInput, Question } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -73,9 +73,9 @@ export function QuestionCard({
     <section
       key={question.id}
       aria-labelledby={titleId}
-      className="animate-rise rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:p-6"
+      className="animate-rise rounded-xl bg-surface p-5 shadow-raised ring-1 ring-line sm:p-6"
     >
-      {!askedAbove && <p className="text-sm text-ink-3">{question.section}</p>}
+      {!askedAbove && <p className="text-sm font-medium text-stamp">{question.section}</p>}
       <h2
         id={titleId}
         ref={titleRef}
@@ -88,7 +88,6 @@ export function QuestionCard({
       >
         {question.prompt}
       </h2>
-      {!askedAbove && helpers}
 
       <div className={askedAbove ? "mt-3" : "mt-5"}>
         {(question.kind === "single_choice" || question.kind === "yes_no") && (
@@ -102,6 +101,7 @@ export function QuestionCard({
                 : (question.options ?? [])
             }
             labelledBy={titleId}
+            pair={question.kind === "yes_no"}
             pendingValue={busy ? chosen : null}
             disabled={busy}
             selected={initial === undefined ? null : String(initial)}
@@ -152,7 +152,8 @@ export function QuestionCard({
         </p>
       )}
 
-      {askedAbove && <div className="mt-1">{helpers}</div>}
+      {/* After the answer keys: the thumb goes to them first, the explanations come second. */}
+      <div className="mt-2">{helpers}</div>
 
       {!question.required && (
         <button
@@ -203,6 +204,7 @@ function ChoiceList({
   disabled,
   selected,
   labelledBy,
+  pair,
 }: {
   labelledBy: string;
   options: { value: string; label: string; hint?: string }[];
@@ -210,9 +212,15 @@ function ChoiceList({
   pendingValue: string | null;
   disabled: boolean;
   selected: string | null;
+  /** Sì / No: two big keys side by side instead of a list. */
+  pair: boolean;
 }) {
   return (
-    <div role="group" aria-labelledby={labelledBy} className="grid gap-2">
+    <div
+      role="group"
+      aria-labelledby={labelledBy}
+      className={cn("grid gap-2.5", pair && "grid-cols-2")}
+    >
       {options.map((option) => (
         <button
           key={option.value}
@@ -221,19 +229,35 @@ function ChoiceList({
           aria-pressed={selected === option.value}
           onClick={() => onChoose(option.value)}
           className={cn(
-            "flex min-h-14 w-full items-center gap-3 rounded-md px-4 py-3 text-start text-lg ring-1 ring-line-strong transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) ring-inset",
-            "hover:bg-sunk active:scale-[0.99] active:bg-stamp-wash disabled:cursor-wait",
-            selected === option.value && "ring-2 ring-stamp",
+            "group flex w-full items-center gap-3.5 rounded-xl bg-surface px-4 text-start ring-1 ring-line-strong transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) ring-inset",
+            "hover:bg-sunk active:scale-[0.97] active:bg-stamp-wash disabled:cursor-wait",
+            "aria-pressed:bg-stamp-wash aria-pressed:ring-2 aria-pressed:ring-stamp",
+            pair ? "min-h-16 justify-center text-center text-xl" : "min-h-14 py-3 text-lg",
             pendingValue === option.value && "bg-stamp-wash ring-2 ring-stamp",
           )}
         >
-          <span className="min-w-0 flex-1">
+          {!pair && (
+            <span
+              aria-hidden
+              className="grid size-6 shrink-0 place-items-center rounded-full bg-surface ring-2 ring-line-field transition-[background-color,box-shadow] duration-150 ring-inset group-aria-pressed:bg-stamp group-aria-pressed:ring-stamp"
+            >
+              {pendingValue === option.value ? (
+                <Spinner className="size-4 text-on-stamp" />
+              ) : (
+                <Check
+                  className="size-3.5 scale-0 text-on-stamp transition-transform duration-200 ease-(--ease-out) group-aria-pressed:scale-100"
+                  strokeWidth={3.5}
+                />
+              )}
+            </span>
+          )}
+          <span className={cn("min-w-0", !pair && "flex-1")}>
             <span className="block font-semibold">{option.label}</span>
             {option.hint && (
-              <span className="mt-0.5 block text-base text-ink-3">{option.hint}</span>
+              <span className="mt-0.5 block text-base font-normal text-ink-3">{option.hint}</span>
             )}
           </span>
-          {pendingValue === option.value && <Spinner className="size-5 text-stamp" />}
+          {pair && pendingValue === option.value && <Spinner className="size-5 text-stamp" />}
         </button>
       ))}
     </div>
@@ -284,7 +308,7 @@ function MultiChoice({
             <label
               key={option.value}
               className={cn(
-                "flex min-h-14 cursor-pointer items-center gap-3 rounded-md px-4 py-3 text-lg ring-1 ring-line-strong ring-inset has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
+                "group flex min-h-14 cursor-pointer items-center gap-3.5 rounded-xl bg-surface px-4 py-3 text-lg ring-1 ring-line-strong transition-[background-color,transform] duration-150 ease-(--ease-out) ring-inset active:scale-[0.98] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
                 checked && "bg-stamp-wash ring-2 ring-stamp",
               )}
             >
@@ -299,8 +323,17 @@ function MultiChoice({
                       : list.filter((v) => v !== option.value),
                   );
                 }}
-                className="size-5 shrink-0 accent-stamp"
+                className="peer sr-only"
               />
+              <span
+                aria-hidden
+                className="grid size-6 shrink-0 place-items-center rounded-md bg-surface ring-2 ring-line-field transition-[background-color,box-shadow] duration-150 ring-inset peer-checked:bg-stamp peer-checked:ring-stamp"
+              >
+                <Check
+                  className="size-4 scale-0 text-on-stamp transition-transform duration-200 ease-(--ease-out) group-has-[:checked]:scale-100"
+                  strokeWidth={3.5}
+                />
+              </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold">{option.label}</span>
                 {option.hint && (
@@ -311,7 +344,7 @@ function MultiChoice({
           );
         })}
       </div>
-      <Button type="submit" size="lg" loading={busy} className="mt-2 w-full">
+      <Button type="submit" size="lg" loading={busy} className="mt-2 min-h-14 w-full rounded-xl">
         {m.common.continue}
       </Button>
     </form>
@@ -427,7 +460,7 @@ function ValueInput({
           maxLength={2000}
         />
       )}
-      <Button type="submit" size="lg" loading={busy} className="w-full">
+      <Button type="submit" size="lg" loading={busy} className="min-h-14 w-full rounded-xl">
         {m.common.continue}
       </Button>
     </form>

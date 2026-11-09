@@ -45,19 +45,19 @@ export function ShortcutsDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title="Scorciatoie da tastiera">
-      <div className="grid gap-6">
+      <div className="grid gap-5">
         {GROUPS.map((group) => (
           <section key={group.title}>
-            <h3 className="text-sm font-semibold text-ink-2">{group.title}</h3>
-            <dl className="mt-2 divide-y divide-line">
+            <h3 className="text-xs font-semibold text-ink-3">{group.title}</h3>
+            <dl className="mt-1 divide-y divide-line">
               {group.keys.map(([keys, label]) => (
-                <div key={label} className="flex items-center justify-between gap-4 py-2.5">
+                <div key={label} className="flex items-center justify-between gap-4 py-2">
                   <dt className="text-body-sm">{label}</dt>
                   <dd className="flex shrink-0 gap-1">
                     {keys.map((key) => (
                       <kbd
                         key={key}
-                        className="grid h-7 min-w-7 place-items-center rounded-md bg-sunk px-2 font-sans text-sm font-semibold text-ink-2 ring-1 ring-line"
+                        className="grid h-6 min-w-6 place-items-center rounded-xs bg-surface px-1.5 font-sans text-xs font-semibold text-ink-2 shadow-[inset_0_-1px_0_var(--line-strong)] ring-1 ring-line"
                       >
                         {key}
                       </kbd>

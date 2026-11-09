@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock, History, MapPin, Phone, Sparkles } from "lucide-react";
+import { Check, Clock, History, MapPin, Phone, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -20,6 +20,8 @@ import { cn } from "@/lib/cn";
 import { browserLanguage, directionOf, useDocumentLanguage } from "@/lib/citizen/document-language";
 import { ErrorScreen } from "./error-screen";
 import { PrivacySheet } from "./privacy-sheet";
+import { rise } from "./motion";
+import "./citizen.css";
 
 const NON_LATIN = new Set<Language>(["ar", "bn"]);
 
@@ -172,20 +174,32 @@ export function OfficeStart({
 
   return (
     <div lang={language} dir={dir} className="min-h-dvh">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-xl items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
+      <header className="bg-surface shadow-[0_1px_0_var(--line)]">
+        <div className="mx-auto flex max-w-xl items-center gap-3 px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
           {info ? (
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-display text-lg leading-tight font-semibold">
-                {info.organization.name}
-              </p>
-              <p className="truncate text-sm text-ink-3">{info.office.name}</p>
-            </div>
+            <>
+              <span
+                aria-hidden
+                translate="no"
+                className="grid size-11 shrink-0 place-items-center rounded-[0.95rem] bg-contrast font-display text-xl font-bold text-on-contrast"
+              >
+                {Array.from(info.organization.name.trim())[0]?.toUpperCase()}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-display text-lg leading-tight font-semibold">
+                  {info.organization.name}
+                </p>
+                <p className="truncate text-sm text-ink-3">{info.office.name}</p>
+              </div>
+            </>
           ) : (
-            <div className="flex-1 space-y-2" aria-hidden>
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-3 w-28" />
-            </div>
+            <>
+              <Skeleton className="size-11 shrink-0 rounded-[0.95rem]" />
+              <div className="flex-1 space-y-2" aria-hidden>
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-28" />
+              </div>
+            </>
           )}
           <span translate="no" className="flex items-center gap-1.5 text-xs text-ink-3" dir="ltr">
             <LogoMark className="size-5" />
@@ -195,7 +209,7 @@ export function OfficeStart({
       </header>
 
       {/* Room at the bottom for the pinned «Inizia» bar. */}
-      <main className="mx-auto max-w-xl px-4 pt-8 pb-40">
+      <main className="mx-auto max-w-xl px-5 pt-8 pb-44">
         {resumeToken && (
           <Notice
             tone="info"
@@ -223,33 +237,41 @@ export function OfficeStart({
           />
         )}
 
-        <h1 className="animate-rise font-display text-[2.125rem] leading-[1.04] font-bold tracking-[-0.025em] sm:text-[2.5rem]">
+        <h1
+          {...rise(
+            0,
+            "font-display text-[clamp(1.75rem,9vw,2.125rem)] leading-[1.04] font-bold tracking-[-0.03em] sm:text-[2.75rem]",
+          )}
+        >
           {m.start.title}
         </h1>
-        <p className="mt-3 animate-rise text-lg text-ink-2 [animation-delay:40ms]">
-          {m.start.lead}
-        </p>
-        <p className="mt-4 flex animate-rise items-start gap-2 text-ink-3 [animation-delay:80ms]">
-          <Clock className="mt-1 size-4 shrink-0" aria-hidden />
+        <p {...rise(1, "mt-3 text-[1.0625rem] text-ink-2")}>{m.start.lead}</p>
+        <p
+          {...rise(
+            1,
+            "mt-4 inline-flex items-center gap-2 rounded-full bg-sunk px-3.5 py-1.5 text-sm text-ink-2",
+          )}
+        >
+          <Clock className="size-4 shrink-0 text-ink-3" aria-hidden />
           <span>
             {m.start.time} {m.start.noAccount}
           </span>
         </p>
 
-        <Form onSubmit={start} className="mt-10 grid gap-8">
-          <fieldset className="animate-rise [animation-delay:120ms]">
+        <Form onSubmit={start} className="mt-9 grid gap-7">
+          <fieldset {...rise(2)}>
             <legend className="mb-3 text-lg font-semibold">{m.start.chooseLanguage}</legend>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {LANGUAGES.map((code) => (
                 <label
                   key={code}
                   lang={code}
                   dir={RTL_LANGUAGES.includes(code) ? "rtl" : "ltr"}
                   className={cn(
-                    "flex min-h-14 cursor-pointer items-center justify-between gap-2 rounded-md bg-surface px-4 text-[1.0625rem] ring-1 ring-line transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) select-none ring-inset active:scale-[0.97]",
+                    "flex min-h-14 cursor-pointer items-center justify-between gap-2 rounded-xl bg-surface px-4 text-[1.0625rem] ring-1 ring-line transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) select-none ring-inset active:scale-[0.97]",
                     "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
                     // From the radio, not from state: a choice made before hydration shows too.
-                    "group has-checked:bg-stamp-wash has-checked:font-semibold has-checked:text-stamp has-checked:ring-2 has-checked:ring-stamp",
+                    "group has-checked:bg-stamp-wash has-checked:font-semibold has-checked:text-stamp has-checked:shadow-raised has-checked:ring-2 has-checked:ring-stamp",
                   )}
                 >
                   <input
@@ -281,28 +303,44 @@ export function OfficeStart({
             </div>
           </fieldset>
 
-          <div className="grid gap-3">
-            <p className="flex gap-3 text-ink-2">
-              <Sparkles className="mt-1 size-4 shrink-0 text-stamp" aria-hidden />
-              {m.start.aiNotice}
+          {/* What the citizen must know before starting, in one card instead of two paragraphs. */}
+          <div
+            {...rise(
+              3,
+              "divide-y divide-line overflow-hidden rounded-xl bg-surface shadow-raised ring-1 ring-line",
+            )}
+          >
+            <p className="flex gap-3.5 p-4 text-body-sm text-ink-2">
+              <span className="grid size-9 shrink-0 place-items-center rounded-md bg-stamp-wash text-stamp">
+                <Sparkles className="size-[1.125rem]" aria-hidden />
+              </span>
+              <span className="pt-0.5">{m.start.aiNotice}</span>
             </p>
-            <p className="ps-7 text-ink-2">
-              {format(m.start.privacy, { org: orgName })}{" "}
-              {/* Before hydration the full Italian notice; after, the short one in the chosen
+            <p className="flex gap-3.5 p-4 text-body-sm text-ink-2">
+              <span className="grid size-9 shrink-0 place-items-center rounded-md bg-ok-wash text-ok">
+                <ShieldCheck className="size-[1.125rem]" aria-hidden />
+              </span>
+              <span className="pt-0.5">
+                {format(m.start.privacy, { org: orgName })}{" "}
+                {/* Before hydration the full Italian notice; after, the short one in the chosen
                   language, which links to the full one. */}
-              <a
-                href="/privacy"
-                target="_blank"
-                rel="noopener"
-                onClick={(event) => {
-                  event.preventDefault();
-                  setNoticeOpen(true);
-                }}
-                className="font-semibold text-stamp underline underline-offset-2"
-              >
-                {m.start.privacyLink}
-              </a>
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setNoticeOpen(true);
+                  }}
+                  className="inline-flex min-h-8 items-center font-semibold text-stamp underline underline-offset-2"
+                >
+                  {m.start.privacyLink}
+                </a>
+              </span>
             </p>
+          </div>
+
+          <div {...rise(4, "grid gap-3")}>
             <Checkbox
               look="card"
               id="consent"
@@ -326,14 +364,14 @@ export function OfficeStart({
 
           {/* Pinned to the thumb, like the main action of an app; inside the form, so a tap
               before hydration is still held and sent (components/ui/form). */}
-          <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 shadow-dock">
-            <div className="mx-auto max-w-xl px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="fixed inset-x-0 bottom-0 z-20 animate-dock-in bg-surface shadow-dock">
+            <div className="mx-auto max-w-xl px-5 pt-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
               <Button
                 type="submit"
                 size="lg"
                 loading={starting}
                 disabled={!info}
-                className="min-h-13 w-full text-[1.0625rem]"
+                className="min-h-14 w-full rounded-xl text-[1.0625rem]"
               >
                 {m.start.cta}
               </Button>
@@ -349,17 +387,17 @@ export function OfficeStart({
         />
 
         {info && (info.office.address || info.office.phone) && (
-          <address className="mt-12 grid gap-2 border-t border-line pt-6 text-ink-2 not-italic">
-            <span className="flex items-start gap-2">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-ink-3" aria-hidden />
+          <address {...rise(5, "mt-8 grid gap-1 rounded-xl bg-sunk/70 p-2 text-ink-2 not-italic")}>
+            <span className="flex items-center gap-3 px-2 py-2">
+              <MapPin className="size-5 shrink-0 text-ink-3" aria-hidden />
               <span dir="ltr">{officePlace(info.office)}</span>
             </span>
             {info.office.phone && (
               <a
                 href={`tel:${info.office.phone.replace(/\s+/g, "")}`}
-                className="flex items-center gap-2 hover:text-ink"
+                className="flex min-h-11 items-center gap-3 rounded-md px-2 py-2 transition-colors hover:text-ink active:bg-sunk"
               >
-                <Phone className="size-4 shrink-0 text-ink-3" aria-hidden />
+                <Phone className="size-5 shrink-0 text-ink-3" aria-hidden />
                 <span dir="ltr">{info.office.phone}</span>
               </a>
             )}

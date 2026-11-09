@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { OrganizationSettings } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Check } from "lucide-react";
+import { SettingGroup, ToggleRow, ValueRow } from "./setting-row";
+import { Input, Select } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +14,6 @@ import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
 import { useHashTarget } from "@/lib/console/use-hash-target";
 import { useWarnBeforeUnload } from "@/lib/use-warn-before-unload";
-import { cn } from "@/lib/cn";
 import { focusFirstError } from "@/lib/validation";
 
 const LIMITS = {
@@ -79,6 +79,11 @@ function SettingsForm({
   const dirty = state === "dirty";
   useWarnBeforeUnload(dirty);
   const [formError, setFormError] = useState<string | null>(null);
+  useEffect(() => {
+    if (state !== "saved") return;
+    const id = window.setTimeout(() => setState((s) => (s === "saved" ? "idle" : s)), 2500);
+    return () => window.clearTimeout(id);
+  }, [state]);
   // Requiring it before having it would lock the admin out of the console until set up.
   const canRequireMfa = useOperator().mfaEnabled;
 
@@ -141,6 +146,11 @@ function SettingsForm({
     }
   }
 
+  const number = (name: Key | "nearReadyCriticalThreshold" | "nearReadyOtherThreshold") => ({
+    name,
+    inputMode: "numeric" as const,
+    className: "tabular w-28 text-end",
+  });
   return (
     <form
       ref={form}
@@ -149,109 +159,92 @@ function SettingsForm({
       onChange={() => {
         if (state !== "saving") setState(snapshot() === saved.current ? "idle" : "dirty");
       }}
-      className="mt-4 grid gap-5 rounded-lg bg-surface p-5 ring-1 ring-line"
+      className="mt-4 grid gap-7 pb-24"
     >
-      <Field
-        label="Minuti per pratica prima di Avanti"
-        optional="facoltativo"
-        hint="Misuratelo su una settimana di lavoro normale: serve alle metriche per calcolare il tempo risparmiato. Vuoto finché non lo avete misurato."
-        error={errors.baselineMinutesPerCase}
-      >
-        {(p) => (
-          <Input
-            {...p}
-            name="baselineMinutesPerCase"
-            inputMode="numeric"
-            defaultValue={initial.baselineMinutesPerCase ?? ""}
-            className="tabular max-w-32"
-          />
-        )}
-      </Field>
-      <Field
-        label="Validità dei link per i cittadini (giorni)"
-        hint="Dopo questo periodo il link non funziona più e il cittadino deve chiederne uno nuovo."
-        error={errors.linkDays}
-      >
-        {(p) => (
-          <Input
-            {...p}
-            name="linkDays"
-            inputMode="numeric"
-            defaultValue={initial.linkDays}
-            className="tabular max-w-32"
-          />
-        )}
-      </Field>
-      <Field
-        label="Conservazione dei fascicoli (giorni)"
-        hint="Dopo la chiusura o la scadenza, per quanto Avanti conserva dati e documenti. Non riguarda l'archivio del vostro gestionale."
-        error={errors.retentionDays}
-      >
-        {(p) => (
-          <Input
-            {...p}
-            name="retentionDays"
-            inputMode="numeric"
-            defaultValue={initial.retentionDays}
-            className="tabular max-w-32"
-          />
-        )}
-      </Field>
-      <fieldset className="grid gap-3">
-        <legend className="mb-2 text-sm font-semibold">Avvisi via email</legend>
-        <Checkbox
-          look="card"
+      <SettingGroup title="Pratiche e conservazione">
+        <ValueRow
+          label="Minuti per pratica prima di Avanti"
+          hint="Misurati su una settimana normale: servono alle metriche per il tempo risparmiato. Facoltativo."
+          error={errors.baselineMinutesPerCase}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              {...number("baselineMinutesPerCase")}
+              defaultValue={initial.baselineMinutesPerCase ?? ""}
+              placeholder="—"
+            />
+          )}
+        </ValueRow>
+        <ValueRow
+          label="Validità dei link per i cittadini"
+          hint="Giorni. Poi il cittadino deve chiederne uno nuovo."
+          error={errors.linkDays}
+        >
+          {(p) => <Input {...p} {...number("linkDays")} defaultValue={initial.linkDays} />}
+        </ValueRow>
+        <ValueRow
+          label="Conservazione dei fascicoli"
+          hint="Giorni dopo la chiusura o la scadenza. Non riguarda l'archivio del vostro gestionale."
+          error={errors.retentionDays}
+        >
+          {(p) => (
+            <Input {...p} {...number("retentionDays")} defaultValue={initial.retentionDays} />
+          )}
+        </ValueRow>
+      </SettingGroup>
+
+      <SettingGroup title="Avvisi via email">
+        <ToggleRow
           name="notifyCitizenSubmission"
           defaultChecked={initial.notifyCitizenSubmission}
           label="Ricevuta al cittadino quando invia la pratica"
-          hint="Va all'email che il cittadino scrive, nella sua lingua: codice della pratica, sportello e cosa succede adesso. Nessun link e nessun dato dei documenti; al massimo due al giorno per indirizzo."
+          hint="Codice, sportello e prossimo passo. Nessun link né dati dei documenti; al massimo due al giorno per indirizzo."
         />
-        <Checkbox
-          look="card"
+        <ToggleRow
           name="notifyCitizenReady"
           defaultChecked={initial.notifyCitizenReady}
           label="Avvisa il cittadino quando la pratica è pronta"
-          hint="Solo se ha lasciato l'email, nella sua lingua: gli dice di prendere appuntamento allo sportello. Le richieste di integrazione gli arrivano sempre."
+          hint="Solo se ha lasciato l'email. Le richieste di integrazione gli arrivano sempre."
         />
-        <Checkbox
-          look="card"
+        <ToggleRow
           name="notifyCitizenRenewals"
           defaultChecked={initial.notifyCitizenRenewals}
           label="Invita al rinnovo ISEE chi l'ha chiesto"
-          hint="Quando preparate i rinnovi, il link arriva per email nella sua lingua, solo ai cittadini che hanno dato il consenso all'invio della pratica dell'anno prima."
+          hint="Solo a chi ha dato il consenso con la pratica dell'anno prima."
         />
-        <Checkbox
-          look="card"
+        <ToggleRow
           name="notifyOperatorDigest"
           defaultChecked={initial.notifyOperatorDigest}
           label="Riepilogo giornaliero agli operatori"
           hint="Quante pratiche aspettano la revisione, senza dati dei cittadini."
         />
-        <Checkbox
-          look="card"
+        <ToggleRow
           name="notifyCitizenReminders"
           defaultChecked={initial.notifyCitizenReminders}
           label="Ricorda al cittadino l'integrazione richiesta"
-          hint="Se dopo qualche giorno non ha ancora risposto, gli arriva un promemoria nella sua lingua (solo se ha lasciato l'email). Si ferma appena risponde o la pratica cambia stato."
+          hint="Si ferma appena risponde o la pratica cambia stato."
         />
-        <div className="flex flex-wrap gap-4 ps-3">
-          <label className="grid gap-1 text-sm">
-            <span className="text-ink-2">Primo promemoria dopo</span>
+        <ValueRow label="Primo promemoria" hint="Dopo quanti giorni senza risposta.">
+          {(p) => (
             <Select
+              {...p}
               name="reminderFirst"
               defaultValue={String(initial.citizenReminderDays[0] ?? 3)}
               compact
             >
               {[2, 3, 5, 7].map((d) => (
                 <option key={d} value={d}>
-                  {d} giorni
+                  Dopo {d} giorni
                 </option>
               ))}
             </Select>
-          </label>
-          <label className="grid gap-1 text-sm">
-            <span className="text-ink-2">Secondo promemoria</span>
+          )}
+        </ValueRow>
+        <ValueRow label="Secondo promemoria">
+          {(p) => (
             <Select
+              {...p}
               name="reminderSecond"
               defaultValue={String(initial.citizenReminderDays[1] ?? 0)}
               compact
@@ -259,105 +252,130 @@ function SettingsForm({
               <option value="0">Nessuno</option>
               {[3, 4, 7].map((d) => (
                 <option key={d} value={d}>
-                  dopo altri {d} giorni
+                  Dopo altri {d} giorni
                 </option>
               ))}
             </Select>
-          </label>
-        </div>
-      </fieldset>
-      <fieldset className="grid gap-3">
-        <legend className="mb-2 text-sm font-semibold">Intelligenza artificiale</legend>
-        <Checkbox
-          look="card"
+          )}
+        </ValueRow>
+      </SettingGroup>
+
+      <SettingGroup title="Intelligenza artificiale">
+        <ToggleRow
           name="aiCitizenAssistant"
           defaultChecked={initial.aiCitizenAssistant}
           label="AI per i cittadini"
-          hint="Capisce il racconto, guida l'intervista, risponde alle domande e trascrive la voce. Spenta: l'intervista funziona con le domande una alla volta e nulla di ciò che scrive il cittadino va a un fornitore."
+          hint="Capisce il racconto, guida l'intervista e trascrive la voce. Spenta: domande una alla volta e nulla va a un fornitore."
         />
-        <Checkbox
-          look="card"
+        <ToggleRow
           name="aiCopilot"
           defaultChecked={initial.aiCopilot}
           label="Copilota per gli operatori"
-          hint="Riepilogo del fascicolo, controlli incrociati, importi letti dai documenti, bozze di messaggi e domande normative. Spento: restano i controlli con le regole."
+          hint="Riepilogo, controlli incrociati, importi dai documenti, bozze e domande normative. Spento: restano i controlli con le regole."
         />
-      </fieldset>
-      <fieldset id="quasi-pronta" className="grid scroll-mt-20 gap-3">
-        <legend className="mb-2 text-sm font-semibold">Pratica «quasi pronta»</legend>
+      </SettingGroup>
+
+      <SettingGroup id="quasi-pronta" title="Pratica «quasi pronta»">
         {initial.nearReadySuspendedAt && (
-          <Notice tone="warn" role="none">
+          <Notice tone="warn" role="none" className="rounded-none">
             Sospesa il {new Date(initial.nearReadySuspendedAt).toLocaleDateString("it-IT")} dopo un
             errore grave segnalato da un operatore. Torna «in ombra» finché non scegli di nuovo
             «Visibile agli operatori».
           </Notice>
         )}
-        <Field
+        <ValueRow
           label="Modalità"
-          hint="In ombra il suggerimento si calcola e si misura senza mostrarlo: è il modo di iniziare il pilota. Visibile: gli operatori vedono «quasi pronta» e possono usare la revisione rapida. Non segna mai una pratica come pronta."
+          hint="In ombra il suggerimento si misura senza mostrarlo: è come si inizia il pilota. Non segna mai una pratica come pronta."
         >
           {(p) => (
             <Select {...p} name="nearReadyMode" defaultValue={initial.nearReadyMode} compact>
               <option value="off">Spenta</option>
-              <option value="shadow">In ombra (misura senza mostrare)</option>
+              <option value="shadow">In ombra</option>
               <option value="visible">Visibile agli operatori</option>
             </Select>
           )}
-        </Field>
-        <div className="flex flex-wrap gap-4">
-          <Field
-            label="Soglia di lettura, dati critici (%)"
-            hint="Identità, nucleo, anni. Sotto soglia la pratica non è suggerita."
-            error={errors.nearReadyCriticalThreshold}
-          >
-            {(p) => (
-              <Input
-                {...p}
-                name="nearReadyCriticalThreshold"
-                inputMode="numeric"
-                defaultValue={Math.round(initial.nearReadyCriticalThreshold * 100)}
-                className="tabular max-w-24"
-              />
-            )}
-          </Field>
-          <Field label="Soglia di lettura, altri dati (%)" error={errors.nearReadyOtherThreshold}>
-            {(p) => (
-              <Input
-                {...p}
-                name="nearReadyOtherThreshold"
-                inputMode="numeric"
-                defaultValue={Math.round(initial.nearReadyOtherThreshold * 100)}
-                className="tabular max-w-24"
-              />
-            )}
-          </Field>
-        </div>
-      </fieldset>
-      <fieldset className="grid gap-3">
-        <legend className="mb-2 text-sm font-semibold">Sicurezza degli accessi</legend>
-        <Checkbox
-          look="card"
+        </ValueRow>
+        <ValueRow
+          label="Soglia di lettura, dati critici"
+          hint="Percentuale. Identità, nucleo, anni: sotto soglia la pratica non è suggerita."
+          error={errors.nearReadyCriticalThreshold}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              {...number("nearReadyCriticalThreshold")}
+              defaultValue={Math.round(initial.nearReadyCriticalThreshold * 100)}
+            />
+          )}
+        </ValueRow>
+        <ValueRow
+          label="Soglia di lettura, altri dati"
+          hint="Percentuale."
+          error={errors.nearReadyOtherThreshold}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              {...number("nearReadyOtherThreshold")}
+              defaultValue={Math.round(initial.nearReadyOtherThreshold * 100)}
+            />
+          )}
+        </ValueRow>
+      </SettingGroup>
+
+      <SettingGroup title="Sicurezza degli accessi">
+        <ToggleRow
           name="mfaRequired"
           defaultChecked={initial.mfaRequired}
           disabled={!canRequireMfa}
           label="Verifica in due passaggi obbligatoria per tutti"
           hint={
             canRequireMfa
-              ? "Al prossimo accesso chi non l'ha ancora attivata dovrà farlo prima di entrare. Chi perde il telefono lo sblocchi tu da Operatori."
+              ? "Chi non l'ha ancora attivata dovrà farlo al prossimo accesso. Chi perde il telefono lo sblocchi tu da Operatori."
               : "Prima attivala per te dalla pagina Account: poi potrai richiederla a tutti."
           }
         />
-      </fieldset>
+      </SettingGroup>
+
       {formError && <Notice tone="danger">{formError}</Notice>}
-      {/* Sticky: with the form taller than the screen, saving is always one click away. */}
-      <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-b-lg border-t border-line bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <Button type="submit" loading={state === "saving"}>
-          Salva parametri
-        </Button>
-        <span role="status" className={cn("text-sm", state === "saved" ? "text-ok" : "text-ink-2")}>
-          {state === "saved" ? "Salvati" : dirty ? "Modifiche non ancora salvate" : ""}
-        </span>
-      </div>
+      {/* Appears only while there is something to save, and closes itself after «Salvati». The form
+          keeps room below its last row so the bar never sits on top of a setting. */}
+      {state !== "idle" && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex justify-center px-4 pb-[env(safe-area-inset-bottom)] lg:start-56">
+          <div
+            role="status"
+            className="pointer-events-auto flex animate-dock-in items-center gap-3 rounded-lg bg-surface py-2 ps-4 pe-2 shadow-float ring-1 ring-line-strong"
+          >
+            {state === "saved" ? (
+              <span className="flex items-center gap-1.5 py-1.5 pe-2 text-sm font-semibold text-ok">
+                <Check className="size-4 animate-check-in" aria-hidden />
+                Salvati
+              </span>
+            ) : (
+              <>
+                <span className="text-sm text-ink-2">Modifiche non ancora salvate</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={state === "saving"}
+                  onClick={() => {
+                    form.current?.reset();
+                    setErrors({});
+                    setFormError(null);
+                    setState("idle");
+                  }}
+                >
+                  Annulla
+                </Button>
+                <Button type="submit" size="sm" loading={state === "saving"}>
+                  Salva parametri
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </form>
   );
 }

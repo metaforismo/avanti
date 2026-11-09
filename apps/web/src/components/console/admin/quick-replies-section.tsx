@@ -74,7 +74,7 @@ export function QuickRepliesSection() {
   };
 
   return (
-    <section aria-labelledby="replies-title">
+    <section id="risposte-rapide" aria-labelledby="replies-title" className="scroll-mt-20">
       <SectionHeader
         id="replies-title"
         title="Risposte rapide"
@@ -118,7 +118,7 @@ export function QuickRepliesSection() {
           pagina con la firma».
         </EmptyState>
       ) : (
-        <ol className="mt-4 divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
+        <ol className="mt-4 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
           {replies.map((reply, index) => (
             <li key={reply.id} className="flex flex-wrap items-start gap-x-4 gap-y-2 px-4 py-3">
               <div className="min-w-0 flex-1 basis-64">

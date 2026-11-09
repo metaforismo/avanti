@@ -93,9 +93,10 @@ export function QueueAssign({
       <div
         role="region"
         aria-label="Pratiche selezionate"
-        className="fixed inset-x-0 bottom-0 z-30 animate-dock-in border-t border-line bg-surface/95 shadow-dock backdrop-blur lg:start-60"
+        // A floating bar over the list, centred on the content column (the sidebar is 14rem).
+        className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto max-w-2xl animate-dock-in rounded-lg bg-surface shadow-float ring-1 ring-line lg:start-[calc(14rem+0.75rem)]"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
+        <div className="flex flex-wrap items-center justify-between gap-3 py-2.5 ps-4 pe-2.5">
           <p className="text-sm" aria-live="polite">
             <span className="tabular font-semibold">{count}</span>{" "}
             {count === 1 ? "pratica selezionata" : "pratiche selezionate"}
@@ -104,10 +105,10 @@ export function QueueAssign({
             )}
           </p>
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={onClear}>
+            <Button variant="ghost" size="sm" onClick={onClear}>
               Deseleziona
             </Button>
-            <Button onClick={openDialog}>
+            <Button size="sm" onClick={openDialog}>
               <UserRoundCheck className="size-4" aria-hidden />
               Assegna a…
             </Button>
