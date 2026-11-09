@@ -1,6 +1,7 @@
 import type { ChecklistStatus, ErrorCode, Language, MemberRole } from "@avanti/contracts";
 import { plural, type PluralForms } from "@avanti/core/plural";
 import type { DocumentCounts } from "@avanti/core/readiness";
+import { hasRtl, isolate } from "./bidi";
 import { ar, bn, es, fr, ro, uk } from "./messages-extra";
 
 /**
@@ -41,7 +42,7 @@ const it = {
     fix: "Correggi",
     drop: "Non è giusto",
     because: "Hai scritto:",
-    quickAnswer: "Oppure rispondi qui",
+    checkBelow: "Ecco cosa ho capito: controlla qui sotto.",
     speak: "Parla",
     stop: "Ferma",
     recording: "Registrazione in corso",
@@ -180,7 +181,7 @@ const it = {
     resumeTitle: "Non hai tutto adesso?",
     resumeBody:
       "Puoi chiudere: quello che hai caricato resta salvato. Riapri questo link quando hai gli altri documenti.",
-    photoTipsTitle: "Come fare una buona foto",
+    photoTipsTitle: "Consigli per la foto",
     photoTip1: "Appoggia il documento su un tavolo scuro, ben illuminato.",
     photoTip2: "Inquadra tutti e quattro gli angoli, senza dita sopra.",
     photoTip3: "Niente flash e niente riflessi: il testo deve leggersi bene.",
@@ -434,7 +435,7 @@ const en: Widen<CitizenMessages> = {
     fix: "Correct",
     drop: "Not right",
     because: "You wrote:",
-    quickAnswer: "Or answer here",
+    checkBelow: "Here’s what I understood: check it below.",
     speak: "Speak",
     stop: "Stop",
     recording: "Recording",
@@ -572,7 +573,7 @@ const en: Widen<CitizenMessages> = {
     resumeTitle: "Don't have everything right now?",
     resumeBody:
       "You can close this page: what you uploaded stays saved. Open this link again when you have the other documents.",
-    photoTipsTitle: "How to take a good photo",
+    photoTipsTitle: "Photo tips",
     photoTip1: "Lay the document on a dark table, in good light.",
     photoTip2: "Get all four corners in the frame, with no fingers on it.",
     photoTip3: "No flash and no glare: the text must be easy to read.",
@@ -817,10 +818,15 @@ export function messagesFor(language: Language) {
   return MESSAGES[language] ?? it;
 }
 
-/** Replace `{name}` placeholders. Missing values are left visible so they get noticed. */
+/**
+ * Replace `{name}` placeholders. Missing values are left visible so they get noticed. In a
+ * right-to-left sentence each value is isolated: «CAF Demo Milano» or «8 gennaio 2027» must not
+ * take the punctuation around it to the other side.
+ */
 export function format(template: string, values: Record<string, string | number>) {
+  const rtl = hasRtl(template);
   return template.replace(/\{(\w+)\}/g, (match, key: string) =>
-    key in values ? String(values[key]) : match,
+    key in values ? (rtl ? isolate(String(values[key])) : String(values[key])) : match,
   );
 }
 

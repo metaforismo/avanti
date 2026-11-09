@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { CitizenMessages, Widen } from "@/lib/citizen/messages";
 import type { Proposal } from "@/lib/citizen/conversation";
+import { Bidi } from "./bidi";
 
 /**
  * What the assistant understood, waiting for the citizen. Nothing here is an answer yet: each line
@@ -54,18 +55,22 @@ export function ProposalsCard({
                   isDropped && "opacity-50",
                 )}
               >
-                <p className="text-sm text-ink-3">{proposal.questionText}</p>
+                <p className="text-sm text-ink-3">
+                  <Bidi text={proposal.questionText} />
+                </p>
                 {/* bdi, not dir=auto on the line: a bare number would align it to the left in RTL. */}
                 <p className="font-semibold break-words">
                   <bdi>{isDropped ? <s>{proposal.display}</s> : proposal.display}</bdi>
                 </p>
+                {/* The citizen's words on their own line, in their own direction: inline in an
+                    Arabic sentence an Italian quote broke across the label. */}
                 {showEvidence(proposal) && (
-                  <p className="mt-0.5 text-sm text-ink-2">
-                    {m.conversation.because}{" "}
-                    <q dir="auto" className="italic">
+                  <figure className="mt-1.5 border-s-2 border-line-strong ps-2.5 text-sm text-ink-2">
+                    <figcaption className="text-ink-3">{m.conversation.because}</figcaption>
+                    <blockquote dir="auto" className="break-words italic">
                       {proposal.evidence}
-                    </q>
-                  </p>
+                    </blockquote>
+                  </figure>
                 )}
               </div>
               <div className="-me-2 -mt-1.5 flex shrink-0 gap-1">

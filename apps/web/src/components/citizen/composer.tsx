@@ -39,6 +39,9 @@ export function Composer({
   sendLabel,
   leading,
   onTextChange,
+  autoFocus = false,
+  autoStartVoice = false,
+  onIdleBlur,
 }: {
   token: string;
   language: Language;
@@ -62,6 +65,12 @@ export function Composer({
   /** Extra actions at the start of the bar. */
   leading?: ReactNode;
   onTextChange?: () => void;
+  /** Opened from the compact pill: the citizen tapped to write, so the cursor goes in. */
+  autoFocus?: boolean;
+  /** Opened from the pill's microphone: recording starts at once. */
+  autoStartVoice?: boolean;
+  /** Focus left the box while it was empty and quiet: the caller may fold it back. */
+  onIdleBlur?: () => void;
 }) {
   const [text, setText] = useState("");
   const field = useRef<HTMLTextAreaElement>(null);
@@ -82,6 +91,16 @@ export function Composer({
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, max)}px`;
   }, [text, max]);
+
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    if (autoStartVoice) void speak();
+    else if (autoFocus) field.current?.focus({ preventScroll: true });
+    // Once, on mount: the pill hands over the gesture that opened the box.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function submit(event?: FormEvent) {
     event?.preventDefault();
@@ -132,7 +151,15 @@ export function Composer({
   const empty = !text.trim();
 
   return (
-    <form onSubmit={submit} className="grid gap-1.5">
+    <form
+      onSubmit={submit}
+      onBlur={(event) => {
+        const next = event.relatedTarget;
+        if (next instanceof Node && event.currentTarget.contains(next)) return;
+        if (!text.trim() && voice.state.kind === "idle") onIdleBlur?.();
+      }}
+      className="grid gap-1.5"
+    >
       {label && (
         <label htmlFor={id} className="sr-only">
           {label}

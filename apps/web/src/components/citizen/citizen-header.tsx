@@ -10,7 +10,9 @@ import { useOpenAssistant } from "@/lib/citizen/assistant";
 import { format, LANGUAGE_NAMES, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
+import { documentCountsOf } from "@/lib/citizen/view";
 import type { View } from "./citizen-app";
+import { useInterviewShare } from "./interview-progress";
 
 function useOnline() {
   return useSyncExternalStore(
@@ -52,6 +54,19 @@ export function CitizenHeader({
     data.step === "documents" || data.step === "review" ? 2 : data.step === "interview" ? 0 : -1;
   const activeIndex = view === "need" ? -1 : STEPS.findIndex((s) => s.view === view);
   const switching = api.pending === "language";
+  // The step on screen fills as it goes: answers over the estimated total, ready documents over
+  // the required ones. A sliver shows from the start, so an empty step never looks unloaded.
+  const interviewShare = useInterviewShare(data.progress);
+  const counts = documentCountsOf(data);
+  const activeShare =
+    view === "interview"
+      ? (interviewShare ?? 1)
+      : view === "documents"
+        ? counts.required
+          ? counts.ready / counts.required
+          : 1
+        : 1;
+  const activeFill = Math.max(0.06, activeShare);
 
   // Its height changes with the language and the offline line: what scrolls under it reads it.
   const header = useRef<HTMLElement>(null);
@@ -109,11 +124,16 @@ export function CitizenHeader({
                   <DropdownMenu.RadioItem
                     key={code}
                     value={code}
-                    lang={code}
-                    dir={RTL_LANGUAGES.includes(code) ? "rtl" : "ltr"}
                     className="flex h-11 cursor-pointer items-center justify-between gap-4 rounded-sm px-3 text-base outline-none data-[highlighted]:bg-stamp-wash data-[highlighted]:ring-2 data-[highlighted]:ring-stamp data-[highlighted]:ring-inset"
                   >
-                    {LANGUAGE_NAMES[code].native}
+                    {/* The row keeps the page's direction; the name keeps its own. */}
+                    <bdi
+                      lang={code}
+                      dir={RTL_LANGUAGES.includes(code) ? "rtl" : "ltr"}
+                      className="min-w-0"
+                    >
+                      {LANGUAGE_NAMES[code].native}
+                    </bdi>
                     <DropdownMenu.ItemIndicator>
                       <Check className="size-4 text-stamp" aria-hidden />
                     </DropdownMenu.ItemIndicator>
@@ -140,25 +160,40 @@ export function CitizenHeader({
                     disabled={!canGo}
                     onClick={() => onNavigate(step.view)}
                     aria-current={i === activeIndex ? "step" : undefined}
-                    className="group block min-h-11 w-full py-1 text-start disabled:cursor-default"
+                    className="group block min-h-11 w-full py-1 text-start disabled:cursor-default [@media(max-height:640px)]:min-h-6 [@media(max-height:640px)]:py-2.5"
                   >
                     {/* The fill grows from the start edge when a step is reached: transform
                         only, mirrored in RTL. */}
                     <span className="block h-1 overflow-hidden rounded-full bg-sunk">
                       <span
+                        style={
+                          i === activeIndex ? { transform: `scaleX(${activeFill})` } : undefined
+                        }
                         className={cn(
                           "block h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-(--ease-out) rtl:origin-right",
                           i === activeIndex
-                            ? "scale-x-100 bg-stamp"
+                            ? "bg-stamp"
                             : i < reached
                               ? "scale-x-100 bg-ok"
                               : "scale-x-0 bg-stamp",
                         )}
                       />
                     </span>
+                    {i === activeIndex &&
+                      view === "interview" &&
+                      data.progress.questionsTotal > 0 && (
+                        <span className="sr-only">
+                          {format(m.interview.progressLabel, {
+                            n: data.progress.questionsAnswered,
+                            total: data.progress.questionsTotal,
+                          })}
+                        </span>
+                      )}
+                    {/* On a short screen (320×568) the bar alone says where the citizen is: the
+                        labels give their 28 px back to the content. */}
                     <span
                       className={cn(
-                        "mt-1.5 flex items-center gap-1 truncate text-sm",
+                        "mt-1.5 flex items-center gap-1 truncate text-sm [@media(max-height:640px)]:sr-only",
                         i === activeIndex ? "font-semibold text-ink" : "text-ink-3",
                         canGo && "group-hover:text-ink",
                       )}
