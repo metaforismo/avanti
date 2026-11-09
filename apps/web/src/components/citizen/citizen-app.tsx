@@ -22,6 +22,7 @@ import { ConversationStep } from "./conversation-step";
 import { NeedStep } from "./need-step";
 import { PrivacyLink, PrivacySheet } from "./privacy-sheet";
 import { ReviewStep } from "./review-step";
+import "./citizen.css";
 
 export type { View };
 
@@ -172,13 +173,10 @@ export function CitizenApp({ token }: { token: string }) {
           {m.common.skipToContent}
         </a>
         <CitizenHeader data={data} m={m} view={current} api={api} onNavigate={goTo} />
-        <main id="contenuto" className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-32">
-          {/* One element per step, so each step enters on its own; transform only, no layout. */}
-          <div
-            key={current}
-            className="animate-step-in"
-            style={{ "--step-dir": stepDir } as CSSProperties}
-          >
+        <main id="contenuto" className="mx-auto w-full max-w-xl flex-1 px-5 pt-6 pb-32">
+          {/* One element per step, so each step enters on its own: it fades in and its blocks
+              rise one after another (motion.ts); transform and opacity only, no layout. */}
+          <div key={current} className="cz-step" style={{ "--step-dir": stepDir } as CSSProperties}>
             {current === "need" && <NeedStep {...props} />}
             {current === "interview" && <ConversationStep {...props} />}
             {current === "documents" && <DocumentsStep {...props} />}
@@ -227,7 +225,7 @@ function LoadingShell({ label }: { label: string }) {
       </p>
       {/* The same shapes as the header and first step: the page fills in, it doesn't jump. */}
       <div className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-xl items-center gap-2 px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5">
+        <div className="mx-auto flex max-w-xl items-center gap-2 px-5 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5">
           <div className="flex-1 space-y-2 py-1">
             <Skeleton className="h-4 w-40" />
             <Skeleton className="h-3 w-24" />
@@ -236,7 +234,7 @@ function LoadingShell({ label }: { label: string }) {
           <Skeleton className="h-11 w-16 rounded-full" />
         </div>
       </div>
-      <div className="mx-auto max-w-xl space-y-4 px-4 pt-8">
+      <div className="mx-auto max-w-xl space-y-4 px-5 pt-8">
         <Skeleton className="h-9 w-3/4 rounded-sm" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-2/3" />

@@ -36,7 +36,7 @@ export function ProposalsCard({
   return (
     <section
       aria-labelledby="proposals-title"
-      className="animate-rise rounded-lg bg-surface p-4 shadow-raised ring-1 ring-stamp/30"
+      className="animate-rise rounded-xl bg-surface p-5 shadow-raised ring-1 ring-stamp/30"
     >
       <h2 id="proposals-title" className="flex items-center gap-2 font-semibold">
         <Sparkles className="size-4 text-stamp" aria-hidden />
@@ -94,7 +94,7 @@ export function ProposalsCard({
       <Button
         type="button"
         size="lg"
-        className="mt-3 w-full"
+        className="mt-4 min-h-14 w-full rounded-xl"
         loading={busy}
         onClick={() =>
           onConfirm(

@@ -70,11 +70,11 @@ export function CitizenHeader({
   }, []);
 
   return (
-    <header ref={header} className="sticky top-0 z-30 border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-xl items-center gap-2 px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5">
+    <header ref={header} className="sticky top-0 z-30 bg-surface shadow-[0_1px_0_var(--line)]">
+      <div className="mx-auto flex max-w-xl items-center gap-2.5 px-5 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5">
         <div className="min-w-0 flex-1">
           <p
-            className="truncate font-display text-base leading-tight font-semibold"
+            className="line-clamp-2 font-display text-base leading-tight font-semibold break-words"
             title={data.organization.name}
           >
             {data.organization.name}
@@ -128,13 +128,13 @@ export function CitizenHeader({
       {view !== "submitted" && view !== "need" && (
         <nav
           aria-label={format(m.status.progress, { n: Math.round(data.progress.percent) })}
-          className="mx-auto max-w-xl px-4 pb-3"
+          className="mx-auto max-w-xl px-5 pb-2"
         >
           <ol className="flex gap-1.5">
             {STEPS.map((step, i) => {
               const canGo = i <= reached && i !== activeIndex;
               return (
-                <li key={step.view} className="flex-1">
+                <li key={step.view} className="min-w-0 flex-1">
                   <button
                     type="button"
                     disabled={!canGo}
@@ -158,12 +158,15 @@ export function CitizenHeader({
                     </span>
                     <span
                       className={cn(
-                        "mt-1.5 block truncate text-sm",
+                        "mt-1.5 flex items-center gap-1 truncate text-sm",
                         i === activeIndex ? "font-semibold text-ink" : "text-ink-3",
                         canGo && "group-hover:text-ink",
                       )}
                     >
-                      {m.steps[step.key]}
+                      {i < activeIndex && (
+                        <Check className="size-3.5 shrink-0 text-ok" strokeWidth={3} aria-hidden />
+                      )}
+                      <span className="truncate">{m.steps[step.key]}</span>
                     </span>
                   </button>
                 </li>
@@ -176,7 +179,7 @@ export function CitizenHeader({
       {!online && (
         <p
           role="status"
-          className="flex items-center justify-center gap-2 bg-warn-wash px-4 py-2 text-sm text-warn"
+          className="flex items-center justify-center gap-2 bg-warn-wash px-5 py-2 text-sm text-warn"
         >
           <WifiOff className="size-4" aria-hidden />
           {m.errors.network}

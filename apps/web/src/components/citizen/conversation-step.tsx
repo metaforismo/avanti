@@ -17,6 +17,7 @@ import { AnsweredList, InterviewStep } from "./interview-step";
 import { ProposalsCard } from "./proposals-card";
 import { InterviewProgressBar, RemainingQuestions } from "./interview-progress";
 import { QuestionCard } from "./question-card";
+import { rise } from "./motion";
 
 /**
  * The interview as a conversation: the citizen writes or speaks in their own words, the assistant
@@ -66,7 +67,7 @@ export function ConversationStep(props: StepProps) {
 
   return (
     <div className="grid gap-5">
-      <div>
+      <div {...rise(0)}>
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h1
             id={STEP_TITLE_ID}
@@ -92,7 +93,9 @@ export function ConversationStep(props: StepProps) {
 
       <RenewalNotice data={data} />
 
-      <AnsweredList api={api} data={data} m={m} />
+      <div {...rise(1, "empty:hidden")}>
+        <AnsweredList api={api} data={data} m={m} />
+      </div>
 
       <ol
         ref={list}
@@ -137,7 +140,7 @@ export function ConversationStep(props: StepProps) {
       )}
 
       {state?.complete ? (
-        <section className="animate-rise rounded-lg bg-ok-wash p-5">
+        <section className="animate-rise rounded-xl bg-ok-wash p-5">
           <h2 className="font-semibold text-ok">{m.conversation.completeTitle}</h2>
           <p className="mt-1 text-ink-2">{m.conversation.completeBody}</p>
           <Button size="touch" className="mt-4" onClick={() => goTo("documents")}>
@@ -173,7 +176,7 @@ export function ConversationStep(props: StepProps) {
         )
       )}
 
-      <div className="sticky bottom-0 z-20 -mx-4 bg-linear-to-t from-paper from-70% to-paper/0 px-4 pt-6 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="sticky bottom-0 z-20 -mx-5 bg-linear-to-t from-paper from-70% to-paper/0 px-5 pt-6 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Composer
           token={token}
           language={data.language}

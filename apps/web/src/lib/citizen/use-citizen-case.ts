@@ -35,6 +35,8 @@ export type PendingUpload = {
   checklistItemId: string | null;
   progress: number;
   error: ErrorCode | "network" | "compress" | null;
+  /** The photo as the citizen took it, to show it while it goes up; null for PDFs and HEIC. */
+  previewUrl: string | null;
 };
 
 function errorCode(error: unknown): ErrorCode | "network" {
@@ -123,6 +125,12 @@ export function useCitizenCase(token: string) {
   const base = casePath(token);
   const inFlight = useRef(0);
   const uploadSlots = useRef(createLimiter(PARALLEL_UPLOADS));
+  const previews = useRef(new Map<string, string>());
+  const forgetPreview = useCallback((id: string) => {
+    const url = previews.current.get(id);
+    if (url) URL.revokeObjectURL(url);
+    previews.current.delete(id);
+  }, []);
   // The files, so a failed upload can be retried without picking the photo again. Once resized,
   // the file kept is the one sent: resizing again gives different bytes, which the server would
   // refuse under the same key (and a slow phone would redo the work). The key travels with the
@@ -293,12 +301,15 @@ export function useCitizenCase(token: string) {
         // after the office reopens the case for something else.
         if (data)
           setUploads((list) => {
-            for (const failed of list.filter((u) => u.error)) uploadFiles.current.delete(failed.id);
+            for (const failed of list.filter((u) => u.error)) {
+              uploadFiles.current.delete(failed.id);
+              forgetPreview(failed.id);
+            }
             return list.filter((u) => !u.error);
           });
         return apply(data);
       }),
-    [apply, base, run],
+    [apply, base, run, forgetPreview],
   );
 
   const upload = useCallback(
@@ -310,11 +321,17 @@ export function useCitizenCase(token: string) {
     ) => {
       const id = crypto.randomUUID();
       uploadFiles.current.set(id, { file, checklistItemId, key, prepared });
+      // HEIC is not drawn by most browsers: it would show a broken image.
+      const previewUrl =
+        file.type.startsWith("image/") && file.type !== "image/heic" && file.type !== "image/heif"
+          ? URL.createObjectURL(file)
+          : null;
+      if (previewUrl) previews.current.set(id, previewUrl);
       const patch = (update: Partial<PendingUpload>) =>
         setUploads((list) => list.map((u) => (u.id === id ? { ...u, ...update } : u)));
       setUploads((list) => [
         ...list,
-        { id, fileName: file.name, checklistItemId, progress: 0, error: null },
+        { id, fileName: file.name, checklistItemId, progress: 0, error: null, previewUrl },
       ]);
 
       // Several photos at once wait in line: resizing them all together strains older phones,
@@ -337,6 +354,7 @@ export function useCitizenCase(token: string) {
           );
           setUploads((list) => list.filter((u) => u.id !== id));
           uploadFiles.current.delete(id);
+          forgetPreview(id);
           apply(data);
         } catch (error) {
           const code = errorCode(error);
@@ -348,13 +366,17 @@ export function useCitizenCase(token: string) {
         }
       });
     },
-    [apply, base, load],
+    [apply, base, load, forgetPreview],
   );
 
-  const dismissUpload = useCallback((id: string) => {
-    uploadFiles.current.delete(id);
-    setUploads((list) => list.filter((u) => u.id !== id));
-  }, []);
+  const dismissUpload = useCallback(
+    (id: string) => {
+      uploadFiles.current.delete(id);
+      forgetPreview(id);
+      setUploads((list) => list.filter((u) => u.id !== id));
+    },
+    [forgetPreview],
+  );
 
   const retryUpload = useCallback(
     (id: string) => {

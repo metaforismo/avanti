@@ -22,6 +22,8 @@ import type { View } from "@/lib/citizen/view";
 import { cn } from "@/lib/cn";
 import { AssistantAvatar, ChatBubble, Thinking } from "./chat-bubble";
 import { Composer } from "./composer";
+import { useSheetDrag } from "./sheet-drag";
+import "./citizen.css";
 
 /**
  * The citizen's assistant, reachable from every step. It answers from what Avanti knows about
@@ -47,6 +49,7 @@ export function AssistantSheet({
   onNavigate: (view: View) => void;
 }) {
   const assistant = useAssistant(token);
+  const drag = useSheetDrag(() => onOpenChange(false));
   const { load, history } = assistant;
   const [desk, setDesk] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
@@ -82,7 +85,11 @@ export function AssistantSheet({
             "sm:inset-y-0 sm:start-auto sm:end-0 sm:w-[28rem] sm:animate-panel-in sm:border-s sm:border-line sm:shadow-float sm:data-[state=closed]:animate-panel-out",
           )}
         >
-          <header className="flex items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
+          {/* The title bar is the grab zone: pulled down, the whole screen follows the finger. */}
+          <header
+            {...drag}
+            className="cz-grab flex items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 sm:cursor-auto"
+          >
             <AssistantAvatar />
             <div className="min-w-0 flex-1">
               <Primitive.Title className="font-semibold">{m.assistant.title}</Primitive.Title>
@@ -91,7 +98,7 @@ export function AssistantSheet({
               </Primitive.Description>
             </div>
             <Primitive.Close
-              className="grid size-11 shrink-0 place-items-center rounded-md bg-surface text-ink-3 ring-1 ring-line transition-[color,transform] duration-150 ease-(--ease-out) hover:text-ink active:scale-[0.94]"
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-sunk text-ink-2 transition-[background-color,transform] duration-150 ease-(--ease-out) hover:bg-line active:scale-[0.92]"
               aria-label={m.common.close}
             >
               <X className="size-5" aria-hidden />

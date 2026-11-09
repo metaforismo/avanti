@@ -3,6 +3,7 @@
 import {
   CalendarCheck,
   Check,
+  Clock,
   Copy,
   ExternalLink,
   FileWarning,
@@ -10,6 +11,7 @@ import {
   Info,
   MapPin,
   Phone,
+  type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { CHEVRON_PATH } from "@/components/brand/mark";
@@ -22,6 +24,15 @@ import { cn } from "@/lib/cn";
 import { STEP_TITLE_ID, stillToDo } from "@/lib/citizen/view";
 import type { StepProps } from "./citizen-app";
 import { SaveLinkActions } from "./save-link";
+import { rise } from "./motion";
+
+function IconTile({ icon: Icon }: { icon: LucideIcon }) {
+  return (
+    <span className="grid size-10 shrink-0 place-items-center rounded-[0.75rem] bg-stamp-wash text-stamp">
+      <Icon className="size-5" aria-hidden />
+    </span>
+  );
+}
 
 export function DoneStep({ api, data, m, token }: StepProps) {
   // Once sent, the citizen can no longer upload: what is still missing goes to the office, all of
@@ -37,53 +48,64 @@ export function DoneStep({ api, data, m, token }: StepProps) {
           : null;
 
   return (
-    <div className="grid gap-8 pt-4">
-      <div>
-        <span className="grid size-16 animate-check-in place-items-center rounded-full bg-ok text-white shadow-[0_10px_24px_-12px_var(--ok)]">
-          <Check className="size-8" strokeWidth={2.5} aria-hidden />
+    <div className="grid gap-7 pt-4">
+      <div className="grid justify-items-center text-center">
+        {/* The mark lands, then a ring leaves it once: the moment the practice is really sent. */}
+        <span className="cz-pop cz-ring grid size-20 place-items-center rounded-full bg-ok text-white shadow-[0_14px_30px_-14px_var(--ok)] [--cz-ring-color:var(--ok)]">
+          <Check className="size-10" strokeWidth={2.75} aria-hidden />
         </span>
         <h1
           id={STEP_TITLE_ID}
           tabIndex={-1}
-          className="mt-6 font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em] outline-none"
+          {...rise(
+            1,
+            "mt-6 font-display text-[clamp(1.75rem,9vw,2.125rem)] leading-[1.05] font-bold tracking-[-0.028em] outline-none",
+          )}
         >
           {m.done.title}
         </h1>
-        <p className="mt-3 text-lg text-ink-2">{m.done.lead}</p>
-        {statusLine && <Notice tone="info" size="md" title={statusLine} className="mt-3" />}
+        <p {...rise(2, "mt-3 max-w-sm text-lg text-ink-2")}>{m.done.lead}</p>
+        {statusLine && (
+          <Notice tone="info" size="md" title={statusLine} className="mt-4 w-full text-start" />
+        )}
       </div>
 
-      {/* The reference as the paper ticket taken at the desk: what the citizen shows there. */}
+      {/* The reference as the paper ticket taken at the desk: what the citizen shows there. Two
+          halves cut by a perforation, like a wallet pass. */}
       <dl
         className={cn(
-          "relative animate-ticket-in overflow-hidden rounded-[14px] bg-stamp px-6 py-5 text-on-stamp shadow-raised [animation-delay:120ms]",
-          // The two half-moon notches of a tear-off ticket, cut by the paper behind it.
-          "before:absolute before:-start-2.5 before:top-1/2 before:size-5 before:-translate-y-1/2 before:rounded-full before:bg-paper",
-          "after:absolute after:-end-2.5 after:top-1/2 after:size-5 after:-translate-y-1/2 after:rounded-full after:bg-paper",
+          "cz-ticket relative overflow-hidden rounded-[1.25rem] bg-stamp text-on-stamp shadow-[0_22px_40px_-22px_var(--stamp)]",
         )}
       >
-        <div className="flex items-center gap-4">
-          <div className="min-w-0 flex-1">
-            <dt className="text-xs font-semibold tracking-[0.12em] uppercase opacity-80">
-              {m.done.reference}
-            </dt>
-            <dd
-              className="tabular mt-1.5 font-mono text-[1.625rem] leading-none font-semibold tracking-wide rtl:text-right"
-              dir="ltr"
-              translate="no"
-            >
-              {data.reference}
-            </dd>
-            {data.practice && (
-              <dd className="mt-2 text-body-sm opacity-85">{data.practice.name}</dd>
-            )}
-          </div>
-          <svg viewBox="11 9 9.5 14" aria-hidden className="rtl-flip h-12 w-8 shrink-0 opacity-90">
+        <div className="px-6 pt-5 pb-5">
+          <dt className="text-xs font-semibold tracking-[0.12em] uppercase opacity-80">
+            {m.done.reference}
+          </dt>
+          <dd
+            className="tabular mt-2 font-mono text-[1.75rem] leading-none font-semibold tracking-wide rtl:text-right"
+            dir="ltr"
+            translate="no"
+          >
+            {data.reference}
+          </dd>
+        </div>
+        <div
+          aria-hidden
+          className={cn(
+            "relative border-t-2 border-dashed border-on-stamp/30",
+            // The two half-moon notches of a tear-off ticket, cut by the paper behind it.
+            "before:absolute before:-start-3 before:-top-3.5 before:size-6 before:rounded-full before:bg-paper",
+            "after:absolute after:-end-3 after:-top-3.5 after:size-6 after:rounded-full after:bg-paper",
+          )}
+        />
+        <div className="flex items-center gap-4 px-6 py-4">
+          <dd className="min-w-0 flex-1 truncate font-semibold">{data.practice?.name ?? ""}</dd>
+          <svg viewBox="11 9 9.5 14" aria-hidden className="rtl-flip h-7 w-5 shrink-0">
             <path
               d={CHEVRON_PATH}
               fill="none"
               stroke="var(--marker)"
-              strokeWidth="2.5"
+              strokeWidth="2.75"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -92,8 +114,8 @@ export function DoneStep({ api, data, m, token }: StepProps) {
       </dl>
 
       {data.office?.bookingUrl && (
-        <div className="grid gap-2">
-          <Button asChild size="lg">
+        <div {...rise(4, "grid gap-2")}>
+          <Button asChild size="lg" className="min-h-14 rounded-xl text-[1.0625rem]">
             {/* An external site chosen by the CAF: no referrer, no access to this page. */}
             <a href={data.office.bookingUrl} target="_blank" rel="noopener noreferrer">
               <CalendarCheck className="size-5" aria-hidden />
@@ -106,18 +128,21 @@ export function DoneStep({ api, data, m, token }: StepProps) {
       )}
 
       {missing.length > 0 && (
-        <section aria-labelledby="bring-title" className="rounded-lg bg-warn-wash/60 p-5">
-          <h2 id="bring-title" className="flex items-start gap-2 font-semibold">
+        <section
+          aria-labelledby="bring-title"
+          {...rise(5, "rounded-xl bg-warn-wash/70 p-5 ring-1 ring-warn/15")}
+        >
+          <h2 id="bring-title" className="flex items-start gap-2.5 font-semibold">
             <FileWarning className="mt-0.5 size-5 shrink-0 text-warn" aria-hidden />
             {m.done.bringMissing}
           </h2>
-          <ul className="mt-3 grid gap-2">
+          <ul className="mt-4 grid gap-3">
             {missing.map((item) => (
               <li key={item.id} className="flex gap-3">
                 {/* An empty box: something still to do, ticked by the citizen on the way. */}
                 <span
                   aria-hidden
-                  className="mt-1 size-4 shrink-0 rounded-xs border-[1.5px] border-warn/60 bg-surface"
+                  className="mt-0.5 size-5 shrink-0 rounded-md border-[1.5px] border-warn/60 bg-surface"
                 />
                 <span dir="auto">
                   {item.title}
@@ -129,15 +154,20 @@ export function DoneStep({ api, data, m, token }: StepProps) {
         </section>
       )}
 
-      <ul className="grid gap-4">
-        <li className="flex gap-3">
-          <IdCard className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
-          <span>{m.done.bring}</span>
+      <ul
+        {...rise(
+          6,
+          "divide-y divide-line overflow-hidden rounded-xl bg-surface shadow-raised ring-1 ring-line",
+        )}
+      >
+        <li className="flex gap-3.5 p-4">
+          <IconTile icon={IdCard} />
+          <span className="pt-1.5">{m.done.bring}</span>
         </li>
         {data.office?.citizenNote && (
-          <li className="flex gap-3">
-            <Info className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
-            <span>
+          <li className="flex gap-3.5 p-4">
+            <IconTile icon={Info} />
+            <span className="min-w-0 pt-0.5">
               <span className="block text-sm text-ink-3">{m.done.officeNote}</span>
               <span lang="it" dir="ltr" className="block">
                 {data.office.citizenNote}
@@ -145,12 +175,12 @@ export function DoneStep({ api, data, m, token }: StepProps) {
             </span>
           </li>
         )}
-        <li className="grid gap-3">
-          <span className="flex gap-3">
-            <Copy className="mt-0.5 size-5 shrink-0 text-stamp" aria-hidden />
-            <span>{m.done.save}</span>
+        <li className="grid gap-3 p-4">
+          <span className="flex gap-3.5">
+            <IconTile icon={Copy} />
+            <span className="pt-1.5">{m.done.save}</span>
           </span>
-          <div className="ms-8">
+          <div className="ms-[3.25rem]">
             <SaveLinkActions m={m} title={data.reference} />
           </div>
         </li>
@@ -166,23 +196,24 @@ export function DoneStep({ api, data, m, token }: StepProps) {
       )}
 
       {data.office && (
-        <address className="grid gap-2 border-t border-line pt-6 text-ink-2 not-italic">
-          <span className="font-semibold text-ink">{data.office.name}</span>
-          <span className="flex items-start gap-2">
-            <MapPin className="mt-0.5 size-4 shrink-0 text-ink-3" aria-hidden />
+        <address {...rise(6, "grid gap-1 rounded-xl bg-sunk/70 p-2 text-ink-2 not-italic")}>
+          <span className="px-2 pt-2 font-semibold text-ink">{data.office.name}</span>
+          <span className="flex items-center gap-3 px-2 py-2">
+            <MapPin className="size-5 shrink-0 text-ink-3" aria-hidden />
             <span dir="ltr">{officePlace(data.office)}</span>
           </span>
           {data.office.phone && (
             <a
               href={`tel:${data.office.phone.replace(/\s+/g, "")}`}
-              className="flex items-center gap-2 hover:text-ink"
+              className="flex min-h-11 items-center gap-3 rounded-md px-2 py-2 transition-colors hover:text-ink active:bg-sunk"
             >
-              <Phone className="size-4 shrink-0 text-ink-3" aria-hidden />
+              <Phone className="size-5 shrink-0 text-ink-3" aria-hidden />
               <span dir="ltr">{data.office.phone}</span>
             </a>
           )}
           {data.office.openingHours && (
-            <span className="text-sm">
+            <span className="flex items-center gap-3 px-2 py-2 text-sm">
+              <Clock className="size-5 shrink-0 text-ink-3" aria-hidden />
               {m.status.hours}: {data.office.openingHours}
             </span>
           )}

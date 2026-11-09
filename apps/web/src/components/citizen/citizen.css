@@ -1,0 +1,132 @@
+/*
+ * Citizen pages only (imported by citizen-app and office-start): the choreography of a step and
+ * the confirmations. Everything moves with transform and opacity. Tokens and curves come from
+ * globals.css; reduced motion is handled at the bottom of this file.
+ */
+@layer components {
+  /* A step arrives as a fade; its children rise one after another (--i, capped at 6 by the
+     helper). --step-dir sets the side they come from: 1 forward, -1 after going back. */
+  .cz-step {
+    animation: cz-fade 180ms var(--ease-out) backwards;
+  }
+  .cz-in {
+    animation: cz-rise 420ms var(--ease-out) backwards;
+    animation-delay: calc(var(--i, 0) * 55ms + 30ms);
+  }
+  @keyframes cz-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes cz-rise {
+    from {
+      opacity: 0;
+      transform: translateY(calc(14px * var(--step-dir, 1)));
+    }
+  }
+
+  /* A confirmation: the mark pops in and a ring leaves it once, like a stamp pressed on paper. */
+  .cz-pop {
+    animation: cz-pop 460ms var(--ease-out) both;
+  }
+  .cz-ring {
+    position: relative;
+  }
+  .cz-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 2px solid var(--cz-ring-color, currentColor);
+    opacity: 0;
+    pointer-events: none;
+    animation: cz-ring 900ms var(--ease-out) 120ms both;
+  }
+  @keyframes cz-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    55% {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes cz-ring {
+    0% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.9);
+    }
+  }
+
+  /* The ticket handed over the desk: slides up, settles with a small turn. */
+  .cz-ticket {
+    animation: cz-ticket 640ms var(--ease-out) 140ms backwards;
+  }
+  @keyframes cz-ticket {
+    from {
+      opacity: 0;
+      transform: translateY(24px) rotate(-2.5deg) scale(0.96);
+    }
+    60% {
+      transform: translateY(-2px) rotate(0.4deg) scale(1.005);
+    }
+  }
+
+  /* Bottom sheets: from the edge, 340 ms on the iOS drawer curve. The drag sets transform
+     inline; this class only plays the entrance. */
+  .cz-sheet-in {
+    animation: cz-sheet-in 340ms var(--ease-drawer) backwards;
+  }
+  .cz-sheet-in[data-state="closed"] {
+    animation: cz-sheet-out 200ms var(--ease-out) forwards;
+  }
+  @keyframes cz-sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes cz-sheet-out {
+    to {
+      transform: translateY(100%);
+    }
+  }
+  .cz-grab {
+    touch-action: none;
+    cursor: grab;
+  }
+
+  /* Upload tile: the photo under a veil that lifts as it goes. */
+  .cz-veil {
+    transition: opacity 240ms var(--ease-out);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cz-in,
+    .cz-step,
+    .cz-pop,
+    .cz-ticket,
+    .cz-sheet-in {
+      animation: cz-fade 150ms linear backwards !important;
+      animation-delay: 0ms !important;
+    }
+    .cz-ring::after {
+      display: none;
+    }
+    .cz-sheet-in[data-state="closed"] {
+      animation: cz-fade-out 120ms linear forwards !important;
+    }
+    @keyframes cz-fade-out {
+      to {
+        opacity: 0;
+      }
+    }
+  }
+}

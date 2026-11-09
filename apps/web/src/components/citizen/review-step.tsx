@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Pencil } from "lucide-react";
+import { AlertTriangle, FileText, FolderCheck, Pencil, Users, type LucideIcon } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -11,6 +11,7 @@ import { documentCountsOf, STEP_TITLE_ID, stillToDo } from "@/lib/citizen/view";
 import { isEmail } from "@/lib/validation";
 import { ActionErrorNotice } from "./action-error";
 import type { ContactDraft, StepProps } from "./citizen-app";
+import { rise } from "./motion";
 
 type Errors = Partial<Record<"firstName" | "lastName" | "contact" | "email" | "confirmed", string>>;
 
@@ -84,19 +85,20 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
 
   return (
     <div className="grid gap-6">
-      <div>
+      <div {...rise(0)}>
         <h1
           id={STEP_TITLE_ID}
           tabIndex={-1}
-          className="font-display text-[2rem] leading-[1.05] font-bold tracking-[-0.025em] outline-none"
+          className="font-display text-[clamp(1.75rem,9vw,2.125rem)] leading-[1.04] font-bold tracking-[-0.028em] outline-none"
         >
           {m.review.title}
         </h1>
         <p className="mt-2 text-lg text-ink-2">{m.review.lead}</p>
       </div>
 
-      <ul className="divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
+      <ul {...rise(1, "divide-y divide-line rounded-xl bg-surface shadow-raised ring-1 ring-line")}>
         <SummaryRow
+          icon={FileText}
           label={m.review.practice}
           value={data.practice?.name ?? "—"}
           onEdit={() => goTo("interview")}
@@ -104,6 +106,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
         />
         {data.household.length > 0 && (
           <SummaryRow
+            icon={Users}
             label={m.review.household}
             value={data.household.map((member) => member.firstName).join(", ")}
             onEdit={() => goTo("interview")}
@@ -111,6 +114,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
           />
         )}
         <SummaryRow
+          icon={FolderCheck}
           label={m.review.documents}
           value={documentsProgress(data.language, counts, m)}
           onEdit={() => goTo("documents")}
@@ -119,15 +123,19 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
       </ul>
 
       {missing.length > 0 && (
-        <section className="rounded-lg bg-warn-wash p-4">
+        <section {...rise(2, "rounded-xl bg-warn-wash p-5")}>
           <h2 className="flex items-center gap-2 font-semibold text-warn">
             <AlertTriangle className="size-5" aria-hidden />
             {m.review.missingList}
           </h2>
-          <ul className="mt-2 grid gap-1.5 text-ink">
+          <ul className="mt-3 grid gap-2.5 text-ink">
             {shownMissing.map((item) => (
-              <li key={item.id} className="flex gap-2">
-                <span aria-hidden>•</span>
+              <li key={item.id} className="flex gap-3">
+                {/* An empty circle, not a bullet: each is something still to do. */}
+                <span
+                  aria-hidden
+                  className="mt-1 size-4 shrink-0 rounded-full border-[1.5px] border-warn/60 bg-surface"
+                />
                 <span>
                   {item.title}
                   {item.memberName && <span className="text-ink-2"> ({item.memberName})</span>}
@@ -152,7 +160,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
         </section>
       )}
 
-      <form onSubmit={onSubmit} noValidate className="grid gap-5">
+      <form onSubmit={onSubmit} noValidate {...rise(3, "grid gap-5")}>
         <fieldset className="grid gap-4">
           <legend className="font-display text-xl font-semibold">{m.review.contact}</legend>
           <p className="mt-1 text-ink-2">{m.review.contactHint}</p>
@@ -237,7 +245,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
           loading={api.pending === "submit"}
           disabled={counts.checking > 0}
           aria-describedby={counts.checking > 0 ? "submit-wait" : undefined}
-          className="w-full"
+          className="min-h-14 w-full rounded-xl text-[1.0625rem]"
         >
           {data.status === "needs_citizen" ? m.request.resend : m.review.submit}
         </Button>
@@ -247,26 +255,31 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
 }
 
 function SummaryRow({
+  icon: Icon,
   label,
   value,
   onEdit,
   editLabel,
 }: {
+  icon: LucideIcon;
   label: string;
   value: string;
   onEdit: () => void;
   editLabel: string;
 }) {
   return (
-    <li className="flex items-center gap-3 px-4 py-3">
+    <li className="flex items-center gap-3.5 px-4 py-3.5">
+      <span className="grid size-10 shrink-0 place-items-center rounded-[0.75rem] bg-stamp-wash text-stamp">
+        <Icon className="size-5" aria-hidden />
+      </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm text-ink-3">{label}</p>
-        <p className="mt-0.5 font-semibold">{value}</p>
+        <p className="mt-0.5 font-semibold break-words">{value}</p>
       </div>
       <button
         type="button"
         onClick={onEdit}
-        className="-me-2 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-sm px-2 text-sm font-semibold text-stamp hover:bg-stamp-wash"
+        className="-me-2 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-semibold text-stamp transition-[background-color,transform] duration-150 ease-(--ease-out) hover:bg-stamp-wash active:scale-[0.94] active:bg-stamp-wash"
         aria-label={`${editLabel}: ${label}`}
       >
         <Pencil className="size-3.5" aria-hidden />

@@ -4,7 +4,7 @@ import { Download, ShieldCheck, Trash2 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import type { CitizenCase, Language } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Sheet } from "./sheet";
 import { Notice } from "@/components/ui/notice";
 import { apiDownload, apiFetch, ApiRequestError } from "@/lib/api";
 import { zipComplete } from "@/lib/console/zip-complete";
@@ -121,7 +121,7 @@ export function PrivacySheet({
 
   return (
     <>
-      <Dialog
+      <Sheet
         open={open && confirm === null}
         onOpenChange={onOpenChange}
         title={p.title}
@@ -229,9 +229,9 @@ export function PrivacySheet({
             {p.fullNotice}
           </a>
         </div>
-      </Dialog>
+      </Sheet>
 
-      <Dialog
+      <Sheet
         open={open && confirm !== null}
         onOpenChange={(next) => !next && setConfirm(null)}
         title={confirm === "delete" ? p.deleteConfirmTitle : p.requestConfirmTitle}
@@ -257,7 +257,7 @@ export function PrivacySheet({
             {m.common.cancel}
           </Button>
         </div>
-      </Dialog>
+      </Sheet>
     </>
   );
 }

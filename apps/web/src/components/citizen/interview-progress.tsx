@@ -58,7 +58,7 @@ export function InterviewProgressBar({
           ? format(m.interview.progressLabel, { n: answered, total: progress.questionsTotal })
           : (remainingText(remaining, language, m, section) ?? "")
       }
-      className="mt-2"
+      className="mt-3 h-2"
     />
   );
 }
