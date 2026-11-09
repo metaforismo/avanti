@@ -16,6 +16,7 @@ import { apiFetch, ApiRequestError } from "@/lib/api";
 import { timeAgo } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
 import { useResource } from "@/lib/console/use-resource";
+import { initialsOf } from "@/lib/console/initials";
 import { useHashTarget, useOpenOnHash } from "@/lib/console/use-hash-target";
 import { focusFirstError, isEmail, text } from "@/lib/validation";
 
@@ -191,12 +192,7 @@ export function OperatorsSection() {
                     operator.active ? "bg-contrast text-on-contrast" : "bg-sunk text-ink-2",
                   )}
                 >
-                  {operator.name
-                    .split(/\s+/)
-                    .map((w) => w[0])
-                    .slice(0, 2)
-                    .join("")
-                    .toUpperCase()}
+                  {initialsOf(operator.name)}
                 </span>
                 <div className="min-w-0 flex-1 basis-56">
                   <p className="flex flex-wrap items-center gap-2 font-semibold">

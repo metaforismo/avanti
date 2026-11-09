@@ -357,6 +357,44 @@ test("email notices are off by default and an administrator's choice survives a 
   await expect(page.getByRole("status").filter({ hasText: "Salvati" })).toBeVisible();
 });
 
+test("«Annulla» after a save goes back to the saved choices, not to those the page opened with", async ({
+  page,
+}) => {
+  await page.goto("/console/accedi");
+  await logIn(page, ADMIN);
+  await page.getByRole("link", { name: "Impostazioni" }).click();
+
+  const mode = page.getByRole("combobox", { name: "Modalità" });
+  const links = page.getByRole("textbox", { name: "Validità dei link per i cittadini" });
+  const save = page.getByRole("button", { name: "Salva parametri" });
+  await expect(mode).toHaveValue("shadow");
+
+  await mode.selectOption("visible");
+  await save.click();
+  await expect(page.getByRole("status").filter({ hasText: "Salvati" })).toBeVisible();
+
+  const days = await links.inputValue();
+  await links.fill(String(Number(days) + 1));
+  await page.getByRole("button", { name: "Annulla" }).click();
+  await expect(mode).toHaveValue("visible");
+  await expect(links).toHaveValue(days);
+  await expect(save).toHaveCount(0);
+  await expect(page.locator("form[aria-labelledby='settings-title']")).toBeFocused();
+
+  // The next save sends what is on screen.
+  await page.getByRole("combobox", { name: "Primo promemoria" }).selectOption("5");
+  await save.click();
+  await expect(page.getByRole("status").filter({ hasText: "Salvati" })).toBeVisible();
+  await page.reload();
+  await expect(mode).toHaveValue("visible");
+
+  // Leave the demo data as the seed made it for the other tests.
+  await mode.selectOption("shadow");
+  await page.getByRole("combobox", { name: "Primo promemoria" }).selectOption("3");
+  await save.click();
+  await expect(page.getByRole("status").filter({ hasText: "Salvati" })).toBeVisible();
+});
+
 test("system status is for administrators: operators get a plain refusal", async ({ page }) => {
   await page.goto("/console/accedi");
   await logIn(page, DEMO);

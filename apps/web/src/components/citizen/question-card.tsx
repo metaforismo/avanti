@@ -239,7 +239,10 @@ function ChoiceList({
           {!pair && (
             <span
               aria-hidden
-              className="grid size-6 shrink-0 place-items-center rounded-full bg-surface ring-2 ring-line-field transition-[background-color,box-shadow] duration-150 ring-inset group-aria-pressed:bg-stamp group-aria-pressed:ring-stamp"
+              className={cn(
+                "grid size-6 shrink-0 place-items-center rounded-full bg-surface ring-2 ring-line-field transition-[background-color,box-shadow] duration-150 ring-inset group-aria-pressed:bg-stamp group-aria-pressed:ring-stamp",
+                pendingValue === option.value && "bg-stamp ring-stamp",
+              )}
             >
               {pendingValue === option.value ? (
                 <Spinner className="size-4 text-on-stamp" />

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { AlertOctagon, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
@@ -5,6 +6,16 @@ import { Logo } from "@/components/brand/logo";
 import { LoginForm } from "@/components/console/login-form";
 
 export const metadata: Metadata = { title: "Accesso operatori", robots: { index: false } };
+
+// Light paper on the night panel in both themes: the light palette, fixed, not tokens that flip.
+const CARD_COLORS = {
+  "--card-ink": "#141b2d",
+  "--card-ink-3": "#5d6477",
+  "--card-line": "#dde1e3",
+  "--card-danger": "#b8322a",
+  "--card-warn": "#9a5500",
+  "--card-ok": "#1d7448",
+} as CSSProperties;
 
 export default async function LoginPage({ searchParams }: PageProps<"/console/accedi">) {
   const params = await searchParams;
@@ -28,18 +39,19 @@ export default async function LoginPage({ searchParams }: PageProps<"/console/ac
           {/* The same order drawn as the top of a dossier, with invented content. */}
           <div
             aria-hidden
-            className="mt-10 -rotate-1 rounded-lg bg-white p-4 text-[#141b2d] shadow-[0_28px_60px_-24px_rgb(0_0_0/0.6)]"
+            style={CARD_COLORS}
+            className="mt-10 -rotate-1 rounded-lg bg-white p-4 text-(--card-ink) shadow-[0_28px_60px_-24px_rgb(0_0_0/0.6)]"
           >
-            <div className="flex items-center justify-between border-b border-[#dde1e3] pb-3 text-xs font-semibold tracking-[0.06em] text-[#5d6477] uppercase">
+            <div className="flex items-center justify-between border-b border-(--card-line) pb-3 text-xs font-semibold tracking-[0.06em] text-(--card-ink-3) uppercase">
               <span>Fascicolo ISEE</span>
               <span className="font-normal tracking-normal normal-case">Dati inventati</span>
             </div>
             <ul className="mt-3 grid gap-1.5 text-sm">
               {(
                 [
-                  [AlertOctagon, "bg-[#b8322a]", "Mancano 2 documenti obbligatori"],
-                  [AlertTriangle, "bg-[#9a5500]", "Carta d'identità in scadenza a gennaio"],
-                  [CheckCircle2, "bg-[#1d7448]", "9 documenti verificati"],
+                  [AlertOctagon, "bg-(--card-danger)", "Mancano 2 documenti obbligatori"],
+                  [AlertTriangle, "bg-(--card-warn)", "Carta d'identità in scadenza a gennaio"],
+                  [CheckCircle2, "bg-(--card-ok)", "9 documenti verificati"],
                 ] as const
               ).map(([Icon, tone, text]) => (
                 <li key={text} className="flex items-center gap-3 rounded-md px-1 py-1.5">

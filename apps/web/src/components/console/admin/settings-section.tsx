@@ -86,6 +86,31 @@ function SettingsForm({
   }, [state]);
   // Requiring it before having it would lock the admin out of the console until set up.
   const canRequireMfa = useOperator().mfaEnabled;
+  const selects = {
+    nearReadyMode: initial.nearReadyMode,
+    reminderFirst: String(initial.citizenReminderDays[0] ?? 3),
+    reminderSecond: String(initial.citizenReminderDays[1] ?? 0),
+  };
+  // React moves an input's defaultValue when the saved value changes, but never a select's
+  // defaultSelected: without this, «Annulla» after a save would go back to the values the page
+  // opened with. Only the defaults move, so edits typed while saving stay on screen.
+  const selectDefaults = JSON.stringify(selects);
+  useEffect(() => {
+    const defaults = JSON.parse(selectDefaults) as Record<string, string>;
+    for (const [name, value] of Object.entries(defaults)) {
+      const select = form.current?.elements.namedItem(name);
+      if (!(select instanceof HTMLSelectElement)) continue;
+      for (const option of select.options) option.defaultSelected = option.value === value;
+    }
+  }, [selectDefaults]);
+  // The bar's buttons go away after «Annulla» and «Salvati»: focus must not fall to the body.
+  // A save sent with Enter from a field leaves the focus in that field.
+  const bar = useRef<HTMLDivElement>(null);
+  const refocus = () => {
+    const active = document.activeElement;
+    if (!active || active === document.body || bar.current?.contains(active))
+      form.current?.focus({ preventScroll: true });
+  };
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -137,7 +162,9 @@ function SettingsForm({
       );
       saved.current = submitted;
       // Typed while saving: those edits are not on the server yet.
-      setState(snapshot() === submitted ? "saved" : "dirty");
+      const stillSame = snapshot() === submitted;
+      setState(stillSame ? "saved" : "dirty");
+      if (stillSame) refocus();
     } catch (error) {
       setState(snapshot() === saved.current ? "idle" : "dirty");
       setFormError(
@@ -156,10 +183,12 @@ function SettingsForm({
       ref={form}
       onSubmit={onSubmit}
       noValidate
+      tabIndex={-1}
+      aria-labelledby="settings-title"
       onChange={() => {
         if (state !== "saving") setState(snapshot() === saved.current ? "idle" : "dirty");
       }}
-      className="mt-4 grid gap-7 pb-24"
+      className="mt-4 grid gap-7 pb-24 outline-none"
     >
       <SettingGroup title="Pratiche e conservazione">
         <ValueRow
@@ -227,12 +256,7 @@ function SettingsForm({
         />
         <ValueRow label="Primo promemoria" hint="Dopo quanti giorni senza risposta.">
           {(p) => (
-            <Select
-              {...p}
-              name="reminderFirst"
-              defaultValue={String(initial.citizenReminderDays[0] ?? 3)}
-              compact
-            >
+            <Select {...p} name="reminderFirst" defaultValue={selects.reminderFirst} compact>
               {[2, 3, 5, 7].map((d) => (
                 <option key={d} value={d}>
                   Dopo {d} giorni
@@ -243,12 +267,7 @@ function SettingsForm({
         </ValueRow>
         <ValueRow label="Secondo promemoria">
           {(p) => (
-            <Select
-              {...p}
-              name="reminderSecond"
-              defaultValue={String(initial.citizenReminderDays[1] ?? 0)}
-              compact
-            >
+            <Select {...p} name="reminderSecond" defaultValue={selects.reminderSecond} compact>
               <option value="0">Nessuno</option>
               {[3, 4, 7].map((d) => (
                 <option key={d} value={d}>
@@ -288,7 +307,7 @@ function SettingsForm({
           hint="In ombra il suggerimento si misura senza mostrarlo: è come si inizia il pilota. Non segna mai una pratica come pronta."
         >
           {(p) => (
-            <Select {...p} name="nearReadyMode" defaultValue={initial.nearReadyMode} compact>
+            <Select {...p} name="nearReadyMode" defaultValue={selects.nearReadyMode} compact>
               <option value="off">Spenta</option>
               <option value="shadow">In ombra</option>
               <option value="visible">Visibile agli operatori</option>
@@ -338,14 +357,16 @@ function SettingsForm({
       </SettingGroup>
 
       {formError && <Notice tone="danger">{formError}</Notice>}
-      {/* Appears only while there is something to save, and closes itself after «Salvati». The form
-          keeps room below its last row so the bar never sits on top of a setting. */}
-      {state !== "idle" && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex justify-center px-4 pb-[env(safe-area-inset-bottom)] lg:start-56">
-          <div
-            role="status"
-            className="pointer-events-auto flex animate-dock-in items-center gap-3 rounded-lg bg-surface py-2 ps-4 pe-2 shadow-float ring-1 ring-line-strong"
-          >
+      {/* The bar appears only while there is something to save, and closes itself after «Salvati».
+          The status region stays mounted, empty when idle, so screen readers announce what fills
+          it. The form keeps room below its last row so the bar never sits on top of a setting. */}
+      <div
+        ref={bar}
+        role="status"
+        className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex justify-center px-4 pb-[env(safe-area-inset-bottom)] lg:start-56"
+      >
+        {state !== "idle" && (
+          <div className="pointer-events-auto flex animate-dock-in items-center gap-3 rounded-lg bg-surface py-2 ps-4 pe-2 shadow-float ring-1 ring-line-strong">
             {state === "saved" ? (
               <span className="flex items-center gap-1.5 py-1.5 pe-2 text-sm font-semibold text-ok">
                 <Check className="size-4 animate-check-in" aria-hidden />
@@ -364,6 +385,7 @@ function SettingsForm({
                     setErrors({});
                     setFormError(null);
                     setState("idle");
+                    refocus();
                   }}
                 >
                   Annulla
@@ -374,8 +396,8 @@ function SettingsForm({
               </>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </form>
   );
 }

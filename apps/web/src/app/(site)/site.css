@@ -261,8 +261,17 @@
     );
   }
 
-  /* A rule that draws itself downwards (the pilot calendar). */
-  [data-reveal] .draw-y {
+  /* A rule that draws itself downwards along a list (the pilot calendar). A pseudo-element, so
+     the list keeps only its items: a child would be invalid and shift the stagger delays. */
+  .draw-y::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--stamp), var(--line-strong), var(--line-strong));
+  }
+  [data-reveal].draw-y::before {
     transform-origin: center top;
     transition: transform 1400ms var(--ease-out-expo) 150ms;
   }

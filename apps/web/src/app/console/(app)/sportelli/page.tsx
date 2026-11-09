@@ -41,7 +41,7 @@ export default function OfficesPage() {
           return (
             <li
               key={office.id}
-              className="flex gap-5 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line"
+              className="flex flex-col gap-5 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:flex-row"
             >
               <div className="size-32 shrink-0 self-start rounded-md bg-white p-2 ring-1 ring-line">
                 {link ? (

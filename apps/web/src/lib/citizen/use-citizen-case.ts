@@ -131,6 +131,13 @@ export function useCitizenCase(token: string) {
     if (url) URL.revokeObjectURL(url);
     previews.current.delete(id);
   }, []);
+  useEffect(() => {
+    const urls = previews.current;
+    return () => {
+      for (const url of urls.values()) URL.revokeObjectURL(url);
+      urls.clear();
+    };
+  }, []);
   // The files, so a failed upload can be retried without picking the photo again. Once resized,
   // the file kept is the one sent: resizing again gives different bytes, which the server would
   // refuse under the same key (and a slow phone would redo the work). The key travels with the

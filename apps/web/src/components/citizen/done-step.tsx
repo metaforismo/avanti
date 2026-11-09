@@ -72,12 +72,12 @@ export function DoneStep({ api, data, m, token }: StepProps) {
 
       {/* The reference as the paper ticket taken at the desk: what the citizen shows there. Two
           halves cut by a perforation, like a wallet pass. */}
-      <dl
+      <div
         className={cn(
           "cz-ticket relative overflow-hidden rounded-[1.25rem] bg-stamp text-on-stamp shadow-[0_22px_40px_-22px_var(--stamp)]",
         )}
       >
-        <div className="px-6 pt-5 pb-5">
+        <dl className="px-6 pt-5 pb-5">
           <dt className="text-xs font-semibold tracking-[0.12em] uppercase opacity-80">
             {m.done.reference}
           </dt>
@@ -88,7 +88,7 @@ export function DoneStep({ api, data, m, token }: StepProps) {
           >
             {data.reference}
           </dd>
-        </div>
+        </dl>
         <div
           aria-hidden
           className={cn(
@@ -99,7 +99,7 @@ export function DoneStep({ api, data, m, token }: StepProps) {
           )}
         />
         <div className="flex items-center gap-4 px-6 py-4">
-          <dd className="min-w-0 flex-1 truncate font-semibold">{data.practice?.name ?? ""}</dd>
+          <p className="min-w-0 flex-1 truncate font-semibold">{data.practice?.name}</p>
           <svg viewBox="11 9 9.5 14" aria-hidden className="rtl-flip h-7 w-5 shrink-0">
             <path
               d={CHEVRON_PATH}
@@ -111,7 +111,7 @@ export function DoneStep({ api, data, m, token }: StepProps) {
             />
           </svg>
         </div>
-      </dl>
+      </div>
 
       {data.office?.bookingUrl && (
         <div {...rise(4, "grid gap-2")}>

@@ -160,11 +160,11 @@
   --animate-fade-out: fade-out 140ms var(--ease-out) both;
   --animate-sink: sink 140ms var(--ease-out) both;
   /* Bottom sheets and bars come from the edge they are attached to (percent: their own height). */
-  --animate-sheet-in: sheet-in 340ms var(--ease-drawer) both;
+  --animate-sheet-in: sheet-in 340ms var(--ease-drawer) backwards;
   --animate-sheet-out: sheet-out 200ms var(--ease-out) both;
   --animate-dock-in: sheet-in 220ms var(--ease-out) both;
   /* Side panels, from the inline end (mirrored in RTL). */
-  --animate-panel-in: panel-in 300ms var(--ease-drawer) both;
+  --animate-panel-in: panel-in 300ms var(--ease-drawer) backwards;
   --animate-panel-out: panel-out 180ms var(--ease-out) both;
   /* Citizen steps: the next one rises into place, a step back settles from above (--step-dir: 1
      forward, -1 back). Vertical on purpose: a sideways slide pushes a phone page into
