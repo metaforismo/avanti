@@ -184,39 +184,60 @@ export function HowItWorks() {
 
   return (
     <div className="grid gap-16 lg:grid-cols-2 lg:gap-20">
-      <ol className="grid gap-16 lg:gap-0 lg:py-[18vh]">
-        {STEPS.map((step, i) => {
-          const Visual = VISUALS[i]!;
-          return (
-            <li
-              key={step.title}
-              ref={(node) => {
-                stepRefs.current[i] = node;
-              }}
-              data-step={i}
-              // Inactive steps are dimmed with colour, not opacity: they stay readable (AA).
-              data-active={i === active || undefined}
-              className="group lg:flex lg:min-h-[52vh] lg:flex-col lg:justify-center"
-            >
-              <p className="tabular font-mono text-sm text-stamp transition-colors duration-500 lg:text-ink-3 lg:group-data-active:text-stamp">
-                0{i + 1}
-              </p>
-              <h3 className="mt-3 font-display text-[clamp(2rem,3.6vw,3rem)] leading-[1.02] font-semibold tracking-[-0.008em] transition-colors duration-500 lg:text-ink-3 lg:group-data-active:text-ink">
-                {step.title}
-              </h3>
-              <p className="mt-3 max-w-sm type-lead text-ink-2 transition-colors duration-500 lg:text-ink-3 lg:group-data-active:text-ink-2">
-                {step.body}
-              </p>
-              <div aria-hidden className="glow mt-10 lg:hidden">
-                <Visual />
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="relative">
+        {/* Progress rail: fills step by step as each one is read (desktop, where the picture
+            stays put and the rail is what says how far along you are). */}
+        <div aria-hidden className="absolute inset-y-[18vh] -start-8 hidden w-px bg-line lg:block">
+          <div
+            className="h-full w-full origin-top bg-stamp transition-transform duration-700 ease-(--ease-out)"
+            style={{ transform: `scaleY(${(active + 1) / STEPS.length})` }}
+          />
+        </div>
+        <ol className="grid gap-16 lg:gap-0 lg:py-[18vh]">
+          {STEPS.map((step, i) => {
+            const Visual = VISUALS[i]!;
+            return (
+              <li
+                key={step.title}
+                ref={(node) => {
+                  stepRefs.current[i] = node;
+                }}
+                data-step={i}
+                // Inactive steps are dimmed with colour, not opacity: they stay readable (AA).
+                data-active={i === active || undefined}
+                className="group lg:flex lg:min-h-[52vh] lg:flex-col lg:justify-center"
+              >
+                <p className="tabular inline-grid h-7 min-w-10 place-items-center self-start rounded-full bg-stamp-wash px-2.5 font-mono text-sm text-stamp transition-[background-color,color] duration-500 lg:bg-sunk lg:text-ink-3 lg:group-data-active:bg-stamp lg:group-data-active:text-on-stamp">
+                  0{i + 1}
+                </p>
+                <h3 className="mt-3 font-display text-[clamp(2rem,3.6vw,3rem)] leading-[1.02] font-semibold tracking-[-0.008em] transition-colors duration-500 lg:text-ink-3 lg:group-data-active:text-ink">
+                  {step.title}
+                </h3>
+                <p className="mt-3 max-w-sm type-lead text-ink-2 transition-colors duration-500 lg:text-ink-3 lg:group-data-active:text-ink-2">
+                  {step.body}
+                </p>
+                <div aria-hidden className="glow mt-10 lg:hidden">
+                  <Visual />
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
 
       <div aria-hidden className="hidden lg:block">
         <div className="glow sticky top-[calc(50vh-15rem)] grid h-[30rem] place-items-center">
+          <div className="absolute start-1/2 -top-2 flex -translate-x-1/2 gap-1.5 rtl:translate-x-1/2">
+            {STEPS.map((step, i) => (
+              <span
+                key={step.title}
+                className={cn(
+                  "h-1 w-8 rounded-full transition-colors duration-500",
+                  i === active ? "bg-stamp" : i < active ? "bg-stamp/40" : "bg-line-strong",
+                )}
+              />
+            ))}
+          </div>
           {VISUALS.map((Visual, i) => (
             <div
               key={i}

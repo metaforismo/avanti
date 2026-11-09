@@ -8,7 +8,7 @@ tante pratiche al giorno, ogni minuto conta). Il sistema visivo è unico, la den
 
 Avanti si presenta come un oggetto da sportello, non come una startup: carta d'ufficio,
 inchiostro blu del timbro, l'evidenziatore giallo con cui l'operatore segna ciò che conta.
-Nessun gradiente, nessuna illustrazione generica, nessuna icona "AI" con scintille in primo piano:
+Nessun gradiente vistoso (solo luci radiali appena percettibili sul sito), nessuna illustrazione generica, nessuna icona "AI" con scintille in primo piano:
 il prodotto si mostra com'è, con dati inventati dichiarati.
 
 ### Marchio
@@ -195,16 +195,26 @@ Console e cittadino:
 
 Sito pubblico (`app/(site)/site.css`, caricato solo lì):
 
-| Classe / attributo        | Cosa fa                                                            |
-| ------------------------- | ------------------------------------------------------------------ |
-| `hero-in` + `--d`         | Entrata al caricamento, da CSS (non aspetta l'idratazione), 900 ms |
-| `data-reveal`             | Sale di 14 px e compare quando entra in vista, una volta           |
-| `data-reveal="stagger"`   | Lo stesso per i figli, 60 ms l'uno dall'altro (massimo 300 ms)     |
-| `draw-x`                  | Una linea dentro un reveal si disegna da sinistra (`scaleX`)       |
-| `marker-draw`             | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)   |
-| `stamp-press` / `tick-in` | Timbro premuto con piccolo rimbalzo; spunta che compare in scala   |
-| `grain` / `grain-dark`    | Grana della carta (SVG di rumore) su fondi chiari o scuri          |
-| `ruled`                   | Righe del registro che sfumano in alto negli hero                  |
+| Classe / attributo          | Cosa fa                                                                 |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `hero-in` + `--d`           | Entrata al caricamento, da CSS (non aspetta l'idratazione), 900 ms      |
+| `data-reveal`               | Sale di 14 px e compare quando entra in vista, una volta                |
+| `data-reveal="stagger"`     | Lo stesso per i figli, 60 ms l'uno dall'altro (massimo 300 ms)          |
+| `draw-x`                    | Una linea dentro un reveal si disegna da sinistra (`scaleX`)            |
+| `marker-draw`               | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)        |
+| `stamp-press` / `tick-in`   | Timbro premuto con piccolo rimbalzo; spunta che compare in scala        |
+| `grain` / `grain-dark`      | Grana della carta (SVG di rumore) su fondi chiari o scuri               |
+| `ruled`                     | Righe del registro che sfumano in alto negli hero                       |
+| `hero-word`                 | Titolo dell'hero parola per parola, ognuna sale dalla sua riga          |
+| `hero-stage` + `stage`      | Il banco della demo arriva inclinato e si raddrizza; luce e puntini     |
+| `flow-dot` / `flow-pulse`   | Passaggio cittadino → fascicolo: un punto per fatto, freccia Avanti     |
+| `land-flash`                | La riga del fascicolo che riceve un fatto lampeggia di giallo           |
+| `fill-in` + `--i`           | Quadretti della figura 10×10 dei numeri, uno dopo l'altro               |
+| `draw-y`                    | Filo del calendario del pilota disegnato verso il basso                 |
+| `press-on-reveal`           | Timbro premuto quando la sua immagine entra in vista                    |
+| `spotlight`                 | Luce sotto le celle delle fasce scure che segue il puntatore            |
+| `cta-sheen`                 | Riflesso che attraversa la CTA principale all'hover, una volta          |
+| `band-light` / `edge-light` | Luce dall'alto sulle fasce scure; filo luminoso sul bordo dell'immagine |
 
 I reveal partono dopo l'idratazione (`lib/site/reveal.ts`): un attributo aggiunto prima
 all'HTML del server è un errore di idratazione. Quello che è già a schermo viene segnato come

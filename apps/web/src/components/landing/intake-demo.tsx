@@ -3,6 +3,7 @@
 import { AlertTriangle, Check, Mic, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { QueueTicket, Stamp } from "@/components/brand/desk-objects";
+import { CHEVRON_PATH } from "@/components/brand/mark";
 import { cn } from "@/lib/cn";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-media-query";
 import { SAMPLES } from "./intake-demo-samples";
@@ -75,7 +76,7 @@ export function IntakeDemo() {
   return (
     <div
       ref={rootRef}
-      className="grid items-start gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-10"
+      className="grid items-start lg:grid-cols-[minmax(0,0.92fr)_auto_minmax(0,1.08fr)] lg:items-center"
     >
       {/* The citizen's screen */}
       <div className="min-w-0">
@@ -160,6 +161,8 @@ export function IntakeDemo() {
         </figure>
       </div>
 
+      <Handoff phase={shown} reduced={reduced} />
+
       {/* The operator's dossier, on a small stack of sheets */}
       <div className="min-w-0">
         <div className="relative">
@@ -190,6 +193,12 @@ export function IntakeDemo() {
                 <div key={fact.key} className="contents">
                   <dt className="text-ink-3">{fact.key}</dt>
                   <dd className="relative min-w-0">
+                    {shown === i + 1 && !reduced && (
+                      <span
+                        aria-hidden
+                        className="land-flash absolute -inset-x-2 -inset-y-0.5 rounded-xs bg-marker/45"
+                      />
+                    )}
                     <span
                       aria-hidden
                       className={cn(
@@ -247,7 +256,7 @@ export function IntakeDemo() {
               {done && (
                 <Stamp
                   pressed={!reduced}
-                  className="pointer-events-none absolute end-4 bottom-3 text-[0.6875rem] [--stamp-rotate:-9deg] sm:end-6"
+                  className="pointer-events-none absolute end-4 bottom-3 text-[0.6875rem] [--stamp-rotate:-9deg] sm:end-6 sm:top-3 sm:bottom-auto"
                 >
                   <span>Consegnato</span>
                   <span className="mt-0.5">allo sportello</span>
@@ -281,6 +290,44 @@ export function IntakeDemo() {
           )}
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The step between the two pictures: the brand chevron on a short track. While facts are
+ * being read, each one sends a dot across (keyed by phase, so the animation restarts) and the
+ * chevron gives a small push. Decorative; horizontal from lg, vertical when stacked.
+ */
+function Handoff({ phase, reduced }: { phase: number; reduced: boolean }) {
+  const moving = !reduced && phase > 0 && phase <= FACTS_END;
+  return (
+    <div aria-hidden className="relative mx-auto grid h-20 w-10 place-items-center lg:h-10 lg:w-24">
+      <span className="absolute inset-y-1 start-1/2 w-px -translate-x-1/2 bg-[repeating-linear-gradient(to_bottom,var(--line-strong)_0_4px,transparent_4px_8px)] lg:inset-x-1 lg:inset-y-auto lg:top-1/2 lg:h-px lg:w-auto lg:translate-x-0 lg:-translate-y-1/2 lg:bg-[repeating-linear-gradient(to_right,var(--line-strong)_0_4px,transparent_4px_8px)]" />
+      {moving && (
+        <span
+          key={phase}
+          className="flow-dot absolute size-2.5 rounded-full bg-marker shadow-[0_0_0_3px_rgb(255_228_92/0.35)]"
+        />
+      )}
+      <span
+        key={moving ? `p${phase}` : "rest"}
+        className={cn(
+          "relative grid size-10 place-items-center rounded-full bg-stamp text-on-stamp shadow-[0_6px_16px_-6px_rgb(36_64_179/0.6),inset_0_1px_0_rgb(255_255_255/0.25)]",
+          moving && "flow-pulse",
+        )}
+      >
+        <svg viewBox="11 9 9.5 14" className="h-4 w-3 rotate-90 lg:rotate-0 rtl:lg:-scale-x-100">
+          <path
+            d={CHEVRON_PATH}
+            fill="none"
+            stroke="var(--marker)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
     </div>
   );
 }
