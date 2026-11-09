@@ -150,8 +150,12 @@ export function DocumentViewer({
       <Primitive.Portal>
         <Primitive.Overlay className="fixed inset-0 z-50 animate-fade-in bg-scrim data-[state=closed]:animate-fade-out" />
         <Primitive.Content
-          onOpenAutoFocus={() => {
+          onOpenAutoFocus={(event) => {
             opener.current = document.activeElement as HTMLElement | null;
+            // The panel itself, not its first button: the arrows and V/R work from here, and a
+            // focus ring on «Documento successivo» at every opening was noise.
+            event.preventDefault();
+            (event.currentTarget as HTMLElement).focus();
           }}
           onCloseAutoFocus={(event) => {
             if (opener.current?.isConnected) return;
