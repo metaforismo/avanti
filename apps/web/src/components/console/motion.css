@@ -1,0 +1,68 @@
+/*
+ * Console-only motion. Every entrance stays under 200 ms: the console is used all day and an
+ * animation that is noticed twice is one too many. Only transform and opacity move.
+ */
+
+/* The document viewer comes in from the edge it sits on (from lg it is a panel on the right). */
+.console-viewer {
+  animation: console-fade-in 160ms var(--ease-out) both;
+}
+.console-viewer[data-state="closed"] {
+  animation: console-fade-out 120ms var(--ease-out) both;
+}
+@media (min-width: 64rem) {
+  .console-viewer {
+    animation-name: console-viewer-in;
+    animation-duration: 200ms;
+  }
+  .console-viewer[data-state="closed"] {
+    animation-name: console-viewer-out;
+    animation-duration: 140ms;
+  }
+}
+
+/* A confirmation or an error that just arrived: fades up 4 px, once. */
+.console-arrive {
+  animation: console-arrive 180ms var(--ease-out) both;
+}
+
+@keyframes console-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes console-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes console-viewer-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(24px * var(--inline-sign, 1)));
+  }
+}
+@keyframes console-viewer-out {
+  to {
+    opacity: 0;
+    transform: translateX(calc(16px * var(--inline-sign, 1)));
+  }
+}
+@keyframes console-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Same rule as globals.css: movement goes, a short fade stays to say what changed. */
+@media (prefers-reduced-motion: reduce) {
+  .console-viewer,
+  .console-arrive {
+    animation-name: console-fade-in !important;
+    animation-duration: 120ms !important;
+  }
+  .console-viewer[data-state="closed"] {
+    animation-name: console-fade-out !important;
+  }
+}
