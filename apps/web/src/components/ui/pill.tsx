@@ -19,8 +19,8 @@ export function Pill({
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-full font-semibold whitespace-nowrap",
         size === "xs"
-          ? "px-2.5 py-0.5 text-xs [&_svg]:size-3"
-          : "px-2.5 py-1 text-sm [&_svg]:size-3.5",
+          ? "px-2.5 py-0.5 text-xs [&_svg]:size-3 [&_svg]:shrink-0"
+          : "px-2.5 py-1 text-sm [&_svg]:size-3.5 [&_svg]:shrink-0",
         TONE_CLASSES[tone],
         className,
       )}
