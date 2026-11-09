@@ -193,7 +193,7 @@ Console e cittadino:
 - Console: niente entrate di pagina, transizioni di colore a 100 ms su voci e righe. Tutto il
   resto sotto 200 ms. Le classi stanno in `components/console/motion.css` (importato dalla
   shell, non in `globals.css`): `console-viewer` fa entrare il visore dal bordo destro in 200 ms
-  (esce in 140), `console-arrive` fa salire di 4 px una conferma o un errore appena arrivati.
+  (e si chiude di colpo: il contenuto segue l’URL, già vuoto), `console-arrive` fa salire di 4 px una conferma o un errore appena arrivati.
   Con movimento ridotto restano dissolvenze di 120 ms. La barra di avanzamento dei documenti
   nella coda anima `scaleX`, non la larghezza.
 

@@ -3,21 +3,16 @@
  * animation that is noticed twice is one too many. Only transform and opacity move.
  */
 
-/* The document viewer comes in from the edge it sits on (from lg it is a panel on the right). */
+/* The document viewer comes in from the edge it sits on (from lg it is a panel on the right).
+   It closes at once: its content follows the URL, which is already empty when it closes, so
+   an exit would slide out a blank panel. */
 .console-viewer {
   animation: console-fade-in 160ms var(--ease-out) both;
-}
-.console-viewer[data-state="closed"] {
-  animation: console-fade-out 120ms var(--ease-out) both;
 }
 @media (min-width: 64rem) {
   .console-viewer {
     animation-name: console-viewer-in;
     animation-duration: 200ms;
-  }
-  .console-viewer[data-state="closed"] {
-    animation-name: console-viewer-out;
-    animation-duration: 140ms;
   }
 }
 
@@ -31,21 +26,10 @@
     opacity: 0;
   }
 }
-@keyframes console-fade-out {
-  to {
-    opacity: 0;
-  }
-}
 @keyframes console-viewer-in {
   from {
     opacity: 0;
     transform: translateX(calc(24px * var(--inline-sign, 1)));
-  }
-}
-@keyframes console-viewer-out {
-  to {
-    opacity: 0;
-    transform: translateX(calc(16px * var(--inline-sign, 1)));
   }
 }
 @keyframes console-arrive {
@@ -61,8 +45,5 @@
   .console-arrive {
     animation-name: console-fade-in !important;
     animation-duration: 120ms !important;
-  }
-  .console-viewer[data-state="closed"] {
-    animation-name: console-fade-out !important;
   }
 }
