@@ -17,7 +17,8 @@ import type { CaseListResponse } from "@avanti/contracts";
 import { Spinner } from "@/components/ui/spinner";
 import { Kbd } from "@/components/ui/kbd";
 import { apiFetch } from "@/lib/api";
-import { CASE_STATUS, PRACTICE_SHORT } from "@/lib/console/labels";
+import { CASE_STATUS, PRACTICE_SHORT, type Tone } from "@/lib/console/labels";
+import { Pill } from "@/components/ui/pill";
 import { QUEUE_SEARCH_MAX } from "@/lib/console/queue-params";
 import { useRecentCases } from "@/lib/console/recent-cases";
 import { cn } from "@/lib/cn";
@@ -29,6 +30,8 @@ type Item = {
   group: string;
   label: string;
   detail?: string;
+  /** A case's status, shown at the end of the row. */
+  status?: { label: string; tone: Tone };
   icon: LucideIcon;
   run: () => void;
 };
@@ -114,13 +117,10 @@ export function CommandPalette({
           id: `case:${c.id}`,
           group: "Pratiche",
           label: c.citizenName ?? "Cittadino senza nome",
-          detail: [
-            c.reference,
-            c.practice ? PRACTICE_SHORT[c.practice.id] : null,
-            CASE_STATUS[c.status].label,
-          ]
+          detail: [c.reference, c.practice ? PRACTICE_SHORT[c.practice.id] : null]
             .filter(Boolean)
             .join(" · "),
+          status: CASE_STATUS[c.status],
           icon: FileText,
           run: () => go(`/console/pratiche/${c.id}` as Route),
         });
@@ -187,15 +187,18 @@ export function CommandPalette({
         <Primitive.Overlay className="fixed inset-0 z-50 bg-scrim" />
         <Primitive.Content
           aria-describedby={undefined}
-          className="fixed inset-x-3 top-[12dvh] z-50 mx-auto max-w-xl overflow-hidden rounded-xl bg-surface shadow-float ring-1 ring-line outline-none"
+          className="fixed inset-x-3 top-[12dvh] z-50 mx-auto flex max-h-[76dvh] max-w-xl flex-col overflow-hidden rounded-xl bg-surface shadow-float ring-1 ring-line outline-none"
         >
           <Primitive.Title className="sr-only">Cerca nella console</Primitive.Title>
-          <div className="flex items-center gap-3 border-b border-line px-4">
-            {searching ? (
-              <Spinner className="size-5 text-ink-3" />
-            ) : (
-              <Search className="size-5 shrink-0 text-ink-3" aria-hidden />
-            )}
+          <div className="flex shrink-0 items-center gap-3 border-b border-line px-4">
+            {/* One slot for both icons: the field never shifts while a search runs. */}
+            <span className="grid size-5 shrink-0 place-items-center text-ink-3">
+              {searching ? (
+                <Spinner className="size-4.5" />
+              ) : (
+                <Search className="size-4.5" aria-hidden />
+              )}
+            </span>
             <input
               autoFocus
               role="combobox"
@@ -225,16 +228,16 @@ export function CommandPalette({
                   items[current]?.run();
                 }
               }}
-              className="h-14 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink-3"
+              className="h-13 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink-3"
             />
-            <Kbd className="hidden sm:block">Esc</Kbd>
+            <Kbd className="hidden sm:inline-grid">Esc</Kbd>
           </div>
           <ul
             id={listId}
             ref={listRef}
             role="listbox"
             aria-label="Risultati"
-            className="max-h-[60dvh] overflow-y-auto p-2"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5"
           >
             {failed && !searching && (
               <li role="presentation" className="px-3 pt-3 pb-1 text-sm text-danger">
@@ -257,7 +260,7 @@ export function CommandPalette({
                   {heading && (
                     <p
                       role="presentation"
-                      className="px-3 pt-3 pb-1.5 text-xs font-semibold text-ink-3"
+                      className="px-2.5 pt-2.5 pb-1 text-xs font-medium text-ink-3"
                     >
                       {heading}
                     </p>
@@ -269,32 +272,58 @@ export function CommandPalette({
                     data-index={index}
                     onMouseMove={() => setActive(index)}
                     onClick={item.run}
+                    // Highlight without motion: arrows are pressed in quick runs.
                     className={cn(
-                      "flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5",
-                      index === current ? "bg-stamp-wash" : "",
+                      "flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2.5 py-1.5",
+                      index === current && "bg-sunk",
                     )}
                   >
                     <Icon
                       className={cn(
-                        "size-4.5 shrink-0",
+                        "size-4 shrink-0",
                         index === current ? "text-stamp" : "text-ink-3",
                       )}
                       aria-hidden
                     />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold">{item.label}</span>
+                    <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                      <span className="truncate text-body-sm font-medium">{item.label}</span>
                       {item.detail && (
-                        <span className="block truncate text-sm text-ink-3">{item.detail}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm text-ink-3">
+                          {item.detail}
+                        </span>
                       )}
                     </span>
-                    {index === current && (
-                      <CornerDownLeft className="rtl-flip size-4 shrink-0 text-ink-3" aria-hidden />
+                    {item.status && (
+                      <Pill tone={item.status.tone} className="shrink-0">
+                        {item.status.label}
+                      </Pill>
                     )}
+                    <CornerDownLeft
+                      className={cn(
+                        "rtl-flip size-3.5 shrink-0 text-ink-3",
+                        index !== current && "invisible",
+                      )}
+                      aria-hidden
+                    />
                   </div>
                 </li>
               );
             })}
           </ul>
+          <div
+            aria-hidden
+            className="hidden shrink-0 items-center gap-4 border-t border-line bg-paper px-4 py-2 text-xs text-ink-3 sm:flex"
+          >
+            <span className="flex items-center gap-1.5">
+              <Kbd>↑</Kbd>
+              <Kbd>↓</Kbd>
+              per muoverti
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Kbd>↵</Kbd>
+              per aprire
+            </span>
+          </div>
         </Primitive.Content>
       </Primitive.Portal>
     </Primitive.Root>
