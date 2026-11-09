@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { requestLabel, splitRequestLabels, withRequestLabels } from "./request-labels";
+import { ownerSuffix, requestLabel, splitRequestLabels, withRequestLabels } from "./request-labels";
 
 type Item = { id: string; title: string; memberName: string | null; status: string };
 const item = (id: string, title: string, memberName: string | null = null, status = "missing") =>
@@ -55,5 +55,29 @@ describe("request labels", () => {
     const three = splitRequestLabels(`${label}\n${label}\n${label}`, twins);
     expect(three.items).toHaveLength(2);
     expect(three.body).toBe(label);
+  });
+});
+
+describe("owner suffix", () => {
+  it("names the person once when the title already ends with them", () => {
+    const account = item("d", "Saldo al 31/12/2025 e dati del rapporto · Prova", "Prova");
+    expect(ownerSuffix(account)).toBeNull();
+    expect(requestLabel(account)).toBe("Saldo al 31/12/2025 e dati del rapporto · Prova");
+    expect(ownerSuffix(item("e", "Giacenza media 2025 · prova ", " PROVA"))).toBeNull();
+  });
+
+  it("keeps the person when the title names something else or only contains the name", () => {
+    expect(ownerSuffix(item("f", "Saldo · Fineco", "Maria"))).toBe("Maria");
+    // A word inside the title is not the bank segment: «Maria» stays.
+    expect(ownerSuffix(item("g", "Visura Santa Maria · Fineco", "Maria"))).toBe("Maria");
+    expect(ownerSuffix(item("h", "Documento d'identità", "  "))).toBeNull();
+    expect(ownerSuffix(item("i", "Documento d'identità", null))).toBeNull();
+  });
+
+  it("reads back a request whose item already names its owner", () => {
+    const account = item("d", "Saldo · Prova", "Prova");
+    const text = withRequestLabels("Manca il saldo.", [account]);
+    expect(text).toBe("Manca il saldo.\nSaldo · Prova");
+    expect(splitRequestLabels(text, [account]).items).toEqual([account]);
   });
 });

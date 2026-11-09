@@ -6,6 +6,7 @@ import type {
   DsuSheet,
   Evidence,
 } from "@avanti/contracts";
+import { requestLabel } from "./request-labels";
 
 export type CopilotDossier = Pick<
   CaseDossier,
@@ -178,7 +179,7 @@ export function heuristicBrief(
   };
 }
 export function heuristicRequest(items: CopilotDossier["checklist"]): string {
-  const titles = items.map((i) => [i.title, i.memberName].filter(Boolean).join(" · "));
+  const titles = items.map(requestLabel);
   if (!titles.length) return "Buongiorno, per completare la pratica ci serve ancora qualcosa. ";
   if (titles.length > 6)
     return `Buongiorno, per completare la pratica ci servono ancora ${titles.length} documenti. Li trovi elencati nel tuo link: puoi caricarli da lì. Grazie.`;
