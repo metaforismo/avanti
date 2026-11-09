@@ -22,8 +22,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/console/ac
         </Link>
         <div className="relative max-w-xl">
           <p className="font-display text-[2.5rem] leading-[1.06] font-semibold tracking-[-0.022em] text-balance [font-stretch:92%]">
-            Prima i <span className="marker whitespace-nowrap">problemi bloccanti</span>, poi gli avvisi, poi tutto il
-            resto.
+            Prima i <span className="marker whitespace-nowrap">problemi bloccanti</span>, poi gli
+            avvisi, poi tutto il resto.
           </p>
           {/* The same order drawn as the top of a dossier, with invented content. */}
           <div
