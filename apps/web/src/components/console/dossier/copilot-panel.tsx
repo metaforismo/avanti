@@ -236,32 +236,40 @@ export function EvidenceChips({
   const chips = evidence.filter((e) => e.kind !== "finding");
   if (chips.length === 0) return null;
   const said = text ? fold(text) : "";
+  const repeated = chips.filter((e) => said.includes(fold(e.label)));
+  const labelled = chips.filter((e) => !said.includes(fold(e.label)));
   return (
-    <span className="mt-1 flex flex-wrap gap-1.5">
-      {chips.map((e) => {
-        const repeated = said.includes(fold(e.label));
-        return (
-          <button
-            key={`${e.kind}:${e.id}`}
-            type="button"
-            onClick={() => onOpen(e)}
-            title={e.label}
-            aria-label={
-              repeated ? `${OPEN_LABEL[e.kind as keyof typeof OPEN_LABEL]}: ${e.label}` : undefined
-            }
-            className={cn(
-              "max-w-72 truncate rounded-full text-xs font-semibold hover:bg-stamp-wash hover:text-stamp",
-              repeated
-                ? "inline-flex items-center gap-1 px-1.5 py-0.5 text-stamp"
-                : "bg-sunk px-2.5 py-0.5 text-ink-2",
-            )}
-          >
-            {repeated && <CornerDownRight className="size-3.5" aria-hidden />}
-            {repeated ? OPEN_LABEL[e.kind as keyof typeof OPEN_LABEL] : e.label}
-          </button>
-        );
-      })}
-    </span>
+    <>
+      {/* A source the sentence already names: one small arrow at its end, not a second line
+          repeating «Vai alla voce» under every point. */}
+      {repeated.map((e) => (
+        <button
+          key={`${e.kind}:${e.id}`}
+          type="button"
+          onClick={() => onOpen(e)}
+          title={`${OPEN_LABEL[e.kind as keyof typeof OPEN_LABEL]}: ${e.label}`}
+          aria-label={`${OPEN_LABEL[e.kind as keyof typeof OPEN_LABEL]}: ${e.label}`}
+          className="ms-1 inline-grid size-5 place-items-center rounded-xs align-[-0.3em] text-stamp transition-colors duration-100 hover:bg-stamp-wash"
+        >
+          <CornerDownRight className="rtl-flip size-3.5" aria-hidden />
+        </button>
+      ))}
+      {labelled.length > 0 && (
+        <span className="mt-1 flex flex-wrap gap-1.5">
+          {labelled.map((e) => (
+            <button
+              key={`${e.kind}:${e.id}`}
+              type="button"
+              onClick={() => onOpen(e)}
+              title={e.label}
+              className="max-w-72 truncate rounded-full bg-sunk px-2.5 py-0.5 text-xs font-semibold text-ink-2 transition-colors duration-100 hover:bg-stamp-wash hover:text-stamp"
+            >
+              {e.label}
+            </button>
+          ))}
+        </span>
+      )}
+    </>
   );
 }
 

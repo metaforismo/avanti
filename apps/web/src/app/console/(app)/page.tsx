@@ -250,7 +250,7 @@ function Queue() {
           <Notice
             tone={assigned.partial ? "warn" : "ok"}
             role="none"
-            className="mt-4"
+            className="console-arrive mt-4"
             onDismiss={() => setAssigned(null)}
             dismissLabel="Chiudi avviso"
           >
@@ -511,61 +511,64 @@ function Queue() {
           )
         ) : (
           <>
-            <div
-              className={cn(
-                "flex items-center text-xs font-medium text-ink-3 md:pb-1.5",
-                admin && "pb-1.5",
-              )}
-            >
-              {admin && (
-                <SelectAll
-                  checked={allSelected}
-                  mixed={!allSelected && selected.length > 0}
-                  count={selectable.length}
-                  onChange={() =>
-                    setSelection({
-                      query,
-                      ids: allSelected ? new Set() : new Set(selectable.map((item) => item.id)),
-                    })
-                  }
-                />
-              )}
+            {/* One table: the column heads sit in the card's top band, over their columns. */}
+            <div className="overflow-hidden rounded-md bg-surface ring-1 ring-line">
               <div
                 className={cn(
-                  "hidden flex-1 grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] gap-4 px-4 md:grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]",
-                  admin && "ps-1",
+                  "flex items-center border-b border-line bg-paper/70 text-xs font-medium text-ink-3",
+                  !admin && "max-md:hidden",
                 )}
               >
-                <span>Cittadino</span>
-                <span>Pratica</span>
-                <span>Documenti</span>
-                <span>Problemi</span>
-                <span className="text-end">Aggiornata</span>
+                {admin && (
+                  <SelectAll
+                    checked={allSelected}
+                    mixed={!allSelected && selected.length > 0}
+                    count={selectable.length}
+                    onChange={() =>
+                      setSelection({
+                        query,
+                        ids: allSelected ? new Set() : new Set(selectable.map((item) => item.id)),
+                      })
+                    }
+                  />
+                )}
+                <div
+                  className={cn(
+                    "hidden h-9 flex-1 grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] items-center gap-4 px-4 md:grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]",
+                    admin && "ps-1",
+                  )}
+                >
+                  <span>Cittadino</span>
+                  <span>Pratica</span>
+                  <span>Documenti</span>
+                  <span>Problemi</span>
+                  <span className="text-end">Aggiornata</span>
+                </div>
+                {admin && (
+                  <span className="ps-1 md:hidden">
+                    {allSelected ? "Deseleziona tutte" : "Seleziona tutte le visibili"}
+                  </span>
+                )}
               </div>
-              {admin && (
-                <span className="ps-1 md:hidden">
-                  {allSelected ? "Deseleziona tutte" : "Seleziona tutte le visibili"}
-                </span>
-              )}
+              <ul className="divide-y divide-line">
+                {items.map((item) => (
+                  <QueueRow
+                    key={item.id}
+                    item={item}
+                    selection={
+                      admin
+                        ? {
+                            checked: selectedIds.has(item.id),
+                            disabled:
+                              !selectedIds.has(item.id) && selectedIds.size >= ASSIGN_CASES_MAX,
+                            onToggle: () => toggle(item.id),
+                          }
+                        : null
+                    }
+                  />
+                ))}
+              </ul>
             </div>
-            <ul className="divide-y divide-line overflow-hidden rounded-md bg-surface ring-1 ring-line">
-              {items.map((item) => (
-                <QueueRow
-                  key={item.id}
-                  item={item}
-                  selection={
-                    admin
-                      ? {
-                          checked: selectedIds.has(item.id),
-                          disabled:
-                            !selectedIds.has(item.id) && selectedIds.size >= ASSIGN_CASES_MAX,
-                          onToggle: () => toggle(item.id),
-                        }
-                      : null
-                  }
-                />
-              ))}
-            </ul>
             {nextCursor && (
               <div className="mt-4 grid justify-items-center gap-2">
                 {!loadMoreFailed && (
@@ -612,7 +615,7 @@ function SelectAll({
   onChange: () => void;
 }) {
   return (
-    <label className="grid size-11 shrink-0 cursor-pointer place-items-center">
+    <label className="grid h-9 w-11 shrink-0 cursor-pointer place-items-center max-md:h-11">
       <input
         type="checkbox"
         checked={checked}
@@ -687,7 +690,12 @@ function QueueRow({
         <span className="min-w-0">
           {/* The AI's suggestion sits by the name: the name yields (truncates), the hint stays. */}
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate font-semibold" title={item.citizenName ?? undefined}>
+            {/* The name keeps at least a few words: the hint yields before it does. */}
+            <span
+              dir="auto"
+              className="min-w-[min(9rem,45%)] truncate font-semibold"
+              title={item.citizenName ?? undefined}
+            >
               {item.citizenName ?? "Cittadino senza nome"}
             </span>
             {item.aiPriority && <PriorityBadge item={item} />}
@@ -737,10 +745,14 @@ function QueueRow({
           </span>
         </span>
         <span className="flex items-center gap-2">
-          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sunk">
+          <span className="h-1 flex-1 overflow-hidden rounded-full bg-sunk">
+            {/* scaleX, not width: a refresh that moves the bar stays on the compositor. */}
             <span
-              className={cn("block h-full rounded-full", docPercent >= 100 ? "bg-ok" : "bg-stamp")}
-              style={{ width: `${Math.min(100, docPercent)}%` }}
+              className={cn(
+                "block h-full origin-left rounded-full transition-transform duration-200 ease-(--ease-out) rtl:origin-right",
+                docPercent >= 100 ? "bg-ok" : "bg-stamp",
+              )}
+              style={{ transform: `scaleX(${Math.min(100, docPercent) / 100})` }}
             />
           </span>
           <span className="tabular text-sm whitespace-nowrap text-ink-2">
@@ -819,13 +831,25 @@ function PriorityBadge({ item }: { item: CaseListItem }) {
         ? CheckCheck
         : Sparkles;
   return (
-    <Pill tone={PRIORITY[key].tone} className="min-w-0 shrink truncate">
+    <Pill tone={PRIORITY[key].tone} className="min-w-0 shrink">
       <Icon aria-hidden />
-      {PRIORITY[key].badge}
-      {key === "attention" && item.aiAttention ? `: ${item.aiAttention}` : ""}
+      <span className="min-w-0 truncate">
+        {PRIORITY[key].badge}
+        {key === "attention" && item.aiAttention ? `: ${item.aiAttention}` : ""}
+      </span>
     </Pill>
   );
 }
+
+// Said as a sentence: «Nessuna pratica: chiuse» read like a form field.
+const EMPTY_TITLE: Record<CaseStatus, string> = {
+  submitted: "Nessuna pratica da revisionare",
+  in_review: "Nessuna pratica in revisione",
+  needs_citizen: "Nessuna pratica in attesa del cittadino",
+  ready: "Nessuna pratica pronta",
+  intake: "Nessuna pratica in compilazione",
+  closed: "Nessuna pratica chiusa",
+};
 
 function EmptyQueue({
   status,
@@ -839,11 +863,7 @@ function EmptyQueue({
   return (
     <EmptyState
       icon={Inbox}
-      title={
-        filtered
-          ? "Nessuna pratica con questi filtri"
-          : `Nessuna pratica: ${CASE_STATUS[status].label.toLowerCase()}`
-      }
+      title={filtered ? "Nessuna pratica con questi filtri" : EMPTY_TITLE[status]}
       action={
         filtered ? (
           <Button variant="secondary" onClick={onClearFilters}>
@@ -869,21 +889,34 @@ function EmptyQueue({
 }
 
 function QueueSkeleton() {
+  // The table as it will be: same band, same columns, same row height, so nothing jumps.
   return (
     <>
       <p role="status" className="sr-only">
         Caricamento delle pratiche…
       </p>
-      <div className="divide-y divide-line rounded-lg bg-surface ring-1 ring-line" aria-hidden>
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="flex items-center gap-4 px-4 py-4">
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-3 w-1/4" />
+      <div className="overflow-hidden rounded-md bg-surface ring-1 ring-line" aria-hidden>
+        <div className="h-9 border-b border-line bg-paper/70 max-md:hidden" />
+        <div className="divide-y divide-line">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div
+              key={i}
+              className="grid min-h-[4.5rem] items-center gap-x-4 gap-y-2 px-4 py-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_8rem_7rem_6rem] xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9rem_7rem_7rem]"
+            >
+              <div className="grid gap-2">
+                <Skeleton className={cn("h-4", i % 2 ? "w-2/5" : "w-1/2")} />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+              <div className="grid gap-2 max-md:hidden">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+              <Skeleton className="h-1 max-md:hidden" />
+              <Skeleton className="h-3 w-10 max-md:hidden" />
+              <Skeleton className="h-3 w-14 justify-self-end max-md:hidden" />
             </div>
-            <Skeleton className="h-3 w-24" />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </>
   );

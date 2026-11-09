@@ -205,7 +205,11 @@ Console e cittadino:
   sotto un velo che si alza con l'avanzamento, poi uno spinner mentre Avanti la legge; PDF e HEIC
   mostrano l'icona del file.
 - Console: niente entrate di pagina, transizioni di colore a 100 ms su voci e righe. Tutto il
-  resto sotto 200 ms.
+  resto sotto 200 ms. Le classi stanno in `components/console/motion.css` (importato dalla
+  shell, non in `globals.css`): `console-viewer` fa entrare il visore dal bordo destro in 200 ms
+  (e si chiude di colpo: il contenuto segue l’URL, già vuoto), `console-arrive` fa salire di 4 px una conferma o un errore appena arrivati.
+  Con movimento ridotto restano dissolvenze di 120 ms. La barra di avanzamento dei documenti
+  nella coda anima `scaleX`, non la larghezza.
 
 Sito pubblico (`app/(site)/site.css`, caricato solo lì):
 
@@ -287,14 +291,24 @@ paragrafo che ripete il titolo.
 
 Il riferimento è Linear: tante pratiche al giorno, la gerarchia la fa il peso, non il colore.
 
-| Pattern          | Dove                    | Regola                                                                                                                           |
-| ---------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Barra laterale   | `ConsoleShell`          | 14 rem, voci alte 36 px in `text-sm`; attiva su `bg-sunk` con l'icona `stamp`, le altre icone `ink-3`                            |
-| Schede di stato  | coda                    | Segmenti alti 32 px; l'attiva è una scheda `surface` con anello `line`, mai invertita; il conteggio da revisionare resta `stamp` |
-| Riga della coda  | coda                    | Nome + suggerimento AI sulla stessa riga (il nome si tronca), poi una sola riga di metadati con codice, lingua, attesa e avvisi  |
-| Problemi         | coda                    | Numero colorato con icona da 14 px, senza pillola: si leggono a colpo d'occhio senza fare rumore                                 |
-| Titolo di pagina | `PageHeader`, fascicolo | 28 px bold, lead in `text-body-sm` `ink-3`                                                                                       |
-| Empty state      | `EmptyState`            | Icona su una piastrella `surface` con `shadow-raised`, titolo a 16 px, testo `ink-3`; nessun bordo tratteggiato                  |
+| Pattern            | Dove                    | Regola                                                                                                                                                                                                                                                    |
+| ------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Barra laterale     | `ConsoleShell`          | 14 rem, voci alte 36 px in `text-sm`; attiva su `bg-sunk` con l'icona `stamp`, le altre icone `ink-3`                                                                                                                                                     |
+| Schede di stato    | coda                    | Segmenti alti 32 px; l'attiva è una scheda `surface` con anello `line`, mai invertita; il conteggio da revisionare resta `stamp`                                                                                                                          |
+| Riga della coda    | coda                    | Nome + suggerimento AI sulla stessa riga (il nome si tronca), poi una sola riga di metadati con codice, lingua, attesa e avvisi                                                                                                                           |
+| Problemi           | coda                    | Numero colorato con icona da 14 px, senza pillola: si leggono a colpo d'occhio senza fare rumore                                                                                                                                                          |
+| Titolo di pagina   | `PageHeader`, fascicolo | 28 px bold, lead in `text-body-sm` `ink-3`                                                                                                                                                                                                                |
+| Empty state        | `EmptyState`            | Icona su una piastrella `surface` con `shadow-raised`, titolo a 16 px, testo `ink-3`; nessun bordo tratteggiato; il titolo è una frase («Nessuna pratica chiusa»)                                                                                         |
+| Barra laterale (2) | `ConsoleShell`          | Tre gruppi: lavoro, «Amministrazione» (solo admin, con etichetta), «Aiuto» in fondo sopra l'operatore; «Cerca» è disegnato come un campo                                                                                                                  |
+| Tabella della coda | coda                    | Le intestazioni stanno nella fascia alta della scheda (`bg-paper/70`, 36 px); lo scheletro ha le stesse colonne e la stessa altezza di riga                                                                                                               |
+| Selezione          | `QueueAssign`           | Barra fluttuante centrata sulla colonna del contenuto (`shadow-float`, anello `line`), non una fascia a tutta larghezza                                                                                                                                   |
+| Tasto              | `Kbd`                   | Un tasto visto dall'alto: 20 px, fondo `surface`, bordo inferiore `line-strong`; dentro un pulsante il tasto è `aria-hidden` (lo dice `aria-keyshortcuts`)                                                                                                |
+| Palette ⌘K         | `CommandPalette`        | Righe di 40 px su una riga sola (nome, poi dettagli in `ink-3`, stato come pillola in fondo); evidenziata su `sunk`, senza movimento; piè con ↑ ↓ ↵                                                                                                       |
+| Visore             | `DocumentViewer`        | Da `xl` tre colonne: elenco dei file con il punto di stato (14 rem), anteprima su `sunk` come un foglio sul tavolo, decisione e controllo automatico (20 rem). La decisione è in cima con i tasti nei pulsanti; i dati letti sono coppie etichetta/valore |
+| Evidenza           | «Da guardare», copilota | Ogni punto che viene da un file ha «Documento», che lo apre nel visore; se la frase nomina già la voce, la fonte è una freccia in fondo alla frase, non una riga «Vai alla voce»                                                                          |
+| Avvisi ripetuti    | voce della checklist    | Al massimo due avvisi per voce, poi «e altri N avvisi»: con molti file uguali la voce resta leggibile                                                                                                                                                     |
+| Dialoghi           | `Dialog` nella console  | Titolo a 20 px e padding di 20 px sotto `:root.console`; anello `line` di 1 px che nel tema scuro disegna il bordo                                                                                                                                        |
+| Dati del cittadino | ovunque                 | Nomi e nomi di file con `dir="auto"`: un nome arabo tiene la sua direzione anche in una riga italiana                                                                                                                                                     |
 
 ## Landing
 

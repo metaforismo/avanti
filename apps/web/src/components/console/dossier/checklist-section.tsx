@@ -131,6 +131,8 @@ export function ChecklistSection({
 }
 
 const LARGE_ARCHIVE = 50_000_000;
+// A row with many files repeats a warning per file: the first ones say what kind, the rest wait.
+const FINDINGS_SHOWN = 2;
 
 /** What the ZIP will hold, said before the download so nobody is surprised by what is missing. */
 function archiveSummary({ plan }: DossierActions["archive"]) {
@@ -192,6 +194,7 @@ function ChecklistRow({
   readOnly: boolean;
 }) {
   const [rejecting, setRejecting] = useState(false);
+  const [allFindings, setAllFindings] = useState(false);
   const docs = dossier.documents.filter((d) => d.checklistItemId === item.id);
   const findings = dossier.findings.filter(
     (f) =>
@@ -247,7 +250,7 @@ function ChecklistRow({
             <p className="font-semibold">{item.title}</p>
             {!item.required && <span className="text-xs text-ink-3">facoltativo</span>}
           </div>
-          {findings.map((finding) => (
+          {(allFindings ? findings : findings.slice(0, FINDINGS_SHOWN)).map((finding) => (
             <p
               key={finding.id}
               className={cn(
@@ -258,6 +261,18 @@ function ChecklistRow({
               {finding.message}
             </p>
           ))}
+          {findings.length > FINDINGS_SHOWN && (
+            <button
+              type="button"
+              aria-expanded={allFindings}
+              onClick={() => setAllFindings((v) => !v)}
+              className="mt-1 rounded-xs text-sm font-medium text-ink-3 hover:text-ink"
+            >
+              {allFindings
+                ? "Mostra meno"
+                : `e ${plural("it", findings.length - FINDINGS_SHOWN, { one: "un altro avviso", other: "altri {n} avvisi" })}`}
+            </button>
+          )}
           {item.note && <p className="mt-1 text-sm text-ink-2">Nota: {item.note}</p>}
           {docs.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -424,10 +439,14 @@ function DocChip({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex max-w-full items-center gap-1.5 rounded-sm bg-paper px-2 py-1 text-sm text-ink-2 ring-1 ring-line ring-inset hover:bg-sunk hover:text-ink"
+      className="inline-flex max-w-full items-center gap-1.5 rounded-sm bg-paper px-2 py-1 text-sm text-ink-2 ring-1 ring-line transition-colors duration-100 ring-inset hover:bg-sunk hover:text-ink"
     >
       <Icon className="size-3.5 shrink-0" aria-hidden />
-      <span className="truncate" title={name === doc.fileName ? name : `${name} (${doc.fileName})`}>
+      <span
+        dir="auto"
+        className="truncate"
+        title={name === doc.fileName ? name : `${name} (${doc.fileName})`}
+      >
         {name}
       </span>
       {guess && (

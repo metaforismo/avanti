@@ -1,5 +1,6 @@
-import { AlertOctagon, AlertTriangle, FileQuestion } from "lucide-react";
-import type { CaseDossier, Finding } from "@avanti/contracts";
+import { AlertOctagon, AlertTriangle, ChevronDown, FileQuestion, FileSearch } from "lucide-react";
+import { useId, type ReactNode } from "react";
+import type { CaseDossier, DocumentSummary, Finding } from "@avanti/contracts";
 import { Notice } from "@/components/ui/notice";
 import { cn } from "@/lib/cn";
 
@@ -9,7 +10,20 @@ const MISSING_CODE = "checklist.missing";
  * Blockers first, then warnings: the operator's reading order. Missing documents are
  * collapsed into one line, otherwise they bury the findings that need judgement.
  */
-export function FindingsSummary({ dossier }: { dossier: CaseDossier }) {
+export function FindingsSummary({
+  dossier,
+  onOpenDocument,
+}: {
+  dossier: CaseDossier;
+  /** Opens the file a finding was read from, in the viewer: the evidence next to the claim. */
+  onOpenDocument?: (doc: DocumentSummary) => void;
+}) {
+  const source = (finding: Finding) => {
+    const doc = finding.documentId
+      ? dossier.documents.find((d) => d.id === finding.documentId)
+      : undefined;
+    return doc && onOpenDocument ? () => onOpenDocument(doc) : undefined;
+  };
   const missing = dossier.checklist.filter((item) => item.required && item.status === "missing");
   const others = dossier.findings.filter((f) => f.code !== MISSING_CODE);
   const blockers = others.filter((f) => f.severity === "blocker");
@@ -91,9 +105,9 @@ export function FindingsSummary({ dossier }: { dossier: CaseDossier }) {
         )}
         {groupByCode([...blockers, ...warnings]).map((group) =>
           group.length === 1 ? (
-            <FindingRow key={group[0]!.id} finding={group[0]!} />
+            <FindingRow key={group[0]!.id} finding={group[0]!} onOpen={source(group[0]!)} />
           ) : (
-            <FindingGroup key={group[0]!.code} findings={group} />
+            <FindingGroup key={group[0]!.code} findings={group} source={source} />
           ),
         )}
       </ul>
@@ -119,7 +133,13 @@ function groupByCode(findings: Finding[]) {
   return [...groups.values()];
 }
 
-function FindingGroup({ findings }: { findings: Finding[] }) {
+function FindingGroup({
+  findings,
+  source,
+}: {
+  findings: Finding[];
+  source: (finding: Finding) => (() => void) | undefined;
+}) {
   const first = findings[0]!;
   const blocker = first.severity === "blocker";
   const Icon = blocker ? AlertOctagon : AlertTriangle;
@@ -129,17 +149,20 @@ function FindingGroup({ findings }: { findings: Finding[] }) {
   return (
     <li className={cn(blocker && "bg-danger-wash/40")}>
       <details className="group">
-        <summary className="flex cursor-pointer list-none gap-3 px-5 py-3 transition-colors hover:bg-paper [&::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none gap-3 px-5 py-3 transition-colors duration-100 hover:bg-paper/60 [&::-webkit-details-marker]:hidden">
           <Icon
             className={cn("mt-0.5 size-4.5 shrink-0", blocker ? "text-danger" : "text-warn")}
             aria-hidden
           />
           <span className="flex-1">{title}</span>
-          <span className="text-sm text-ink-3 group-open:hidden">Mostra</span>
+          <ChevronDown
+            className="mt-0.5 size-4 shrink-0 text-ink-3 transition-transform duration-150 ease-(--ease-out) group-open:rotate-180"
+            aria-hidden
+          />
         </summary>
         <ul className="grid gap-1 px-5 ps-12 pb-3 text-body-sm text-ink-2">
           {findings.map((finding) => (
-            <li key={finding.id}>
+            <SourcedLine key={finding.id} onOpen={source(finding)}>
               {finding.checklistItemId ? (
                 <a
                   href={`#item-${finding.checklistItemId}`}
@@ -150,7 +173,7 @@ function FindingGroup({ findings }: { findings: Finding[] }) {
               ) : (
                 finding.message
               )}
-            </li>
+            </SourcedLine>
           ))}
         </ul>
       </details>
@@ -158,7 +181,7 @@ function FindingGroup({ findings }: { findings: Finding[] }) {
   );
 }
 
-function FindingRow({ finding }: { finding: Finding }) {
+function FindingRow({ finding, onOpen }: { finding: Finding; onOpen?: () => void }) {
   const blocker = finding.severity === "blocker";
   const Icon = blocker ? AlertOctagon : AlertTriangle;
   const content = (
@@ -172,21 +195,50 @@ function FindingRow({ finding }: { finding: Finding }) {
     </>
   );
   return (
-    <li>
+    <li className={cn("flex items-start", blocker && "bg-danger-wash/40")}>
       {finding.checklistItemId ? (
         <a
           href={`#item-${finding.checklistItemId}`}
-          className={cn(
-            "flex gap-3 px-5 py-3 transition-colors hover:bg-paper",
-            blocker && "bg-danger-wash/40",
-          )}
+          className="flex min-w-0 flex-1 gap-3 px-5 py-3 transition-colors duration-100 hover:bg-paper/60"
         >
           {content}
         </a>
       ) : (
-        <div className={cn("flex gap-3 px-5 py-3", blocker && "bg-danger-wash/40")}>{content}</div>
+        <div className="flex min-w-0 flex-1 gap-3 px-5 py-3">{content}</div>
       )}
+      {onOpen && <SourceButton onOpen={onOpen} className="me-3 mt-2" />}
     </li>
+  );
+}
+
+/** A line of a group, with the way to its document at the end. */
+function SourcedLine({ onOpen, children }: { onOpen?: () => void; children: ReactNode }) {
+  return (
+    <li className="flex items-start justify-between gap-3">
+      <span className="min-w-0">{children}</span>
+      {onOpen && <SourceButton onOpen={onOpen} className="-mt-0.5" />}
+    </li>
+  );
+}
+
+function SourceButton({ onOpen, className }: { onOpen: () => void; className?: string }) {
+  const id = useId();
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-describedby={id}
+      className={cn(
+        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-sm px-2 text-xs font-medium text-ink-3 transition-colors duration-100 hover:bg-sunk hover:text-ink",
+        className,
+      )}
+    >
+      <FileSearch className="size-3.5" aria-hidden />
+      Documento
+      <span id={id} hidden>
+        Apri il documento da cui viene questo punto
+      </span>
+    </button>
   );
 }
 

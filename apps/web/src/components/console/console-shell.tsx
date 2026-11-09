@@ -40,6 +40,7 @@ import { NewCaseDialog } from "./new-case-dialog";
 import { isTyping, ShortcutsDialog } from "./shortcuts-dialog";
 import { CommandPalette } from "./command-palette";
 import { useRecentCases } from "@/lib/console/recent-cases";
+import "./motion.css";
 
 type NavItem = {
   href: Route;
@@ -47,6 +48,8 @@ type NavItem = {
   icon: typeof Inbox;
   match: (path: string) => boolean;
   adminOnly?: boolean;
+  /** Kept apart from the daily work, at the foot of the sidebar. */
+  footer?: boolean;
 };
 
 const NAV: NavItem[] = [
@@ -107,6 +110,7 @@ const NAV: NavItem[] = [
     label: "Aiuto",
     icon: CircleHelp,
     match: (p) => p.startsWith("/console/aiuto"),
+    footer: true,
   },
 ];
 
@@ -253,6 +257,8 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     );
   }
 
+  const visible = NAV.filter((item) => !item.adminOnly || operator.role === "admin");
+
   return (
     <OperatorProvider value={{ operator, reload: me.reload, replace: me.setData }}>
       <a
@@ -303,7 +309,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
               <Logo />
             </Link>
           </div>
-          <div className="grid gap-1 px-2.5 pt-3 lg:pt-1">
+          <div className="grid gap-1.5 px-2.5 pt-3 lg:pt-1">
             <Button
               size="sm"
               className="h-9 w-full justify-start px-2.5"
@@ -312,49 +318,33 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
               <Plus className="size-4" aria-hidden />
               Nuova pratica
             </Button>
+            {/* Drawn as a field: it is where the operator types to find a case. */}
             <button
               type="button"
               onClick={() => setSearching(true)}
               aria-keyshortcuts="Meta+K Control+K"
-              className="flex h-9 items-center gap-2.5 rounded-sm px-2.5 text-sm text-ink-2 transition-colors duration-100 hover:bg-sunk hover:text-ink"
+              className="flex h-9 items-center gap-2.5 rounded-sm bg-paper px-2.5 text-sm text-ink-3 ring-1 ring-line transition-colors duration-100 ring-inset hover:text-ink-2 hover:ring-line-strong"
             >
               <Search className="size-4" aria-hidden />
               <span className="flex-1 text-start">Cerca</span>
-              <Kbd className="hidden lg:block">⌘K</Kbd>
+              <Kbd className="hidden lg:inline-grid">⌘K</Kbd>
             </button>
           </div>
-          <nav aria-label="Console" className="mt-3 flex-1 px-2.5">
-            <ul className="grid gap-px">
-              {NAV.filter((item) => !item.adminOnly || operator.role === "admin").map(
-                ({ href, label, icon: Icon, match }) => {
-                  const active = match(pathname);
-                  return (
-                    <li key={href}>
-                      <Link
-                        href={href}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "group flex h-9 items-center gap-2.5 rounded-sm px-2.5 text-sm transition-colors duration-100",
-                          active
-                            ? "bg-sunk font-semibold text-ink"
-                            : "text-ink-2 hover:bg-sunk/70 hover:text-ink",
-                        )}
-                      >
-                        <Icon
-                          className={cn(
-                            "size-4 shrink-0",
-                            active ? "text-stamp" : "text-ink-3 group-hover:text-ink-2",
-                          )}
-                          aria-hidden
-                        />
-                        {label}
-                      </Link>
-                    </li>
-                  );
-                },
-              )}
-            </ul>
+          <nav
+            aria-label="Console"
+            className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5"
+          >
+            <NavList items={visible.filter((item) => !item.adminOnly && !item.footer)} />
+            {operator.role === "admin" && (
+              <>
+                <p className="mt-5 px-2.5 pb-1 text-xs font-medium text-ink-3">Amministrazione</p>
+                <NavList items={visible.filter((item) => item.adminOnly)} />
+              </>
+            )}
             <RecentCases operatorId={operator.id} />
+            <div className="mt-auto pt-4 pb-2">
+              <NavList items={visible.filter((item) => item.footer)} />
+            </div>
           </nav>
           <OperatorCard operator={operator} />
         </aside>
@@ -372,9 +362,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         onNewCase={() => setCreating(true)}
         onShortcuts={() => setShortcuts(true)}
         operatorId={operator.id}
-        pages={NAV.filter((item) => !item.adminOnly || operator.role === "admin").map(
-          ({ href, label, icon }) => ({ href, label, icon }),
-        )}
+        pages={visible.map(({ href, label, icon }) => ({ href, label, icon }))}
       />
     </OperatorProvider>
   );
@@ -413,13 +401,45 @@ function SessionExpired() {
   );
 }
 
+function NavList({ items }: { items: NavItem[] }) {
+  const pathname = usePathname();
+  return (
+    <ul className="grid gap-px">
+      {items.map(({ href, label, icon: Icon, match }) => {
+        const active = match(pathname);
+        return (
+          <li key={href}>
+            <Link
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "group flex h-8 items-center gap-2.5 rounded-sm px-2.5 text-sm font-medium transition-colors duration-100",
+                active ? "bg-sunk text-ink" : "text-ink-2 hover:bg-sunk/70 hover:text-ink",
+              )}
+            >
+              <Icon
+                className={cn(
+                  "size-4 shrink-0",
+                  active ? "text-stamp" : "text-ink-3 group-hover:text-ink-2",
+                )}
+                aria-hidden
+              />
+              {label}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /** The last dossiers opened in this browser session, one click away. */
 function RecentCases({ operatorId }: { operatorId: string }) {
   const recent = useRecentCases(operatorId);
   const pathname = usePathname();
   if (recent.length === 0) return null;
   return (
-    <div className="mt-6">
+    <div className="mt-5">
       <p className="px-2.5 pb-1 text-xs font-medium text-ink-3">Aperte di recente</p>
       {/* minmax(0, 1fr): a long name truncates instead of widening the column past the sidebar. */}
       <ul className="grid grid-cols-[minmax(0,1fr)] gap-0.5">
@@ -433,7 +453,7 @@ function RecentCases({ operatorId }: { operatorId: string }) {
                 aria-current={active ? "page" : undefined}
                 title={item.name ?? undefined}
                 className={cn(
-                  "block truncate rounded-sm px-2.5 py-1.5 text-sm transition-colors duration-100",
+                  "block truncate rounded-sm px-2.5 py-1.5 text-sm leading-5 transition-colors duration-100",
                   active ? "bg-sunk text-ink" : "text-ink-2 hover:bg-sunk hover:text-ink",
                 )}
               >

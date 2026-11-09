@@ -691,7 +691,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           <Notice
             tone="neutral"
             role="none"
-            className="mt-4"
+            className="console-arrive mt-4"
             onDismiss={next.dismiss}
             dismissLabel="Chiudi avviso"
             action={
@@ -707,7 +707,7 @@ export function DossierView({ caseId }: { caseId: string }) {
       {withdraw === "done" && (
         <Notice
           tone="ok"
-          className="mt-4"
+          className="console-arrive mt-4"
           onDismiss={() => setWithdraw(null)}
           dismissLabel="Chiudi avviso"
         >
@@ -725,7 +725,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           <Notice
             tone="danger"
             size="md"
-            className="shadow-float"
+            className="console-arrive shadow-float"
             onDismiss={() => setFailure(null)}
             dismissLabel="Chiudi avviso"
           >
@@ -745,7 +745,7 @@ export function DossierView({ caseId }: { caseId: string }) {
           {data.status !== "intake" && (
             <CopilotPanel dossier={data} actions={actions} onAsk={() => setChatOpen(true)} />
           )}
-          <FindingsSummary dossier={data} />
+          <FindingsSummary dossier={data} onOpenDocument={actions.openDocument} />
           {data.facts.length > 0 && (
             <section aria-labelledby="facts-title">
               <h2 id="facts-title" className="sr-only">
@@ -919,9 +919,10 @@ export function DossierView({ caseId }: { caseId: string }) {
           <button
             type="button"
             onClick={() => setChatOpen(true)}
-            className="fixed end-5 bottom-5 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-contrast px-5 font-semibold text-on-contrast shadow-float transition-transform duration-150 ease-(--ease-out) hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-stamp focus-visible:ring-offset-2 focus-visible:outline-none active:translate-y-0 active:scale-[0.97]"
+            // A quiet floating pill: always in reach, never louder than the case's own actions.
+            className="fixed end-5 bottom-5 z-30 inline-flex h-11 items-center gap-2 rounded-full bg-surface px-4.5 text-body-sm font-semibold text-ink shadow-float ring-1 ring-line transition-[transform,box-shadow] duration-150 ease-(--ease-out) hover:-translate-y-0.5 hover:ring-line-strong focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none active:translate-y-0 active:scale-[0.97]"
           >
-            <Sparkles className="size-4.5" aria-hidden />
+            <Sparkles className="size-4 text-stamp" aria-hidden />
             Chiedi al fascicolo
           </button>
           <DossierChat

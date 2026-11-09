@@ -36,9 +36,11 @@ export function SegmentedControl<T extends string>({
             disabled={option.disabled}
             onClick={() => onChange(option.value)}
             className={cn(
-              "rounded-xs px-3 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none disabled:opacity-50",
+              "rounded-xs px-3 text-sm transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none disabled:opacity-50",
               size === "sm" ? "h-8" : "h-9",
-              active ? "bg-surface font-semibold text-ink shadow-xs" : "text-ink-2 hover:text-ink",
+              active
+                ? "bg-surface font-semibold text-ink shadow-xs ring-1 ring-line"
+                : "text-ink-2 hover:text-ink",
             )}
           >
             {option.label}
