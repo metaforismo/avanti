@@ -71,14 +71,14 @@ export function OfficePoster({ officeSlug }: { officeSlug: string }) {
 
   return (
     <>
-      <style>{`@page { size: A4 portrait; margin: 0 } @media print { body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact } }`}</style>
+      <style>{`@page { size: A4 portrait; margin: 0 } @media print { body { background: var(--surface); -webkit-print-color-adjust: exact; print-color-adjust: exact } }`}</style>
       <div className="flex justify-center gap-3 p-4 print:hidden">
         <Button onClick={() => window.print()}>
           <Printer className="size-4" aria-hidden />
           Stampa
         </Button>
       </div>
-      <article className="mx-auto flex aspect-[210/297] w-full max-w-[210mm] flex-col overflow-hidden bg-white text-[#141b2d] shadow-float print:max-w-none print:shadow-none">
+      <article className="mx-auto flex aspect-[210/297] w-full max-w-[210mm] flex-col overflow-hidden bg-surface text-ink shadow-float print:max-w-none print:shadow-none">
         {/* The stamp-blue edge: the only solid colour, so a black-and-white copy stays clean. */}
         <div aria-hidden className="h-[5mm] shrink-0 bg-stamp" />
         <div className="flex flex-1 flex-col px-[15mm] pt-[11mm] pb-[12mm]">
@@ -111,7 +111,7 @@ export function OfficePoster({ officeSlug }: { officeSlug: string }) {
           </ul>
 
           <div className="mt-[9mm] flex flex-1 items-center gap-[11mm]">
-            <div className="relative shrink-0 rounded-[3mm] p-[4mm] ring-[0.6mm] ring-[#141b2d]">
+            <div className="relative shrink-0 rounded-[3mm] p-[4mm] ring-[0.6mm] ring-ink">
               <QrCode
                 value={link}
                 label="QR per iniziare la pratica"

@@ -249,7 +249,7 @@ export function EvidenceChips({
           onClick={() => onOpen(e)}
           title={`${OPEN_LABEL[e.kind as keyof typeof OPEN_LABEL]}: ${e.label}`}
           aria-label={`${OPEN_LABEL[e.kind as keyof typeof OPEN_LABEL]}: ${e.label}`}
-          className="ms-1 inline-grid size-5 place-items-center rounded-xs align-[-0.3em] text-stamp transition-colors duration-100 hover:bg-stamp-wash"
+          className="-my-0.5 ms-1 inline-grid size-6 place-items-center rounded-xs align-[-0.3em] text-stamp transition-colors duration-100 hover:bg-stamp-wash"
         >
           <CornerDownRight className="rtl-flip size-3.5" aria-hidden />
         </button>

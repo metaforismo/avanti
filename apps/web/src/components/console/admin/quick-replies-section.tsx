@@ -132,7 +132,7 @@ export function QuickRepliesSection() {
                   size="icon-sm"
                   aria-label={`Sposta su: ${reply.title}`}
                   aria-disabled={index === 0 || undefined}
-                  className="aria-disabled:opacity-30"
+                  className="aria-disabled:opacity-50"
                   onClick={() => index > 0 && void move(index, -1)}
                 >
                   <ArrowUp className="size-4" aria-hidden />
@@ -143,7 +143,7 @@ export function QuickRepliesSection() {
                   size="icon-sm"
                   aria-label={`Sposta giù: ${reply.title}`}
                   aria-disabled={index === replies.length - 1 || undefined}
-                  className="aria-disabled:opacity-30"
+                  className="aria-disabled:opacity-50"
                   onClick={() => index < replies.length - 1 && void move(index, 1)}
                 >
                   <ArrowDown className="size-4" aria-hidden />

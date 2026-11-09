@@ -39,6 +39,7 @@ import { MfaVerifyForm } from "./mfa/verify-form";
 import { NewCaseDialog } from "./new-case-dialog";
 import { isTyping, ShortcutsDialog } from "./shortcuts-dialog";
 import { CommandPalette } from "./command-palette";
+import { initialsOf } from "@/lib/console/initials";
 import { useRecentCases } from "@/lib/console/recent-cases";
 import "./motion.css";
 
@@ -490,14 +491,7 @@ function OperatorCard({ operator }: { operator: Operator }) {
         aria-hidden
         className="grid size-8 shrink-0 place-items-center rounded-full bg-contrast font-display text-sm font-semibold text-on-contrast"
       >
-        {operator.name
-          .split(/\s+/)
-          .filter(Boolean)
-          // Array.from: whole code points, so a name starting with an accent or emoji survives.
-          .map((part) => Array.from(part)[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase()}
+        {initialsOf(operator.name)}
       </span>
       <div className="min-w-0 flex-1">
         <Link

@@ -44,6 +44,10 @@ export function ToggleRow({
   className,
   ...input
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & { label: ReactNode; hint?: ReactNode }) {
+  const id = useId();
+  // The whole row stays clickable, but the name is the label alone: the hint is a description.
+  const labelId = `${id}-label`;
+  const hintId = hint ? `${id}-hint` : undefined;
   return (
     <label
       className={cn(
@@ -53,14 +57,22 @@ export function ToggleRow({
       )}
     >
       <span className="min-w-0 sm:order-1">
-        <span className="block font-semibold">{label}</span>
-        {hint && <span className="mt-0.5 block max-w-xl text-sm text-ink-3">{hint}</span>}
+        <span id={labelId} className="block font-semibold">
+          {label}
+        </span>
+        {hint && (
+          <span id={hintId} className="mt-0.5 block max-w-xl text-sm text-ink-3">
+            {hint}
+          </span>
+        )}
       </span>
       <input
         type="checkbox"
+        aria-labelledby={labelId}
+        aria-describedby={hintId}
         {...input}
         className={cn(
-          "relative h-6 w-10 shrink-0 cursor-pointer appearance-none justify-self-start rounded-full bg-line-strong sm:order-2 sm:justify-self-end",
+          "relative h-6 w-10 shrink-0 cursor-pointer appearance-none justify-self-start rounded-full bg-line-field sm:order-2 sm:justify-self-end",
           "transition-colors duration-150 ease-(--ease-out) checked:bg-stamp",
           "after:absolute after:start-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:shadow-sm",
           "after:transition-transform after:duration-150 after:ease-(--ease-out) checked:after:translate-x-4",
