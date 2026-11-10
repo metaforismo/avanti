@@ -3,7 +3,7 @@ import { LogoMark } from "@/components/brand/logo";
 import { cn } from "@/lib/cn";
 
 const PRESENT = [
-  ["Documento d'identità e codice fiscale", "Ioana Popescu, Mihai Popescu"],
+  ["Documento d’identità e codice fiscale", "Ioana Popescu, Mihai Popescu"],
   ["Redditi 2025", "Certificazione Unica 2026 di entrambi"],
   ["Visura catastale", "Casa di proprietà, 1 immobile"],
 ] as const;
@@ -120,7 +120,7 @@ export function DossierPreview() {
               <div className="flex gap-2.5 border-t border-line px-4 py-3 text-sm">
                 <AlertTriangle className="mt-0.5 size-4.5 shrink-0 text-warn" aria-hidden />
                 <p className="min-w-0">
-                  Documento d&apos;identità di Mihai Popescu: scade il 12/01/2027
+                  Documento d’identità di Mihai Popescu: scade il 12/01/2027
                 </p>
               </div>
             </section>
@@ -140,7 +140,7 @@ export function DossierPreview() {
             <div className="scroll-compose grid content-start gap-2 rounded-lg bg-surface p-4 text-sm ring-1 ring-line">
               <p className="font-semibold">Consegna al gestionale</p>
               <p className="text-ink-2">
-                Prospetto DSU nell&apos;ordine del modello, riepilogo in PDF e originali.
+                Prospetto DSU nell’ordine del modello, riepilogo in PDF e originali.
               </p>
               <p className="mt-1 flex items-start gap-2 text-ink-2">
                 <Download className="mt-0.5 size-4 shrink-0 text-ink-3" aria-hidden />7 file in un
@@ -152,7 +152,7 @@ export function DossierPreview() {
       </div>
 
       <figcaption className="border-t border-line bg-sunk px-4 py-3 text-sm text-ink-3 sm:px-6">
-        Com&apos;è fatta la console: la coda delle pratiche e il fascicolo aperto. Dati inventati.
+        Com’è fatta la console: la coda delle pratiche e il fascicolo aperto. Dati inventati.
       </figcaption>
     </figure>
   );

@@ -97,7 +97,7 @@ function StatusView() {
   }, [reload]);
 
   return (
-    <PageContainer width="5xl">
+    <PageContainer width="wide">
       <PageHeader
         title="Stato del sistema"
         lead="Si aggiorna ogni minuto. Non mostra dati dei cittadini."
@@ -163,7 +163,7 @@ function StatusBody({ data }: { data: SystemStatus }) {
           <overall.icon className="size-6" aria-hidden />
         </span>
         <div>
-          <p className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.02em]">
+          <p className="font-display text-[1.75rem] leading-tight font-[650] tracking-[-0.012em]">
             {overall.headline}
           </p>
           <p className="mt-0.5 text-sm text-ink-2">
@@ -364,7 +364,7 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
 
   return (
     <figure className="grid gap-2">
-      <figcaption className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
+      <figcaption className="flex flex-wrap gap-x-4 gap-y-1 text-[0.8125rem] text-ink-2">
         <span>Ultime 24 ore:</span>
         <Legend swatch="bg-[var(--chart-ai)]">con AI {total.successes}</Legend>
         <Legend swatch="bg-[var(--chart-fallback)] hatch">con le regole {total.fallbacks}</Legend>
@@ -385,22 +385,27 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
               )}
               {rules > 0 && (
                 <span
-                  className="hatch rounded-t-[2px] bg-[var(--chart-fallback)]"
+                  className="hatch min-h-[3px] rounded-t-[2px] bg-[var(--chart-fallback)]"
                   style={{ height: `${rules}%` }}
                 />
               )}
               {ai > 0 && (
                 <span
-                  className={cn("bg-[var(--chart-ai)]", rules > 0 ? "" : "rounded-t-[2px]")}
+                  className={cn(
+                    "min-h-[3px] bg-[var(--chart-ai)]",
+                    rules > 0 ? "" : "rounded-t-[2px]",
+                  )}
                   style={{ height: `${ai}%` }}
                 />
               )}
+              {/* An hour with nothing is a notch, not a hole: all 24 columns stay drawn. */}
+              {ai === 0 && rules === 0 && <span className="h-0.5 rounded-full bg-line-strong" />}
             </div>
           );
         })}
       </div>
       {hourly.length > 1 && (
-        <div className="tabular flex justify-between text-xs text-ink-3" aria-hidden>
+        <div className="tabular flex justify-between text-[0.8125rem] text-ink-3" aria-hidden>
           <span>{hour(hourly[0]!.hour)}</span>
           <span>{hour(hourly[Math.floor(hourly.length / 2)]!.hour)}</span>
           <span>adesso</span>
@@ -461,15 +466,14 @@ function UsageCard({ usage }: { usage: NonNullable<SystemStatus["usage"]> }) {
       <h2 id="usage-title" className="text-sm font-semibold text-ink-2">
         Uso del piano, {monthName(usage.month)}
       </h2>
-      <p className="mt-2 font-display text-2xl font-semibold">
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-2 font-display text-2xl font-semibold">
         <span className="tabular text-[2.5rem] leading-none tracking-[-0.03em]">
-          {usage.delivered}
-        </span>{" "}
-        {usage.delivered === 1 ? "fascicolo consegnato" : "fascicoli consegnati"}
+          {usage.delivered.toLocaleString("it-IT")}
+        </span>
+        <span>{usage.delivered === 1 ? "fascicolo consegnato" : "fascicoli consegnati"}</span>
         {usage.cap !== null && (
-          <span className="text-base font-normal text-ink-2">
-            {" "}
-            su <span className="tabular">{usage.cap}</span> inclusi
+          <span className="font-sans text-base font-normal text-ink-2">
+            su <span className="tabular">{usage.cap.toLocaleString("it-IT")}</span> inclusi
           </span>
         )}
       </p>
@@ -498,7 +502,7 @@ function UsageCard({ usage }: { usage: NonNullable<SystemStatus["usage"]> }) {
           </p>
         </>
       )}
-      <p className="mt-2 text-xs text-ink-3">
+      <p className="mt-2 text-[0.8125rem] text-ink-3">
         Un fascicolo conta una volta, al primo invio del cittadino: integrazioni e reinvii sono
         inclusi.
       </p>

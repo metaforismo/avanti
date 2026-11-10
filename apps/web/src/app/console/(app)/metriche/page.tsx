@@ -28,6 +28,15 @@ const RANGE_OPTIONS = RANGES.map((range) => ({ value: String(range.days), label:
 const romeDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" });
 const isoDay = (date: Date) => romeDay.format(date);
 
+const shortDay = new Intl.DateTimeFormat("it-IT", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "Europe/Rome",
+});
+
+const numbers = new Intl.NumberFormat("it-IT");
+
 const percent = (share: number | null) => (share === null ? "—" : `${Math.round(share * 100)}%`);
 
 export default function MetricsPage() {
@@ -58,18 +67,19 @@ function MetricsView() {
   const setDays = (value: number) => setParam("giorni", value === 30 ? "" : String(value));
   const setOfficeId = (value: string) => setParam("sportello", value);
 
-  const path = useMemo(() => {
-    const to = new Date();
-    const from = new Date(to.getTime() - (days - 1) * 86_400_000);
-    const q = new URLSearchParams({ from: isoDay(from), to: isoDay(to) });
+  const { path, from, to } = useMemo(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - (days - 1) * 86_400_000);
+    const q = new URLSearchParams({ from: isoDay(start), to: isoDay(end) });
     if (officeId) q.set("officeId", officeId);
-    return `/api/metrics?${q.toString()}`;
+    return { path: `/api/metrics?${q.toString()}`, from: start, to: end };
   }, [days, officeId]);
+  const office = operator.offices.find((o) => o.id === officeId);
   const metrics = useResource<Metrics>(path);
   const data = metrics.data;
 
   return (
-    <PageContainer width="6xl">
+    <PageContainer width="wide">
       <PageHeader
         title="Metriche"
         lead="Tempi e completezza misurati sulle pratiche reali, non stimati."
@@ -127,8 +137,16 @@ function MetricsView() {
           className={cn("mt-8 grid gap-8 transition-opacity", metrics.refreshing && "opacity-60")}
         >
           <dl className="grid gap-px overflow-hidden rounded-lg bg-line shadow-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
-            <Tile label="Pratiche avviate" value={String(data.casesStarted)} />
-            <Tile label="Inviate allo sportello" value={String(data.casesSubmitted)} />
+            <Tile
+              label="Pratiche avviate"
+              value={numbers.format(data.casesStarted)}
+              note="Create nel periodo, anche se poi abbandonate"
+            />
+            <Tile
+              label="Inviate allo sportello"
+              value={numbers.format(data.casesSubmitted)}
+              note="Primo invio del cittadino, nel periodo"
+            />
             <Tile
               label="Complete al primo invio"
               value={percent(data.completeAtFirstSubmission)}
@@ -142,6 +160,25 @@ function MetricsView() {
               note="Pratiche rimandate al cittadino"
             />
           </dl>
+          <p className="-mt-4 text-[0.8125rem] text-ink-3">
+            <span className="tabular whitespace-nowrap">
+              {shortDay.format(from)} – {shortDay.format(to)}
+            </span>
+            {" · "}
+            {office?.name ?? "tutti gli sportelli"}. Conteggi esatti, per uso interno. Il{" "}
+            {operator.role === "admin" ? (
+              <Link
+                href="/console/rapporto"
+                className="font-semibold text-stamp underline underline-offset-2"
+              >
+                Rapporto del pilota
+              </Link>
+            ) : (
+              "Rapporto del pilota"
+            )}{" "}
+            è pensato per essere condiviso: nasconde i gruppi sotto 5 pratiche e può mostrare «—»
+            per gli stessi dati.
+          </p>
 
           <section
             aria-labelledby="time-title"
@@ -221,7 +258,12 @@ function Tile({
   return (
     <div className="bg-surface px-5 py-5">
       <dt className="text-sm font-medium text-ink-3">{label}</dt>
-      <dd className="tabular mt-2 font-display text-[2.75rem] leading-none font-semibold tracking-[-0.03em]">
+      <dd
+        className={cn(
+          "tabular mt-2 font-display leading-none font-semibold tracking-[-0.03em]",
+          value.length > 6 ? "text-[2rem] leading-[1.375]" : "text-[2.75rem]",
+        )}
+      >
         {value}
       </dd>
       {share !== undefined && share !== null && (
@@ -232,7 +274,7 @@ function Tile({
           />
         </dd>
       )}
-      {note && <dd className="mt-2 text-xs text-ink-3">{note}</dd>}
+      {note && <dd className="mt-2 text-[0.8125rem] leading-snug text-ink-3">{note}</dd>}
     </div>
   );
 }
@@ -302,16 +344,18 @@ function Breakdown({
           {sorted.map((row) => (
             <li
               key={row.key}
-              className="grid grid-cols-[8rem_1fr_2.5rem] items-center gap-3 text-sm"
+              className="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-3 text-sm"
             >
-              <span className="truncate text-ink-2">{row.label}</span>
+              <span className="truncate text-ink-2" title={row.label}>
+                {row.label}
+              </span>
               <span className="h-1.5 overflow-hidden rounded-full bg-sunk">
                 <span
                   className="block h-full rounded-full bg-stamp"
                   style={{ width: `${(row.value / max) * 100}%` }}
                 />
               </span>
-              <span className="tabular text-end font-semibold">{row.value}</span>
+              <span className="tabular text-end font-semibold">{numbers.format(row.value)}</span>
             </li>
           ))}
         </ul>

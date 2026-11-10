@@ -40,6 +40,7 @@ export function MobileCta() {
 
   return (
     <div
+      data-mobile-cta
       // Hidden from assistive tech while off screen: the same link is in the header.
       aria-hidden={!show}
       inert={!show}
@@ -51,15 +52,19 @@ export function MobileCta() {
     >
       <a
         href="#pilota"
-        className="flex min-h-13 items-center justify-between gap-3 rounded-xl bg-stamp ps-5 pe-2 text-on-stamp shadow-float ring-1 ring-white/15 transition-transform duration-150 ease-(--ease-out) focus-visible:outline-marker active:scale-[0.98]"
+        className="flex min-h-13 items-center justify-between gap-3 rounded-xl bg-stamp ps-4 pe-2 text-on-stamp shadow-float ring-1 ring-white/15 transition-transform duration-150 ease-(--ease-out) focus-visible:outline-marker active:scale-[0.98]"
       >
         <span className="min-w-0 leading-tight">
-          <span className="block text-body-sm font-semibold">Pilota ISEE gennaio–marzo</span>
-          <span className="block text-xs text-on-stamp/80">Una chiamata di mezz&apos;ora</span>
+          <span className="block text-body-sm font-semibold text-balance">
+            Pilota ISEE <span className="whitespace-nowrap">gennaio–marzo</span>
+          </span>
+          <span className="hidden text-xs text-on-stamp/80 min-[400px]:block">
+            Una chiamata di mezz’ora
+          </span>
         </span>
-        <span className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-marker px-3.5 text-sm font-semibold text-ink">
-          Parliamone
-          <ArrowRight className="rtl-flip size-4" aria-hidden />
+        <span className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-marker px-3 text-sm font-semibold text-ink">
+          Parliamo del pilota
+          <ArrowRight className="rtl-flip size-4 max-[360px]:hidden" aria-hidden />
         </span>
       </a>
     </div>

@@ -1,4 +1,5 @@
-import { useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { useId, type ComponentProps, type InputHTMLAttributes, type ReactNode } from "react";
+import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 
 /**
@@ -20,9 +21,9 @@ export function SettingGroup({
   className?: string;
 }) {
   return (
-    <div id={id} className={cn("scroll-mt-20", className)}>
+    <div id={id} className={className}>
       {title && (
-        <div className="mb-2 px-1">
+        <div className="mb-2">
           <h3 className="text-sm font-semibold text-ink">{title}</h3>
           {lead && <p className="mt-0.5 text-sm text-ink-3">{lead}</p>}
         </div>
@@ -130,5 +131,28 @@ export function ValueRow({
         })}
       </div>
     </div>
+  );
+}
+
+/** A whole number with its unit inside the field, so «30» is never left to be guessed as days. */
+export function NumberInput({
+  unit,
+  className,
+  ...props
+}: Omit<ComponentProps<"input">, "type"> & { unit: string }) {
+  return (
+    <span className="relative inline-flex">
+      <Input
+        type="text"
+        {...props}
+        className={cn("tabular w-36 text-end", unit.length > 1 ? "pe-14" : "pe-9", className)}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-body-sm text-ink-3"
+      >
+        {unit}
+      </span>
+    </span>
   );
 }

@@ -24,7 +24,7 @@ export default function OfficesPage() {
   );
 
   return (
-    <PageContainer width="5xl">
+    <PageContainer width="wide">
       <PageHeader
         title="Sportelli e QR"
         lead={
@@ -41,47 +41,54 @@ export default function OfficesPage() {
           return (
             <li
               key={office.id}
-              className="flex flex-col gap-5 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:flex-row"
+              className="flex min-w-0 flex-col gap-4 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line"
             >
-              <div className="size-32 shrink-0 self-start rounded-md bg-white p-2 ring-1 ring-line">
-                {link ? (
-                  <QrCode
-                    value={link}
-                    label={`QR dello sportello ${office.name}`}
-                    className="[&_svg]:size-full"
-                  />
-                ) : (
-                  <Skeleton className="aspect-square rounded-sm" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">
-                  {office.name}
-                </h2>
-                <p className="text-body-sm text-ink-3">{officePlace(office)}</p>
-                <p className="mt-2 truncate rounded-xs bg-sunk px-2 py-1 font-mono text-xs text-ink-2">
-                  {link}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button asChild size="sm">
-                    <Link
-                      href={`/stampa/${office.slug}`}
-                      target="_blank"
-                      onClick={() => markFirstStep(operator.id, "poster")}
-                    >
-                      <Printer className="size-4" aria-hidden />
-                      Stampa il cartello
-                    </Link>
-                  </Button>
-                  <CopyButton value={link} size="sm" />
-                  {link && (
-                    <FullscreenQr
+              <div className="flex items-start gap-4">
+                <div className="size-28 shrink-0 rounded-md bg-white p-2 ring-1 ring-line">
+                  {link ? (
+                    <QrCode
                       value={link}
-                      title="Prepara la tua pratica dal telefono"
-                      caption={`${office.name}: inquadra il QR, scegli la lingua e inizia.`}
+                      label={`QR dello sportello ${office.name}`}
+                      className="[&_svg]:size-full"
                     />
+                  ) : (
+                    <Skeleton className="aspect-square rounded-sm" />
                   )}
                 </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-display text-lg leading-snug font-semibold tracking-[-0.01em] [overflow-wrap:anywhere]">
+                    {office.name}
+                  </h2>
+                  <p className="mt-0.5 text-body-sm text-ink-3">{officePlace(office)}</p>
+                </div>
+              </div>
+              <input
+                readOnly
+                dir="ltr"
+                value={link}
+                aria-label={`Link pubblico di ${office.name}`}
+                onFocus={(event) => event.currentTarget.select()}
+                className="h-9 w-full min-w-0 truncate rounded-sm bg-sunk px-3 font-mono text-[0.8125rem] text-ink-2 ring-1 ring-line outline-none focus:ring-2 focus:ring-stamp"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm">
+                  <Link
+                    href={`/stampa/${office.slug}`}
+                    target="_blank"
+                    onClick={() => markFirstStep(operator.id, "poster")}
+                  >
+                    <Printer className="size-4" aria-hidden />
+                    Stampa il cartello
+                  </Link>
+                </Button>
+                <CopyButton value={link} size="sm" />
+                {link && (
+                  <FullscreenQr
+                    value={link}
+                    title="Prepara la tua pratica dal telefono"
+                    caption={`${office.name}: inquadra il QR, scegli la lingua e inizia.`}
+                  />
+                )}
               </div>
             </li>
           );

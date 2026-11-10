@@ -1,7 +1,8 @@
 "use client";
 
-import { AlertTriangle, Check, FileText, Sparkles } from "lucide-react";
+import { AlertTriangle, Check, FileText, FileWarning, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { MISSING } from "@/components/ui/missing";
 import { cn } from "@/lib/cn";
 
 const STEPS = [
@@ -24,17 +25,20 @@ const STEPS = [
 ] as const;
 
 /* The four pictures: fragments of the real screens, invented data, decorative (the text next to
-   them says the same). */
+   them says the same). All four sit in the same frame, 400×340 with its bar on top, so the
+   picture changes and the frame doesn't. */
 
-function Phone({ children }: { children: ReactNode }) {
+function Frame({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
   return (
-    <div className="card-premium mx-auto w-full max-w-[24rem] p-2">
-      <div className="rounded-[0.75rem] bg-paper">
-        <div className="flex items-center justify-between border-b border-line px-4 py-3 text-xs">
+    <div className="card-premium mx-auto w-full max-w-[25rem] p-2 lg:h-[21.25rem]">
+      <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-[0.75rem] bg-paper">
+        <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3 text-xs">
           <span className="font-semibold">CAF di prova · ISEE</span>
           <span className="text-ink-3">Dati inventati</span>
         </div>
-        <div className="grid min-h-[17rem] content-center gap-3 p-4">{children}</div>
+        <div className={cn("grid min-h-0 flex-1 content-center", !flush && "gap-3 p-4")}>
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -43,12 +47,12 @@ function Phone({ children }: { children: ReactNode }) {
 const LANGS = [
   { lang: "ro", text: "Trebuie să fac ISEE, locuiesc cu mama mea." },
   { lang: "uk", text: "Мені потрібно зробити ISEE, я живу з мамою." },
-  { lang: "it", text: "Devo fare l'ISEE, vivo con mia madre." },
+  { lang: "it", text: "Devo fare l’ISEE, vivo con mia madre." },
 ] as const;
 
 function VisualTell() {
   return (
-    <Phone>
+    <Frame>
       {LANGS.map((item, i) => (
         <p
           key={item.lang}
@@ -63,13 +67,13 @@ function VisualTell() {
           {item.text}
         </p>
       ))}
-    </Phone>
+    </Frame>
   );
 }
 
 function VisualConfirm() {
   return (
-    <Phone>
+    <Frame>
       <div className="rounded-xl bg-surface p-4 shadow-raised ring-1 ring-stamp/20">
         <p className="flex items-center gap-2 text-sm font-semibold">
           <Sparkles className="size-4 text-stamp" />
@@ -94,16 +98,16 @@ function VisualConfirm() {
           Sì, è giusto
         </p>
       </div>
-    </Phone>
+    </Frame>
   );
 }
 
 function VisualUpload() {
   return (
-    <Phone>
+    <Frame>
       {(
         [
-          ["Carta d'identità", "Leggibile, valida", "ok"],
+          ["Carta d’identità", "Leggibile, valida", "ok"],
           ["Certificazione Unica", "È del 2024: serve la 2026", "warn"],
           ["Estratto conto Fineco", "Manca la pagina 2", "warn"],
         ] as const
@@ -117,45 +121,56 @@ function VisualUpload() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold">{name}</span>
-            <span className={cn("block text-xs", tone === "ok" ? "text-ok" : "text-warn")}>
+            <span className={cn("block text-xs", tone === "ok" ? "text-ok" : MISSING.citizen.text)}>
               {note}
             </span>
           </span>
           {tone === "ok" ? (
             <Check className="size-4 shrink-0 text-ok" />
           ) : (
-            <AlertTriangle className="size-4 shrink-0 text-warn" />
+            <AlertTriangle className={cn("size-4 shrink-0", MISSING.citizen.text)} />
           )}
         </div>
       ))}
-    </Phone>
+    </Frame>
   );
 }
 
 function VisualDeliver() {
   return (
-    <div className="card-premium mx-auto w-full max-w-[28rem] overflow-hidden">
-      <div className="border-b border-line px-5 py-4">
-        <p className="text-xs font-semibold text-stamp">Da revisionare</p>
-        <p className="mt-1 font-display text-xl font-semibold">Ioana Popescu</p>
+    <Frame flush>
+      <div className="border-b border-line px-5 py-3">
+        <p className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="rounded-full bg-stamp-wash px-2 py-0.5 font-semibold text-stamp">
+            Da revisionare
+          </span>
+          <span className="rounded-full bg-sunk px-2 py-0.5 font-semibold text-ink-2">
+            Cittadina in rumeno
+          </span>
+        </p>
+        <div className="mt-2 flex items-baseline justify-between gap-3">
+          <p className="font-display text-xl font-semibold">Ioana Popescu</p>
+          <p className={cn("shrink-0 text-xs font-semibold", MISSING.operator.text)}>1 mancante</p>
+        </div>
         <p className="text-sm text-ink-3">ISEE ordinario 2027 · 2 persone</p>
       </div>
-      <div className="flex gap-2.5 bg-danger-wash/70 px-5 py-3 text-sm">
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" />
+      {/* The operator's picture: a missing required document blocks the case (danger). */}
+      <div className={cn("flex gap-2.5 px-5 py-3 text-sm", MISSING.operator.wash)}>
+        <FileWarning className={cn("mt-0.5 size-4 shrink-0", MISSING.operator.text)} />
         <span>
           <span className="block font-semibold">Manca 1 documento</span>
           <span className="text-ink-2">Giacenza media 2025 · Fineco</span>
         </span>
       </div>
       <ul className="divide-y divide-line text-sm">
-        {["Documenti d'identità", "Redditi 2025", "Visura catastale"].map((label) => (
-          <li key={label} className="flex items-center gap-2.5 px-5 py-2.5">
+        {["Documenti d’identità", "Redditi 2025", "Visura catastale"].map((label) => (
+          <li key={label} className="flex items-center gap-2.5 px-5 py-2">
             <Check className="size-4 shrink-0 text-ok" />
             {label}
           </li>
         ))}
       </ul>
-    </div>
+    </Frame>
   );
 }
 
@@ -226,8 +241,10 @@ export function HowItWorks() {
       </div>
 
       <div aria-hidden className="hidden lg:block">
-        <div className="glow sticky top-[calc(50vh-15rem)] grid h-[30rem] place-items-center">
-          <div className="absolute start-1/2 -top-2 flex -translate-x-1/2 gap-1.5 rtl:translate-x-1/2">
+        {/* The progress dashes sit above the frame and stay there to the last step; the frame
+            has one size, so nothing around it moves when the picture changes. */}
+        <div className="glow sticky top-[calc(50vh-11.5rem)] flex flex-col items-center gap-4">
+          <div className="flex gap-1.5">
             {STEPS.map((step, i) => (
               <span
                 key={step.title}
@@ -238,21 +255,24 @@ export function HowItWorks() {
               />
             ))}
           </div>
-          {VISUALS.map((Visual, i) => (
-            <div
-              key={i}
-              className={cn(
-                "col-start-1 row-start-1 w-full transition-[opacity,transform] duration-500 ease-(--ease-out)",
-                i === active
-                  ? "translate-y-0 scale-100 opacity-100"
-                  : i < active
-                    ? "pointer-events-none -translate-y-4 scale-[0.97] opacity-0"
-                    : "pointer-events-none translate-y-4 scale-[0.97] opacity-0",
-              )}
-            >
-              <Visual />
-            </div>
-          ))}
+          <div className="grid w-full">
+            {VISUALS.map((Visual, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "col-start-1 row-start-1 transition-[opacity,transform] duration-[220ms] ease-(--ease-out)",
+                  i === active
+                    ? "translate-y-0 opacity-100"
+                    : cn(
+                        "pointer-events-none opacity-0",
+                        i < active ? "-translate-y-1.5" : "translate-y-1.5",
+                      ),
+                )}
+              >
+                <Visual />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,14 @@
 "use client";
 
-import { KeyRound, ShieldOff, UserPlus } from "lucide-react";
+import {
+  KeyRound,
+  MoreHorizontal,
+  ShieldCheck,
+  ShieldOff,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
+import { DropdownMenu } from "radix-ui";
 import { cn } from "@/lib/cn";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { OperatorSummary, TemporaryPasswordResponse } from "@avanti/contracts";
@@ -146,12 +154,7 @@ export function OperatorsSection() {
     );
 
   return (
-    <section
-      ref={section}
-      id="operatori"
-      aria-labelledby="operators-title"
-      className="scroll-mt-20"
-    >
+    <section ref={section} id="operatori" aria-labelledby="operators-title">
       <SectionHeader
         id="operators-title"
         title="Operatori"
@@ -188,7 +191,7 @@ export function OperatorsSection() {
                 <span
                   aria-hidden
                   className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold",
+                    "grid size-9 shrink-0 place-items-center rounded-full text-[0.8125rem] font-bold",
                     operator.active ? "bg-contrast text-on-contrast" : "bg-sunk text-ink-2",
                   )}
                 >
@@ -198,9 +201,21 @@ export function OperatorsSection() {
                   <p className="flex flex-wrap items-center gap-2 font-semibold">
                     {operator.name}
                     {isMe && <span className="text-sm font-normal text-ink-3">(tu)</span>}
-                    {operator.role === "admin" && <Pill tone="stamp">Amministratore</Pill>}
-                    {!operator.active && <Pill tone="muted">Disattivato</Pill>}
-                    {operator.mfaEnabled && <Pill tone="ok">Verifica in due passaggi</Pill>}
+                    {operator.role === "admin" && (
+                      <Pill className="text-[0.8125rem]" tone="stamp">
+                        Amministratore
+                      </Pill>
+                    )}
+                    {!operator.active && (
+                      <Pill className="text-[0.8125rem]" tone="muted">
+                        Disattivato
+                      </Pill>
+                    )}
+                    {operator.mfaEnabled && (
+                      <Pill className="text-[0.8125rem]" tone="ok">
+                        Verifica in due passaggi
+                      </Pill>
+                    )}
                   </p>
                   <p className="truncate text-sm text-ink-3" title={operator.email}>
                     {operator.email},{" "}
@@ -210,40 +225,8 @@ export function OperatorsSection() {
                   </p>
                 </div>
                 {!isMe && (
-                  <div className="flex flex-wrap gap-1.5">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => ask("password", operator)}
-                      disabled={!operator.active}
-                    >
-                      <KeyRound className="size-4" aria-hidden />
-                      Nuova password
-                    </Button>
-                    {operator.mfaEnabled && (
-                      <Button variant="ghost" size="sm" onClick={() => ask("mfa", operator)}>
-                        <ShieldOff className="size-4" aria-hidden />
-                        Azzera verifica
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        ask(operator.role === "admin" ? "demote" : "promote", operator)
-                      }
-                    >
-                      {operator.role === "admin" ? "Rendi operatore" : "Rendi amministratore"}
-                    </Button>
-                    {operator.active ? (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => ask("deactivate", operator)}
-                      >
-                        Disattiva
-                      </Button>
-                    ) : (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {!operator.active && (
                       <Button
                         variant="secondary"
                         size="sm"
@@ -253,6 +236,7 @@ export function OperatorsSection() {
                         Riattiva
                       </Button>
                     )}
+                    <OperatorMenu operator={operator} onAsk={ask} />
                   </div>
                 )}
               </li>
@@ -316,6 +300,90 @@ export function OperatorsSection() {
         {issued && <IssuedAccess issued={issued} onDone={() => setIssued(null)} />}
       </Dialog>
     </section>
+  );
+}
+
+function MenuItem({
+  children,
+  onSelect,
+  danger,
+  disabled,
+}: {
+  children: ReactNode;
+  onSelect: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <DropdownMenu.Item
+      onSelect={onSelect}
+      disabled={disabled}
+      className={cn(
+        "flex h-10 cursor-pointer items-center gap-2.5 rounded-sm px-3 text-body-sm outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-45 data-[highlighted]:bg-sunk",
+        danger && "text-danger",
+      )}
+    >
+      {children}
+    </DropdownMenu.Item>
+  );
+}
+
+/** Access changes live in a menu: four buttons per row don't fit a 720 px column or a phone. */
+function OperatorMenu({
+  operator,
+  onAsk,
+}: {
+  operator: OperatorSummary;
+  onAsk: (kind: Risky, operator: OperatorSummary) => void;
+}) {
+  const icon = "size-4 shrink-0 text-ink-3";
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Azioni per ${operator.name}`}
+          className="data-[state=open]:bg-sunk data-[state=open]:text-ink max-lg:size-11"
+        >
+          <MoreHorizontal className="size-4.5" aria-hidden />
+        </Button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={6}
+          collisionPadding={8}
+          className="z-50 min-w-56 origin-(--radix-dropdown-menu-content-transform-origin) animate-pop rounded-md bg-surface p-1 shadow-float ring-1 ring-line data-[state=closed]:animate-sink"
+        >
+          <MenuItem disabled={!operator.active} onSelect={() => onAsk("password", operator)}>
+            <KeyRound className={icon} aria-hidden />
+            Nuova password
+          </MenuItem>
+          {operator.mfaEnabled && (
+            <MenuItem onSelect={() => onAsk("mfa", operator)}>
+              <ShieldOff className={icon} aria-hidden />
+              Azzera verifica
+            </MenuItem>
+          )}
+          <MenuItem
+            onSelect={() => onAsk(operator.role === "admin" ? "demote" : "promote", operator)}
+          >
+            <ShieldCheck className={icon} aria-hidden />
+            {operator.role === "admin" ? "Rendi operatore" : "Rendi amministratore"}
+          </MenuItem>
+          {operator.active && (
+            <>
+              <DropdownMenu.Separator className="my-1 h-px bg-line" />
+              <MenuItem danger onSelect={() => onAsk("deactivate", operator)}>
+                <UserMinus className="size-4 shrink-0" aria-hidden />
+                Disattiva
+              </MenuItem>
+            </>
+          )}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 

@@ -33,16 +33,28 @@ export default async function LoginPage({ searchParams }: PageProps<"/console/ac
         </Link>
         <div className="relative max-w-xl">
           <p className="font-display text-[2.5rem] leading-[1.06] font-semibold tracking-[-0.022em] text-balance [font-stretch:92%]">
-            Prima i <span className="marker whitespace-nowrap">problemi bloccanti</span>, poi gli
-            avvisi, poi tutto il resto.
+            Prima i{" "}
+            {/* The stroke ends on the letters: the shared marker softens its ends and runs past the last «i». */}
+            <span
+              className="marker whitespace-nowrap"
+              style={{
+                backgroundImage: "linear-gradient(var(--marker), var(--marker))",
+                backgroundSize: "100% 0.88em",
+                paddingInline: "0.05em",
+                marginInline: "-0.05em",
+              }}
+            >
+              problemi bloccanti
+            </span>
+            , poi gli avvisi, poi tutto il resto.
           </p>
           {/* The same order drawn as the top of a dossier, with invented content. */}
           <div
             aria-hidden
             style={CARD_COLORS}
-            className="mt-10 -rotate-1 rounded-lg bg-white p-4 text-(--card-ink) shadow-[0_28px_60px_-24px_rgb(0_0_0/0.6)]"
+            className="mt-10 -rotate-1 rounded-lg bg-white p-4 text-(--card-ink) shadow-[0_28px_60px_-24px_rgb(0_0_0/0.6)] will-change-transform [backface-visibility:hidden]"
           >
-            <div className="flex items-center justify-between border-b border-(--card-line) pb-3 text-xs font-semibold tracking-[0.06em] text-(--card-ink-3) uppercase">
+            <div className="flex items-center justify-between border-b border-(--card-line) pb-3 text-[0.8125rem] font-semibold tracking-[0.06em] text-(--card-ink-3) uppercase">
               <span>Fascicolo ISEE</span>
               <span className="font-normal tracking-normal normal-case">Dati inventati</span>
             </div>

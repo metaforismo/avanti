@@ -68,8 +68,8 @@ export default function OpenGraphImage() {
           </span>
         </div>
         <div style={{ fontSize: 32, color: "#485067", maxWidth: 920, lineHeight: 1.35 }}>
-          Per CAF e patronati: il cittadino prepara l&apos;ISEE dal telefono, nella sua lingua;
-          l&apos;operatore trova documenti in ordine e quello che manca già segnalato.
+          Per CAF e patronati: il cittadino prepara l’ISEE dal telefono, nella sua lingua;
+          l’operatore trova documenti in ordine e quello che manca già segnalato.
         </div>
       </div>
     </div>,

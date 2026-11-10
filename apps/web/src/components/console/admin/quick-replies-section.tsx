@@ -74,7 +74,7 @@ export function QuickRepliesSection() {
   };
 
   return (
-    <section id="risposte-rapide" aria-labelledby="replies-title" className="scroll-mt-20">
+    <section id="risposte-rapide" aria-labelledby="replies-title">
       <SectionHeader
         id="replies-title"
         title="Risposte rapide"
@@ -303,7 +303,7 @@ function ReplyForm({
           />
         )}
       </Field>
-      <p className="tabular -mt-3 text-end text-xs text-ink-3">{length}/1000</p>
+      <p className="tabular -mt-3 text-end text-[0.8125rem] text-ink-3">{length}/1000</p>
       {error && <Notice tone="danger">{error}</Notice>}
       <Button type="submit" loading={saving} className="w-fit">
         Salva

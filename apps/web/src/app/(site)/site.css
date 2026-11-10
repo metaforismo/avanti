@@ -15,6 +15,10 @@
   html:has(.site) {
     scrollbar-color: var(--line-strong) var(--paper);
     scroll-behavior: smooth;
+    /* globals.css reserves room for the citizen's header (144px): here the sections bring their
+       own `scroll-mt` for the 64px bar, and the two would add up, leaving a link's target far
+       below the bar with the end of the previous section above it. */
+    scroll-padding: 0;
   }
   /* Glows and tilted sheets may reach past the edge on a phone: clip, never scroll sideways.
      `clip`, not `hidden`, keeps the sticky header and pictures working. */
@@ -141,20 +145,21 @@
   }
 
   /*
-   * The hero title, word by word: each word rises out of its own line box. The padding gives
-   * descenders, accents and the marker stroke room inside the clip; the negative margin keeps
-   * the layout as if it weren't there.
+   * The hero title, word by word: each word rises out of its own line box. The clip has room
+   * for the ascender of an «f», the descender of a «p» and the marker stroke; the negative
+   * margin gives that room back, so the layout is as if it weren't there. The word is also
+   * transparent for its first moments: a clip with a hard edge never shows a half-cut letter.
    */
   .hero-word {
     display: inline-block;
     overflow: clip;
-    padding: 0.04em 0.12em 0.16em;
-    margin: -0.04em -0.12em -0.16em;
+    padding: 0.14em 0.12em 0.16em;
+    margin: -0.14em -0.12em -0.16em;
     vertical-align: top;
   }
   .hero-word > span {
     display: inline-block;
-    animation: word-rise 1100ms var(--ease-out-expo) both;
+    animation: word-rise 600ms var(--ease-out-expo) both;
     animation-delay: var(--d, 0ms);
   }
 
@@ -164,7 +169,7 @@
    */
   .hero-stage {
     transform-origin: 50% 0;
-    animation: stage-rise 1500ms var(--ease-out-expo) both;
+    animation: stage-rise 800ms var(--ease-out-expo) both;
     animation-delay: var(--d, 0ms);
   }
 
@@ -261,19 +266,22 @@
     );
   }
 
-  /* A rule that draws itself downwards along a list (the pilot calendar). A pseudo-element, so
-     the list keeps only its items: a child would be invalid and shift the stagger delays. */
-  .draw-y::before {
+  /* The thread of a calendar (the pilot): one segment per step, from the centre of its dot to
+     the centre of the next one, drawn downwards as the step arrives. Pseudo-elements, so the
+     list keeps only its items. The last step has none: the thread ends on its dot. */
+  .thread > li:not(:last-child)::before {
     content: "";
     position: absolute;
-    inset-block: 0;
     inset-inline-start: 0;
+    top: 12px;
+    bottom: -12px;
     width: 1px;
-    background: linear-gradient(to bottom, var(--stamp), var(--line-strong), var(--line-strong));
-  }
-  [data-reveal].draw-y::before {
+    background: var(--line-strong);
     transform-origin: center top;
-    transition: transform 1400ms var(--ease-out-expo) 150ms;
+    transition: transform 700ms var(--ease-out-expo) calc(var(--reveal-delay, 0ms) + 150ms);
+  }
+  .thread > li:first-child::before {
+    background: linear-gradient(to bottom, var(--stamp), var(--line-strong));
   }
 
   /* Squares of a 10×10 figure filling one after another (--i is the index). */
@@ -340,7 +348,7 @@
 
   /* The hero arrives on load, from CSS: it must not wait for hydration. */
   .hero-in {
-    animation: site-rise 900ms var(--ease-out-expo) both;
+    animation: site-rise var(--dur, 700ms) var(--ease-out-expo) both;
     animation-delay: var(--d, 0ms);
   }
 
@@ -392,7 +400,7 @@
     border-radius: 0.06em;
     background: var(--marker);
     transform-origin: left center;
-    animation: marker-draw 800ms var(--ease-out-expo) 820ms both;
+    animation: marker-draw 500ms var(--ease-out-expo) 520ms both;
   }
   [dir="rtl"] .marker-draw::before {
     transform-origin: right center;
@@ -411,13 +419,33 @@
 
   @keyframes word-rise {
     from {
-      transform: translate3d(0, 108%, 0);
+      opacity: 0;
+      transform: translate3d(0, 125%, 0);
+    }
+    35% {
+      opacity: 1;
     }
   }
   @keyframes stage-rise {
     from {
       opacity: 0;
-      transform: perspective(2400px) translate3d(0, 64px, 0) rotateX(18deg) scale(0.94);
+      transform: perspective(2400px) translate3d(0, 24px, 0) rotateX(6deg);
+    }
+  }
+  @keyframes menu-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes menu-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes menu-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
     }
   }
   @keyframes flow-x {
@@ -506,7 +534,60 @@
     }
   }
 
+  /*
+   * The mobile menu: a sheet under the header. It fades in while the links rise one after the
+   * other (40ms apart, from the second one); closing is a single 150ms fade. The page behind is
+   * locked (site-header.tsx), and the fixed bar at the bottom steps out of the way.
+   */
+  .menu-sheet {
+    animation: menu-fade 150ms var(--ease-out) both;
+  }
+  .menu-sheet[data-state="closed"] {
+    animation: menu-fade-out 150ms var(--ease-out) both;
+    pointer-events: none;
+  }
+  .menu-item {
+    animation: menu-rise 240ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 40ms + 30ms);
+  }
+  html[data-menu-open] [data-mobile-cta] {
+    visibility: hidden;
+  }
+
+  /* A row that scrolls sideways fades out where it continues (--fade-s / --fade-e are the
+     widths, 0 where there is nothing more to see), instead of being cut with a hard edge. */
+  .fade-x {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--fade-s, 0px),
+      #000 calc(100% - var(--fade-e, 0px)),
+      transparent
+    );
+  }
+  [dir="rtl"] .fade-x {
+    mask-image: linear-gradient(
+      to left,
+      transparent,
+      #000 var(--fade-s, 0px),
+      #000 calc(100% - var(--fade-e, 0px)),
+      transparent
+    );
+  }
+
   @media (prefers-reduced-motion: reduce) {
+    .menu-sheet,
+    .menu-sheet[data-state="closed"] {
+      animation-duration: 120ms;
+    }
+    .menu-item {
+      animation-name: menu-fade;
+      animation-duration: 120ms;
+      animation-delay: 0ms;
+    }
+    .thread > li:not(:last-child)::before {
+      transition: none;
+    }
     .hero-word > span,
     .hero-stage,
     .hero-in,
@@ -515,6 +596,7 @@
     .tick-in {
       animation-name: site-fade !important;
       animation-duration: 150ms !important;
+      animation-delay: 0ms !important;
     }
     html:has(.site) {
       scroll-behavior: auto;

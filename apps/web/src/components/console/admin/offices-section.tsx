@@ -39,7 +39,7 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
   });
 
   return (
-    <section ref={section} id="sportelli" aria-labelledby="offices-title" className="scroll-mt-20">
+    <section ref={section} id="sportelli" aria-labelledby="offices-title">
       <SectionHeader
         id="offices-title"
         title="Sportelli"
