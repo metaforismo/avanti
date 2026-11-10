@@ -238,3 +238,12 @@ export async function animationsSettled(page: Page) {
       ),
   );
 }
+
+/** The citizen's text box. With a card on screen it rests as a pill: tap it open first. */
+export async function composer(page: Page) {
+  const box = page.getByRole("textbox", { name: "Scrivi qui, con parole tue" });
+  const pill = page.getByRole("button", { name: "Scrivi qui, con parole tue" });
+  await expect(box.or(pill)).toBeVisible();
+  if (await pill.isVisible()) await pill.click();
+  return box;
+}

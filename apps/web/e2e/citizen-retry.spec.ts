@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { ConversationState } from "@avanti/contracts";
-import { loseReply, startCase } from "./helpers";
+import { composer, loseReply, startCase } from "./helpers";
 
 test("a message sent again after a lost reply appears once", async ({ page }) => {
   const token = await startCase(page, "Devo fare l'ISEE");
@@ -12,10 +12,11 @@ test("a message sent again after a lost reply appears once", async ({ page }) =>
     if (route.request().method() !== "POST" || ++attempts > 1) return route.fallback();
     await loseReply(route);
   });
-  await page.getByLabel("Scrivi qui, con parole tue").fill(text);
+  const box = await composer(page);
+  await box.fill(text);
   await page.getByRole("button", { name: "Invia", exact: true }).click();
   await expect(page.getByText("Connessione assente. Controlla la rete e riprova.")).toBeVisible();
-  await expect(page.getByLabel("Scrivi qui, con parole tue")).toHaveValue(text);
+  await expect(box).toHaveValue(text);
   await page.getByRole("button", { name: "Invia", exact: true }).click();
   await expect(page.getByText(text, { exact: true })).toHaveCount(1);
   expect(attempts).toBe(2);
