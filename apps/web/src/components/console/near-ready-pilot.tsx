@@ -29,6 +29,7 @@ export function NearReadyPilot() {
         actions={
           data && (
             <Pill
+              className="text-[0.8125rem]"
               tone={data.mode === "visible" ? "ok" : data.mode === "shadow" ? "stamp" : "muted"}
             >
               {MODE[data.mode]}
@@ -91,7 +92,7 @@ export function NearReadyPilot() {
             </p>
           )}
           <p className="flex flex-wrap items-center gap-2 text-sm">
-            <Pill tone={data.calibrationPassed ? "ok" : "muted"}>
+            <Pill className="text-[0.8125rem]" tone={data.calibrationPassed ? "ok" : "muted"}>
               {data.calibrationPassed
                 ? "Calibrazione superata"
                 : "Calibrazione non ancora superata"}

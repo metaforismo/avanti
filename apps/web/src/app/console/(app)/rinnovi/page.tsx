@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Inbox, Link2, RefreshCw, Users } from "lucide-react";
+import { ArrowRight, Inbox, Link2, RefreshCw, Users } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import type { Route } from "next";
@@ -205,7 +205,7 @@ export default function RenewalsPage() {
   }
 
   return (
-    <PageContainer width="6xl" className="pb-28 lg:pb-28">
+    <PageContainer width="wide" className="pb-28 lg:pb-28">
       <PageHeader
         title="Rinnovi ISEE"
         lead={`Le famiglie che hanno fatto l'ISEE ${shownYear - 1} con voi. Il rinnovo ${shownYear} riparte da nucleo e documenti già raccolti: il cittadino conferma chi vive con lui e risponde solo alle domande del nuovo anno.`}
@@ -228,7 +228,11 @@ export default function RenewalsPage() {
         }
       />
 
-      <div role="group" aria-label="Stato" className="-mx-1 mt-6 flex gap-1 overflow-x-auto pb-1">
+      <div
+        role="group"
+        aria-label="Stato"
+        className="-mx-1 mt-6 flex gap-1 overflow-x-auto [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)] pe-6 pb-1 md:[mask-image:none] md:pe-0"
+      >
         {STATUSES.map(({ key, label, hint }) => {
           const active = key === status;
           const count = data?.counts[key];
@@ -253,7 +257,7 @@ export default function RenewalsPage() {
               {count !== undefined && (
                 <span
                   className={cn(
-                    "tabular min-w-5 rounded-full px-1.5 text-center text-xs",
+                    "tabular min-w-5 rounded-full px-1.5 text-center text-[0.8125rem]",
                     active ? "bg-stamp-wash text-stamp" : "bg-sunk",
                   )}
                 >
@@ -316,7 +320,7 @@ export default function RenewalsPage() {
         ) : (
           <>
             <div className="overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
-              <div className="hidden grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-4 border-b border-line bg-sunk/60 px-4 py-2 text-xs font-semibold text-ink-3 md:grid">
+              <div className="hidden grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-4 border-b border-line bg-sunk/60 px-4 py-2 text-[0.8125rem] font-medium text-ink-3 md:grid">
                 {selectable ? (
                   <input
                     type="checkbox"
@@ -477,12 +481,12 @@ function RenewalRow({
           {name}
         </span>
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="font-mono text-xs whitespace-nowrap text-ink-3" translate="no">
+          <span className="font-mono text-[0.8125rem] whitespace-nowrap text-ink-3" translate="no">
             {item.reference}
           </span>
           {item.sourceKind === "reminder" && (
             <span
-              className="rounded-xs bg-folder px-1.5 text-xs text-ink-2"
+              className="rounded-xs bg-folder px-1.5 text-[0.8125rem] text-ink-2"
               title={
                 item.reminderExpiresAt
                   ? `Il fascicolo è stato cancellato a fine conservazione: restano contatto e nucleo, fino al ${formatDate(item.reminderExpiresAt)}.`
@@ -500,17 +504,17 @@ function RenewalRow({
       </span>
       <span className="flex flex-wrap gap-1.5 text-sm">
         {valid > 0 && (
-          <Pill tone="ok" size="xs">
+          <Pill className="text-[0.8125rem]" tone="ok" size="xs">
             {valid} {valid === 1 ? "valido" : "validi"}
           </Pill>
         )}
         {toUpdate > 0 && (
-          <Pill tone="warn" size="xs">
+          <Pill className="text-[0.8125rem]" tone="warn" size="xs">
             {toUpdate} da aggiornare
           </Pill>
         )}
         {toVerify > 0 && (
-          <Pill tone="neutral" size="xs">
+          <Pill className="text-[0.8125rem]" tone="neutral" size="xs">
             {toVerify} da verificare
           </Pill>
         )}
@@ -520,20 +524,23 @@ function RenewalRow({
         {item.renewalCaseId ? (
           <Link
             href={`/console/pratiche/${item.renewalCaseId}` as Route}
-            className="inline-flex items-center gap-1 font-semibold text-stamp hover:underline"
+            className="group/open inline-flex items-center gap-1 font-semibold text-stamp hover:underline"
           >
             Apri il rinnovo
-            <ArrowUpRight className="size-3.5" aria-hidden />
+            <ArrowRight
+              className="size-3.5 transition-transform duration-150 ease-(--ease-out) group-hover/open:translate-x-0.5"
+              aria-hidden
+            />
           </Link>
         ) : (
           <span className="text-ink-3">Da preparare</span>
         )}
         {item.lastInvitedAt && (
-          <span className="block text-xs text-ink-3">
+          <span className="block text-[0.8125rem] text-ink-3">
             Link del {formatDateTime(item.lastInvitedAt)}
           </span>
         )}
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-3">
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[0.8125rem] text-ink-3">
           {item.renewalContactConsent ? "Avviso email: sì" : "Avviso email: no"}
           {item.renewalContactConsent && (
             <button
@@ -589,11 +596,11 @@ function ResultDialog({
                 >
                   {names.get(item.sourceCaseId) ?? "Cittadino senza nome"}
                 </span>
-                <span className="font-mono text-xs text-ink-3" translate="no">
+                <span className="font-mono text-[0.8125rem] text-ink-3" translate="no">
                   {item.reference}
                 </span>
               </span>
-              <Pill tone={INVITATION[item.invitation].tone} size="xs">
+              <Pill className="text-[0.8125rem]" tone={INVITATION[item.invitation].tone} size="xs">
                 {INVITATION[item.invitation].label}
               </Pill>
               {item.citizenLink && (

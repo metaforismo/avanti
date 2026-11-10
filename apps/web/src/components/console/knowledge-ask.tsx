@@ -124,7 +124,7 @@ function Answer({ exchange: { question, answer } }: { exchange: Exchange }) {
           {answer.citations.length > 0 && (
             <ul className="mt-3 grid gap-1">
               {answer.citations.map((c) => (
-                <li key={c.id} className="flex items-start gap-1.5 text-xs text-ink-3">
+                <li key={c.id} className="flex items-start gap-1.5 text-[0.8125rem] text-ink-3">
                   <BookOpen className="mt-0.5 size-3 shrink-0" aria-hidden />
                   {c.url ? (
                     <a
@@ -144,7 +144,7 @@ function Answer({ exchange: { question, answer } }: { exchange: Exchange }) {
               ))}
             </ul>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-3">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.8125rem] text-ink-3">
             <CopyButton
               iconOnly
               value={answer.answer}
@@ -156,7 +156,7 @@ function Answer({ exchange: { question, answer } }: { exchange: Exchange }) {
               }}
               className="-ms-1.5 text-ink-3"
             />
-            <Pill tone={coverage.tone} size="xs">
+            <Pill className="text-[0.8125rem]" tone={coverage.tone} size="xs">
               {coverage.label}
             </Pill>
             <span>{engineLabel(answer.engine)}</span>

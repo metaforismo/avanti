@@ -38,7 +38,7 @@ const FAQ = [
 
 export default function HelpPage() {
   return (
-    <PageContainer width="3xl">
+    <PageContainer width="form">
       <PageHeader
         title="Aiuto"
         lead="Avanti prepara la pratica prima che il cittadino arrivi. Tu verifichi e decidi; la pratica ufficiale si fa come sempre nel vostro gestionale."

@@ -12,7 +12,7 @@ export default function AccountPage() {
   const [changed, setChanged] = useState(false);
 
   return (
-    <PageContainer width="3xl">
+    <PageContainer width="form">
       <PageHeader title="Account" />
       <dl className="mt-6 grid gap-3 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:grid-cols-3">
         <div>

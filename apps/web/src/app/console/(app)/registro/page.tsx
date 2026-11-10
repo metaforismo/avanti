@@ -113,7 +113,7 @@ function AuditLog() {
   }
 
   return (
-    <PageContainer width="6xl">
+    <PageContainer width="wide">
       <PageHeader
         title="Registro attività"
         lead="Chi ha fatto cosa, e quando: per rispondere a un interessato o a un controllo. Il registro non contiene dati personali dei cittadini."
@@ -232,7 +232,7 @@ function AuditLog() {
             <div className="overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
               <div
                 aria-hidden
-                className="hidden gap-4 border-b border-line bg-sunk/60 px-4 py-2 text-xs font-semibold tracking-wide text-ink-3 uppercase md:grid md:grid-cols-[11rem_minmax(0,1fr)_10rem]"
+                className="hidden gap-4 border-b border-line bg-sunk/60 px-4 py-2 text-[0.8125rem] font-medium text-ink-3 md:grid md:grid-cols-[11rem_minmax(0,1fr)_10rem]"
               >
                 <span>Quando</span>
                 <span>Attività</span>
@@ -295,7 +295,7 @@ function EventRun({ run, names }: { run: AuditEvent[]; names: Map<string, string
           type="button"
           onClick={() => setOpen(true)}
           aria-label={`Mostra tutte le ${run.length} attività uguali, dalle ${formatDateTime(run.at(-1)!.at)}`}
-          className="ms-2 inline-flex h-6 items-center gap-0.5 rounded-full bg-sunk px-2 align-[1px] text-xs font-semibold text-ink-2 tabular-nums hover:bg-line hover:text-ink"
+          className="ms-2 inline-flex h-6 items-center gap-0.5 rounded-full bg-sunk px-2 align-[1px] text-[0.8125rem] font-semibold text-ink-2 tabular-nums hover:bg-line hover:text-ink"
         >
           ×{run.length}
           <ChevronDown className="size-3" aria-hidden />
