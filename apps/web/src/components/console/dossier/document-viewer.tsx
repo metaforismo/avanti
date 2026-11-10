@@ -1,6 +1,14 @@
 "use client";
 
-import { Check, ChevronLeft, ChevronRight, Download, RotateCcw, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  RotateCcw,
+  X,
+} from "lucide-react";
 import { Dialog as Primitive } from "radix-ui";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CaseDossier, ChecklistItem, DocumentSummary } from "@avanti/contracts";
@@ -9,7 +17,13 @@ import { Kbd } from "@/components/ui/kbd";
 import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
 import { PdfPreview } from "./pdf-preview";
-import { CHECKLIST_STATUS, DECIDED, formatDateTime } from "@/lib/console/labels";
+import {
+  CHECKLIST_STATUS,
+  DECIDED,
+  formatDateTime,
+  memberSuffix,
+  withMember,
+} from "@/lib/console/labels";
 import { useDownload } from "@/lib/console/use-download";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
@@ -51,6 +65,12 @@ export function DocumentViewer({
     ? dossier.checklist.find((i) => i.id === doc.checklistItemId)
     : undefined;
   const analysis = doc?.analysis;
+  // The automatic check thinks the file is something else than the item it was filed under.
+  const mismatch = Boolean(
+    item &&
+    analysis?.detectedRequirementId &&
+    analysis.detectedRequirementId !== item.requirementId,
+  );
   const canDecide = dossier.status !== "closed" && dossier.status !== "intake";
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -167,12 +187,24 @@ export function DocumentViewer({
           {doc && (
             <>
               <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line ps-4 pe-2">
+                {/* The item the file was filed under is the title, as in the decision beside
+                    it; what the file looks like to the automatic check is said in that panel. */}
                 <div className="min-w-0 flex-1 pe-3">
-                  <Primitive.Title className="truncate text-body-sm font-semibold">
-                    {analysis?.detectedLabel ?? doc.fileName}
-                  </Primitive.Title>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Primitive.Title className="min-w-0 truncate text-body-sm font-semibold">
+                      {item?.title ?? analysis?.detectedLabel ?? doc.fileName}
+                    </Primitive.Title>
+                    {item && memberSuffix(item) && (
+                      <Pill tone="neutral" className="max-w-40 min-w-0">
+                        <span dir="auto" className="truncate">
+                          {memberSuffix(item)}
+                        </span>
+                      </Pill>
+                    )}
+                  </div>
                   <Primitive.Description className="truncate text-xs text-ink-3">
-                    {doc.fileName} · caricato {formatDateTime(doc.uploadedAt)}
+                    <span dir="auto">{doc.fileName}</span> · caricato{" "}
+                    {formatDateTime(doc.uploadedAt)}
                   </Primitive.Description>
                 </div>
                 <span className="tabular px-2 text-sm text-ink-3">
@@ -295,14 +327,30 @@ export function DocumentViewer({
                         {analysis.engine === "heuristic" && (
                           <p className="sr-only">Analisi euristica, senza AI.</p>
                         )}
+                        {/* Said only when it differs from the item the file was filed under:
+                            otherwise «Abbinato a» below already says it. */}
+                        {mismatch && analysis.detectedLabel && (
+                          <p className="mt-3 flex items-start gap-2 rounded-sm bg-warn-wash px-2.5 py-2 text-sm">
+                            <AlertTriangle
+                              className="mt-0.5 size-3.5 shrink-0 text-warn"
+                              aria-hidden
+                            />
+                            <span className="min-w-0">
+                              Sembra:{" "}
+                              <span className="font-semibold">{analysis.detectedLabel}</span>{" "}
+                              <span className="tabular text-ink-3">
+                                ({Math.round(analysis.confidence * 100)}%)
+                              </span>
+                              <span className="sr-only">
+                                , non coincide con la voce a cui è abbinato
+                              </span>
+                            </span>
+                          </p>
+                        )}
                         <dl className="mt-3 grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-x-3 gap-y-2.5 text-sm">
                           <Row
                             label="Abbinato a"
-                            value={
-                              item
-                                ? `${item.title}${item.memberName ? `, ${item.memberName}` : ""}`
-                                : "Nessuna voce"
-                            }
+                            value={item ? withMember(item, ", ") : "Nessuna voce"}
                           />
                           <Row label="Intestatario" value={analysis.ownerName} />
                           <Row label="Anno" value={analysis.referenceYear?.toString() ?? null} />
@@ -422,7 +470,7 @@ function DocumentRail({
                   </span>
                   <span className="block truncate text-xs text-ink-3">
                     {state.label}
-                    {item?.memberName ? ` · ${item.memberName}` : ""}
+                    {item && memberSuffix(item) ? ` · ${memberSuffix(item)}` : ""}
                   </span>
                 </span>
               </button>
@@ -503,10 +551,16 @@ function Decision({
   return (
     <section aria-label="Decisione sulla voce" className="border-b border-line px-5 py-5">
       <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 font-semibold">
-          {item.title}
-          {item.memberName && <span className="font-normal text-ink-3"> · {item.memberName}</span>}
-        </p>
+        <div className="min-w-0">
+          <p className="font-semibold text-balance">{item.title}</p>
+          {memberSuffix(item) && (
+            <Pill tone="neutral" className="mt-1.5 max-w-full min-w-0">
+              <span dir="auto" className="truncate">
+                {memberSuffix(item)}
+              </span>
+            </Pill>
+          )}
+        </div>
         <Pill tone={status.tone} className="mt-0.5">
           {status.label}
         </Pill>

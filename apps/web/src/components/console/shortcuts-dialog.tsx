@@ -22,6 +22,7 @@ const GROUPS = [
       [["I"], "Chiedi un'integrazione"],
       [["P"], "Segna come pronta"],
       [["N"], "Prossima pratica della coda, con gli stessi filtri"],
+      [["⌘", "J"], "Chiedi al fascicolo (Ctrl+J su Windows)"],
     ],
   },
   {
@@ -44,7 +45,7 @@ export function ShortcutsDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="Scorciatoie da tastiera">
+    <Dialog open={open} onOpenChange={onOpenChange} title="Scorciatoie da tastiera" focusContent>
       <div className="grid gap-5">
         {GROUPS.map((group) => (
           <section key={group.title}>

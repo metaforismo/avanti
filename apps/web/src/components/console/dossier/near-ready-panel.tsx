@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { CaseDossier } from "@avanti/contracts";
 import { requestLabel } from "@avanti/core/request-labels";
 import { Button } from "@/components/ui/button";
-import { formatDateTime } from "@/lib/console/labels";
+import { formatDateTime, memberSuffix } from "@/lib/console/labels";
 import { cn } from "@/lib/cn";
 import type { DossierActions } from "./dossier-view";
 
@@ -39,7 +39,7 @@ export function NearReadyPanel({
   actions: DossierActions;
 }) {
   const near = dossier.nearReady!;
-  if (near.blindReviewRequired) return <BlindReview near={near} actions={actions} />;
+  if (near.blindReviewRequired) return <BlindReview actions={actions} />;
   if (near.state === "suggested" || (near.state === "shadow" && near.mode === "visible"))
     return <Suggestion near={near} dossier={dossier} actions={actions} />;
   if (near.state === "accepted")
@@ -100,53 +100,91 @@ function Shell({
   );
 }
 
-function BlindReview({ near, actions }: { near: NearReady; actions: DossierActions }) {
-  const [ready, setReady] = useState<boolean | null>(null);
-  const [reason, setReason] = useState<Reason>("other");
+/**
+ * The pilot's blind question, as a strip above the dossier rather than a card before it: the
+ * case stays above the fold. A choice is recorded at once; «Non ancora» first asks what is
+ * missing, the same data the old form collected.
+ */
+function BlindReview({ actions }: { actions: DossierActions }) {
+  const [answer, setAnswer] = useState<"yes" | "no" | null>(null);
+  const [asking, setAsking] = useState(false);
   const busy = actions.pending === "near:blind-review";
+  const record = (ready: boolean, reason: Reason) => {
+    setAnswer(ready ? "yes" : "no");
+    void actions.nearReady("blind-review", { ready, reason });
+  };
   return (
-    <Shell
-      tone="neutral"
-      title="Prima di guardare: secondo te è pronta?"
-      meta="Valutazione del pilota"
+    <section
+      aria-labelledby="blind-review-title"
+      className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2 rounded-lg bg-stamp-wash/50 px-4 py-2.5 ring-1 ring-stamp/15 ring-inset"
     >
-      <p className="text-ink-2">
-        Avanti ha già valutato se questa pratica si presta a una revisione rapida. Per misurare bene
-        il pilota, dicci prima il tuo giudizio: poi vedrai il suggerimento.
+      <p className="min-w-0 flex-1 basis-60 text-body-sm">
+        <span id="blind-review-title" className="font-semibold">
+          {asking ? "Che cosa manca, soprattutto?" : "Prima di guardare: secondo te è pronta?"}
+        </span>{" "}
+        <span className="text-ink-3 max-2xl:hidden">
+          {asking ? "" : "Poi vedrai il suggerimento di Avanti."}
+        </span>
       </p>
-      <div role="radiogroup" aria-label="Il tuo giudizio" className="flex flex-wrap gap-2">
-        {([true, false] as const).map((value) => (
-          <button
-            key={String(value)}
-            type="button"
-            role="radio"
-            aria-checked={ready === value}
-            onClick={() => setReady(value)}
-            className={cn(
-              "h-10 rounded-full px-4 text-sm font-semibold ring-1 transition-colors",
-              ready === value
-                ? "bg-contrast text-on-contrast ring-contrast"
-                : "text-ink-2 ring-line-strong hover:bg-sunk",
-            )}
+      {asking ? (
+        <div role="group" aria-labelledby="blind-review-title" className="flex flex-wrap gap-1.5">
+          {(Object.keys(REASONS) as Reason[]).map((key) => (
+            <StripButton
+              key={key}
+              disabled={busy}
+              loading={busy && answer === "no"}
+              onClick={() => record(false, key)}
+            >
+              {REASONS[key]}
+            </StripButton>
+          ))}
+          <StripButton quiet disabled={busy} onClick={() => setAsking(false)}>
+            Annulla
+          </StripButton>
+        </div>
+      ) : (
+        <div className="flex gap-1.5">
+          <StripButton
+            disabled={busy}
+            loading={busy && answer === "yes"}
+            onClick={() => record(true, "other")}
           >
-            {value ? "Sì, mi sembra pronta" : "No, non ancora"}
-          </button>
-        ))}
-      </div>
-      {ready === false && (
-        <ReasonSelect value={reason} onChange={setReason} label="Che cosa manca, soprattutto?" />
+            <Check className="size-3.5" aria-hidden />
+            Sì, è pronta
+          </StripButton>
+          <StripButton disabled={busy} onClick={() => setAsking(true)}>
+            Non ancora
+          </StripButton>
+        </div>
       )}
-      <div>
-        <Button
-          disabled={ready === null}
-          loading={busy}
-          onClick={() => void actions.nearReady("blind-review", { ready, reason })}
-        >
-          Registra e mostra il suggerimento
-        </Button>
-      </div>
-      <Checked near={near} />
-    </Shell>
+    </section>
+  );
+}
+
+function StripButton({
+  quiet = false,
+  loading = false,
+  disabled,
+  onClick,
+  children,
+}: {
+  quiet?: boolean;
+  loading?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      size="sm"
+      variant={quiet ? "ghost" : "secondary"}
+      loading={loading}
+      disabled={disabled && !loading}
+      onClick={onClick}
+      className="h-7 px-2.5"
+    >
+      {children}
+    </Button>
   );
 }
 
@@ -274,7 +312,9 @@ function Accepted({
                   </span>
                   <span className="min-w-0 flex-1 truncate" title={requestLabel(item)}>
                     {item.title}
-                    {item.memberName && <span className="text-ink-3"> · {item.memberName}</span>}
+                    {memberSuffix(item) && (
+                      <span className="text-ink-3"> · {memberSuffix(item)}</span>
+                    )}
                   </span>
                 </button>
               </li>
@@ -497,8 +537,4 @@ function ReasonSelect({
       </select>
     </label>
   );
-}
-
-function Checked({ near }: { near: NearReady }) {
-  return <p className="text-xs text-ink-3">Controllata {formatDateTime(near.checkedAt)}</p>;
 }

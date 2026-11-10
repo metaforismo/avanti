@@ -10,7 +10,7 @@ import { Notice } from "@/components/ui/notice";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { createRetryKeys, withRetryKey } from "@/lib/idempotency";
 import { MAX_LISTED } from "@/lib/console/citizen-notice";
-import { LANGUAGE_IT } from "@/lib/console/labels";
+import { LANGUAGE_IT, memberSuffix, withMember } from "@/lib/console/labels";
 import { useResource } from "@/lib/console/use-resource";
 
 const NEEDS_ACTION = new Set(["missing", "rejected", "issue"]);
@@ -101,7 +101,7 @@ function RequestForm({
   );
   const label = (id: string) => {
     const item = dossier.checklist.find((i) => i.id === id);
-    return item ? (item.memberName ? `${item.title} di ${item.memberName}` : item.title) : "";
+    return item ? withMember(item, " di ") : "";
   };
   const [message, setMessage] = useState(() =>
     reply ? reply.draft.message.slice(0, 1000) : defaultMessage(dossier, selected.map(label)),
@@ -228,7 +228,7 @@ function RequestForm({
       label={
         <>
           {item.title}
-          {item.memberName && <span className="text-ink-3"> · {item.memberName}</span>}
+          {memberSuffix(item) && <span className="text-ink-3"> · {memberSuffix(item)}</span>}
         </>
       }
     />

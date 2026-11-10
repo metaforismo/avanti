@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, formatMinutes, timeAgo } from "./labels";
+import { formatBytes, formatMinutes, memberSuffix, timeAgo, withMember } from "./labels";
 
 describe("formatMinutes", () => {
   it.each([
@@ -39,5 +39,33 @@ describe("timeAgo", () => {
   });
   it("switches to a date after a week", () => {
     expect(timeAgo("2026-12-20T10:00:00Z", now)).toMatch(/20 dic/);
+  });
+});
+
+describe("withMember", () => {
+  it("names the person after the item", () => {
+    expect(withMember({ title: "Documento d’identità", memberName: "Maria Rossi" })).toBe(
+      "Documento d’identità · Maria Rossi",
+    );
+    expect(withMember({ title: "Codice fiscale", memberName: "Maria" }, " di ")).toBe(
+      "Codice fiscale di Maria",
+    );
+  });
+
+  it("does not repeat a name the title already ends with", () => {
+    const item = { title: "Saldo al 31/12/2025 e dati del rapporto · Prova", memberName: "Prova" };
+    expect(withMember(item)).toBe(item.title);
+    expect(memberSuffix(item)).toBeNull();
+    // Case and spacing do not make it a different name.
+    expect(memberSuffix({ title: "Giacenza media ·  PROVA ", memberName: "prova" })).toBeNull();
+  });
+
+  it("keeps a name that only appears inside the title", () => {
+    expect(memberSuffix({ title: "Conto Maria Bank · Intesa", memberName: "Maria" })).toBe("Maria");
+  });
+
+  it("leaves the title alone without a person", () => {
+    expect(withMember({ title: "IBAN", memberName: null })).toBe("IBAN");
+    expect(memberSuffix({ title: "IBAN", memberName: "  " })).toBeNull();
   });
 });
