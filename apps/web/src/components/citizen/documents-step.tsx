@@ -11,6 +11,7 @@ import {
   FileUp,
   History,
   MessageCircle,
+  Plus,
   Trash2,
   X,
 } from "lucide-react";
@@ -37,8 +38,9 @@ import { cn } from "@/lib/cn";
 import { directionOf } from "@/lib/citizen/document-language";
 import { documentCountsOf, readinessOf, splitRequest } from "@/lib/citizen/view";
 import type { Readiness } from "@avanti/core/readiness";
-import { requestLabel } from "@avanti/core/request-labels";
+import { ownerSuffix, requestLabel } from "@avanti/core/request-labels";
 import { ActionErrorNotice } from "./action-error";
+import { Bidi } from "./bidi";
 import type { StepProps } from "./citizen-app";
 import { PhotoTips } from "./photo-tips";
 import { SaveLinkActions } from "./save-link";
@@ -56,7 +58,7 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
   const progressLabel = documentsProgress(data.language, counts, m);
   const unmatched = data.documents.filter((doc) => !doc.checklistItemId);
   const operatorMessage = data.status === "needs_citizen" ? lastOperatorMessage(data) : null;
-  const sections = groupByMember(data, m);
+  const sections = useFrozenOrder(groupByMember(data, m));
   const request = operatorMessage ? splitRequest(operatorMessage.text, data.checklist) : null;
 
   // A waiting-room connection comes and goes: when the browser says it is back, what failed while
@@ -180,7 +182,9 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
                     {Array.from(section.title.trim())[0]?.toUpperCase()}
                   </span>
                 )}
-                <span className="line-clamp-2 min-w-0 break-words">{section.title}</span>
+                <span className="line-clamp-2 min-w-0 break-words">
+                  <Bidi text={section.title} />
+                </span>
               </h2>
               <span
                 aria-hidden
@@ -262,9 +266,10 @@ export function DocumentsStep({ api, data, m, goTo, token }: StepProps) {
           className="fixed inset-x-0 bottom-0 z-20 animate-dock-in bg-surface shadow-dock"
         >
           <div className="mx-auto flex max-w-xl flex-col gap-2.5 px-5 pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+            {/* On a short screen the button alone: the sentence repeats the count above. */}
             <p
               className={cn(
-                "flex items-center gap-2 text-sm",
+                "flex items-center gap-2 text-sm [@media(max-height:640px)]:hidden",
                 counts.todo + counts.checking === 0 ? "font-semibold text-ok" : "text-ink-2",
               )}
             >
@@ -326,6 +331,24 @@ function lastOperatorMessage(data: CitizenCase) {
   return null;
 }
 
+/**
+ * The order of the cards is taken once, when the step opens: a card that becomes ready stays
+ * where the citizen's thumb left it and shows its tick there, instead of sliding to the bottom
+ * while another one takes its place. Items that appear later (an answer edited, a request from
+ * the office) join at the end of their section; the next visit sorts again.
+ */
+function useFrozenOrder(sections: ReturnType<typeof groupByMember>) {
+  const [order] = useState(() => sections.flatMap((section) => section.items.map((i) => i.id)));
+  const rank = (id: string) => {
+    const index = order.indexOf(id);
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  };
+  return sections.map((section) => ({
+    ...section,
+    items: [...section.items].sort((a, b) => rank(a.id) - rank(b.id)),
+  }));
+}
+
 function groupByMember(data: CitizenCase, m: M) {
   const sections = new Map<string, { key: string; title: string; items: ChecklistItem[] }>();
   for (const item of data.checklist) {
@@ -337,7 +360,12 @@ function groupByMember(data: CitizenCase, m: M) {
   // Required and unfinished first: what still needs doing is what people look for.
   const rank = (item: ChecklistItem) =>
     (item.required ? 0 : 2) + (readinessOf(item, data) === "todo" ? 0 : 1);
-  return [...sections.values()].map((section) => ({
+  // What is for the whole family comes first: at the bottom, under every person, it was the
+  // item found only by scrolling, and the counts above did not seem to add up.
+  const ordered = [...sections.values()].sort(
+    (a, b) => Number(b.key === "household") - Number(a.key === "household"),
+  );
+  return ordered.map((section) => ({
     ...section,
     items: [...section.items].sort((a, b) => rank(a) - rank(b)),
   }));
@@ -428,8 +456,11 @@ function ChecklistCard({
   const uploads = api.uploads.filter((u) => u.checklistItemId === item.id);
   const readiness = readinessOf(item, data);
   const { status, shown, warn, changed } = useStatus(item, readiness);
-  // Ready or being read: nothing for the citizen to do, so the card stops explaining.
+  // Ready or being read: nothing for the citizen to do, so the card stops explaining, after a
+  // moment: the explanation stays long enough for the tick to be seen where the photo was taken.
   const done = readiness !== "todo";
+  const phase = useSettling(done);
+  const compact = done && phase === "settled";
 
   return (
     <li
@@ -439,7 +470,7 @@ function ChecklistCard({
         "rounded-xl bg-surface p-4 ring-1 transition-[box-shadow,background-color] duration-200 outline-none data-jumped:ring-2 data-jumped:ring-stamp",
         // What still needs the citizen lifts off the page; what is done lies flat.
         warn ? "bg-warn-wash/40 ring-warn/40" : done ? "ring-line" : "shadow-raised ring-line",
-        done && "py-3.5",
+        compact && "py-3.5",
       )}
     >
       <div className="flex items-start gap-3">
@@ -449,7 +480,7 @@ function ChecklistCard({
             id={`${itemId(item.id)}-title`}
             className="text-[1.0625rem] leading-snug font-semibold"
           >
-            {item.title}
+            <Bidi text={item.title} />
           </h3>
           <p
             className={cn(
@@ -462,7 +493,44 @@ function ChecklistCard({
           </p>
         </div>
       </div>
-      {!done && <p className="mt-3 text-body-sm text-ink-2">{item.description}</p>}
+      {!compact && (
+        <div
+          className={cn(
+            "transition-opacity duration-200 ease-(--ease-out)",
+            phase === "fading" && "opacity-0",
+          )}
+        >
+          <p className="mt-3 text-body-sm text-ink-2">{item.description}</p>
+          {item.howToGet && (
+            <div className="mt-3">
+              <button
+                type="button"
+                aria-expanded={howOpen}
+                aria-controls={howId}
+                onClick={() => setHowOpen((v) => !v)}
+                className="inline-flex min-h-9 items-center gap-1 rounded-sm text-sm font-semibold text-stamp"
+              >
+                {m.docs.howToGet}
+                <ChevronDown
+                  className={cn(
+                    "size-4 transition-transform duration-200",
+                    howOpen && "rotate-180",
+                  )}
+                  aria-hidden
+                />
+              </button>
+              {howOpen && (
+                <p
+                  id={howId}
+                  className="mt-2 animate-fade-in rounded-sm bg-sunk px-3 py-2.5 whitespace-pre-line text-ink-2"
+                >
+                  {item.howToGet}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {item.note && (
         <p className="mt-3 rounded-sm bg-warn-wash px-3 py-2.5 text-ink">
@@ -475,32 +543,6 @@ function ChecklistCard({
         <FindingLine key={finding.id} finding={finding} />
       ))}
 
-      {item.howToGet && !done && (
-        <div className="mt-3">
-          <button
-            type="button"
-            aria-expanded={howOpen}
-            aria-controls={howId}
-            onClick={() => setHowOpen((v) => !v)}
-            className="inline-flex min-h-9 items-center gap-1 rounded-sm text-sm font-semibold text-stamp"
-          >
-            {m.docs.howToGet}
-            <ChevronDown
-              className={cn("size-4 transition-transform duration-200", howOpen && "rotate-180")}
-              aria-hidden
-            />
-          </button>
-          {howOpen && (
-            <p
-              id={howId}
-              className="mt-2 animate-fade-in rounded-sm bg-sunk px-3 py-2.5 whitespace-pre-line text-ink-2"
-            >
-              {item.howToGet}
-            </p>
-          )}
-        </div>
-      )}
-
       {documents.length > 0 && (
         <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-2">
           {documents.map((doc) => (
@@ -510,15 +552,19 @@ function ChecklistCard({
       )}
       <PendingUploads uploads={uploads} api={api} m={m} />
 
-      {item.status !== "verified" && item.status !== "waived" && (
-        <UploadButtons
-          api={api}
-          m={m}
-          checklistItemId={item.id}
-          hasDocuments={documents.length > 0}
-          className="mt-4"
-        />
-      )}
+      {item.status !== "verified" &&
+        item.status !== "waived" &&
+        (done ? (
+          <AddPageLink api={api} m={m} checklistItemId={item.id} />
+        ) : (
+          <UploadButtons
+            api={api}
+            m={m}
+            checklistItemId={item.id}
+            hasDocuments={documents.length > 0}
+            className="mt-4"
+          />
+        ))}
     </li>
   );
 }
@@ -559,8 +605,9 @@ function UploadButtons({
   };
 
   return (
-    // Two equal buttons side by side; they stack when a language makes the labels too long.
-    <div className={cn("flex flex-wrap gap-2", className)}>
+    // The same pair on every item still to do. On phones narrower than 400 px they stack: side
+    // by side «Scatta una foto» broke in two inside a 48 px key.
+    <div className={cn("grid grid-cols-1 gap-2 min-[400px]:grid-cols-2", className)}>
       <input
         ref={cameraRef}
         type="file"
@@ -592,7 +639,7 @@ function UploadButtons({
         size="touch"
         type="button"
         variant="tinted"
-        className="hidden min-h-12 min-w-[8.5rem] flex-1 rounded-xl pointer-coarse:inline-flex"
+        className="hidden min-h-12 rounded-xl whitespace-nowrap pointer-coarse:inline-flex"
         onClick={() => cameraRef.current?.click()}
       >
         <Camera className="size-[1.125rem]" aria-hidden />
@@ -603,7 +650,7 @@ function UploadButtons({
         type="button"
         variant="tinted"
         // On phones the camera is the main way in; choosing a file steps back to a plain button.
-        className="rounded-xl pointer-coarse:min-h-12 pointer-coarse:min-w-[8.5rem] pointer-coarse:flex-1 pointer-coarse:bg-surface pointer-coarse:text-ink pointer-coarse:ring-1 pointer-coarse:ring-line-strong pointer-coarse:ring-inset"
+        className="w-fit rounded-xl whitespace-nowrap pointer-coarse:min-h-12 pointer-coarse:w-auto pointer-coarse:bg-surface pointer-coarse:text-ink pointer-coarse:ring-1 pointer-coarse:ring-line-strong pointer-coarse:ring-inset"
         onClick={() => fileRef.current?.click()}
       >
         <FileUp className="size-4" aria-hidden />
@@ -613,6 +660,71 @@ function UploadButtons({
         <span className="hidden pointer-coarse:inline">{m.docs.chooseFile}</span>
       </Button>
     </div>
+  );
+}
+
+/**
+ * Holding → fading → settled, after an item becomes done in this session: 1.2 s with the tick
+ * and the explanation together, 200 ms of fade, then the compact card. Already done on opening:
+ * settled from the start.
+ */
+function useSettling(done: boolean) {
+  const [state, setState] = useState<{ done: boolean; phase: "holding" | "fading" | "settled" }>({
+    done,
+    phase: "settled",
+  });
+  if (state.done !== done) setState({ done, phase: done ? "holding" : "settled" });
+  useEffect(() => {
+    if (state.phase === "settled") return;
+    const timer = window.setTimeout(
+      () =>
+        setState((current) => ({
+          ...current,
+          phase: current.phase === "holding" ? "fading" : "settled",
+        })),
+      state.phase === "holding" ? 1200 : 200,
+    );
+    return () => window.clearTimeout(timer);
+  }, [state.phase]);
+  return state.phase;
+}
+
+/** On a done item another page is a quiet link, not a second pair of big keys. */
+function AddPageLink({
+  api,
+  m,
+  checklistItemId,
+}: {
+  api: CitizenCaseApi;
+  m: M;
+  checklistItemId: string;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={fileRef}
+        type="file"
+        accept={ACCEPT}
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          for (const file of Array.from(e.target.files ?? []))
+            void api.upload(file, checklistItemId);
+          e.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        className="-ms-1 mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-sm px-1 text-[0.9375rem] font-semibold text-stamp"
+      >
+        <Plus className="size-4" aria-hidden />
+        {m.docs.addPage}
+      </button>
+    </>
   );
 }
 
@@ -865,7 +977,7 @@ function DocumentRow({
             <option value="">{m.docs.notAssigned}</option>
             {data.checklist.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.memberName ? `${item.title} (${item.memberName})` : item.title}
+                {ownerSuffix(item) ? `${item.title} (${ownerSuffix(item)})` : item.title}
               </option>
             ))}
           </Select>

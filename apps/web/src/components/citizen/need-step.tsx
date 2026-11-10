@@ -1,14 +1,14 @@
 "use client";
 
 import {
-  ArrowUpRight,
   Baby,
   ChevronDown,
+  ChevronRight,
   Clock,
   FileText,
   IdCard,
   ListChecks,
-  Receipt,
+  ReceiptEuro,
 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { PracticeSummary } from "@avanti/contracts";
@@ -17,11 +17,13 @@ import { Notice } from "@/components/ui/notice";
 import { Pill } from "@/components/ui/pill";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
+import { candidatePractices } from "@/lib/citizen/candidates";
 import { plural } from "@/lib/citizen/messages";
 import { cn } from "@/lib/cn";
 import { ActionErrorNotice } from "./action-error";
 import { WaitingStatus } from "./waiting-status";
 import { AssistantMessage, lastMessage } from "./assistant-message";
+import { ChatBubble } from "./chat-bubble";
 import { Composer } from "./composer";
 import type { StepProps } from "./citizen-app";
 import { STEP_TITLE_ID } from "@/lib/citizen/view";
@@ -47,6 +49,13 @@ export function NeedStep({ api, data, m, token }: StepProps) {
   const textareaId = useId();
   const sending = api.pending === "text";
   const assistant = lastMessage(data.messages, "assistant");
+  // What the citizen wrote stays on screen above the reply, also when Avanti could not tell which
+  // practice it is: three lines that vanish read as lost.
+  const mine = lastMessage(data.messages, "citizen");
+  const showMine =
+    mine !== undefined &&
+    assistant !== undefined &&
+    data.messages.indexOf(mine) < data.messages.indexOf(assistant);
 
   async function send(value: string) {
     const trimmed = value.trim();
@@ -72,12 +81,22 @@ export function NeedStep({ api, data, m, token }: StepProps) {
         <p className="mx-auto mt-3 max-w-sm text-lg text-ink-2">{m.need.hint}</p>
       </div>
 
-      {assistant && (
-        <AssistantMessage
-          message={assistant}
-          label={m.interview.assistant}
-          question={data.nextQuestion?.prompt}
-        />
+      {(showMine || assistant) && (
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
+          {showMine && (
+            <ol className="grid">
+              <ChatBubble from="citizen" label={m.conversation.you} text={mine.text} />
+            </ol>
+          )}
+          <AssistantMessage
+            message={assistant}
+            label={m.interview.assistant}
+            question={data.nextQuestion?.prompt}
+          />
+          {showMine && !data.practice && !data.nextQuestion && !api.unavailablePractice && (
+            <PracticePills story={mine.text} {...{ api, data, m }} />
+          )}
+        </div>
       )}
       {data.nextQuestion && <QuestionCard api={api} question={data.nextQuestion} m={m} />}
 
@@ -126,8 +145,9 @@ export function NeedStep({ api, data, m, token }: StepProps) {
                     <Icon className="size-5" aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1 text-ink">{example}</span>
-                  <ArrowUpRight
-                    className="rtl-flip size-4 shrink-0 text-ink-3 transition-colors group-hover:text-ink"
+                  {/* A tap sends the sentence: a chevron, not the ↗ of a link leaving Avanti. */}
+                  <ChevronRight
+                    className="rtl-flip size-4 shrink-0 text-ink-3 transition-[color,transform] duration-150 ease-(--ease-out) group-hover:translate-x-0.5 group-hover:text-ink rtl:group-hover:-translate-x-0.5"
                     aria-hidden
                   />
                 </button>
@@ -158,21 +178,67 @@ export function NeedStep({ api, data, m, token }: StepProps) {
 }
 
 // ISEE, 730, residence permit, child benefit: the order of `m.need.examples` in every language.
-const EXAMPLE_ICONS = [FileText, Receipt, IdCard, Baby] as const;
+const EXAMPLE_ICONS = [FileText, ReceiptEuro, IdCard, Baby] as const;
 
-function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
+/**
+ * The practices the story seems to be about, one tap each: «ISEE» and «Assegno unico» under
+ * «ISEE per l'assegno unico», instead of sending the citizen to look for them in the list.
+ */
+function PracticePills({
+  story,
+  api,
+  data,
+  m,
+}: Pick<StepProps, "api" | "data" | "m"> & { story: string }) {
+  const { practices } = usePractices(data.language);
+  if (!Array.isArray(practices)) return null;
+  const candidates = candidatePractices(story, practices);
+  if (candidates.length === 0) return null;
+  return (
+    <ul aria-label={m.need.pick} className="flex animate-rise flex-wrap gap-2 ps-10">
+      {candidates.map((practice) => (
+        <li key={practice.id}>
+          <button
+            type="button"
+            disabled={api.pending !== null}
+            onClick={() =>
+              void api.turn(
+                { type: "choose_practice", practiceId: practice.id },
+                `choose:${practice.id}`,
+              )
+            }
+            className="inline-flex min-h-12 items-center gap-2 rounded-full bg-surface px-4 font-semibold text-stamp shadow-raised ring-1 ring-stamp/30 transition-[background-color,transform] duration-150 ease-(--ease-out) ring-inset hover:bg-stamp-wash active:scale-[0.96] disabled:opacity-60"
+          >
+            {api.pending === `choose:${practice.id}` && <Spinner className="size-4" />}
+            {practice.name}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function usePractices(language: string) {
   const [practices, setPractices] = useState<PracticeSummary[] | "error" | null>(null);
   const [attempt, setAttempt] = useState(0);
-
   useEffect(() => {
     let cancelled = false;
-    apiFetch<PracticeSummary[]>(`/api/practices?lang=${data.language}`)
+    apiFetch<PracticeSummary[]>(`/api/practices?lang=${language}`)
       .then((list) => !cancelled && setPractices(list))
       .catch(() => !cancelled && setPractices("error"));
     return () => {
       cancelled = true;
     };
-  }, [data.language, attempt]);
+  }, [language, attempt]);
+  const retry = () => {
+    setPractices(null);
+    setAttempt((n) => n + 1);
+  };
+  return { practices, retry };
+}
+
+function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
+  const { practices, retry } = usePractices(data.language);
 
   if (practices === null) {
     return (
@@ -188,14 +254,7 @@ function PracticeList({ api, data, m }: Pick<StepProps, "api" | "data" | "m">) {
         size="md"
         className="mt-3"
         action={
-          <Button
-            variant="secondary"
-            size="touch"
-            onClick={() => {
-              setPractices(null);
-              setAttempt((n) => n + 1);
-            }}
-          >
+          <Button variant="secondary" size="touch" onClick={retry}>
             {m.common.retry}
           </Button>
         }

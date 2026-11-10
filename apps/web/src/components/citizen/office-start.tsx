@@ -8,7 +8,6 @@ import type { Language, Office, OrganizationPublic, StartIntakeResponse } from "
 import { LANGUAGES, RTL_LANGUAGES } from "@avanti/contracts/constants";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Form } from "@/components/ui/form";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +37,19 @@ function checkedLanguage(root: ParentNode) {
 function saveData() {
   const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
   return connection?.saveData === true;
+}
+
+/** Words every office name starts with: their initial would be «C» or «P» for nearly all. */
+const GENERIC_WORDS = new Set(["caf", "patronato", "centro", "di", "del", "della", "dei", "delle"]);
+
+/** «CAF Demo Milano» → «D»: the first word that tells this office apart. */
+export function organizationInitial(name: string) {
+  const words = name
+    .trim()
+    .split(/[\s'’.-]+/u)
+    .filter(Boolean);
+  const telling = words.find((word) => !GENERIC_WORDS.has(word.toLocaleLowerCase("it")));
+  return Array.from(telling ?? words[0] ?? "")[0]?.toLocaleUpperCase("it") ?? "";
 }
 
 export type OfficeInfo = { office: Office; organization: OrganizationPublic };
@@ -183,7 +195,7 @@ export function OfficeStart({
                 translate="no"
                 className="grid size-11 shrink-0 place-items-center rounded-[0.95rem] bg-contrast font-display text-xl font-bold text-on-contrast"
               >
-                {Array.from(info.organization.name.trim())[0]?.toUpperCase()}
+                {organizationInitial(info.organization.name)}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-display text-lg leading-tight font-semibold">
@@ -209,7 +221,7 @@ export function OfficeStart({
       </header>
 
       {/* Room at the bottom for the pinned «Inizia» bar. */}
-      <main className="mx-auto max-w-xl px-5 pt-8 pb-44">
+      <main className="mx-auto max-w-xl px-5 pt-8 pb-56">
         {resumeToken && (
           <Notice
             tone="info"
@@ -263,10 +275,10 @@ export function OfficeStart({
             <legend className="mb-3 text-lg font-semibold">{m.start.chooseLanguage}</legend>
             <div className="grid grid-cols-2 gap-2.5">
               {LANGUAGES.map((code) => (
+                // The pill keeps the page's direction, so the column reads straight; only the
+                // name is isolated in its own script and direction.
                 <label
                   key={code}
-                  lang={code}
-                  dir={RTL_LANGUAGES.includes(code) ? "rtl" : "ltr"}
                   className={cn(
                     "flex min-h-14 cursor-pointer items-center justify-between gap-2 rounded-xl bg-surface px-4 text-[1.0625rem] ring-1 ring-line transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) select-none ring-inset active:scale-[0.97]",
                     "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
@@ -284,15 +296,18 @@ export function OfficeStart({
                   />
                   {/* System font for the other scripts' names: one word isn't worth a 100–200 KB font
                       on the waiting-room network. Choosing the language loads the real one. */}
-                  <span
+                  <bdi
+                    lang={code}
+                    dir={RTL_LANGUAGES.includes(code) ? "rtl" : "ltr"}
                     className={cn(
+                      "min-w-0",
                       code !== language &&
                         NON_LATIN.has(code) &&
                         "[font-family:system-ui,sans-serif]",
                     )}
                   >
                     {LANGUAGE_NAMES[code].native}
-                  </span>
+                  </bdi>
                   <Check
                     className="hidden size-5 shrink-0 animate-check-in group-has-checked:block"
                     strokeWidth={2.5}
@@ -340,22 +355,6 @@ export function OfficeStart({
             </p>
           </div>
 
-          <div {...rise(4, "grid gap-3")}>
-            <Checkbox
-              look="card"
-              id="consent"
-              label={m.start.consent}
-              onChange={() => setConsentError(false)}
-              aria-invalid={consentError || undefined}
-              aria-describedby={consentError ? "consent-error" : undefined}
-            />
-            {consentError && (
-              <p id="consent-error" role="alert" className="text-sm font-medium text-danger">
-                {m.start.consentRequired}
-              </p>
-            )}
-          </div>
-
           {startError && (
             <Notice tone="danger" size="md">
               {startError}
@@ -365,13 +364,49 @@ export function OfficeStart({
           {/* Pinned to the thumb, like the main action of an app; inside the form, so a tap
               before hydration is still held and sent (components/ui/form). */}
           <div className="fixed inset-x-0 bottom-0 z-20 animate-dock-in bg-surface shadow-dock">
-            <div className="mx-auto max-w-xl px-5 pt-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+            <div className="mx-auto max-w-xl px-5 pt-2 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+              {/* The consent sits on the key it unlocks, not 600 px above it. */}
+              <label className="group flex min-h-11 cursor-pointer items-center gap-3 text-[0.9375rem] leading-snug select-none">
+                {/* The real checkbox covers the drawn box, so a tap or a test's click lands on it. */}
+                <span className="relative grid shrink-0 place-items-center">
+                  <input
+                    type="checkbox"
+                    id="consent"
+                    name="consent"
+                    onChange={() => setConsentError(false)}
+                    aria-invalid={consentError || undefined}
+                    aria-describedby={consentError ? "consent-error" : undefined}
+                    className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0"
+                  />
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "grid size-[1.375rem] shrink-0 place-items-center rounded-md bg-surface ring-2 ring-line-field transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) ring-inset group-active:scale-90",
+                      "peer-checked:bg-stamp peer-checked:ring-stamp peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-stamp",
+                      "[&>svg]:scale-0 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-(--ease-out) peer-checked:[&>svg]:scale-100",
+                      consentError && "ring-danger",
+                    )}
+                  >
+                    <Check className="size-3.5 text-on-stamp" strokeWidth={3.5} />
+                  </span>
+                </span>
+                <span className="min-w-0 flex-1 text-ink">{m.start.consent}</span>
+              </label>
+              {consentError && (
+                <p
+                  id="consent-error"
+                  role="alert"
+                  className="cz-swap ms-[2.125rem] -mt-1 mb-1 text-sm font-medium text-danger"
+                >
+                  {m.start.consentRequired}
+                </p>
+              )}
               <Button
                 type="submit"
                 size="lg"
                 loading={starting}
                 disabled={!info}
-                className="min-h-14 w-full rounded-xl text-[1.0625rem]"
+                className="mt-1.5 min-h-14 w-full rounded-xl text-[1.0625rem]"
               >
                 {m.start.cta}
               </Button>

@@ -4,6 +4,10 @@ import { cn } from "@/lib/cn";
 /**
  * Width and padding of every console page. Pages start at the same left edge whatever their
  * width, so the title doesn't jump when switching pages; only short notices are centered.
+ *
+ * Two widths, so the right edge doesn't jump either: `wide` (1072 px of content at 1440) for
+ * tables, metrics, reports and status; `form` (720 px) for forms. The dossier is a workspace
+ * with its own side column (`7xl`). The other sizes remain for pages not yet moved to the two.
  */
 export function PageContainer({
   width = "5xl",
@@ -11,12 +15,15 @@ export function PageContainer({
   className,
   children,
 }: {
-  width?: "3xl" | "4xl" | "5xl" | "6xl" | "7xl";
+  width?: "wide" | "form" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl";
   centered?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   const max = {
+    wide: "max-w-6xl",
+    // 720 px of content inside the 40 px side padding.
+    form: "max-w-[50rem]",
     "3xl": "max-w-3xl",
     "4xl": "max-w-4xl",
     "5xl": "max-w-5xl",
@@ -49,7 +56,7 @@ export function PageHeader({
   return (
     <div className={cn("flex flex-wrap items-end justify-between gap-4", className)}>
       <div className="min-w-0">
-        <h1 className="flex items-center gap-2 font-display text-[1.75rem] leading-tight font-bold tracking-[-0.022em]">
+        <h1 className="flex items-center gap-2 font-display text-[1.75rem] leading-tight font-[650] tracking-[-0.012em]">
           {icon}
           {title}
         </h1>

@@ -33,18 +33,19 @@ export function ChatBubble({
         {/* The citizen's own words in the ink of the stamp, growing from the corner they were
             sent from, like a message in any chat app. */}
         <div className="max-w-[85%] origin-bottom-right animate-pop rounded-3xl rounded-ee-md bg-stamp px-4 py-2.5 text-on-stamp rtl:origin-bottom-left">
-          {/* The question first, then who answered: «Hai un'auto? Tu: No», not «Tu: Hai un'auto?». */}
+          {/* The question first, then who answered: «Hai un'auto? Tu: No», not «Tu: Hai
+              un'auto?». The question is a one-line caption: the answer is what is new. */}
           {context && (
-            <blockquote
-              dir="auto"
-              className="mb-1 line-clamp-3 border-s-2 border-on-stamp/40 ps-2 text-sm leading-snug break-words text-on-stamp/80"
-            >
+            <p dir="auto" className="truncate text-[0.8125rem] leading-snug text-on-stamp/75">
               {context}
-            </blockquote>
+            </p>
           )}
           <p
             dir="auto"
-            className={cn("break-words whitespace-pre-line", context && "font-semibold")}
+            className={cn(
+              "break-words whitespace-pre-line",
+              context && "mt-0.5 text-[1.0625rem] leading-snug font-semibold",
+            )}
           >
             {label && <span className="sr-only">{label}: </span>}
             <span>{text}</span>

@@ -1,4 +1,5 @@
 import type { CopilotDossier } from "./copilot";
+import { requestLabel } from "./request-labels";
 
 export interface DossierStatement {
   text: string;
@@ -22,7 +23,7 @@ export function heuristicDossierAsk(d: CopilotDossier, question: string) {
     );
     for (const item of missing.slice(0, 3))
       statements.push({
-        text: `Voce richiesta ${item.status === "rejected" ? "rifiutata" : "mancante"}: ${item.title}${item.memberName ? ` (${item.memberName})` : ""}.`,
+        text: `Voce richiesta ${item.status === "rejected" ? "rifiutata" : "mancante"}: ${requestLabel(item)}.`,
         evidence: [item.id],
         citations: [],
         unavailable: false,

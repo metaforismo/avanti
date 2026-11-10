@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { finishInterview, holdScripts, loseReply, startCase } from "./helpers";
+import { composer, finishInterview, holdScripts, loseReply, startCase } from "./helpers";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
@@ -80,7 +80,7 @@ test("sending again after a lost reply opens the sent case", async ({ page }) =>
 test("confirming again after a lost reply does not leave the card stuck", async ({ page }) => {
   const token = await startCase(page, "Devo fare l'ISEE");
   await page.goto(`/pratica/${token}`);
-  await page.getByLabel("Scrivi qui, con parole tue").fill("Vivo da solo in una casa in affitto");
+  await (await composer(page)).fill("Vivo da solo in una casa in affitto");
   await page.getByRole("button", { name: "Invia", exact: true }).click();
   const confirm = page.getByRole("button", { name: "Sì, è giusto" });
   await expect(confirm).toBeVisible();

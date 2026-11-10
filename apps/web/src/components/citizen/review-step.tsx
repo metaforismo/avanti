@@ -10,6 +10,8 @@ import { documentsProgress, format, plural } from "@/lib/citizen/messages";
 import { documentCountsOf, STEP_TITLE_ID, stillToDo } from "@/lib/citizen/view";
 import { isEmail } from "@/lib/validation";
 import { ActionErrorNotice } from "./action-error";
+import { Bidi } from "./bidi";
+import { ItemLabel } from "./item-label";
 import type { ContactDraft, StepProps } from "./citizen-app";
 import { rise } from "./motion";
 
@@ -136,10 +138,7 @@ export function ReviewStep({ api, data, m, goTo, draft, setDraft }: StepProps) {
                   aria-hidden
                   className="mt-1 size-4 shrink-0 rounded-full border-[1.5px] border-warn/60 bg-surface"
                 />
-                <span>
-                  {item.title}
-                  {item.memberName && <span className="text-ink-2"> ({item.memberName})</span>}
-                </span>
+                <ItemLabel item={item} />
               </li>
             ))}
             {folded && (
@@ -274,7 +273,9 @@ function SummaryRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm text-ink-3">{label}</p>
-        <p className="mt-0.5 font-semibold break-words">{value}</p>
+        <p className="mt-0.5 font-semibold break-words">
+          <Bidi text={value} />
+        </p>
       </div>
       <button
         type="button"

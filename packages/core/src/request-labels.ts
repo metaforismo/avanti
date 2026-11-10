@@ -5,9 +5,26 @@
  */
 type Labelled = { title: string; memberName: string | null };
 
-/** «Documento d'identità · Maria». */
+/**
+ * The person an item belongs to, or null when its title already names them. An account's title
+ * ends with the bank the citizen typed, and people do type the holder's name there: «Saldo ·
+ * Maria (Maria)» reads as a glitch to someone already wary of the service.
+ */
+export function ownerSuffix(item: Labelled): string | null {
+  const name = item.memberName?.trim();
+  if (!name) return null;
+  const key = name.toLocaleLowerCase();
+  const named = item.title
+    .split(" · ")
+    .slice(1)
+    .some((part) => part.trim().toLocaleLowerCase() === key);
+  return named ? null : name;
+}
+
+/** «Documento d'identità · Maria»: the same label in the citizen page, the console and the AI. */
 export function requestLabel(item: Labelled) {
-  return item.memberName ? `${item.title} · ${item.memberName}` : item.title;
+  const owner = ownerSuffix(item);
+  return owner ? `${item.title} · ${owner}` : item.title;
 }
 
 /** The message with one line per requested item under it. */

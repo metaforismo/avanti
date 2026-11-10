@@ -10,6 +10,7 @@ import type {
   Progress,
 } from "@avanti/contracts";
 import { getQuestions, practiceYear, referenceYearFor, type Answers } from "./catalog";
+import { requestLabel } from "./request-labels";
 import { questionEstimate } from "./question-estimate";
 import { normalizedName } from "./household";
 import { localize, type Text } from "./i18n";
@@ -364,7 +365,7 @@ export function evaluateDossier(input: DossierInput): { findings: Finding[]; pro
     if (findings.some((existing) => existing.id === id)) return;
     const variables: Record<string, string | number> = {
       file: document?.fileName ?? "",
-      title: [item?.title, item?.memberName].filter(Boolean).join(" · "),
+      title: item ? requestLabel(item) : "",
       owner: item?.memberName ?? "",
       ...vars,
     };

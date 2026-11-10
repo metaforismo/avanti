@@ -1,6 +1,14 @@
 "use client";
 
-import { Download, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  Building2,
+  CalendarClock,
+  ChevronDown,
+  Download,
+  ShieldCheck,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import type { CitizenCase, Language } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -129,102 +137,112 @@ export function PrivacySheet({
         closeLabel={m.common.close}
       >
         <div className="grid gap-5 text-ink-2">
-          <Section title={p.whoTitle}>
-            <p>{format(p.who, org)}</p>
-          </Section>
-          <Section title={p.whatTitle}>
-            <p>{p.what}</p>
-            {practice && (
-              <p className="mt-1">
-                {plural(language, practice.data.documents.length, p.documents)}
-              </p>
-            )}
-            <p className="mt-2">{p.ai}</p>
-          </Section>
-          <Section title={p.keepTitle}>
-            {practice && privacy ? (
-              <>
-                <p>
-                  {format(p.linkUntil, { date: citizenDate(language, practice.data.expiresAt) })}
-                </p>
-                <p className="mt-1">{plural(language, privacy.retentionDays, p.retention)}</p>
-              </>
-            ) : (
-              <p>{format(p.retentionGeneric, org)}</p>
-            )}
-            <p className="mt-1">{p.officeArchive}</p>
-          </Section>
+          {/* The answer in three lines, the two actions right under them; the long version
+              stays one tap away instead of nine paragraphs above the buttons. */}
+          <ul className="grid gap-3">
+            <FactRow icon={Building2} label={p.whoTitle} value={orgName} />
+            <FactRow
+              icon={CalendarClock}
+              label={p.keepTitle}
+              value={
+                practice
+                  ? citizenDate(language, practice.data.expiresAt)
+                  : format(p.retentionGeneric, org)
+              }
+              plain={!practice}
+            />
+          </ul>
 
           {practice && privacy && (
-            <>
-              <Section title={p.copyTitle}>
-                <p>{p.copy}</p>
+            <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
+              <Button
+                variant="secondary"
+                size="lg"
+                className="min-h-12 rounded-xl"
+                loading={pending === "copy"}
+                disabled={pending !== null}
+                onClick={() => void downloadCopy()}
+              >
+                <Download className="size-4" aria-hidden />
+                {p.copyAction}
+              </Button>
+              {privacy.canDelete ? (
                 <Button
                   variant="secondary"
-                  size="touch"
-                  className="mt-3"
-                  loading={pending === "copy"}
+                  size="lg"
+                  className="min-h-12 rounded-xl text-danger"
                   disabled={pending !== null}
-                  onClick={() => void downloadCopy()}
+                  onClick={() => setConfirm("delete")}
                 >
-                  <Download className="size-4" aria-hidden />
-                  {p.copyAction}
+                  <Trash2 className="size-4" aria-hidden />
+                  {p.deleteAction}
                 </Button>
-              </Section>
-              {privacy.canDelete ? (
-                <Section title={p.deleteTitle}>
-                  <p>{p.deleteSelf}</p>
-                  <Button
-                    variant="danger"
-                    size="touch"
-                    className="mt-3"
-                    disabled={pending !== null}
-                    onClick={() => setConfirm("delete")}
-                  >
-                    <Trash2 className="size-4" aria-hidden />
-                    {p.deleteAction}
-                  </Button>
-                </Section>
-              ) : (
-                <Section title={p.requestTitle}>
-                  {privacy.erasureRequestedAt ? (
-                    <Notice tone="info" size="md">
-                      {format(p.requested, {
-                        date: citizenDate(language, privacy.erasureRequestedAt),
-                      })}
-                    </Notice>
-                  ) : (
-                    <>
-                      <p>{format(p.request, org)}</p>
-                      <Button
-                        variant="secondary"
-                        size="touch"
-                        className="mt-3"
-                        disabled={pending !== null}
-                        onClick={() => setConfirm("request")}
-                      >
-                        {p.requestAction}
-                      </Button>
-                    </>
-                  )}
-                </Section>
+              ) : privacy.erasureRequestedAt ? null : (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="min-h-12 rounded-xl"
+                  disabled={pending !== null}
+                  onClick={() => setConfirm("request")}
+                >
+                  {p.requestAction}
+                </Button>
               )}
-            </>
+            </div>
           )}
-
-          <Section title={p.rightsTitle}>
-            <p>{format(p.rights, org)}</p>
-          </Section>
+          {privacy?.erasureRequestedAt && (
+            <Notice tone="info" size="md">
+              {format(p.requested, { date: citizenDate(language, privacy.erasureRequestedAt) })}
+            </Notice>
+          )}
           {error && (
             <Notice tone="danger" size="md">
               {error}
             </Notice>
           )}
+
+          <div className="divide-y divide-line border-y border-line">
+            <Section title={p.whoTitle} open={!practice}>
+              <p>{format(p.who, org)}</p>
+            </Section>
+            <Section title={p.whatTitle} open={!practice}>
+              <p>{p.what}</p>
+              {practice && (
+                <p className="mt-1">
+                  {plural(language, practice.data.documents.length, p.documents)}
+                </p>
+              )}
+              <p className="mt-2">{p.ai}</p>
+            </Section>
+            <Section title={p.keepTitle} open={!practice}>
+              {practice && privacy ? (
+                <>
+                  <p>
+                    {format(p.linkUntil, { date: citizenDate(language, practice.data.expiresAt) })}
+                  </p>
+                  <p className="mt-1">{plural(language, privacy.retentionDays, p.retention)}</p>
+                </>
+              ) : (
+                <p>{format(p.retentionGeneric, org)}</p>
+              )}
+              <p className="mt-1">{p.officeArchive}</p>
+            </Section>
+            {practice && privacy && (
+              <Section title={privacy.canDelete ? p.deleteTitle : p.requestTitle}>
+                <p>
+                  {privacy.canDelete ? p.deleteSelf : format(p.request, org)} {p.copy}
+                </p>
+              </Section>
+            )}
+            <Section title={p.rightsTitle} open={!practice}>
+              <p>{format(p.rights, org)}</p>
+            </Section>
+          </div>
           <a
             href="/privacy"
             target="_blank"
             rel="noopener"
-            className="font-semibold text-stamp underline underline-offset-2"
+            className="inline-flex min-h-11 w-fit items-center font-semibold text-stamp underline underline-offset-2"
           >
             {p.fullNotice}
           </a>
@@ -262,13 +280,54 @@ export function PrivacySheet({
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title,
+  open = false,
+  children,
+}: {
+  title: string;
+  open?: boolean;
+  children: ReactNode;
+}) {
   return (
-    // Hairlines between topics instead of more space: the sheet reads as one calm list.
-    <section className="border-t border-line pt-5 first:border-0 first:pt-0">
-      <h3 className="mb-1 font-semibold text-ink">{title}</h3>
-      {children}
-    </section>
+    <details open={open} className="group">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-2 font-semibold text-ink [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown
+          className="size-5 shrink-0 text-ink-3 transition-transform duration-200 ease-(--ease-out) group-open:rotate-180"
+          aria-hidden
+        />
+      </summary>
+      <div className="pb-4">{children}</div>
+    </details>
+  );
+}
+
+/** One fact with its tile: what the citizen wants to know first, in a line. */
+function FactRow({
+  icon: Icon,
+  label,
+  value,
+  plain = false,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  /** A sentence rather than a name or a date: regular weight. */
+  plain?: boolean;
+}) {
+  return (
+    <li className="flex items-center gap-3.5">
+      <span className="grid size-10 shrink-0 place-items-center rounded-[0.75rem] bg-ok-wash text-ok">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm text-ink-3">{label}</span>
+        <span className={plain ? "block text-ink-2" : "block font-semibold text-ink"}>
+          <bdi>{value}</bdi>
+        </span>
+      </span>
+    </li>
   );
 }
 

@@ -54,3 +54,14 @@ it("permits a harmless request for instructions and does not mistake family role
   expect(result.output.intent).toBe("need");
   expect(result.output.practiceId).toBe("isee_ordinario");
 });
+it("treats a story that names two practices as a need, not as off-topic", async () => {
+  const runtime = new AiRuntime(loadAiConfig());
+  const result = await runtime.runTask(intakeTask, {
+    ...input,
+    text: "ISEE per l'assegno unico, vivo con mia moglie e due figli",
+  });
+  expect(result.output.intent).toBe("need");
+  expect(result.output.practiceId).toBeNull();
+  const chat = await runtime.runTask(intakeTask, { ...input, text: "Che tempo fa domani?" });
+  expect(chat.output.intent).toBe("off_topic");
+});

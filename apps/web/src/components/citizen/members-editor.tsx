@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, UserPlus } from "lucide-react";
+import { Check, Trash2, UserPlus } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import type { MemberInput, MemberRole } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ type Draft = {
   key: string;
   /** Server id of an existing member, sent back so documents stay with the right person. */
   id?: string;
-  role: MemberRole;
+  /** Null until the citizen says who the person is: a preselected «Altra persona» was a guess. */
+  role: MemberRole | null;
   firstName: string;
   lastName?: string;
   /** Raw text, validated on submit: a half-typed year must not silently become "no year". */
@@ -25,7 +26,7 @@ type Draft = {
   kept?: Pick<MemberInput, "birthDate" | "taxCode">;
 };
 
-type RowErrors = { name?: string; year?: string };
+type RowErrors = { role?: string; name?: string; year?: string };
 
 const newKey = () => Math.random().toString(36).slice(2);
 
@@ -65,7 +66,7 @@ function initialRows(
   }
   // …and the household size they stated decides how many rows to offer.
   while (expected && list.length < Math.min(expected, MAX_MEMBERS)) {
-    list.push({ key: newKey(), role: "altro", firstName: "", yearText: "" });
+    list.push({ key: newKey(), role: null, firstName: "", yearText: "" });
   }
   return list;
 }
@@ -135,23 +136,29 @@ export function MembersEditor({
     const nextErrors: Record<string, RowErrors> = {};
     for (const member of members) {
       const rowErrors: RowErrors = {};
+      if (!member.role) rowErrors.role = m.interview.required;
       if (!member.firstName.trim()) rowErrors.name = m.review.fieldRequired;
       if (member.yearText && validYear(member.yearText, currentYear) === null) {
         rowErrors.year = m.members.birthYearInvalid;
       }
-      if (rowErrors.name || rowErrors.year) nextErrors[member.key] = rowErrors;
+      if (rowErrors.role || rowErrors.name || rowErrors.year) nextErrors[member.key] = rowErrors;
     }
     setErrors(nextErrors);
     const [firstKey, firstErrors] = Object.entries(nextErrors)[0] ?? [];
     if (firstKey && firstErrors) {
-      const target = firstErrors.name ? `member-${firstKey}` : `member-${firstKey}-year`;
-      document.getElementById(target)?.focus();
+      const target = firstErrors.role
+        ? `member-${firstKey}-role`
+        : firstErrors.name
+          ? `member-${firstKey}`
+          : `member-${firstKey}-year`;
+      const element = document.getElementById(target);
+      (element?.querySelector<HTMLElement>("input") ?? element)?.focus();
       return;
     }
     onSubmit(
       members.map((member) => ({
         ...(member.id ? { id: member.id, ...member.kept } : {}),
-        role: member.role,
+        role: member.role ?? "altro",
         firstName: member.firstName.trim(),
         lastName: member.lastName?.trim() || undefined,
         birthYear: validYear(member.yearText, currentYear) ?? undefined,
@@ -183,7 +190,7 @@ export function MembersEditor({
           onClick={() => {
             const key = newKey();
             setTouched(true);
-            setMembers((list) => [...list, { key, role: "figlio", firstName: "", yearText: "" }]);
+            setMembers((list) => [...list, { key, role: null, firstName: "", yearText: "" }]);
             requestAnimationFrame(() => document.getElementById(`member-${key}`)?.focus());
           }}
         >
@@ -215,6 +222,7 @@ function MemberRow({
   const isApplicant = member.role === "richiedente";
   const nameErrorId = `${id}-name-error`;
   const yearErrorId = `${id}-year-error`;
+  const roleErrorId = `${id}-role-error`;
 
   return (
     <li className="animate-rise rounded-md bg-paper p-4 ring-1 ring-line">
@@ -238,18 +246,26 @@ function MemberRow({
         )}
       </div>
       {!isApplicant && (
-        <fieldset className="mt-2">
+        <fieldset
+          id={`member-${member.key}-role`}
+          className="mt-2"
+          aria-describedby={errors?.role ? roleErrorId : undefined}
+        >
           <legend className="sr-only">{m.members.role}</legend>
           <div className="flex flex-wrap gap-1.5">
             {ROLES.map((role) => (
               <label
                 key={role}
+                // The same «chosen» as every other choice of the flow: stamp wash, ring and tick.
                 className={cn(
-                  "inline-flex min-h-11 cursor-pointer items-center rounded-full px-3.5 text-sm ring-1 ring-line-strong ring-inset",
+                  "inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm ring-1 select-none ring-inset",
+                  "transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) active:scale-[0.96]",
                   "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stamp",
                   member.role === role
-                    ? "bg-contrast font-semibold text-on-contrast ring-contrast"
-                    : "bg-surface hover:bg-sunk",
+                    ? "bg-stamp-wash font-semibold text-stamp ring-2 ring-stamp"
+                    : errors?.role
+                      ? "bg-surface ring-danger/60 hover:bg-sunk"
+                      : "bg-surface ring-line-strong hover:bg-sunk",
                 )}
               >
                 <input
@@ -260,6 +276,9 @@ function MemberRow({
                   onChange={() => onChange({ role })}
                   className="sr-only"
                 />
+                {member.role === role && (
+                  <Check className="size-3.5 animate-check-in" strokeWidth={3} aria-hidden />
+                )}
                 {m.members.roles[role]}
               </label>
             ))}
@@ -298,6 +317,11 @@ function MemberRow({
           />
         </div>
       </div>
+      {errors?.role && (
+        <p id={roleErrorId} role="alert" className="mt-2 text-sm font-medium text-danger">
+          {errors.role}
+        </p>
+      )}
       {errors?.name && (
         <p id={nameErrorId} role="alert" className="mt-2 text-sm font-medium text-danger">
           {errors.name}

@@ -11,7 +11,7 @@ import { RenewalNotice } from "./renewal-notice";
 import { ActionErrorNotice } from "./action-error";
 import { AssistantMessage, lastMessage } from "./assistant-message";
 import type { StepProps } from "./citizen-app";
-import { InterviewProgressBar, RemainingQuestions } from "./interview-progress";
+import { RemainingQuestions } from "./interview-progress";
 import { QuestionCard } from "./question-card";
 import { rise } from "./motion";
 
@@ -38,12 +38,6 @@ export function InterviewStep({ api, data, m }: StepProps) {
             section={data.nextQuestion?.section}
           />
         </div>
-        <InterviewProgressBar
-          progress={data.progress}
-          language={data.language}
-          m={m}
-          section={data.nextQuestion?.section}
-        />
       </div>
 
       <RenewalNotice data={data} />

@@ -1,0 +1,17 @@
+/*
+ * Console-only colour roles, loaded by the console shell (not globals.css: the citizen pages and
+ * the site never need them).
+ *
+ * In the dark theme `stamp` is a light periwinkle so that links and blue text stay readable on
+ * night blue. As the fill of a primary button the same colour became the brightest thing on the
+ * screen, louder than the cases. The fill gets a deeper blue with white text instead
+ * (#3b5bdb: 5.9:1 with white), and stays as it is in the light theme.
+ */
+@media (prefers-color-scheme: dark) {
+  :root.console,
+  :root:has([data-console-theme]) {
+    --stamp-fill: #3b5bdb;
+    --stamp-fill-hover: #4c6ef5;
+    --on-stamp-fill: #ffffff;
+  }
+}

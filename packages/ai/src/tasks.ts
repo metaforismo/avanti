@@ -135,9 +135,11 @@ export const intakeTask: Task<z.infer<typeof IntakeInput>, z.infer<typeof Intake
   }),
   heuristic: (i) => {
     const facts = extractFacts(i.text, i.language, i.practiceId ?? undefined);
+    // A tie between two practices («ISEE per l'assegno unico») is still a need: answered as
+    // off-topic, the citizen read that Avanti does not do what they had just asked for.
     const intent = localIntakeIntent(
       i.text,
-      Boolean(facts.practiceId || Object.keys(facts.answers).length),
+      Boolean(facts.practiceId || facts.confidence > 0 || Object.keys(facts.answers).length),
     );
     return {
       ...(intent === "need" ? facts : { practiceId: null, confidence: 0, answers: {} }),

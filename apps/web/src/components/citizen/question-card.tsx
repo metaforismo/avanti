@@ -10,6 +10,7 @@ import { useOpenAssistant } from "@/lib/citizen/assistant";
 import type { CitizenMessages, Widen } from "@/lib/citizen/messages";
 import type { CitizenCaseApi } from "@/lib/citizen/use-citizen-case";
 import { cn } from "@/lib/cn";
+import { Bidi } from "./bidi";
 import { MembersEditor } from "./members-editor";
 
 type Props = {
@@ -75,18 +76,29 @@ export function QuestionCard({
       aria-labelledby={titleId}
       className="animate-rise rounded-xl bg-surface p-5 shadow-raised ring-1 ring-line sm:p-6"
     >
-      {!askedAbove && <p className="text-sm font-medium text-stamp">{question.section}</p>}
+      {!askedAbove && (
+        <p className="text-sm font-medium text-stamp">
+          <Bidi text={question.section} />
+        </p>
+      )}
       <h2
         id={titleId}
         ref={titleRef}
         tabIndex={-1}
-        className={
+        className={cn(
+          "outline-none",
           askedAbove
-            ? "text-sm font-medium text-ink-2 outline-none"
-            : "mt-1 font-display text-2xl leading-tight font-semibold tracking-[-0.015em] outline-none"
-        }
+            ? "text-sm font-medium text-ink-2"
+            : "mt-1 font-display font-semibold tracking-[-0.015em] text-balance",
+          // A long question («…al 31 dicembre 2025, anche all'estero?») ran to four lines and
+          // pushed the keys under the fold: it steps down to 22 px.
+          !askedAbove &&
+            (Array.from(question.prompt).length > 70
+              ? "text-[1.375rem] leading-[1.25]"
+              : "text-[clamp(1.375rem,6vw,1.75rem)] leading-tight"),
+        )}
       >
-        {question.prompt}
+        <Bidi text={question.prompt} />
       </h2>
 
       <div className={askedAbove ? "mt-3" : "mt-5"}>

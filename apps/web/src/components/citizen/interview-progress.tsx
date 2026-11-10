@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import type { CitizenCase, Language } from "@avanti/contracts";
-import { ProgressBar } from "@/components/ui/progress";
-import { format, type CitizenMessages, type Widen } from "@/lib/citizen/messages";
+import { type CitizenMessages, type Widen } from "@/lib/citizen/messages";
 import { interviewEstimate, remainingText } from "@/lib/citizen/view";
 
 /** The "questions left" line, for the step header. */
@@ -28,19 +27,12 @@ export function RemainingQuestions({
   );
 }
 
-/** The interview bar. While the citizen moves forward it never goes back, even when an answer
- * opens new questions; an edit that removes answers may move it back. */
-export function InterviewProgressBar({
-  progress,
-  language,
-  m,
-  section,
-}: {
-  progress: CitizenCase["progress"];
-  language: Language;
-  m: Widen<CitizenMessages>;
-  section?: string;
-}) {
+/**
+ * How far the interview is, 0–1, for the «Domande» segment of the header. While the citizen moves
+ * forward it never goes back, even when an answer opens new questions; an edit that removes
+ * answers may move it back. Null when the total is unknown.
+ */
+export function useInterviewShare(progress: CitizenCase["progress"]): number | null {
   const { percent } = interviewEstimate(progress);
   const answered = progress.questionsAnswered;
   const [bar, setBar] = useState({ answered, percent: percent ?? 0 });
@@ -49,16 +41,5 @@ export function InterviewProgressBar({
     setBar({ answered, percent: forward ? Math.max(bar.percent, percent ?? 0) : (percent ?? 0) });
   }
   if (percent === null) return null;
-  const { remaining } = interviewEstimate(progress);
-  return (
-    <ProgressBar
-      value={Math.max(bar.percent, 0)}
-      label={
-        progress.questionsTotal > 0
-          ? format(m.interview.progressLabel, { n: answered, total: progress.questionsTotal })
-          : (remainingText(remaining, language, m, section) ?? "")
-      }
-      className="mt-3 h-2"
-    />
-  );
+  return Math.min(1, Math.max(bar.percent, 0) / 100);
 }
