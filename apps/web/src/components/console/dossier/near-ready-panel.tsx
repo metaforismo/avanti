@@ -122,7 +122,7 @@ function BlindReview({ actions }: { actions: DossierActions }) {
         <span id="blind-review-title" className="font-semibold">
           {asking ? "Che cosa manca, soprattutto?" : "Prima di guardare: secondo te è pronta?"}
         </span>{" "}
-        <span className="text-ink-3 max-sm:hidden">
+        <span className="text-ink-3 max-2xl:hidden">
           {asking ? "" : "Poi vedrai il suggerimento di Avanti."}
         </span>
       </p>

@@ -55,7 +55,6 @@ import {
   readQueueParams,
   uniqueById,
 } from "@/lib/console/queue-params";
-import { useMediaQuery } from "@/lib/console/use-media-query";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 
@@ -88,7 +87,6 @@ function Queue() {
   const familyErased = erasedParam && /^\d+$/.test(erasedParam) ? erasedParam : null;
   const [search, setSearch] = useState(initialSearch);
   const searchRef = useRef<HTMLInputElement>(null);
-  const desktopFilters = useMediaQuery("(min-width: 48rem)");
   const [filtersOpen, setFiltersOpen] = useState(false);
   // "/" jumps to the search, as in most work tools, unless the operator is typing elsewhere.
   useEffect(() => {
@@ -479,52 +477,51 @@ function Queue() {
         </div>
         {/* The three filters wrap together under the search, never one alone on a line. On a
             phone they take the first screen: there they wait behind one button, in a sheet. */}
-        {desktopFilters ? (
-          <div className="grid flex-[3_1_32rem] gap-2 sm:grid-cols-3">{filterFields}</div>
-        ) : (
-          <Button
-            variant="secondary"
-            onClick={() => setFiltersOpen(true)}
-            aria-label={
-              activeFilters > 0 ? `Filtri, ${activeFilters} attivi` : "Filtri e ordinamento"
-            }
-          >
-            <SlidersHorizontal className="size-4" aria-hidden />
-            Filtri
-            {activeFilters > 0 && (
-              <span className="tabular min-w-5 rounded-full bg-stamp px-1.5 text-center text-xs text-on-stamp">
-                {activeFilters}
-              </span>
-            )}
-          </Button>
-        )}
+        {/* Chosen by CSS, not by script: the first paint on a phone is already the phone's. */}
+        <div className="grid flex-[3_1_32rem] gap-2 max-md:hidden sm:grid-cols-3">
+          {filterFields}
+        </div>
+        <Button
+          variant="secondary"
+          className="md:hidden"
+          onClick={() => setFiltersOpen(true)}
+          aria-label={
+            activeFilters > 0 ? `Filtri, ${activeFilters} attivi` : "Filtri e ordinamento"
+          }
+        >
+          <SlidersHorizontal className="size-4" aria-hidden />
+          Filtri
+          {activeFilters > 0 && (
+            <span className="tabular min-w-5 rounded-full bg-stamp px-1.5 text-center text-xs text-on-stamp">
+              {activeFilters}
+            </span>
+          )}
+        </Button>
       </div>
-      {!desktopFilters && (
-        <Dialog open={filtersOpen} onOpenChange={setFiltersOpen} title="Filtri">
-          <div className="grid gap-3">
-            {filterFields}
-            {status === "submitted" && sortControl("w-full [&>button]:flex-1")}
-          </div>
-          <div className="mt-5 flex gap-2">
-            {activeFilters > 0 && (
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  const next = new URLSearchParams(params);
-                  for (const key of ["pratica", "assegnatario", "priorita"]) next.delete(key);
-                  router.replace(`/console?${next.toString()}` as Route, { scroll: false });
-                }}
-              >
-                Togli i filtri
-              </Button>
-            )}
-            <Button className="flex-1" onClick={() => setFiltersOpen(false)}>
-              Mostra i risultati
+      <Dialog open={filtersOpen} onOpenChange={setFiltersOpen} title="Filtri">
+        <div className="grid gap-3">
+          {filterFields}
+          {status === "submitted" && sortControl("w-full [&>button]:flex-1")}
+        </div>
+        <div className="mt-5 flex gap-2">
+          {activeFilters > 0 && (
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                const next = new URLSearchParams(params);
+                for (const key of ["pratica", "assegnatario", "priorita"]) next.delete(key);
+                router.replace(`/console?${next.toString()}` as Route, { scroll: false });
+              }}
+            >
+              Togli i filtri
             </Button>
-          </div>
-        </Dialog>
-      )}
+          )}
+          <Button className="flex-1" onClick={() => setFiltersOpen(false)}>
+            Mostra i risultati
+          </Button>
+        </div>
+      </Dialog>
 
       {status === "submitted" && !erasure && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -539,7 +536,7 @@ function Queue() {
               ? `${casesLabel(overdue)} non ${overdue === 1 ? "assegnata aspetta" : "assegnate aspettano"} da più di 2 giorni lavorativi.`
               : "Nessuna pratica aspetta da più di 2 giorni lavorativi."}
           </p>
-          {desktopFilters && sortControl()}
+          {sortControl("max-md:hidden")}
         </div>
       )}
 
@@ -798,7 +795,8 @@ function QueueRow({
               >
                 <Trash2 className="size-3.5 shrink-0" aria-hidden />
                 <span className="truncate">
-                  Cancellazione entro il {formatDeadline(erasureDeadline(item.erasureRequestedAt))}
+                  Chiede la cancellazione · entro il{" "}
+                  {formatDeadline(erasureDeadline(item.erasureRequestedAt))}
                 </span>
               </span>
             )}

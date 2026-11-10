@@ -78,8 +78,8 @@ test("«Chiedi al fascicolo» never covers the dossier, on a desktop or a phone"
   expect((await ask.boundingBox())!.y).toBeLessThan(40);
   const notes = page.getByRole("textbox", { name: /Note interne/ });
   for (const target of [page.getByRole("heading", { name: "Cronologia" }), notes]) {
-    await target.scrollIntoViewIfNeeded();
-    await page.mouse.wheel(0, 2000);
+    // At the bottom edge of the window, where a floating button would sit.
+    await target.evaluate((el) => el.scrollIntoView({ block: "end" }));
     const box = (await target.boundingBox())!;
     const covered = await target.evaluate(
       (el, at) => {
