@@ -49,6 +49,10 @@ della console ridefinisce gli stessi nomi. Contrasti misurati (WCAG 2.2) sul fon
 | `ok / warn / danger`   | `#1d7448` / `#9a5500` / `#b8322a` | Solo stato del fascicolo, mai decorativi                  | ≥ 4,9 sul rispettivo `*-wash` |
 | `contrast`             | `#141b2d`                         | Fasce invertite (sezione operatori), tooltip, avatar      | bianco sopra: 16,9            |
 
+**«Selezionato» ha un solo aspetto per area.** Scelta di un valore (lingua della demo, risposte
+del cittadino): `stamp-wash` con anello `stamp` e spunta. Segmento o scheda attiva nella console:
+`surface` con anello `line`. Il nero pieno non è uno stato di selezione.
+
 **Documento mancante, un colore per area** (`components/ui/missing.ts`). Per l'operatore un
 obbligatorio mancante blocca la pratica: `danger` (stato «Mancante», «Da guardare», «manca» nel
 foglio DSU). Per il cittadino è un passo da fare, non un suo errore: `warn`. Le immagini del
@@ -83,7 +87,14 @@ editoriali vanno da −0,008em verso −0,006em man mano che crescono, larghezza
 650–660. Con −0,022em e larghezza 88% «rr», «fa» e «sc» si toccavano.
 
 Titoli con `text-wrap: balance`, paragrafi con `pretty`, al massimo ~65 caratteri per riga
-(`max-w-2xl` per i lead). Cifre che cambiano o si confrontano: `tabular`.
+(`max-w-2xl` per i lead). I lead centrati hanno `text-balance` e `max-w-[34rem]`: niente parola
+orfana all'ultima riga.
+
+**Apostrofo tipografico.** Nei testi italiani e francesi l'apostrofo tra due lettere è sempre ’
+(mai `'` né `&apos;`), titoli compresi: a 52 px quello dritto quasi sparisce. Fanno eccezione i
+codici e i valori, e le frasi del cittadino che il backend prova così come si digitano
+(`intake-demo-samples.ts`: la pagina le disegna con ’). `lib/site/typography.test.ts` fallisce se
+l'area del sito ne contiene uno dritto. Cifre che cambiano o si confrontano: `tabular`.
 
 ## Spaziature, griglia, forme
 
@@ -170,6 +181,16 @@ per tutte le aree:
   `ease-in`.
 - **Durate:** feedback 100–160 ms, menu e popover 150–250 ms, fogli 300–340 ms; sul sito i
   reveal 600–800 ms. Le uscite sono più rapide delle entrate.
+- **Header del sito:** `backdrop-filter: blur(14px) saturate(160%)` statico (solo opacità che
+  cambia) quando la pagina si muove; sopra le fasce `data-header="dark"` (operatori, dati) le due
+  tinte (carta e `contrast`) si incrociano in 200 ms e la barra diventa scura, con voci
+  `on-contrast`, CTA `marker` e marchio invertito. Solo per fasce a tutta larghezza: la scheda di
+  chiusura è inset, e una barra scura sulla carta chiara sarebbe grigia ai lati. Il divieto di
+  `backdrop-filter` vale per le barre del cittadino, non per il sito.
+- **Menu mobile del sito:** foglio a tutto schermo sotto la barra (64 px), pagina bloccata e
+  `inert`, voci in `font-display` 28 px alte 56 px; le voci salgono di 8 px con 40 ms tra l'una e
+  l'altra (240 ms), la chiusura è una dissolvenza di 150 ms. In basso un solo tasto da 52 px e
+  «Accedi» come link. Si chiude con Esc, con un clic su una voce e allargando la finestra.
 - **Pressione:** i pulsanti scendono a `scale(0.98)` su `:active`; le pillole della lingua a 0,96.
   Gli hover (sollevamento di 2 px delle schede, freccia che avanza) solo dove c'è un puntatore:
   Tailwind 4 li mette già sotto `@media (hover: hover)`.
@@ -221,26 +242,35 @@ Console e cittadino:
 
 Sito pubblico (`app/(site)/site.css`, caricato solo lì):
 
-| Classe / attributo          | Cosa fa                                                                 |
-| --------------------------- | ----------------------------------------------------------------------- |
-| `hero-in` + `--d`           | Entrata al caricamento, da CSS (non aspetta l'idratazione), 900 ms      |
-| `data-reveal`               | Sale di 14 px e compare quando entra in vista, una volta                |
-| `data-reveal="stagger"`     | Lo stesso per i figli, 60 ms l'uno dall'altro (massimo 300 ms)          |
-| `draw-x`                    | Una linea dentro un reveal si disegna da sinistra (`scaleX`)            |
-| `marker-draw`               | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)        |
-| `stamp-press` / `tick-in`   | Timbro premuto con piccolo rimbalzo; spunta che compare in scala        |
-| `grain` / `grain-dark`      | Grana della carta (SVG di rumore) su fondi chiari o scuri               |
-| `ruled`                     | Righe del registro che sfumano in alto negli hero                       |
-| `hero-word`                 | Titolo dell'hero parola per parola, ognuna sale dalla sua riga          |
-| `hero-stage` + `stage`      | Il banco della demo arriva inclinato e si raddrizza; luce e puntini     |
-| `flow-dot` / `flow-pulse`   | Passaggio cittadino → fascicolo: un punto per fatto, freccia Avanti     |
-| `land-flash`                | La riga del fascicolo che riceve un fatto lampeggia di giallo           |
-| `fill-in` + `--i`           | Quadretti della figura 10×10 dei numeri, uno dopo l'altro               |
-| `draw-y`                    | Filo del calendario del pilota disegnato verso il basso                 |
-| `press-on-reveal`           | Timbro premuto quando la sua immagine entra in vista                    |
-| `spotlight`                 | Luce sotto le celle delle fasce scure che segue il puntatore            |
-| `cta-sheen`                 | Riflesso che attraversa la CTA principale all'hover, una volta          |
-| `band-light` / `edge-light` | Luce dall'alto sulle fasce scure; filo luminoso sul bordo dell'immagine |
+**Coreografia dell'hero**, ritardi di partenza: badge 0 · parole del titolo da 80 ms, 50 ms l'una
+dall'altra · lead 280 · CTA 360 · fatti 420 · banco 520. La CTA è leggibile entro 500 ms e tutto è
+fermo entro 1,3 s (l'evidenziatore sotto «pronto» parte a 520 ms e dura 500). La maschera di ogni
+parola ha spazio per l'ascendente della «f» e il discendente della «p» (padding 0,14/0,16em con
+margine negativo uguale) e la parola parte trasparente: un bordo netto non mostra mai mezza
+lettera. Con movimento ridotto è una dissolvenza di 150 ms senza ritardi.
+
+| Classe / attributo          | Cosa fa                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| `hero-in` + `--d`           | Entrata al caricamento, da CSS (non aspetta l'idratazione), 700 ms               |
+| `data-reveal`               | Sale di 14 px e compare quando entra in vista, una volta                         |
+| `data-reveal="stagger"`     | Lo stesso per i figli, 60 ms l'uno dall'altro (massimo 300 ms)                   |
+| `draw-x`                    | Una linea dentro un reveal si disegna da sinistra (`scaleX`)                     |
+| `marker-draw`               | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)                 |
+| `stamp-press` / `tick-in`   | Timbro premuto con piccolo rimbalzo; spunta che compare in scala                 |
+| `grain` / `grain-dark`      | Grana della carta (SVG di rumore) su fondi chiari o scuri                        |
+| `ruled`                     | Righe del registro che sfumano in alto negli hero                                |
+| `hero-word`                 | Titolo dell'hero parola per parola (600 ms), ognuna sale dalla sua riga          |
+| `hero-stage` + `stage`      | Il banco della demo arriva inclinato (24 px, 6°) e si raddrizza, 800 ms          |
+| `flow-dot` / `flow-pulse`   | Passaggio cittadino → fascicolo: un punto per fatto, freccia Avanti              |
+| `land-flash`                | La riga del fascicolo che riceve un fatto lampeggia di giallo                    |
+| `fill-in` + `--i`           | Quadretti della figura 10×10 dei numeri, uno dopo l'altro                        |
+| `thread`                    | Calendario del pilota: un tratto per passo, dal centro di un punto al successivo |
+| `menu-sheet` / `menu-item`  | Menu mobile: dissolvenza 150 ms, voci che salgono di 8 px (40 ms l'una)          |
+| `fade-x`                    | Riga scorrevole sfumata dove continua (`--fade-s`, `--fade-e`), mai tagliata     |
+| `press-on-reveal`           | Timbro premuto quando la sua immagine entra in vista                             |
+| `spotlight`                 | Luce sotto le celle delle fasce scure che segue il puntatore                     |
+| `cta-sheen`                 | Riflesso che attraversa la CTA principale all'hover, una volta                   |
+| `band-light` / `edge-light` | Luce dall'alto sulle fasce scure; filo luminoso sul bordo dell'immagine          |
 
 I reveal partono dopo l'idratazione (`lib/site/reveal.ts`): un attributo aggiunto prima
 all'HTML del server è un errore di idratazione. Quello che è già a schermo viene segnato come
@@ -251,23 +281,24 @@ visto subito e non lampeggia; solo ciò che sta sotto la piega parte nascosto.
 Riutilizzabili dalla console e dalle pagine del cittadino con gli stessi token; i componenti
 del sito stanno in `components/landing`, gli oggetti di brand in `components/brand`.
 
-| Pattern                     | Dove                                                  | Regola                                                                                                                                             |
-| --------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Etichetta + titolo + lead   | `SectionIntro`, `PageHero`                            | Etichetta in `type-eyebrow` con filetto di 24 px; un solo `h1` per pagina                                                                          |
-| Fascia di chiusura          | `PageCta`, chiusura della landing                     | Fondo `contrast` con grana, un solo passo successivo, pulsante `marker`                                                                            |
-| Elenco numerato a filetti   | passaggi al gestionale, sicurezza                     | Numero in mono `stamp`, filetto sopra; per sequenze dopo il prodotto, non per il percorso                                                          |
-| Schede di passaggi          | «Come funziona»                                       | `surface` + `shadow-raised`, sollevamento di 2 px all'hover, filo tratteggiato tra i numeri                                                        |
-| Immagine del prodotto       | `IntakeDemo`, `DossierPreview`                        | Disegnata sulla pagina vera, `shadow-frame`, «Dati inventati» in didascalia, controlli `aria-hidden`                                               |
-| Fogli impilati              | fascicolo della demo                                  | Due fogli dietro, ruotati di +1,4° e −0,8°, mai più di due                                                                                         |
-| Timbro                      | `Stamp`                                               | Maiuscolo, bordo 2,5 px, ruotato −7°/−9°, `mix-blend-multiply`; solo per uno stato vero (consegnato, ricevuta) o una regola («decide l'operatore») |
-| Biglietto della coda        | `QueueTicket`                                         | Forma del logo con le tacche colorate come il fondo (`--notch`); decorativo                                                                        |
-| Casella da spuntare         | «Prima di trattare dati reali»                        | Vuota quando la cosa va ancora fatta: non disegnare spunte per impegni futuri                                                                      |
-| CTA ripetuta                | hero, dopo la console, chiusura, header, barra mobile | Sempre verso `#pilota`, stesso verbo («Parliamo del pilota»)                                                                                       |
-| Barra in basso sul telefono | `MobileCta`                                           | Compare dopo l'hero, sparisce sopra modulo, chiusura e footer; `inert` quando nascosta, safe area                                                  |
-| Header                      | `SiteHeader`                                          | Sfondo che compare scorrendo (solo opacità), sezione attiva con `aria-current="location"`                                                          |
-| FAQ                         | `details` nativo                                      | Risposta che sale all'apertura, icona + che ruota di 45° e si riempie di `stamp`                                                                   |
-| Numeri con fonte            | `CountUp`                                             | Il server scrive il valore finale; conta solo se arriva da sotto la piega; fonte linkata sotto                                                     |
-| Focus                       | globale                                               | Contorno `stamp` di 2 px a 2 px di distanza; su fondo scuro `outline-marker`                                                                       |
+| Pattern                     | Dove                                                          | Regola                                                                                                                                                                                                           |
+| --------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Etichetta + titolo + lead   | `SectionIntro`, `PageHero`                                    | Etichetta in `type-eyebrow` con filetto di 24 px; un solo `h1` per pagina                                                                                                                                        |
+| Fascia di chiusura          | `PageCta`, chiusura della landing                             | Fondo `contrast` con grana, un solo passo successivo, pulsante `marker`                                                                                                                                          |
+| Elenco numerato a filetti   | `RuleList`: sicurezza e accessibilità; passaggi al gestionale | Numero in mono `stamp`, filetto sopra; per sequenze dopo il prodotto, non per il percorso                                                                                                                        |
+| Schede di passaggi          | «Come funziona»                                               | `surface` + `shadow-raised`, sollevamento di 2 px all'hover, filo tratteggiato tra i numeri                                                                                                                      |
+| Immagine del prodotto       | `IntakeDemo`, `DossierPreview`                                | Disegnata sulla pagina vera, `shadow-frame`, «Dati inventati» in didascalia, controlli `aria-hidden`                                                                                                             |
+| Fogli impilati              | fascicolo della demo                                          | Due fogli dietro, ruotati di +1,4° e −0,8°, mai più di due                                                                                                                                                       |
+| Timbro                      | `Stamp`                                                       | Maiuscolo, bordo 2,5 px, ruotato −7°/−9°, `mix-blend-multiply`; solo per uno stato vero (consegnato, ricevuta) o una regola («decide l'operatore»)                                                               |
+| Biglietto della coda        | `QueueTicket`                                                 | Forma del logo con le tacche ritagliate (maschera, raggio 8 px): buca davvero qualunque fondo; l'ombra è un `drop-shadow` del contenitore; decorativo                                                            |
+| Casella da spuntare         | «Prima di trattare dati reali»                                | Vuota quando la cosa va ancora fatta: non disegnare spunte per impegni futuri                                                                                                                                    |
+| CTA ripetuta                | hero, chiusura, header, menu, barra mobile, invio del modulo  | Sempre verso `#pilota`, un solo verbo e la freccia («Parliamo del pilota», mai «ISEE», «Parliamone», «Candida»). Il «non impegna» sta nella nota sotto il tasto                                                  |
+| Barra in basso sul telefono | `MobileCta`                                                   | Compare dopo l'hero, sparisce sopra modulo, chiusura e footer; `inert` quando nascosta, safe area                                                                                                                |
+| Header                      | `SiteHeader`                                                  | Sfondo sfocato che compare scorrendo (opacità), scuro sopra le fasce `data-header="dark"`; voci nell'ordine della pagina; sezione attiva con `aria-current="location"`; focus `stamp` 2 px, `marker` sullo scuro |
+| Frecce                      | ovunque                                                       | → (`ArrowRight`, avanza di 2 px all'hover) per andare dentro Avanti, anche «Nel dettaglio» (ruota di 90° da aperto); ↗ solo per i link esterni. Niente ›, ↳                                                      |
+| FAQ                         | `details` nativo                                              | Risposta che sale all'apertura, icona + che ruota di 45° e si riempie di `stamp`                                                                                                                                 |
+| Numeri con fonte            | `CountUp`                                                     | Il server scrive il valore finale; conta solo se arriva da sotto la piega; fonte linkata sotto                                                                                                                   |
+| Focus                       | globale                                                       | Contorno `stamp` di 2 px a 2 px di distanza; su fondo scuro `outline-marker`                                                                                                                                     |
 
 ### Cittadino
 
@@ -344,6 +375,14 @@ fisso → FAQ → **chiusura (scuro)**. Un solo accento per sezione: blu sul chi
 scuro. Le immagini del prodotto (`card-premium`: bordo di 1 px traslucido, luce in alto, tre
 ombre) sono disegnate sulle pagine vere, con «Dati inventati»; niente loghi né testimonianze
 finché non ci sono clienti veri (lo spiega una FAQ).
+
+Le quattro immagini di «Come funziona» stanno nella stessa cornice (400×340, barra «CAF di prova ·
+ISEE» in alto) e cambiano con una dissolvenza incrociata di 220 ms e 6 px di salita; i trattini di
+avanzamento restano fissi sopra la cornice fino all'ultimo passo. Il documento mancante segue
+l'area che la figura rappresenta (cittadino `warn`, operatore `danger`). Le pagine secondarie
+(sicurezza, privacy, accessibilità) hanno un solo `PageHero` (96 px sopra, 64 sotto, `type-page`,
+lead `type-lead`) e un solo pattern di contenuto, l'elenco numerato a filetti; la privacy tiene
+l'indice laterale.
 
 Scroll-linked dove il browser supporta le animazioni guidate dallo scroll (`scroll-tilt`,
 `scroll-compose` in `site.css`, ognuna sulla propria `view()` timeline): altrove, o con
