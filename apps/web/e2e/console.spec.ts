@@ -463,11 +463,14 @@ test("changing someone's access asks first, naming the person", async ({ page })
   await logIn(page, ADMIN);
   await page.getByRole("link", { name: "Impostazioni" }).click();
   const row = page.getByRole("listitem").filter({ hasText: DEMO.email });
-  await row.getByRole("button", { name: "Disattiva" }).click();
+  const actions = row.getByRole("button", { name: /^Azioni per / });
+  await actions.click();
+  await page.getByRole("menuitem", { name: "Disattiva" }).click();
   const confirm = page.getByRole("dialog", { name: "Disattivare l'operatore?" });
   await expect(confirm).toContainText("viene disconnesso subito");
   await confirm.getByRole("button", { name: "Annulla" }).click();
-  await expect(row.getByRole("button", { name: "Disattiva" })).toBeVisible();
+  await expect(confirm).toBeHidden();
+  await expect(actions).toBeVisible();
 });
 
 test("an impossible report period is explained and nothing is downloaded", async ({ page }) => {

@@ -1,22 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import { OfficesSection } from "@/components/console/admin/offices-section";
 import { OperatorsSection } from "@/components/console/admin/operators-section";
 import { QuickRepliesSection } from "@/components/console/admin/quick-replies-section";
+import { SettingsNav, type SettingsSectionLink } from "@/components/console/admin/settings-nav";
 import { SettingsSection } from "@/components/console/admin/settings-section";
 import { PageContainer, PageHeader } from "@/components/ui/page-header";
 import { useOperator, useReloadOperator } from "@/lib/console/operator-context";
 
-const SECTIONS = [
-  ["#operatori", "Operatori"],
-  ["#sportelli", "Sportelli"],
-  ["#risposte-rapide", "Risposte rapide"],
-  ["#parametri", "Parametri"],
-] as const;
+const SECTIONS: readonly SettingsSectionLink[] = [
+  { id: "operatori", label: "Operatori" },
+  { id: "sportelli", label: "Sportelli" },
+  { id: "risposte-rapide", label: "Risposte rapide" },
+  { id: "parametri", label: "Parametri" },
+];
+
+// Anchors and focused fields stop below the strip (and, on the phone, the app bar), not at the
+// 9 rem the other pages leave for their own sticky headers.
+const ANCHOR_OFFSET = `html{scroll-padding-top:4.75rem}@media(max-width:1023.98px){html{scroll-padding-top:7.75rem}}`;
 
 export default function SettingsPage() {
   const operator = useOperator();
   const reloadOperator = useReloadOperator();
+  const [bar, setBar] = useState<HTMLDivElement | null>(null);
+  const [barOpen, setBarOpen] = useState(false);
 
   if (operator.role !== "admin") {
     return (
@@ -31,27 +39,16 @@ export default function SettingsPage() {
 
   return (
     <PageContainer
-      width="4xl"
-      className="grid gap-10 [&>section+section]:border-t [&>section+section]:border-line [&>section+section]:pt-10"
+      width="form"
+      className="flex flex-col gap-10 [&>section+section]:border-t [&>section+section]:border-line [&>section+section]:pt-10"
     >
-      <div>
-        <PageHeader title="Impostazioni" lead={operator.organization.name} />
-        <nav aria-label="Sezioni" className="mt-4 flex flex-wrap gap-1">
-          {SECTIONS.map(([href, label]) => (
-            <a
-              key={href}
-              href={href}
-              className="rounded-sm px-2.5 py-1 text-sm text-ink-2 transition-colors duration-100 hover:bg-sunk hover:text-ink"
-            >
-              {label}
-            </a>
-          ))}
-        </nav>
-      </div>
+      <style>{ANCHOR_OFFSET}</style>
+      <PageHeader title="Impostazioni" lead={operator.organization.name} className="-mb-4" />
+      <SettingsNav sections={SECTIONS} barOpen={barOpen} barRef={setBar} />
       <OperatorsSection />
       <OfficesSection onChanged={reloadOperator} />
       <QuickRepliesSection />
-      <SettingsSection />
+      <SettingsSection saveBar={bar} onBarChange={setBarOpen} />
     </PageContainer>
   );
 }
