@@ -367,25 +367,28 @@ export function OfficeStart({
             <div className="mx-auto max-w-xl px-5 pt-2 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
               {/* The consent sits on the key it unlocks, not 600 px above it. */}
               <label className="group flex min-h-11 cursor-pointer items-center gap-3 text-[0.9375rem] leading-snug select-none">
-                <input
-                  type="checkbox"
-                  id="consent"
-                  name="consent"
-                  onChange={() => setConsentError(false)}
-                  aria-invalid={consentError || undefined}
-                  aria-describedby={consentError ? "consent-error" : undefined}
-                  className="peer sr-only"
-                />
-                <span
-                  aria-hidden
-                  className={cn(
-                    "grid size-[1.375rem] shrink-0 place-items-center rounded-md bg-surface ring-2 ring-line-field transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) ring-inset group-active:scale-90",
-                    "peer-checked:bg-stamp peer-checked:ring-stamp peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-stamp",
-                    "[&>svg]:scale-0 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-(--ease-out) peer-checked:[&>svg]:scale-100",
-                    consentError && "ring-danger",
-                  )}
-                >
-                  <Check className="size-3.5 text-on-stamp" strokeWidth={3.5} />
+                {/* The real checkbox covers the drawn box, so a tap or a test's click lands on it. */}
+                <span className="relative grid shrink-0 place-items-center">
+                  <input
+                    type="checkbox"
+                    id="consent"
+                    name="consent"
+                    onChange={() => setConsentError(false)}
+                    aria-invalid={consentError || undefined}
+                    aria-describedby={consentError ? "consent-error" : undefined}
+                    className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0"
+                  />
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "grid size-[1.375rem] shrink-0 place-items-center rounded-md bg-surface ring-2 ring-line-field transition-[background-color,box-shadow,transform] duration-150 ease-(--ease-out) ring-inset group-active:scale-90",
+                      "peer-checked:bg-stamp peer-checked:ring-stamp peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-stamp",
+                      "[&>svg]:scale-0 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-(--ease-out) peer-checked:[&>svg]:scale-100",
+                      consentError && "ring-danger",
+                    )}
+                  >
+                    <Check className="size-3.5 text-on-stamp" strokeWidth={3.5} />
+                  </span>
                 </span>
                 <span className="min-w-0 flex-1 text-ink">{m.start.consent}</span>
               </label>
