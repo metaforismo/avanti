@@ -28,6 +28,13 @@ const RANGE_OPTIONS = RANGES.map((range) => ({ value: String(range.days), label:
 const romeDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" });
 const isoDay = (date: Date) => romeDay.format(date);
 
+const shortDay = new Intl.DateTimeFormat("it-IT", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "Europe/Rome",
+});
+
 const percent = (share: number | null) => (share === null ? "—" : `${Math.round(share * 100)}%`);
 
 export default function MetricsPage() {
@@ -58,18 +65,19 @@ function MetricsView() {
   const setDays = (value: number) => setParam("giorni", value === 30 ? "" : String(value));
   const setOfficeId = (value: string) => setParam("sportello", value);
 
-  const path = useMemo(() => {
-    const to = new Date();
-    const from = new Date(to.getTime() - (days - 1) * 86_400_000);
-    const q = new URLSearchParams({ from: isoDay(from), to: isoDay(to) });
+  const { path, from, to } = useMemo(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - (days - 1) * 86_400_000);
+    const q = new URLSearchParams({ from: isoDay(start), to: isoDay(end) });
     if (officeId) q.set("officeId", officeId);
-    return `/api/metrics?${q.toString()}`;
+    return { path: `/api/metrics?${q.toString()}`, from: start, to: end };
   }, [days, officeId]);
+  const office = operator.offices.find((o) => o.id === officeId);
   const metrics = useResource<Metrics>(path);
   const data = metrics.data;
 
   return (
-    <PageContainer width="6xl">
+    <PageContainer width="wide">
       <PageHeader
         title="Metriche"
         lead="Tempi e completezza misurati sulle pratiche reali, non stimati."
@@ -127,8 +135,16 @@ function MetricsView() {
           className={cn("mt-8 grid gap-8 transition-opacity", metrics.refreshing && "opacity-60")}
         >
           <dl className="grid gap-px overflow-hidden rounded-lg bg-line shadow-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
-            <Tile label="Pratiche avviate" value={String(data.casesStarted)} />
-            <Tile label="Inviate allo sportello" value={String(data.casesSubmitted)} />
+            <Tile
+              label="Pratiche avviate"
+              value={String(data.casesStarted)}
+              note="Create nel periodo, anche se poi abbandonate"
+            />
+            <Tile
+              label="Inviate allo sportello"
+              value={String(data.casesSubmitted)}
+              note="Primo invio del cittadino, nel periodo"
+            />
             <Tile
               label="Complete al primo invio"
               value={percent(data.completeAtFirstSubmission)}
@@ -142,6 +158,25 @@ function MetricsView() {
               note="Pratiche rimandate al cittadino"
             />
           </dl>
+          <p className="-mt-4 text-[0.8125rem] text-ink-3">
+            <span className="tabular whitespace-nowrap">
+              {shortDay.format(from)} – {shortDay.format(to)}
+            </span>
+            {" · "}
+            {office?.name ?? "tutti gli sportelli"}. Conteggi esatti, per uso interno. Il{" "}
+            {operator.role === "admin" ? (
+              <Link
+                href="/console/rapporto"
+                className="font-semibold text-stamp underline underline-offset-2"
+              >
+                Rapporto del pilota
+              </Link>
+            ) : (
+              "Rapporto del pilota"
+            )}{" "}
+            è pensato per essere condiviso: nasconde i gruppi sotto 5 pratiche e può mostrare «—»
+            per gli stessi dati.
+          </p>
 
           <section
             aria-labelledby="time-title"
@@ -232,7 +267,7 @@ function Tile({
           />
         </dd>
       )}
-      {note && <dd className="mt-2 text-xs text-ink-3">{note}</dd>}
+      {note && <dd className="mt-2 text-[0.8125rem] leading-snug text-ink-3">{note}</dd>}
     </div>
   );
 }
