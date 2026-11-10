@@ -8,20 +8,16 @@ import { Stamp } from "@/components/brand/desk-objects";
 export function OperatorSnippet() {
   return (
     <figure
-      aria-label="Esempio: l'operatore conferma un importo letto dall'AI"
+      aria-label="Esempio: l’operatore conferma un importo letto dall’AI"
       className="relative mx-auto w-full max-w-md"
     >
-      {/* The source document, behind the proposal it comes from. */}
+      {/* The source document, behind the proposal it comes from. Only its label shows above the
+          card, whole: it sits fully in the strip that sticks out (never half a line). */}
       <div
         aria-hidden
-        className="card-premium absolute inset-x-10 -top-8 bottom-16 rotate-[-3deg] p-5 sm:inset-x-14"
+        className="card-premium absolute inset-x-10 -top-[46px] bottom-16 rotate-[-3deg] px-5 pt-3 sm:inset-x-14"
       >
         <p className="text-xs font-semibold text-ink-3">Attestazione Fineco · pagina 2</p>
-        <div className="mt-4 grid gap-2">
-          {[78, 64, 86, 52].map((w) => (
-            <span key={w} className="h-2 rounded-full bg-sunk" style={{ width: `${w}%` }} />
-          ))}
-        </div>
       </div>
 
       <div className="card-premium relative overflow-hidden">
@@ -36,7 +32,7 @@ export function OperatorSnippet() {
           <p className="text-ink-2">Giacenza media 2025 · conto Fineco</p>
           <p className="flex flex-wrap items-baseline gap-x-2">
             <span className="font-display text-3xl font-semibold tabular-nums">12.430,55 €</span>
-            <span className="text-xs font-semibold text-stamp">proposto dall&apos;AI</span>
+            <span className="text-xs font-semibold text-stamp">proposto dall’AI</span>
           </p>
           <p className="flex items-center gap-1.5 text-xs text-ink-2">
             <FileSearch className="size-3.5" aria-hidden />
@@ -55,7 +51,7 @@ export function OperatorSnippet() {
         </div>
         <Stamp className="press-on-reveal absolute end-5 bottom-5 hidden text-[0.6875rem] [--stamp-rotate:-8deg] sm:inline-flex">
           <span>Decide</span>
-          <span className="mt-0.5">l&apos;operatore</span>
+          <span className="mt-0.5">l’operatore</span>
         </Stamp>
       </div>
       <figcaption className="mt-4 text-center text-sm text-ink-3">Dati inventati.</figcaption>

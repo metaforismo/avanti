@@ -1,12 +1,17 @@
 "use client";
 
-import { AlertTriangle, Check, Mic, RotateCcw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Check, FileWarning, Mic, RotateCcw } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { QueueTicket, Stamp } from "@/components/brand/desk-objects";
 import { CHEVRON_PATH } from "@/components/brand/mark";
+import { MISSING } from "@/components/ui/missing";
 import { cn } from "@/lib/cn";
 import { usePrefersReducedMotion } from "@/lib/hooks/use-media-query";
 import { SAMPLES } from "./intake-demo-samples";
+
+/** The samples keep the plain apostrophe a keyboard types (the backend tests those exact
+    sentences); the page draws the typographic one. */
+const typographic = (text: string) => text.replace(/(?<=\p{L})'(?=\p{L})/gu, "\u2019");
 
 /** What the operator reads: always Italian, whatever language the citizen used. */
 const FACTS = [
@@ -17,11 +22,12 @@ const FACTS = [
   { key: "Veicoli", value: "1 auto" },
 ] as const;
 
-const CHECKLIST: { label: string; state: "ok" | "warn" }[] = [
-  { label: "Documenti d'identità di entrambi", state: "ok" },
+// The dossier is the operator's: a missing required document is `danger` here, as in the console.
+const CHECKLIST: { label: string; state: "ok" | "missing" }[] = [
+  { label: "Documenti d’identità di entrambi", state: "ok" },
   { label: "Redditi 2025 di entrambi", state: "ok" },
-  { label: "Saldo e giacenza media 2025 del conto Fineco", state: "warn" },
-  { label: "Targa dell'auto", state: "ok" },
+  { label: "Saldo e giacenza media 2025 del conto Fineco", state: "missing" },
+  { label: "Targa dell’auto", state: "ok" },
 ];
 
 const STEP_MS = 560;
@@ -41,7 +47,40 @@ export function IntakeDemo() {
   const [run, setRun] = useState(0);
   const reduced = usePrefersReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
+  const pillsRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  // Where the row of languages continues, to fade that edge instead of cutting it.
+  const [more, setMore] = useState({ start: false, end: false });
+
+  useEffect(() => {
+    const node = pillsRef.current;
+    if (!node) return;
+    const read = () => {
+      // scrollLeft is negative in right-to-left: the distance from the start is what matters.
+      const from = Math.abs(node.scrollLeft);
+      const range = node.scrollWidth - node.clientWidth;
+      const next = { start: from > 1, end: range > 1 && from < range - 1 };
+      setMore((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
+    };
+    read();
+    node.addEventListener("scroll", read, { passive: true });
+    const resize = new ResizeObserver(read);
+    resize.observe(node);
+    return () => {
+      node.removeEventListener("scroll", read);
+      resize.disconnect();
+    };
+  }, []);
+
+  /** Brings the chosen language to the middle of the row when the row scrolls. */
+  const centre = (button: HTMLElement) => {
+    const row = pillsRef.current;
+    if (!row || row.scrollWidth <= row.clientWidth) return;
+    const rect = button.getBoundingClientRect();
+    const box = row.getBoundingClientRect();
+    const delta = rect.left - box.left - (row.clientWidth - rect.width) / 2;
+    row.scrollBy({ left: delta, behavior: reduced ? "auto" : "smooth" });
+  };
 
   // Start only once the demo is on screen, so people actually see the sequence.
   useEffect(() => {
@@ -81,9 +120,16 @@ export function IntakeDemo() {
       {/* The citizen's screen */}
       <div className="min-w-0">
         <div
+          ref={pillsRef}
           role="group"
-          aria-label="Lingua dell'esempio"
-          className="-mx-1 mb-3 flex [scrollbar-width:none] items-center gap-1 overflow-x-auto px-1 py-0.5"
+          aria-label="Lingua dell’esempio"
+          style={
+            {
+              "--fade-s": more.start ? "32px" : "0px",
+              "--fade-e": more.end ? "32px" : "0px",
+            } as CSSProperties
+          }
+          className="fade-x -mx-1 mb-3 flex [scrollbar-width:none] items-center gap-1 overflow-x-auto px-1 py-0.5"
         >
           {/* font-sans on the labels: one word in Arabic or Bengali reads fine in the system
               font, and would otherwise fetch 270 KB of Noto above the fold. */}
@@ -93,18 +139,21 @@ export function IntakeDemo() {
               type="button"
               lang={s.lang}
               aria-pressed={i === sampleIndex}
-              onClick={() => {
+              onClick={(event) => {
+                centre(event.currentTarget);
                 if (i === sampleIndex) return;
                 setSampleIndex(i);
                 replay();
               }}
               className={cn(
-                "h-10 shrink-0 rounded-full px-3.5 font-sans text-sm transition-[background-color,color,transform] duration-150 ease-(--ease-out) active:scale-[0.96]",
+                "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 font-sans text-sm transition-[background-color,color,transform,box-shadow] duration-150 ease-(--ease-out) active:scale-[0.96]",
+                // A chosen value: stamp-wash, a stamp ring and a tick (DESIGN.md, «Selezionato»).
                 i === sampleIndex
-                  ? "bg-contrast text-on-contrast"
+                  ? "bg-stamp-wash font-semibold text-stamp ring-1 ring-stamp ring-inset"
                   : "text-ink-2 ring-1 ring-line ring-inset hover:bg-surface hover:text-ink",
               )}
             >
+              {i === sampleIndex && <Check className="size-3.5" strokeWidth={2.5} aria-hidden />}
               {s.label}
             </button>
           ))}
@@ -128,7 +177,7 @@ export function IntakeDemo() {
               >
                 {sample.segments.map((segment, i) =>
                   typeof segment === "string" ? (
-                    <span key={i}>{segment}</span>
+                    <span key={i}>{typographic(segment)}</span>
                   ) : (
                     <mark
                       key={i}
@@ -141,7 +190,7 @@ export function IntakeDemo() {
                         shown > segment.fact ? "bg-[length:100%_0.95em]" : "bg-[length:0%_0.95em]",
                       )}
                     >
-                      {segment.text}
+                      {typographic(segment.text)}
                     </mark>
                   ),
                 )}
@@ -177,15 +226,15 @@ export function IntakeDemo() {
           <QueueTicket
             number="A 318"
             label="In coda"
-            className="absolute -end-2 -top-6 z-10 origin-top-right scale-[0.82] rotate-[4deg] [--notch:color-mix(in_srgb,var(--sunk)_70%,var(--paper))] sm:-end-4 sm:-top-5 sm:scale-100"
+            className="absolute -end-2 -top-6 z-10 origin-top-right scale-[0.82] rotate-[4deg] sm:-end-4 sm:-top-5 sm:scale-100"
           />
 
           <section
-            aria-label="Fascicolo per l'operatore"
+            aria-label="Fascicolo per l’operatore"
             className="card-premium relative overflow-hidden rounded-xl"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line px-5 py-4 pe-28 sm:px-6 sm:pe-32">
-              <p className="font-display text-lg font-semibold">Fascicolo per l&apos;operatore</p>
+              <p className="font-display text-lg font-semibold">Fascicolo per l’operatore</p>
               <span className="font-mono text-xs whitespace-nowrap text-ink-3">AV-2027-000318</span>
             </div>
             <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 px-5 py-4 text-body-sm sm:px-6">
@@ -234,9 +283,9 @@ export function IntakeDemo() {
                         (item.state === "ok" ? (
                           <Check className="tick-in size-4 text-ok" aria-label="Presente" />
                         ) : (
-                          <AlertTriangle
-                            className="tick-in size-4 text-warn"
-                            aria-label="Da completare"
+                          <FileWarning
+                            className={cn("tick-in size-4", MISSING.operator.text)}
+                            aria-label="Manca"
                           />
                         ))}
                     </span>
@@ -244,7 +293,7 @@ export function IntakeDemo() {
                       className={cn(
                         "transition-colors duration-300",
                         !ticked && "text-ink-3",
-                        ticked && item.state === "warn" && "font-semibold text-ink",
+                        ticked && item.state === "missing" && "font-semibold text-ink",
                         ticked && item.state === "ok" && "text-ink-2",
                       )}
                     >
@@ -265,12 +314,14 @@ export function IntakeDemo() {
             </ul>
             <div
               className={cn(
-                "flex items-center gap-2 bg-warn-wash px-5 py-3 text-sm text-warn transition-[opacity,transform] duration-500 ease-(--ease-out) sm:px-6",
+                "flex items-center gap-2 px-5 py-3 text-sm transition-[opacity,transform] duration-500 ease-(--ease-out) sm:px-6",
+                MISSING.operator.wash,
+                MISSING.operator.text,
                 done ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
               )}
               aria-hidden={!done}
             >
-              <AlertTriangle className="size-4 shrink-0" aria-hidden />
+              <FileWarning className="size-4 shrink-0" aria-hidden />
               Manca 1 documento: già chiesto al cittadino, nella sua lingua.
             </div>
           </section>

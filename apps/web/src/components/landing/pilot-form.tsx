@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, ChevronDown } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { PilotLeadRequest } from "@avanti/contracts";
-import { focusFirstError, isEmail, text } from "@/lib/validation";
+import { isEmail, text } from "@/lib/validation";
 import { Stamp } from "@/components/brand/desk-objects";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,7 +18,7 @@ type Errors = Partial<Record<string, string>>;
 const FIELD_MESSAGES: Record<string, string> = {
   name: "Scrivi nome e cognome.",
   organization: "Scrivi il nome del CAF o del patronato.",
-  email: "Controlla l'indirizzo email, per esempio nome@caf.it.",
+  email: "Controlla l’indirizzo email, per esempio nome@caf.it.",
   offices: "Indica un numero di sportelli tra 1 e 5000.",
   privacyAccepted: "Serve il consenso per poterti ricontattare.",
 };
@@ -26,7 +26,7 @@ const FIELD_MESSAGES: Record<string, string> = {
 /** What happens after sending: no promised response time, there is no on-call rota yet. */
 const NEXT_STEPS = [
   "Leggiamo la richiesta",
-  "Vi scriviamo per fissare mezz'ora",
+  "Vi scriviamo per fissare mezz’ora",
   "Demo su una famiglia inventata e prova nel vostro gestionale",
 ] as const;
 
@@ -48,11 +48,24 @@ export function PilotForm() {
 
   function showErrors(form: HTMLFormElement, next: Errors) {
     setErrors(next);
-    // A field with an error must be visible before it can take focus.
+    // The details open only for an error that is inside them: a send with the main fields
+    // empty must not make the form grow by itself under the pointer.
     if (DETAIL_FIELDS.some((name) => next[name]) && detailsRef.current) {
       detailsRef.current.open = true;
     }
-    focusFirstError(form, next);
+    // Focus without the browser's own scroll (it would leave the field at the screen's edge),
+    // then bring the field to the middle of the screen.
+    for (const element of Array.from(form.elements)) {
+      const name = element.getAttribute("name");
+      if (!name || !next[name]) continue;
+      const field = element as HTMLElement;
+      field.focus({ preventScroll: true });
+      field.scrollIntoView({
+        block: "center",
+        behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      });
+      break;
+    }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -127,10 +140,10 @@ export function PilotForm() {
           Richiesta ricevuta, grazie
         </h3>
         <p className="mt-2 max-w-md leading-relaxed text-ink-2">
-          Ti scriviamo a <strong className="font-semibold break-all text-ink">{sentTo}</strong> per
-          fissare una chiamata di mezz&apos;ora, con te e se possibile con un operatore. Ti
-          mostriamo una pratica di prova dall&apos;inizio alla fine e capiamo insieme se il pilota
-          fa per il vostro sportello.
+          Vi scriviamo a <strong className="font-semibold break-all text-ink">{sentTo}</strong> per
+          fissare una chiamata di mezz’ora, con voi e se possibile con un operatore. Vi mostriamo
+          una pratica di prova dall’inizio alla fine e capiamo insieme se il pilota fa per il vostro
+          sportello.
         </p>
         <p className="mt-4 text-ink-2">
           Nel frattempo:{" "}
@@ -154,9 +167,7 @@ export function PilotForm() {
         <h3 id="pilot-form-title" className="font-display text-2xl font-semibold">
           Parliamo del pilota
         </h3>
-        <p className="mt-1 text-ink-2">
-          Bastano nome, CAF ed email. Ti ricontattiamo noi, senza impegno.
-        </p>
+        <p className="mt-1 text-ink-2">Bastano nome, CAF ed email. Vi ricontattiamo noi.</p>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Nome e cognome" error={errors.name}>
@@ -257,7 +268,7 @@ export function PilotForm() {
           className="text-sm text-ink-2"
           label={
             <>
-              Acconsento a essere ricontattato per il programma pilota, come descritto nell&apos;
+              Acconsento a essere ricontattato per il programma pilota, come descritto nell’
               <Link
                 href="/privacy"
                 className="font-semibold text-stamp underline underline-offset-2"
@@ -269,7 +280,12 @@ export function PilotForm() {
           }
         />
         {errors.privacyAccepted && (
-          <p id="privacy-error" role="alert" className="text-sm font-medium text-danger">
+          <p
+            id="privacy-error"
+            role="alert"
+            className="flex items-center gap-1.5 text-sm font-medium text-danger"
+          >
+            <AlertCircle className="size-3.5 shrink-0" aria-hidden />
             {errors.privacyAccepted}
           </p>
         )}
@@ -284,13 +300,13 @@ export function PilotForm() {
           loading={status === "sending"}
           className="group w-full sm:w-auto"
         >
-          Candida il tuo sportello
+          Parliamo del pilota
           <ArrowRight
             className="rtl-flip size-4.5 transition-transform duration-200 ease-(--ease-out) group-hover:translate-x-0.5"
             aria-hidden
           />
         </Button>
-        <p className="text-sm text-ink-3">Prima ci parliamo: candidarsi non impegna a nulla.</p>
+        <p className="text-sm text-ink-3">Prima ci parliamo: non vi impegna a nulla.</p>
       </div>
 
       <div className="border-t border-line pt-5">

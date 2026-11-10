@@ -8,7 +8,7 @@ test("landing explains the product and validates the pilot form", async ({ page 
   );
 
   await page.locator("#pilota").scrollIntoViewIfNeeded();
-  await page.getByRole("button", { name: "Candida il tuo sportello" }).click();
+  await page.getByRole("button", { name: "Parliamo del pilota" }).click();
   await expect(page.getByText("Scrivi nome e cognome.")).toBeVisible();
   await expect(page.getByText("Serve il consenso per poterti ricontattare.")).toBeVisible();
 });
@@ -20,7 +20,7 @@ test("an error in the folded pilot details unfolds them and takes focus", async 
   await page.getByLabel("Quanti sportelli?").fill("0");
   // Folded again: the error must still be seen and reached.
   await page.getByText("Aggiungi qualche dettaglio").click();
-  await page.getByRole("button", { name: "Candida il tuo sportello" }).click();
+  await page.getByRole("button", { name: "Parliamo del pilota" }).click();
   await expect(page.getByLabel("Nome e cognome")).toBeFocused();
   await expect(page.getByText("Indica un numero di sportelli tra 1 e 5000.")).toBeVisible();
 });
@@ -36,7 +36,7 @@ test("a pilot request sent before the page is interactive arrives, its fields ne
   await page.getByLabel("CAF o patronato").fill("CAF di prova");
   await page.getByLabel("Email di lavoro").fill("pilota@example.invalid");
   await page.getByLabel(/Acconsento a essere ricontattato/).check();
-  await page.getByRole("button", { name: "Candida il tuo sportello" }).click();
+  await page.getByRole("button", { name: "Parliamo del pilota" }).click();
 
   const sent = page.waitForRequest((r) => r.url().endsWith("/api/leads"), { timeout: 30_000 });
   release();

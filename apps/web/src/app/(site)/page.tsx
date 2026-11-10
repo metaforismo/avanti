@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Fragment, type CSSProperties } from "react";
 import {
   ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
   Building2,
   Check,
@@ -25,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 const DESCRIPTION =
-  "Avanti prepara le pratiche ISEE prima dell'appuntamento: il cittadino risponde dal telefono, anche nella sua lingua, e l'operatore del CAF trova un fascicolo ordinato con quello che manca già segnalato. La pratica resta all'operatore.";
+  "Avanti prepara le pratiche ISEE prima dell’appuntamento: il cittadino risponde dal telefono, anche nella sua lingua, e l’operatore del CAF trova un fascicolo ordinato con quello che manca già segnalato. La pratica resta all’operatore.";
 
 export const metadata: Metadata = {
   title: { absolute: "Avanti — il fascicolo ISEE arriva pronto allo sportello del CAF" },
@@ -38,12 +39,11 @@ export const metadata: Metadata = {
 // Public demo office (seeded, fictitious data). Unset in environments without demo data.
 const DEMO_OFFICE = process.env.NEXT_PUBLIC_DEMO_OFFICE_SLUG;
 
-/** The three things a CAF manager asks before reading further. */
 /** Split by word: each one rises on its own (site.css, .hero-word). */
 const HERO_TITLE = ["Il", "fascicolo", "arriva", "pronto."] as const;
 
 const HERO_FACTS = [
-  "Nessun invio all'INPS",
+  "Nessun invio all’INPS",
   "Il CAF resta titolare dei dati",
   /* DA DECIDERE: gratuità del pilota fino al 31 marzo 2027 (docs/gtm/pilota.md è una proposta
      da approvare). Confermare prima di pubblicare. */
@@ -92,7 +92,7 @@ const DATA_FACTS = [
   {
     icon: ServerCog,
     title: "Server UE, previsti per il pilota",
-    body: "A Francoforte: fornitori e regioni scritti nell'accordo.",
+    body: "A Francoforte: fornitori e regioni scritti nell’accordo.",
   },
   {
     icon: History,
@@ -107,8 +107,8 @@ const DATA_FACTS = [
 ] as const;
 
 const PILOT_TIMELINE = [
-  { when: "Novembre", what: "Mezz'ora di demo e prova nel vostro gestionale" },
-  { when: "Dicembre", what: "Accordo sui dati, un'ora di formazione, QR in sala" },
+  { when: "Novembre", what: "Mezz’ora di demo e prova nel vostro gestionale" },
+  { when: "Dicembre", what: "Accordo sui dati, un’ora di formazione, QR in sala" },
   { when: "Gennaio – marzo", what: "Uso vero nel picco, flusso abituale sempre disponibile" },
   {
     when: "Entro il 31 marzo",
@@ -124,42 +124,42 @@ const FAQ = [
   },
   {
     q: "Perché sul sito non ci sono loghi né testimonianze?",
-    a: "Siamo all'inizio: il pilota serve proprio a raccogliere le prove. Con i primi sportelli misureremo minuti di lavoro, completezza al primo invio e tempo di copia nel gestionale, e pubblicheremo metodo, campione e limiti del risultato, anche se non è quello sperato.",
+    a: "Siamo all’inizio: il pilota serve proprio a raccogliere le prove. Con i primi sportelli misureremo minuti di lavoro, completezza al primo invio e tempo di copia nel gestionale, e pubblicheremo metodo, campione e limiti del risultato, anche se non è quello sperato.",
   },
   {
-    q: "Se l'AI sbaglia, chi ne risponde?",
-    a: "Nessun documento è accettato o rifiutato dall'AI e nessun importo entra nel prospetto senza la conferma dell'operatore: ogni proposta è etichettata e ha accanto il file da cui viene. La DSU la firmano e la trasmettono il cittadino e il CAF, con le procedure di sempre. Nel pilota contiamo anche gli errori dell'AI, separati per tipo, e li mettiamo nel rapporto.",
+    q: "Se l’AI sbaglia, chi ne risponde?",
+    a: "Nessun documento è accettato o rifiutato dall’AI e nessun importo entra nel prospetto senza la conferma dell’operatore: ogni proposta è etichettata e ha accanto il file da cui viene. La DSU la firmano e la trasmettono il cittadino e il CAF, con le procedure di sempre. Nel pilota contiamo anche gli errori dell’AI, separati per tipo, e li mettiamo nel rapporto.",
   },
   {
     q: "Dove finiscono i dati?",
-    a: "Per il pilota prevediamo database e documenti su server a Francoforte, nell'Unione europea. All'AI arriva solo la parte che serve a ogni compito, mai note interne o altri fascicoli. Fornitori, regioni, conservazione dei dati e uso per l'addestramento sono scritti nell'elenco allegato all'accordo e li approvate voi: senza garanzie adeguate, Avanti lavora con le sole regole. Prima del primo cittadino vero firmiamo insieme accordo di nomina, valutazione d'impatto e informativa nelle lingue dello sportello.",
+    a: "Per il pilota prevediamo database e documenti su server a Francoforte, nell’Unione europea. All’AI arriva solo la parte che serve a ogni compito, mai note interne o altri fascicoli. Fornitori, regioni, conservazione dei dati e uso per l’addestramento sono scritti nell’elenco allegato all’accordo e li approvate voi: senza garanzie adeguate, Avanti lavora con le sole regole. Prima del primo cittadino vero firmiamo insieme accordo di nomina, valutazione d’impatto e informativa nelle lingue dello sportello.",
   },
   {
     q: "Funziona con il nostro gestionale?",
-    a: "Avanti non lo sostituisce e oggi non si collega in automatico. Dal fascicolo l'operatore copia i dati dal prospetto DSU, già nell'ordine del modello, e scarica in un solo ZIP tutti gli originali rinominati per persona, più il riepilogo in PDF. Prima di partire proviamo insieme il passaggio nel vostro software; i collegamenti diretti li costruiamo con i CAF pilota.",
+    a: "Avanti non lo sostituisce e oggi non si collega in automatico. Dal fascicolo l’operatore copia i dati dal prospetto DSU, già nell’ordine del modello, e scarica in un solo ZIP tutti gli originali rinominati per persona, più il riepilogo in PDF. Prima di partire proviamo insieme il passaggio nel vostro software; i collegamenti diretti li costruiamo con i CAF pilota.",
   },
   {
     q: "Quanto tempo serve agli operatori per imparare?",
-    a: "Un'ora di formazione su pratiche di prova: caso completo, documento sbagliato, richiesta d'integrazione, export. La console è in italiano e ha una pagina di aiuto; il primo giorno una lista «Per iniziare» guida l'amministratore passo per passo.",
+    a: "Un’ora di formazione su pratiche di prova: caso completo, documento sbagliato, richiesta d’integrazione, export. La console è in italiano e ha una pagina di aiuto; il primo giorno una lista «Per iniziare» guida l’amministratore passo per passo.",
   },
   {
     q: "E chi non ha lo smartphone o non sa scrivere bene?",
-    a: "Le domande sono brevi, con risposte da toccare, e si può rispondere a voce. L'operatore può completare il fascicolo allo sportello insieme al cittadino, oppure stampargli l'elenco dei documenti da portare su un foglio A4, nella sua lingua e in italiano. Lo sportello resta aperto come oggi: nessuno è obbligato a usare Avanti.",
+    a: "Le domande sono brevi, con risposte da toccare, e si può rispondere a voce. L’operatore può completare il fascicolo allo sportello insieme al cittadino, oppure stampargli l’elenco dei documenti da portare su un foglio A4, nella sua lingua e in italiano. Lo sportello resta aperto come oggi: nessuno è obbligato a usare Avanti.",
   },
   {
     q: "Il cittadino deve installare qualcosa o registrarsi?",
     a: "No. Riceve un link personale (o inquadra il QR dello sportello) e lo apre dal browser del telefono. Il link scade da solo dopo il periodo stabilito dal CAF.",
   },
   {
-    q: "E l'anno dopo, quando l'ISEE scade?",
-    a: "L'ISEE vale fino al 31 dicembre. Per il rinnovo l'operatore sceglie le famiglie dell'anno prima e Avanti prepara il nuovo fascicolo con nucleo e documenti ancora validi: il cittadino conferma chi vive con lui e carica solo quello che va aggiornato. L'invito via email parte solo a chi ha dato il consenso.",
+    q: "E l’anno dopo, quando l’ISEE scade?",
+    a: "L’ISEE vale fino al 31 dicembre. Per il rinnovo l’operatore sceglie le famiglie dell’anno prima e Avanti prepara il nuovo fascicolo con nucleo e documenti ancora validi: il cittadino conferma chi vive con lui e carica solo quello che va aggiornato. L’invito via email parte solo a chi ha dato il consenso.",
   },
   {
     q: "Quanto costa? E se non fa per noi?",
     // DA DECIDERE: gratuità fino al 31 marzo, «vi fermate», «nessun rinnovo automatico»
     // (docs/gtm/pilota.md e prezzi.md sono proposte da approvare). Il prezzo dopo il pilota non
     // è deciso: non citare canoni o modelli finché non lo è.
-    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027, intelligenza artificiale inclusa: nessuna chiave da configurare. Il prezzo per continuare non è ancora deciso: entro marzo vi facciamo un'offerta separata, costruita sui risultati misurati nel pilota. Se il pilota non funziona per voi vi fermate: non c'è rinnovo automatico, vi restituiamo i dati e cancelliamo le copie in Avanti.",
+    a: "Per i CAF pilota è gratuito fino al 31 marzo 2027, intelligenza artificiale inclusa: nessuna chiave da configurare. Il prezzo per continuare non è ancora deciso: entro marzo vi facciamo un’offerta separata, costruita sui risultati misurati nel pilota. Se il pilota non funziona per voi vi fermate: non c’è rinnovo automatico, vi restituiamo i dati e cancelliamo le copie in Avanti.",
   },
 ] as const;
 
@@ -241,7 +241,7 @@ export default function HomePage() {
                     <span className="hero-word">
                       <span
                         className={cn(i === HERO_TITLE.length - 1 && "marker-draw")}
-                        style={{ "--d": `${80 + i * 70}ms` } as CSSProperties}
+                        style={{ "--d": `${80 + i * 50}ms` } as CSSProperties}
                       >
                         {word}
                       </span>
@@ -250,14 +250,14 @@ export default function HomePage() {
                 ))}
               </span>
             </h1>
-            <p className="hero-in mx-auto mt-6 max-w-2xl type-lead text-ink-2 [--d:420ms]">
-              Il cittadino prepara l&apos;ISEE dal telefono, nella sua lingua. Il vostro operatore
-              trova tutto in ordine, con i mancanti in cima.
+            <p className="hero-in mx-auto mt-6 max-w-2xl type-lead text-balance text-ink-2 [--d:280ms]">
+              Il cittadino prepara l’ISEE dal telefono, nella sua lingua. Il vostro operatore trova
+              tutto in ordine, con i mancanti in cima.
             </p>
-            <div className="hero-in mt-9 flex flex-col justify-center gap-3 [--d:500ms] sm:flex-row">
+            <div className="hero-in mt-9 flex flex-col justify-center gap-3 [--d:360ms] sm:flex-row">
               <Button asChild size="lg" className="cta-sheen group">
                 <a href="#pilota">
-                  Parliamo del pilota ISEE
+                  Parliamo del pilota
                   <Arrow />
                 </a>
               </Button>
@@ -265,7 +265,7 @@ export default function HomePage() {
                 <a href="#come-funziona">Guarda come funziona</a>
               </Button>
             </div>
-            <ul className="hero-in mt-7 flex flex-col items-center gap-x-6 gap-y-2 text-sm text-ink-2 [--d:580ms] sm:flex-row sm:flex-wrap sm:justify-center">
+            <ul className="hero-in mx-auto mt-7 flex w-fit flex-col gap-2 text-start text-sm text-ink-2 [--d:420ms] sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6">
               {HERO_FACTS.map((fact) => (
                 <li key={fact} className="flex items-center gap-2">
                   <Check className="size-3.5 shrink-0 text-stamp" strokeWidth={2.5} aria-hidden />
@@ -274,7 +274,7 @@ export default function HomePage() {
               ))}
             </ul>
             {DEMO_OFFICE && (
-              <p className="hero-in mt-5 text-sm text-ink-2 [--d:620ms]">
+              <p className="hero-in mt-5 text-sm text-ink-2 [--d:460ms]">
                 <Link
                   href={`/s/${DEMO_OFFICE}`}
                   className="font-semibold text-stamp underline underline-offset-4"
@@ -286,7 +286,7 @@ export default function HomePage() {
           </div>
 
           {/* The stage: the live example on a desk surface. */}
-          <div className="hero-stage stage relative mt-14 rounded-[2rem] p-4 [--d:560ms] sm:p-6 lg:mt-16 lg:p-12">
+          <div className="hero-stage stage relative mt-14 rounded-[2rem] p-4 [--d:520ms] sm:p-6 lg:mt-16 lg:p-12">
             <IntakeDemo />
           </div>
         </div>
@@ -313,6 +313,7 @@ export default function HomePage() {
       {/* Operators */}
       <section
         id="operatori"
+        data-header="dark"
         aria-labelledby="operatori-title"
         className="grain grain-dark relative scroll-mt-16 overflow-hidden bg-contrast text-on-contrast"
       >
@@ -321,8 +322,8 @@ export default function HomePage() {
           <SectionIntro
             id="operatori-title"
             inverted
-            className="mx-auto text-center [&_p:first-child]:justify-center"
-            eyebrow="Per l'operatore"
+            className="mx-auto text-center [&_p:first-child]:justify-center [&_p:last-child]:mx-auto [&_p:last-child]:max-w-[34rem] [&_p:last-child]:text-balance"
+            eyebrow="Per l’operatore"
             title="Apre il fascicolo e sa già dove guardare."
             lead="Poi copia nel vostro gestionale: prospetto DSU, PDF e originali in un solo ZIP."
           />
@@ -358,7 +359,7 @@ export default function HomePage() {
             <SectionIntro
               id="ai-title"
               eyebrow="Intelligenza artificiale"
-              title="L'AI propone. L'operatore decide."
+              title="L’AI propone. L’operatore decide."
               lead="Legge documenti e racconti, accanto a regole scritte con le fonti ufficiali."
             />
             <ul data-reveal="stagger" className="mt-10 grid gap-4">
@@ -366,9 +367,9 @@ export default function HomePage() {
                 <li key={point} className="flex items-center gap-3 text-lg">
                   <span
                     aria-hidden
-                    className="grid size-6 shrink-0 place-items-center rounded-full bg-stamp-wash text-xs font-bold text-stamp"
+                    className="grid size-6 shrink-0 place-items-center rounded-full bg-stamp-wash text-stamp"
                   >
-                    ✓
+                    <Check className="size-3.5" strokeWidth={2.5} />
                   </span>
                   {point}
                 </li>
@@ -391,7 +392,7 @@ export default function HomePage() {
           <SectionIntro
             id="pratiche-title"
             eyebrow="Pratiche"
-            title="Si parte dall'ISEE, quando serve di più."
+            title="Si parte dall’ISEE, quando serve di più."
           />
           <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:gap-16">
             {FACTS.map((fact) => (
@@ -410,6 +411,7 @@ export default function HomePage() {
                   className="mt-2 inline-block text-sm text-ink-3 underline underline-offset-2 hover:text-ink"
                 >
                   {fact.source}
+                  <ArrowUpRight className="ms-0.5 inline size-3.5 align-[-0.1em]" aria-hidden />
                   <span className="sr-only"> (si apre in una nuova scheda)</span>
                 </a>
               </p>
@@ -439,6 +441,7 @@ export default function HomePage() {
       {/* Data and responsibility */}
       <section
         id="dati"
+        data-header="dark"
         aria-labelledby="dati-title"
         className="grain grain-dark relative scroll-mt-16 bg-contrast text-on-contrast"
       >
@@ -495,7 +498,7 @@ export default function HomePage() {
               title="Tre sportelli per il picco di gennaio."
               lead="Gratis fino al 31 marzo 2027, intelligenza artificiale inclusa, con volumi concordati prima di partire. Potete fermarvi quando volete."
             />
-            <ol data-reveal="stagger" className="draw-y relative mt-12 grid">
+            <ol data-reveal="stagger" className="thread relative mt-12 grid">
               {PILOT_TIMELINE.map((step) => (
                 <li key={step.when} className="relative ps-6 pb-7 last:pb-0">
                   <span
@@ -561,17 +564,13 @@ export default function HomePage() {
         >
           <div aria-hidden className="closing-light pointer-events-none absolute inset-0 -z-0" />
           <div className="scroll-ticket absolute end-12 top-10 hidden lg:block">
-            <QueueTicket
-              number="A 319"
-              label="Il prossimo"
-              className="rotate-[6deg] [--notch:var(--contrast)]"
-            />
+            <QueueTicket number="A 319" label="Il prossimo" className="rotate-[6deg]" />
           </div>
           <h2 id="chiusura-title" className="relative mx-auto max-w-2xl font-display type-section">
-            Mezz&apos;ora per capire se fa per voi.
+            Mezz’ora per capire se fa per voi.
           </h2>
           <p className="relative mx-auto mt-5 max-w-xl type-lead text-on-contrast/75">
-            Una pratica di prova, dall&apos;inizio al vostro gestionale.
+            Una pratica di prova, dall’inizio al vostro gestionale.
           </p>
           <Button
             asChild
@@ -580,7 +579,7 @@ export default function HomePage() {
             className="cta-sheen group mt-10 w-full focus-visible:outline-marker sm:w-auto"
           >
             <a href="#pilota">
-              Parliamo del pilota ISEE
+              Parliamo del pilota
               <Arrow />
             </a>
           </Button>
