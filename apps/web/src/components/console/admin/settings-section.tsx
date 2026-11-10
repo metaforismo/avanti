@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FocusEvent,
+  type FormEvent,
+} from "react";
+import { createPortal } from "react-dom";
 import type { OrganizationSettings } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-import { SettingGroup, ToggleRow, ValueRow } from "./setting-row";
-import { Input, Select } from "@/components/ui/field";
+import { LIMITS, message, wholeNumber, type NumberKey as Key } from "./settings-limits";
+import { NumberInput, SettingGroup, ToggleRow, ValueRow } from "./setting-row";
+import { Select } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,22 +25,23 @@ import { useHashTarget } from "@/lib/console/use-hash-target";
 import { useWarnBeforeUnload } from "@/lib/use-warn-before-unload";
 import { focusFirstError } from "@/lib/validation";
 
-const LIMITS = {
-  baselineMinutesPerCase: { min: 1, max: 600 },
-  linkDays: { min: 1, max: 365 },
-  retentionDays: { min: 30, max: 3650 },
-} as const;
-
-type Key = keyof typeof LIMITS;
+type Errors = Partial<Record<Key, string>>;
 
 const snapshotOf = (form: HTMLFormElement | null) =>
   form ? JSON.stringify([...new FormData(form).entries()]) : null;
 
-export function SettingsSection() {
+export function SettingsSection({
+  saveBar,
+  onBarChange,
+}: {
+  /** The strip under the page title, where the bar of unsaved changes is shown. */
+  saveBar: HTMLElement | null;
+  onBarChange: (open: boolean) => void;
+}) {
   const settings = useResource<OrganizationSettings>("/api/settings");
 
   return (
-    <section id="parametri" aria-labelledby="settings-title" className="scroll-mt-20">
+    <section id="parametri" aria-labelledby="settings-title">
       <SectionHeader
         id="settings-title"
         title="Parametri"
@@ -44,7 +54,12 @@ export function SettingsSection() {
       ) : !settings.data ? (
         <Skeleton className="mt-4 h-40 rounded-lg" />
       ) : (
-        <SettingsForm initial={settings.data} onSaved={settings.setData} />
+        <SettingsForm
+          initial={settings.data}
+          onSaved={settings.setData}
+          saveBar={saveBar}
+          onBarChange={onBarChange}
+        />
       )}
     </section>
   );
@@ -53,13 +68,15 @@ export function SettingsSection() {
 function SettingsForm({
   initial,
   onSaved,
+  saveBar,
+  onBarChange,
 }: {
   initial: OrganizationSettings;
   onSaved: (settings: OrganizationSettings) => void;
+  saveBar: HTMLElement | null;
+  onBarChange: (open: boolean) => void;
 }) {
-  const [errors, setErrors] = useState<
-    Partial<Record<Key | "nearReadyCriticalThreshold" | "nearReadyOtherThreshold", string>>
-  >({});
+  const [errors, setErrors] = useState<Errors>({});
   const [state, setState] = useState<"idle" | "dirty" | "saving" | "saved">("idle");
   const form = useRef<HTMLFormElement>(null);
   // Links from the first steps, the report and the metrics land on the field to fill in.
@@ -78,6 +95,10 @@ function SettingsForm({
   // The save button is at the end of a long form: closing the tab must not drop changes silently.
   const dirty = state === "dirty";
   useWarnBeforeUnload(dirty);
+  useEffect(() => {
+    onBarChange(state !== "idle");
+    return () => onBarChange(false);
+  }, [state, onBarChange]);
   const [formError, setFormError] = useState<string | null>(null);
   useEffect(() => {
     if (state !== "saved") return;
@@ -105,10 +126,9 @@ function SettingsForm({
   }, [selectDefaults]);
   // The bar's buttons go away after «Annulla» and «Salvati»: focus must not fall to the body.
   // A save sent with Enter from a field leaves the focus in that field.
-  const bar = useRef<HTMLDivElement>(null);
   const refocus = () => {
     const active = document.activeElement;
-    if (!active || active === document.body || bar.current?.contains(active))
+    if (!active || active === document.body || saveBar?.contains(active))
       form.current?.focus({ preventScroll: true });
   };
 
@@ -117,7 +137,7 @@ function SettingsForm({
     if (state === "saving") return;
     const data = new FormData(event.currentTarget);
     const read = (key: Key) => String(data.get(key) ?? "").trim();
-    const next: typeof errors = {};
+    const next: Errors = {};
     const values: Partial<OrganizationSettings> = {};
     for (const key of Object.keys(LIMITS) as Key[]) {
       const raw = read(key);
@@ -126,10 +146,10 @@ function SettingsForm({
         values[key] = null;
         continue;
       }
-      const n = Number(raw);
-      const { min, max } = LIMITS[key];
-      if (!Number.isInteger(n) || n < min || n > max)
-        next[key] = `Un numero intero tra ${min} e ${max}.`;
+      const n = wholeNumber(key, raw);
+      if (n === null) next[key] = message(key);
+      else if (key === "nearReadyCriticalThreshold" || key === "nearReadyOtherThreshold")
+        values[key] = n / 100;
       else values[key] = n;
     }
     values.notifyCitizenReady = data.get("notifyCitizenReady") === "on";
@@ -140,12 +160,6 @@ function SettingsForm({
     values.aiCopilot = data.get("aiCopilot") === "on";
     values.aiCitizenAssistant = data.get("aiCitizenAssistant") === "on";
     values.nearReadyMode = data.get("nearReadyMode") as OrganizationSettings["nearReadyMode"];
-    for (const key of ["nearReadyCriticalThreshold", "nearReadyOtherThreshold"] as const) {
-      const percent = Number(data.get(key));
-      if (!Number.isFinite(percent) || percent < 80 || percent > 100)
-        next[key] = "Una percentuale tra 80 e 100.";
-      else values[key] = percent / 100;
-    }
     const first = Number(data.get("reminderFirst"));
     const second = Number(data.get("reminderSecond"));
     values.citizenReminderDays = second ? [first, second] : [first];
@@ -173,13 +187,36 @@ function SettingsForm({
     }
   }
 
-  const number = (name: Key | "nearReadyCriticalThreshold" | "nearReadyOtherThreshold") => ({
+  // Digits only, typed or pasted, and no more than the largest value has: «5 modificato» can't
+  // be entered at all, and what is left out of range says so as soon as the field is left.
+  const number = (name: Key) => ({
     name,
     inputMode: "numeric" as const,
-    className: "tabular w-28 text-end",
+    pattern: "[0-9]*",
+    autoComplete: "off",
+    maxLength: String(LIMITS[name].max).length,
+    unit: LIMITS[name].unit,
+    onChange: (event: ChangeEvent<HTMLInputElement>) => {
+      const digits = event.currentTarget.value.replace(/\D/g, "");
+      if (digits !== event.currentTarget.value) event.currentTarget.value = digits;
+      // An error stays until the value is right: no flicker while typing a valid one.
+      setErrors((current) =>
+        current[name] &&
+        (digits === "" ? name === "baselineMinutesPerCase" : wholeNumber(name, digits))
+          ? { ...current, [name]: undefined }
+          : current,
+      );
+    },
+    onBlur: (event: FocusEvent<HTMLInputElement>) => {
+      const raw = event.currentTarget.value.trim();
+      if (raw === "" && name === "baselineMinutesPerCase") return;
+      if (wholeNumber(name, raw) === null)
+        setErrors((current) => ({ ...current, [name]: message(name) }));
+    },
   });
   return (
     <form
+      id="settings-form"
       ref={form}
       onSubmit={onSubmit}
       noValidate
@@ -188,7 +225,7 @@ function SettingsForm({
       onChange={() => {
         if (state !== "saving") setState(snapshot() === saved.current ? "idle" : "dirty");
       }}
-      className="mt-4 grid gap-7 pb-24 outline-none"
+      className="mt-4 grid gap-7 outline-none"
     >
       <SettingGroup title="Pratiche e conservazione">
         <ValueRow
@@ -197,7 +234,7 @@ function SettingsForm({
           error={errors.baselineMinutesPerCase}
         >
           {(p) => (
-            <Input
+            <NumberInput
               {...p}
               {...number("baselineMinutesPerCase")}
               defaultValue={initial.baselineMinutesPerCase ?? ""}
@@ -210,7 +247,7 @@ function SettingsForm({
           hint="Giorni. Poi il cittadino deve chiederne uno nuovo."
           error={errors.linkDays}
         >
-          {(p) => <Input {...p} {...number("linkDays")} defaultValue={initial.linkDays} />}
+          {(p) => <NumberInput {...p} {...number("linkDays")} defaultValue={initial.linkDays} />}
         </ValueRow>
         <ValueRow
           label="Conservazione dei fascicoli"
@@ -218,7 +255,7 @@ function SettingsForm({
           error={errors.retentionDays}
         >
           {(p) => (
-            <Input {...p} {...number("retentionDays")} defaultValue={initial.retentionDays} />
+            <NumberInput {...p} {...number("retentionDays")} defaultValue={initial.retentionDays} />
           )}
         </ValueRow>
       </SettingGroup>
@@ -320,7 +357,7 @@ function SettingsForm({
           error={errors.nearReadyCriticalThreshold}
         >
           {(p) => (
-            <Input
+            <NumberInput
               {...p}
               {...number("nearReadyCriticalThreshold")}
               defaultValue={Math.round(initial.nearReadyCriticalThreshold * 100)}
@@ -333,7 +370,7 @@ function SettingsForm({
           error={errors.nearReadyOtherThreshold}
         >
           {(p) => (
-            <Input
+            <NumberInput
               {...p}
               {...number("nearReadyOtherThreshold")}
               defaultValue={Math.round(initial.nearReadyOtherThreshold * 100)}
@@ -357,47 +394,52 @@ function SettingsForm({
       </SettingGroup>
 
       {formError && <Notice tone="danger">{formError}</Notice>}
-      {/* The bar appears only while there is something to save, and closes itself after «Salvati».
-          The status region stays mounted, empty when idle, so screen readers announce what fills
-          it. The form keeps room below its last row so the bar never sits on top of a setting. */}
-      <div
-        ref={bar}
-        role="status"
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-20 flex justify-center px-4 pb-[env(safe-area-inset-bottom)] lg:start-56"
-      >
-        {state !== "idle" && (
-          <div className="pointer-events-auto flex animate-dock-in items-center gap-3 rounded-lg bg-surface py-2 ps-4 pe-2 shadow-float ring-1 ring-line-strong">
-            {state === "saved" ? (
-              <span className="flex items-center gap-1.5 py-1.5 pe-2 text-sm font-semibold text-ok">
-                <Check className="size-4 animate-check-in" aria-hidden />
-                Salvati
-              </span>
-            ) : (
-              <>
-                <span className="text-sm text-ink-2">Modifiche non ancora salvate</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={state === "saving"}
-                  onClick={() => {
-                    form.current?.reset();
-                    setErrors({});
-                    setFormError(null);
-                    setState("idle");
-                    refocus();
-                  }}
-                >
-                  Annulla
-                </Button>
-                <Button type="submit" size="sm" loading={state === "saving"}>
-                  Salva parametri
-                </Button>
-              </>
-            )}
-          </div>
+      {saveBar &&
+        createPortal(
+          state === "idle" ? null : (
+            <div className="pointer-events-auto flex h-full animate-fade-in items-center gap-2 bg-paper">
+              {state === "saved" ? (
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-ok">
+                  <Check className="size-4 animate-check-in" aria-hidden />
+                  Salvati
+                </span>
+              ) : (
+                <>
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-ink">
+                    <span aria-hidden className="size-2 shrink-0 rounded-full bg-warn" />
+                    <span className="truncate">Modifiche non ancora salvate</span>
+                  </span>
+                  <span className="ms-auto flex shrink-0 items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={state === "saving"}
+                      onClick={() => {
+                        form.current?.reset();
+                        setErrors({});
+                        setFormError(null);
+                        setState("idle");
+                        refocus();
+                      }}
+                    >
+                      Annulla
+                    </Button>
+                    <Button
+                      type="submit"
+                      form="settings-form"
+                      size="sm"
+                      loading={state === "saving"}
+                    >
+                      Salva<span className="max-sm:sr-only"> parametri</span>
+                    </Button>
+                  </span>
+                </>
+              )}
+            </div>
+          ),
+          saveBar,
         )}
-      </div>
     </form>
   );
 }

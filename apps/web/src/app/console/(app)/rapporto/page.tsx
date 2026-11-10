@@ -1,10 +1,25 @@
 "use client";
 
-import { CheckCircle2, ChevronDown, CircleDashed, Download, FileText, XCircle } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  CircleDashed,
+  Download,
+  FileText,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
-import { Suspense, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  Suspense,
+  useMemo,
+  useState,
+  type ComponentProps,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import type { PilotCount, PilotReport, PilotReportGroup, PilotThreshold } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
@@ -178,6 +193,11 @@ function ReportView() {
   const report = useResource<PilotReport>(validApplied ? `/api/reports/pilot?${query}` : null);
   const data = report.data;
   const active = choices.find((c) => c.from === from && c.to === to)?.key;
+  // Metrics counts the same thing over its own windows (7, 30 or 90 days ending today).
+  const metricsQuery = new URLSearchParams();
+  if (active === "90") metricsQuery.set("giorni", "90");
+  if (officeId) metricsQuery.set("sportello", officeId);
+  const metricsHref = `/console/metriche${metricsQuery.size ? `?${metricsQuery}` : ""}` as Route;
   const downloadable = validApplied && !draft;
   const files = useDownload();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -191,7 +211,7 @@ function ReportView() {
   };
 
   return (
-    <PageContainer width="6xl">
+    <PageContainer width="wide">
       <PageHeader
         title="Rapporto del pilota"
         lead={
@@ -251,34 +271,26 @@ function ReportView() {
             apply({ dal: choice.from, al: choice.to });
           }}
         />
-        <label className="grid gap-1 text-sm">
-          <span className="text-ink-2">Dal</span>
-          <Input
-            type="date"
-            value={shown.from}
-            max={shown.to || undefined}
-            onChange={(e) => setDraft({ ...shown, from: e.target.value })}
-            onBlur={commit}
-            onKeyDown={onDateKey}
-            aria-invalid={draft && invalid ? true : undefined}
-            aria-describedby={draft && invalid ? "period-error" : undefined}
-            className="h-9 text-sm"
-          />
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span className="text-ink-2">Al</span>
-          <Input
-            type="date"
-            value={shown.to}
-            min={shown.from || undefined}
-            onChange={(e) => setDraft({ ...shown, to: e.target.value })}
-            onBlur={commit}
-            onKeyDown={onDateKey}
-            aria-invalid={draft && invalid ? true : undefined}
-            aria-describedby={draft && invalid ? "period-error" : undefined}
-            className="h-9 text-sm"
-          />
-        </label>
+        <DateField
+          label="Dal"
+          value={shown.from}
+          max={shown.to || undefined}
+          onChange={(e) => setDraft({ ...shown, from: e.target.value })}
+          onBlur={commit}
+          onKeyDown={onDateKey}
+          aria-invalid={draft && invalid ? true : undefined}
+          aria-describedby={draft && invalid ? "period-error" : undefined}
+        />
+        <DateField
+          label="Al"
+          value={shown.to}
+          min={shown.from || undefined}
+          onChange={(e) => setDraft({ ...shown, to: e.target.value })}
+          onBlur={commit}
+          onKeyDown={onDateKey}
+          aria-invalid={draft && invalid ? true : undefined}
+          aria-describedby={draft && invalid ? "period-error" : undefined}
+        />
         {operator.offices.length > 1 && (
           <label className="grid gap-1 text-sm">
             <span className="text-ink-2">Sportello</span>
@@ -313,9 +325,9 @@ function ReportView() {
           {invalid}
         </Notice>
       )}
-      <p className="mt-2 text-sm text-ink-3">
-        «—» indica un dato non ancora misurabile o nascosto perché, insieme agli altri, renderebbe
-        riconoscibili poche persone.
+      <p className="mt-2 text-[0.8125rem] text-ink-3">
+        «—» è un dato nascosto o non ancora misurabile, e sotto ogni «—» c&apos;è il motivo; «&lt;5»
+        vuol dire meno di 5 pratiche. Servono a non rendere riconoscibili poche persone.
       </p>
 
       {report.status === "error" && !data ? (
@@ -356,7 +368,7 @@ function ReportView() {
             </Notice>
           )}
           <Thresholds group={data.total} />
-          <Totals group={data.total} report={data} />
+          <Totals group={data.total} report={data} metricsHref={metricsHref} />
           {data.offices.length > 1 && !officeId && <Offices offices={data.offices} />}
           <div className="grid gap-6 md:grid-cols-2">
             <Distribution
@@ -407,6 +419,32 @@ function ReportView() {
   );
 }
 
+/**
+ * The native date input (keyboard, screen readers and the phone's own picker come with it),
+ * with the calendar icon of the rest of the console in place of the browser's.
+ */
+function DateField({ label, ...props }: { label: string } & Omit<ComponentProps<"input">, "type">) {
+  return (
+    <label className="grid gap-1 text-sm">
+      <span className="text-ink-2">{label}</span>
+      <span className="relative block">
+        <Input
+          type="date"
+          {...props}
+          className={cn(
+            "tabular h-9 w-40 pe-9 text-sm",
+            "[&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-y-0 [&::-webkit-calendar-picker-indicator]:end-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
+          )}
+        />
+        <CalendarDays
+          className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
+          aria-hidden
+        />
+      </span>
+    </label>
+  );
+}
+
 function Thresholds({ group }: { group: PilotReportGroup }) {
   return (
     <section aria-labelledby="thresholds-title">
@@ -433,7 +471,7 @@ function Thresholds({ group }: { group: PilotReportGroup }) {
                 {value && <span className="tabular text-ink">· {value}</span>}
               </p>
               <p className="mt-2 text-sm text-ink-2">{explanation(threshold)}</p>
-              <p className="mt-auto pt-3 text-xs text-ink-3">
+              <p className="mt-auto pt-3 text-[0.8125rem] text-ink-3">
                 {threshold.sample === null
                   ? `Campione nascosto; minimo ${threshold.minimumSample}`
                   : `Campione: ${threshold.sample} su un minimo di ${threshold.minimumSample}`}
@@ -446,40 +484,101 @@ function Thresholds({ group }: { group: PilotReportGroup }) {
   );
 }
 
-function Totals({ group, report }: { group: PilotReportGroup; report: PilotReport }) {
+function Totals({
+  group,
+  report,
+  metricsHref,
+}: {
+  group: PilotReportGroup;
+  report: PilotReport;
+  metricsHref: Route;
+}) {
   const [toSubmission, review] = group.times;
   const baseline = report.baseline.manualMinutesPerCase;
+  // The API hides a total when another figure of the period is under 5: showing it would let
+  // the reader subtract the hidden one (see «Come contiamo»). It is not a missing measurement.
+  const hidden = group.starts === null || group.deliveries === null;
+  const why = "Nascosto: un dato del periodo ha meno di 5 pratiche";
   return (
     <section aria-labelledby="totals-title">
-      <SectionHeader id="totals-title" title="Cosa è successo nel periodo" />
+      <SectionHeader
+        id="totals-title"
+        title="Cosa è successo nel periodo"
+        lead={`Dal ${longDay(report.period.from)} al ${longDay(report.period.to)}${
+          report.period.observedUntilExclusive < report.period.endExclusive
+            ? ", fino a oggi: il periodo non è ancora concluso"
+            : ""
+        }.`}
+      />
       <dl className="mt-4 grid gap-px overflow-hidden rounded-lg bg-line shadow-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
-        <Tile label="Pratiche avviate" value={count(group.starts)} />
+        <Tile
+          label="Pratiche avviate"
+          value={count(group.starts)}
+          note={group.starts === null ? why : "Create nel periodo"}
+        />
         <Tile
           label="Inviate allo sportello"
           value={count(group.deliveries)}
-          note={`${percent(group.deliveryRate.value)} delle avviate`}
+          note={
+            group.deliveries === null
+              ? why
+              : group.deliveryRate.value === null
+                ? "Percentuale non calcolabile: troppo poche pratiche"
+                : `${percent(group.deliveryRate.value)} delle avviate`
+          }
         />
         <Tile
           label="Complete all'invio"
           value={percent(group.completeness.value)}
-          note="Senza problemi bloccanti segnalati da Avanti"
+          note={
+            group.completeness.value === null
+              ? hidden
+                ? why
+                : "Servono almeno 5 invii con il dato registrato"
+              : "Senza problemi bloccanti segnalati da Avanti"
+          }
         />
         <Tile
           label="Richieste di integrazione"
           value={count(group.integrations.requests)}
-          note={`Su ${count(group.integrations.cases)} ${group.integrations.cases === 1 ? "pratica" : "pratiche"}`}
+          note={
+            group.integrations.requests === null
+              ? why
+              : `Su ${count(group.integrations.cases)} ${group.integrations.cases === 1 ? "pratica" : "pratiche"}`
+          }
         />
       </dl>
+      {hidden && (
+        <p className="mt-2 text-[0.8125rem] text-ink-3">
+          Il totale resta nascosto perché mostrarlo insieme al dettaglio permetterebbe di ricavare
+          il gruppo piccolo. Il conteggio esatto, per uso interno, è in{" "}
+          <Link
+            href={metricsHref}
+            className="font-semibold text-stamp underline underline-offset-2"
+          >
+            Metriche
+          </Link>
+          .
+        </p>
+      )}
       <div className="mt-4 grid gap-4 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:grid-cols-3">
         <Figure
           label="Dalla creazione al primo invio"
           value={formatMinutes(toSubmission?.value ?? null)}
-          note="Media, comprese pause e attese del cittadino"
+          note={
+            toSubmission?.value == null
+              ? "Nascosto: servono almeno 5 pratiche misurabili"
+              : "Media, comprese pause e attese del cittadino"
+          }
         />
         <Figure
           label="Revisione allo sportello"
           value={formatMinutes(review?.value ?? null)}
-          note="Media, comprese pause"
+          note={
+            review?.value == null
+              ? "Nascosto: servono almeno 5 revisioni registrate"
+              : "Media, comprese pause"
+          }
         />
         <Figure
           label="Prima di Avanti (dichiarato)"
@@ -543,7 +642,9 @@ function Offices({ offices }: { offices: PilotReportGroup[] }) {
                 <td className="tabular px-4 py-3 text-end">{count(group.starts)}</td>
                 <td className="tabular px-4 py-3 text-end">
                   {count(group.deliveries)}
-                  <span className="ms-1 text-ink-3">({percent(group.deliveryRate.value)})</span>
+                  {group.deliveryRate.value !== null && (
+                    <span className="ms-1 text-ink-3">({percent(group.deliveryRate.value)})</span>
+                  )}
                 </td>
                 <td className="tabular px-4 py-3 text-end">{percent(group.completeness.value)}</td>
                 <td className="tabular px-4 py-3 text-end">{count(group.integrations.requests)}</td>
@@ -552,6 +653,10 @@ function Offices({ offices }: { offices: PilotReportGroup[] }) {
           </tbody>
         </table>
       </div>
+      <p className="mt-2 text-[0.8125rem] text-ink-3">
+        «—» in una cella: lo sportello ha meno di 5 pratiche, o mostrarla permetterebbe di ricavare
+        il dato di un altro.
+      </p>
     </section>
   );
 }
@@ -593,7 +698,7 @@ function Tile({ label, value, note }: { label: string; value: string; note?: str
       <dd className="tabular mt-1 font-display text-4xl font-semibold tracking-[-0.02em]">
         {value}
       </dd>
-      {note && <dd className="mt-1 text-xs text-ink-3">{note}</dd>}
+      {note && <dd className="mt-1 text-[0.8125rem] leading-snug text-ink-3">{note}</dd>}
     </div>
   );
 }
@@ -603,7 +708,7 @@ function Figure({ label, value, note }: { label: string; value: string; note: Re
     <div>
       <p className="text-sm text-ink-2">{label}</p>
       <p className="tabular mt-1 font-display text-3xl font-semibold">{value}</p>
-      <p className="mt-1 text-xs text-ink-3">{note}</p>
+      <p className="mt-1 text-[0.8125rem] leading-snug text-ink-3">{note}</p>
     </div>
   );
 }
