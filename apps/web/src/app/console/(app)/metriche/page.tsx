@@ -346,7 +346,9 @@ function Breakdown({
               key={row.key}
               className="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-3 text-sm"
             >
-              <span className="truncate text-ink-2" title={row.label}>{row.label}</span>
+              <span className="truncate text-ink-2" title={row.label}>
+                {row.label}
+              </span>
               <span className="h-1.5 overflow-hidden rounded-full bg-sunk">
                 <span
                   className="block h-full rounded-full bg-stamp"
