@@ -35,6 +35,8 @@ const shortDay = new Intl.DateTimeFormat("it-IT", {
   timeZone: "Europe/Rome",
 });
 
+const numbers = new Intl.NumberFormat("it-IT");
+
 const percent = (share: number | null) => (share === null ? "—" : `${Math.round(share * 100)}%`);
 
 export default function MetricsPage() {
@@ -137,12 +139,12 @@ function MetricsView() {
           <dl className="grid gap-px overflow-hidden rounded-lg bg-line shadow-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
             <Tile
               label="Pratiche avviate"
-              value={String(data.casesStarted)}
+              value={numbers.format(data.casesStarted)}
               note="Create nel periodo, anche se poi abbandonate"
             />
             <Tile
               label="Inviate allo sportello"
-              value={String(data.casesSubmitted)}
+              value={numbers.format(data.casesSubmitted)}
               note="Primo invio del cittadino, nel periodo"
             />
             <Tile
@@ -256,7 +258,12 @@ function Tile({
   return (
     <div className="bg-surface px-5 py-5">
       <dt className="text-sm font-medium text-ink-3">{label}</dt>
-      <dd className="tabular mt-2 font-display text-[2.75rem] leading-none font-semibold tracking-[-0.03em]">
+      <dd
+        className={cn(
+          "tabular mt-2 font-display leading-none font-semibold tracking-[-0.03em]",
+          value.length > 6 ? "text-[2rem] leading-[1.375]" : "text-[2.75rem]",
+        )}
+      >
         {value}
       </dd>
       {share !== undefined && share !== null && (
@@ -337,16 +344,16 @@ function Breakdown({
           {sorted.map((row) => (
             <li
               key={row.key}
-              className="grid grid-cols-[8rem_1fr_2.5rem] items-center gap-3 text-sm"
+              className="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-3 text-sm"
             >
-              <span className="truncate text-ink-2">{row.label}</span>
+              <span className="truncate text-ink-2" title={row.label}>{row.label}</span>
               <span className="h-1.5 overflow-hidden rounded-full bg-sunk">
                 <span
                   className="block h-full rounded-full bg-stamp"
                   style={{ width: `${(row.value / max) * 100}%` }}
                 />
               </span>
-              <span className="tabular text-end font-semibold">{row.value}</span>
+              <span className="tabular text-end font-semibold">{numbers.format(row.value)}</span>
             </li>
           ))}
         </ul>

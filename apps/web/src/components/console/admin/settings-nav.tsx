@@ -108,14 +108,14 @@ export function SettingsNav({
         ref={rail}
         className={cn(
           "col-start-1 row-start-1 min-w-0 [scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden",
-          "transition-opacity duration-150",
+          "transition-opacity duration-150 max-sm:[mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]",
           barOpen && "pointer-events-none opacity-0",
         )}
         inert={barOpen}
       >
         <nav
           aria-label="Sezioni"
-          className="flex w-fit rounded-sm bg-sunk p-0.5"
+          className="flex w-fit rounded-sm bg-sunk p-0.5 max-sm:me-6"
           onClick={(event) => {
             const link = (event.target as HTMLElement).closest("a");
             if (link) setActive(link.hash.slice(1));

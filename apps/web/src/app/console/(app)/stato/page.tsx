@@ -468,12 +468,12 @@ function UsageCard({ usage }: { usage: NonNullable<SystemStatus["usage"]> }) {
       </h2>
       <p className="mt-2 flex flex-wrap items-baseline gap-x-2 font-display text-2xl font-semibold">
         <span className="tabular text-[2.5rem] leading-none tracking-[-0.03em]">
-          {usage.delivered}
+          {usage.delivered.toLocaleString("it-IT")}
         </span>
         <span>{usage.delivered === 1 ? "fascicolo consegnato" : "fascicoli consegnati"}</span>
         {usage.cap !== null && (
           <span className="font-sans text-base font-normal text-ink-2">
-            su <span className="tabular">{usage.cap}</span> inclusi
+            su <span className="tabular">{usage.cap.toLocaleString("it-IT")}</span> inclusi
           </span>
         )}
       </p>

@@ -344,7 +344,7 @@ function OperatorMenu({
           variant="ghost"
           size="icon-sm"
           aria-label={`Azioni per ${operator.name}`}
-          className="data-[state=open]:bg-sunk data-[state=open]:text-ink"
+          className="data-[state=open]:bg-sunk data-[state=open]:text-ink max-lg:size-11"
         >
           <MoreHorizontal className="size-4.5" aria-hidden />
         </Button>
