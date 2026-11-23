@@ -84,9 +84,7 @@ export function OfficePoster({ officeSlug }: { officeSlug: string }) {
         <div className="flex flex-1 flex-col px-[15mm] pt-[11mm] pb-[12mm]">
           <header className="flex items-start justify-between gap-6">
             <div>
-              <p className="text-[9.5pt] font-semibold tracking-[0.08em] text-ink-3 uppercase">
-                {data.office.name}
-              </p>
+              <p className="text-[11pt] font-semibold text-ink-3">{data.office.name}</p>
               <p className="mt-0.5 font-display text-[17pt] leading-tight font-bold">
                 {data.organization.name}
               </p>

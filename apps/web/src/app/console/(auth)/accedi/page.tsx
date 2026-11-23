@@ -23,11 +23,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/console/ac
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,32rem)]">
       <section className="panel-night relative hidden flex-col justify-between overflow-hidden p-12 text-on-contrast lg:flex">
-        {/* Ruled lines of a register, fading out downwards: paper, not a gradient. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_39px,rgb(255_255_255/0.045)_39px,rgb(255_255_255/0.045)_40px)] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
-        />
         <Link href="/" className="relative w-fit rounded-sm [&_span]:text-on-contrast">
           <Logo />
         </Link>
@@ -48,28 +43,28 @@ export default async function LoginPage({ searchParams }: PageProps<"/console/ac
             </span>
             , poi gli avvisi, poi tutto il resto.
           </p>
-          {/* The same order drawn as the top of a dossier, with invented content. */}
+          {/* The same order drawn as the top of a dossier, as the console shows it: the colour
+              is on the 16 px icon, never a disc. Invented content, and it says so. */}
           <div
             aria-hidden
+            data-ui
             style={CARD_COLORS}
-            className="mt-10 -rotate-1 rounded-lg bg-white p-4 text-(--card-ink) shadow-[0_28px_60px_-24px_rgb(0_0_0/0.6)] will-change-transform [backface-visibility:hidden]"
+            className="mt-10 -rotate-1 rounded-md bg-white p-4 text-(--card-ink) will-change-transform [backface-visibility:hidden]"
           >
-            <div className="flex items-center justify-between border-b border-(--card-line) pb-3 text-[0.8125rem] font-semibold tracking-[0.06em] text-(--card-ink-3) uppercase">
-              <span>Fascicolo ISEE</span>
-              <span className="font-normal tracking-normal normal-case">Dati inventati</span>
+            <div className="flex items-center justify-between border-b border-(--card-line) pb-3 text-[0.8125rem]">
+              <span className="font-semibold">Fascicolo ISEE</span>
+              <span className="text-(--card-ink-3)">Dati inventati</span>
             </div>
-            <ul className="mt-3 grid gap-1.5 text-sm">
+            <ul className="mt-2 grid text-sm">
               {(
                 [
-                  [AlertOctagon, "bg-(--card-danger)", "Mancano 2 documenti obbligatori"],
-                  [AlertTriangle, "bg-(--card-warn)", "Carta d'identità in scadenza a gennaio"],
-                  [CheckCircle2, "bg-(--card-ok)", "9 documenti verificati"],
+                  [AlertOctagon, "text-(--card-danger)", "Mancano 2 documenti obbligatori"],
+                  [AlertTriangle, "text-(--card-warn)", "Carta d'identità in scadenza a gennaio"],
+                  [CheckCircle2, "text-(--card-ok)", "9 documenti verificati"],
                 ] as const
               ).map(([Icon, tone, text]) => (
-                <li key={text} className="flex items-center gap-3 rounded-md px-1 py-1.5">
-                  <span className={`grid size-6 shrink-0 place-items-center rounded-full ${tone}`}>
-                    <Icon className="size-3.5 text-white" />
-                  </span>
+                <li key={text} className="flex items-center gap-2.5 py-1.5">
+                  <Icon className={`size-4 shrink-0 ${tone}`} />
                   {text}
                 </li>
               ))}
@@ -85,10 +80,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/console/ac
           <Link href="/" className="mb-10 inline-block rounded-sm lg:hidden">
             <Logo />
           </Link>
-          <h1 className="font-display text-[2rem] leading-tight font-bold tracking-[-0.025em]">
+          <h1 className="font-display text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-[1.75rem]">
             Accedi alla console
           </h1>
-          <p className="mt-2 text-ink-2">
+          <p className="mt-2 text-sm text-ink-2">
             Usa le credenziali che ti ha dato il responsabile del tuo CAF.
           </p>
           <LoginForm nextPath={one(params.next)} expired={one(params.motivo) === "sessione"} />

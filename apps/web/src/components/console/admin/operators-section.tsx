@@ -405,7 +405,7 @@ function IssuedAccess({
         Per <span className="font-semibold text-ink">{issued.operator.name}</span>: per entrare
         servono questi tre dati.
       </p>
-      <dl className="divide-y divide-line rounded-md ring-1 ring-line">
+      <dl className="divide-y divide-line rounded-md border border-line">
         <AccessRow label="Indirizzo della console" value={address} copyLabel="indirizzo">
           <span className="notranslate font-mono text-sm break-all" dir="ltr">
             {address}

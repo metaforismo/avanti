@@ -97,7 +97,10 @@ export function DailyChart({ daily, className }: { daily: Metrics["daily"]; clas
   }
 
   return (
-    <section aria-labelledby={titleId} className={cn(PANEL, "flex min-w-0 flex-col p-5", className)}>
+    <section
+      aria-labelledby={titleId}
+      className={cn(PANEL, "flex min-w-0 flex-col p-5", className)}
+    >
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <PanelTitle id={titleId}>Pratiche al giorno</PanelTitle>
         <div className="flex items-center gap-4">
