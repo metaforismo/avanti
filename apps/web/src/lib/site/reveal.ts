@@ -7,10 +7,6 @@
 const HIDDEN = [
   "[data-reveal]:not([data-revealed]),[data-reveal=stagger]:not([data-revealed])>*{opacity:0;transform:translate3d(0,var(--reveal-distance),0)}",
   "[data-reveal=stagger]:not([data-revealed]){opacity:1;transform:none}",
-  "[data-reveal]:not([data-revealed]) .draw-x{transform:scaleX(0)}",
-  ".thread:not([data-revealed])>li::before{transform:scaleY(0)}",
-  "[data-reveal]:not([data-revealed]) .fill-in{opacity:0;transform:scale(0.3)}",
-  "[data-reveal]:not([data-revealed]) .press-on-reveal{opacity:0}",
 ].join("");
 
 const STYLE_ID = "site-reveal";
@@ -42,7 +38,7 @@ export function startReveals(): () => void {
         observer.unobserve(entry.target);
       }
     },
-    { rootMargin: "0px 0px -8% 0px", threshold: 0.1 },
+    { rootMargin: "0px 0px -8% 0px", threshold: 0 },
   );
   targets.filter((node) => !node.hasAttribute("data-revealed")).forEach((n) => observer.observe(n));
   return () => observer.disconnect();

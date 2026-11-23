@@ -72,38 +72,40 @@ export default function SecurityPage() {
   return (
     <article>
       <PageHero
-        eyebrow="Sicurezza e dati"
         title="Come trattiamo i documenti dei cittadini."
         lead="In concreto, senza «certificato» o «garantito» dove non c’è una certificazione."
       />
 
-      <RuleList items={CONTROLS} columns={3} />
+      <RuleList items={CONTROLS} label="Controlli di sicurezza" />
 
-      <section aria-labelledby="before" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-        <div
-          data-reveal
-          className="relative mx-auto max-w-3xl rounded-xl bg-surface p-6 shadow-frame ring-1 ring-line sm:p-10"
-        >
-          <Stamp className="absolute end-6 top-6 hidden text-xs sm:inline-flex">
-            <span>Prima del</span>
-            <span className="mt-0.5">primo cittadino</span>
-          </Stamp>
-          <p className="type-eyebrow text-stamp">Da firmare con ogni CAF pilota</p>
-          <h2 id="before" className="mt-3 max-w-md font-display type-subsection">
-            Prima di trattare dati reali, insieme al CAF
-          </h2>
-          <ul className="mt-6 divide-y divide-line border-y border-line">
-            {BEFORE_REAL_DATA.map((item) => (
-              <li key={item} className="flex gap-3 py-3.5">
-                {/* An empty box: to be ticked with the CAF, not already done. */}
-                <span
-                  aria-hidden
-                  className="mt-0.5 size-5 shrink-0 rounded-sm ring-1 ring-line-field"
-                />
-                {item}
-              </li>
-            ))}
-          </ul>
+      <section aria-labelledby="before" className="bg-folder py-24 lg:py-32">
+        <div className="frame grid gap-x-6 gap-y-10 lg:grid-cols-12">
+          <div data-reveal="stagger" className="lg:col-span-5">
+            <h2 id="before" className="t-head max-w-[16ch]">
+              Prima di trattare dati reali
+            </h2>
+            <p className="t-body mt-5 max-w-[34ch] text-ink">
+              Da firmare con ogni CAF pilota, insieme, prima del primo cittadino.
+            </p>
+          </div>
+          <div className="relative lg:col-span-6 lg:col-start-7 lg:self-end">
+            <Stamp className="absolute end-0 -top-14 hidden text-[0.8125rem] sm:inline-flex">
+              <span>Prima del</span>
+              <span className="mt-0.5">primo cittadino</span>
+            </Stamp>
+            <ul data-reveal="stagger" className="grid gap-5">
+              {BEFORE_REAL_DATA.map((item) => (
+                <li key={item} className="t-body flex gap-4 text-ink">
+                  {/* An empty box: to be ticked with the CAF, not already done. */}
+                  <span
+                    aria-hidden
+                    className="mt-0.5 size-6 shrink-0 rounded-[5px] bg-surface ring-2 ring-line-field ring-inset"
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 

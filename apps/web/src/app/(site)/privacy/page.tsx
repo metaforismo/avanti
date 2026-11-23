@@ -56,7 +56,6 @@ export default function PrivacyPage() {
   return (
     <article>
       <PageHero
-        eyebrow="Privacy"
         title="Informativa privacy"
         lead="In breve: i dati servono a preparare la tua pratica e restano sotto il controllo del CAF che hai scelto."
       >
@@ -65,47 +64,47 @@ export default function PrivacyPage() {
         </Notice>
       </PageHero>
 
-      <div className="border-t border-line bg-surface">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-16 lg:py-20">
-          <nav aria-label="In questa pagina" className="lg:sticky lg:top-24 lg:self-start">
-            <p className="type-eyebrow text-ink-3">In questa pagina</p>
-            <ol className="mt-3 grid border-s border-line">
-              {SECTIONS.map((section, i) => (
+      <div className="bg-surface py-20 lg:py-28">
+        <div className="frame grid gap-x-6 gap-y-12 lg:grid-cols-12">
+          <nav
+            aria-labelledby="privacy-index"
+            className="lg:sticky lg:top-24 lg:col-span-3 lg:self-start"
+          >
+            <p id="privacy-index" className="t-body font-semibold text-ink">
+              In questa pagina
+            </p>
+            <ol className="mt-2 grid">
+              {SECTIONS.map((section) => (
                 <li key={section.id}>
                   <a
                     href={`#${section.id}`}
-                    className="-ms-px flex min-h-10 items-center border-s-2 border-transparent ps-4 text-body-sm text-ink-2 transition-colors hover:border-stamp hover:text-ink"
+                    className="t-body flex min-h-11 items-center gap-3 rounded-sm text-ink-2 transition-colors hover:text-stamp"
                   >
-                    <span aria-hidden className="tabular me-3 font-mono text-xs text-ink-3">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
+                    <span aria-hidden className="ticket-dot text-[0.75em] text-stamp" />
                     {section.title}
                   </a>
                 </li>
               ))}
             </ol>
           </nav>
-          <div className="grid max-w-2xl">
-            {SECTIONS.map((section, i) => (
+          <div className="grid gap-y-16 lg:col-span-8 lg:col-start-5 lg:gap-y-20">
+            {SECTIONS.map((section) => (
               <section
                 key={section.id}
                 id={section.id}
                 aria-labelledby={`${section.id}-title`}
                 data-reveal
-                className="scroll-mt-24 border-t border-line py-10 first:border-t-0 first:pt-0"
+                className="scroll-mt-24"
               >
-                <p aria-hidden className="tabular font-mono text-sm text-stamp">
-                  {String(i + 1).padStart(2, "0")}
-                </p>
                 <h2
                   id={`${section.id}-title`}
-                  className="mt-2 font-display text-[1.75rem] leading-tight font-semibold"
+                  className="font-display text-[clamp(1.75rem,1.2rem+1.6vw,2.5rem)] leading-[1.1] font-semibold tracking-[-0.008em]"
                 >
                   {section.title}
                 </h2>
                 <div className="mt-5 grid gap-4">
                   {section.body.map((p) => (
-                    <p key={p} className="text-[1.0625rem] leading-[1.7] text-ink-2">
+                    <p key={p} className="t-body text-ink">
                       {p}
                     </p>
                   ))}

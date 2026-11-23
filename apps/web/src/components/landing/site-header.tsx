@@ -13,7 +13,6 @@ import { cn } from "@/lib/cn";
 export const SITE_NAV = [
   { id: "come-funziona", label: "Come funziona" },
   { id: "operatori", label: "Per gli operatori" },
-  { id: "pratiche", label: "Pratiche" },
   { id: "dati", label: "Dati e sicurezza" },
   { id: "pilota", label: "Pilota 2027" },
 ] as const;
@@ -56,21 +55,26 @@ function useActiveSection(enabled: boolean) {
  * never reads as a pale slab laid over the blue.
  */
 function useBarTone(pathname: string) {
-  const [tone, setTone] = useState({ scrolled: false, dark: false });
+  const [tone, setTone] = useState({ scrolled: false, dark: false, stamp: false });
   useEffect(() => {
-    const bands = [...document.querySelectorAll<HTMLElement>('[data-header="dark"]')];
+    const bands = [...document.querySelectorAll<HTMLElement>("[data-header]")];
     let frame = 0;
     const read = () => {
       frame = 0;
       // The bar's middle line decides: a band that only touches its lower edge doesn't count.
       const probe = BAR_HEIGHT / 2;
-      const dark = bands.some((band) => {
+      const under = bands.find((band) => {
         const rect = band.getBoundingClientRect();
         return rect.top <= probe && rect.bottom > probe;
       });
+      const dark = Boolean(under);
+      // A stamp-blue field takes a stamp-blue bar: the bar is part of the field, not a slab.
+      const stamp = under?.dataset.header === "stamp";
       const scrolled = window.scrollY > 8;
       setTone((prev) =>
-        prev.scrolled === scrolled && prev.dark === dark ? prev : { scrolled, dark },
+        prev.scrolled === scrolled && prev.dark === dark && prev.stamp === stamp
+          ? prev
+          : { scrolled, dark, stamp },
       );
     };
     const schedule = () => {
@@ -110,7 +114,7 @@ function usePageLock(locked: boolean) {
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { scrolled, dark: overDark } = useBarTone(pathname);
+  const { scrolled, dark: overDark, stamp: overStamp } = useBarTone(pathname);
   // `open` is the intent; `mounted` outlives it by the exit animation.
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -161,37 +165,45 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      {/* The bar's ground is its own layer, so the hero reads as one surface at the top. It
-          fades in (opacity) once the page moves; the blur is static. Its two tints cross-fade
-          when the bar passes over a dark band. */}
+      {/* The bar's ground is its own layer, opaque: paper on paper, the field's own colour over
+          the dark and blue fields. It fades in (opacity) once the page moves; the tints
+          cross-fade. No blur and no rule: the bar is part of the page under it. */}
       <div
         aria-hidden
         className={cn(
-          "absolute inset-0 backdrop-blur-[14px] backdrop-saturate-[160%] transition-opacity duration-200",
+          "absolute inset-0 transition-opacity duration-200",
           raised ? "opacity-100" : "opacity-0",
         )}
       >
         <div
           className={cn(
-            "absolute inset-0 bg-paper/82 shadow-[0_1px_0_var(--line)] transition-opacity duration-200",
+            "absolute inset-0 bg-paper transition-opacity duration-200",
             dark && "opacity-0",
           )}
         />
         <div
           className={cn(
-            "absolute inset-0 bg-contrast/78 shadow-[0_1px_0_rgb(255_255_255/0.08)] transition-opacity duration-200",
-            !dark && "opacity-0",
+            "absolute inset-0 bg-contrast transition-opacity duration-200",
+            (!dark || overStamp) && "opacity-0",
+          )}
+        />
+        <div
+          className={cn(
+            "absolute inset-0 bg-stamp transition-opacity duration-200",
+            (!dark || !overStamp) && "opacity-0",
           )}
         />
       </div>
       {/* Three columns from lg: the section links sit on the page's centre line, whatever the
           widths of the logo and the actions. */}
-      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+      <div className="frame relative flex h-16 items-center justify-between gap-6 lg:grid lg:grid-cols-[1fr_auto_1fr]">
         <Link
           href="/"
           aria-label="Avanti, pagina iniziale"
           className={cn(
-            "w-fit origin-left rounded-sm transition-transform duration-300 ease-(--ease-out) rtl:origin-right",
+            "w-fit shrink-0 origin-left rounded-sm transition-transform duration-300 ease-(--ease-out) rtl:origin-right",
+            // On the narrowest phones the mark alone leaves room for the action beside it.
+            "max-[399px]:[&>span>span]:sr-only",
             dark && "focus-visible:outline-marker",
             scrolled && "scale-[0.94]",
           )}
@@ -251,23 +263,24 @@ export function SiteHeader() {
           >
             <Link href="/console/accedi">Accedi</Link>
           </Button>
-          <Button
-            asChild
-            variant={dark ? "marker" : "primary"}
-            size="sm"
+          <Link
+            href="/#pilota"
             className={cn(
-              "group hidden h-11 px-4 duration-200 sm:inline-flex",
-              dark && "focus-visible:outline-marker",
+              "ticket-btn group inline-flex h-11 items-center gap-1.5 rounded-sm px-4 text-[0.9375rem] font-semibold transition-[color,transform] duration-200 active:scale-[0.98] max-[359px]:px-3",
+              dark
+                ? "text-ink [--ticket-fill-hover:var(--marker-hover)] [--ticket-fill:var(--marker)] [--ticket-ring:var(--stamp)]"
+                : "text-on-stamp",
             )}
           >
-            <Link href="/#pilota">
-              Parliamo del pilota
-              <ArrowRight
-                className="rtl-flip size-4 transition-transform duration-200 ease-(--ease-out) group-hover:translate-x-0.5"
-                aria-hidden
-              />
-            </Link>
-          </Button>
+            Parliamo del pilota
+            <ArrowRight
+              className={cn(
+                "rtl-flip size-4 transition-transform duration-200 ease-(--ease-out) group-hover:translate-x-0.5 max-sm:hidden",
+                !dark && "text-marker",
+              )}
+              aria-hidden
+            />
+          </Link>
           <Button
             ref={toggleRef}
             variant="ghost"
@@ -308,14 +321,10 @@ export function SiteHeader() {
           data-state={open ? "open" : "closed"}
           className="menu-sheet fixed inset-x-0 top-16 bottom-0 flex flex-col overflow-y-auto overscroll-contain bg-paper lg:hidden"
         >
-          <nav aria-label="Sezioni" className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-            <ul className="border-t border-line">
+          <nav aria-label="Sezioni" className="frame pt-4">
+            <ul>
               {SITE_NAV.map((item, i) => (
-                <li
-                  key={item.id}
-                  className="menu-item border-b border-line"
-                  style={{ "--i": i } as CSSProperties}
-                >
+                <li key={item.id} className="menu-item" style={{ "--i": i } as CSSProperties}>
                   <a
                     href={`/#${item.id}`}
                     onClick={() => closeMenu()}
@@ -330,18 +339,20 @@ export function SiteHeader() {
             </ul>
           </nav>
           <div
-            className="menu-item mx-auto mt-auto w-full max-w-6xl px-4 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:hidden"
+            className="menu-item frame mt-auto pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:hidden"
             style={{ "--i": SITE_NAV.length } as CSSProperties}
           >
-            <Button asChild size="lg" className="group min-h-13 w-full">
-              <Link href="/#pilota" onClick={() => closeMenu()}>
-                Parliamo del pilota
-                <ArrowRight
-                  className="rtl-flip size-4.5 transition-transform duration-200 ease-(--ease-out) group-hover:translate-x-0.5"
-                  aria-hidden
-                />
-              </Link>
-            </Button>
+            <Link
+              href="/#pilota"
+              onClick={() => closeMenu()}
+              className="ticket-btn group flex min-h-13 w-full items-center justify-center gap-2.5 rounded-md text-base font-semibold text-on-stamp active:scale-[0.98]"
+            >
+              Parliamo del pilota
+              <ArrowRight
+                className="rtl-flip size-4.5 text-marker transition-transform duration-200 ease-(--ease-out) group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
             <Link
               href="/console/accedi"
               className="mt-1 flex min-h-11 items-center justify-center rounded-sm text-body-sm font-medium text-ink-2 transition-colors hover:text-ink"

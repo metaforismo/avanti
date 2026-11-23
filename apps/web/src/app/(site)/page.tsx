@@ -1,28 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Fragment, type CSSProperties } from "react";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  BadgeCheck,
-  Building2,
-  Check,
-  FileArchive,
-  FileWarning,
-  History,
-  MessageSquareText,
-  ServerCog,
-} from "lucide-react";
-import { QueueTicket } from "@/components/brand/desk-objects";
-import { OperatorSnippet } from "@/components/landing/ai-snippets";
-import { CountUp } from "@/components/landing/count-up";
-import { DossierPreview } from "@/components/landing/dossier-preview";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ActivityLog } from "@/components/landing/activity-log";
+import { AiSwitches } from "@/components/landing/ai-switches";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { IntakeDemo } from "@/components/landing/intake-demo";
+import { OperatorShowcase } from "@/components/landing/operator-showcase";
+import { PeakFigure } from "@/components/landing/peak-figure";
 import { PilotForm } from "@/components/landing/pilot-form";
-import { SectionIntro } from "@/components/landing/section-intro";
-import { SpotlightGrid } from "@/components/landing/spotlight-grid";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 const DESCRIPTION =
@@ -50,60 +36,36 @@ const HERO_FACTS = [
   "Gratis per i CAF pilota fino al 31 marzo 2027",
 ] as const;
 
-/** Desk work Avanti takes off the operator: three shipped console features. */
-const OPERATOR_FEATURES = [
-  { icon: FileWarning, text: "Mancanti in cima, per persona" },
-  { icon: MessageSquareText, text: "Integrazioni nella sua lingua" },
-  { icon: FileArchive, text: "Originali in un solo ZIP" },
-] as const;
-
-const AI_POINTS = [
-  "Ogni proposta è etichettata",
-  "Nulla parte verso gli enti",
-  "Senza AI, funziona con le regole",
-] as const;
-
 // Verified figures only, with year and primary source (see docs/research/market.md).
-const FACTS = [
-  {
-    value: 85,
-    label: "delle DSU passa da un CAF",
-    source: "Ministero del Lavoro, Rapporto ISEE 2024",
+const SOURCES = {
+  caf: {
+    label: "Ministero del Lavoro, Rapporto ISEE 2024",
     href: "https://lavoro.gov.it/documenti-e-norme/studi-e-statistiche/rapporto-isee-2024",
   },
-  {
-    value: 71,
-    label: "arriva nel primo trimestre",
-    source: "INPS, Osservatorio DSU e ISEE, febbraio 2026",
+  quarter: {
+    label: "INPS, Osservatorio DSU e ISEE, febbraio 2026",
     href: "https://www.inps.it/it/it/inps-comunica/notizie/dettaglio-news-page.news.2026.02.osservatorio-su-dsu-e-isee-i-dati-2016-2025.html",
   },
-] as const;
+} as const;
 
-const NEXT_PRACTICES = ["Modello 730", "Assegno unico", "Permesso di soggiorno"] as const;
+const NEXT_PRACTICES = ["Modello 730", "Assegno unico", "permesso di soggiorno"] as const;
 
 // Every line must match docs/SECURITY.md, docs/DEPLOY.md and docs/legal/sub-responsabili.md:
 // Frankfurt is the planned pilot region, and the providers' terms are still to be signed.
-const DATA_FACTS = [
-  {
-    icon: Building2,
-    title: "Il CAF resta titolare",
-    body: "Avanti è responsabile del trattamento (art. 28 GDPR).",
-  },
-  {
-    icon: ServerCog,
-    title: "Server UE, previsti per il pilota",
-    body: "A Francoforte: fornitori e regioni scritti nell’accordo.",
-  },
-  {
-    icon: History,
-    title: "Ogni accesso registrato",
-    body: "Il responsabile del CAF consulta ed esporta il registro.",
-  },
-  {
-    icon: BadgeCheck,
-    title: "Fornitori approvati da voi",
-    body: "Senza garanzie adeguate, Avanti lavora senza AI.",
-  },
+const DATA_ROWS = [
+  [
+    ["Titolare", "il vostro CAF", "dei dati e dei fascicoli"],
+    ["Responsabile", "Avanti", "art. 28 GDPR, con accordo scritto"],
+  ],
+  [
+    ["Server", "Francoforte, UE", "previsti per il pilota"],
+    ["Fornitori", "approvati da voi", "elencati nell’accordo"],
+  ],
+  [
+    ["Accessi", "tutti registrati", "il registro si esporta"],
+    ["AI", "con fornitori approvati", "altrimenti, solo regole"],
+    ["Enti", "nessun invio", "la DSU la trasmette il CAF"],
+  ],
 ] as const;
 
 const PILOT_TIMELINE = [
@@ -116,6 +78,11 @@ const PILOT_TIMELINE = [
     what: "Risultati e proposta. Decidete voi: nessun passaggio automatico a pagamento.",
   },
 ] as const;
+
+/** Widths of the calendar: one per month for the first three steps; the closing step, a
+    deadline rather than a span, takes the width of one month. */
+const PILOT_MONTHS = [1, 1, 3, 1] as const;
+const PILOT_FIELDS = ["bg-folder", "bg-stamp-wash", "bg-stamp text-on-stamp", "bg-marker"] as const;
 
 const FAQ = [
   {
@@ -186,21 +153,19 @@ function Arrow({ className }: { className?: string }) {
   );
 }
 
-/** «85 out of 100», drawn: a 10×10 figure whose squares fill in order when it comes into view. */
-function HundredGrid({ value }: { value: number }) {
+/** A source under a figure: opens the official page in a new tab. */
+function Source({ label, href }: { label: string; href: string }) {
   return (
-    <span aria-hidden className="mb-2 grid shrink-0 grid-cols-10 gap-[3px] sm:gap-1">
-      {Array.from({ length: 100 }, (_, i) => (
-        <span
-          key={i}
-          className={cn(
-            "size-[7px] rounded-[2px] sm:size-2",
-            i < value ? "fill-in bg-stamp" : "bg-line",
-          )}
-          style={i < value ? ({ "--i": i } as CSSProperties) : undefined}
-        />
-      ))}
-    </span>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline decoration-[0.07em] underline-offset-[0.2em] transition-opacity hover:opacity-80 focus-visible:outline-marker"
+    >
+      {label}
+      <ArrowUpRight className="ms-0.5 inline size-3.5 align-[-0.1em]" aria-hidden />
+      <span className="sr-only"> (si apre in una nuova scheda)</span>
+    </a>
   );
 }
 
@@ -213,71 +178,55 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
 
-      {/* Hero */}
-      <section id="hero" aria-labelledby="hero-title" className="relative">
-        <div aria-hidden className="ruled pointer-events-none absolute inset-x-0 top-0 h-[44rem]" />
-        <div
-          aria-hidden
-          className="hero-aura pointer-events-none absolute inset-x-0 top-0 h-[40rem]"
-        />
-        <div className="relative mx-auto max-w-6xl px-4 pt-10 pb-20 sm:px-6 lg:pt-14 lg:pb-28">
-          <div className="mx-auto max-w-4xl text-center">
-            <p className="hero-in mx-auto mb-8 inline-flex w-fit max-w-full items-center gap-2 rounded-full bg-surface/80 py-1 ps-1.5 pe-3 text-sm font-semibold text-ink-2 shadow-raised ring-1 ring-line">
-              <span className="shrink-0 rounded-full bg-stamp-wash px-2 py-0.5 text-xs whitespace-nowrap text-stamp">
-                Pilota ISEE
-              </span>
-              <span className="min-w-0 truncate">
-                <span className="sm:hidden">Gennaio 2027</span>
-                <span className="hidden sm:inline">Per CAF e patronati, da gennaio 2027</span>
-              </span>
-            </p>
-            <h1 id="hero-title" className="font-display type-hero">
-              {/* Screen readers get one sentence: inline-block words can be read one by one. */}
-              <span className="sr-only">{HERO_TITLE.join(" ")}</span>
-              <span aria-hidden>
-                {HERO_TITLE.map((word, i) => (
-                  <Fragment key={word}>
-                    {i > 0 && " "}
-                    <span className="hero-word">
-                      <span
-                        className={cn(i === HERO_TITLE.length - 1 && "marker-draw")}
-                        style={{ "--d": `${80 + i * 50}ms` } as CSSProperties}
-                      >
-                        {word}
-                      </span>
+      {/* Hero: the title on paper, the live dossier on a blue stage cut like the ticket. */}
+      <section id="hero" aria-labelledby="hero-title" className="relative pb-24 xl:pb-32">
+        <div className="frame grid grid-cols-1 gap-x-6 pt-12 sm:pt-16 xl:grid-cols-12 xl:pt-20">
+          <h1 id="hero-title" className="t-display xl:col-span-8">
+            {/* Screen readers get one sentence: inline-block words can be read one by one. */}
+            <span className="sr-only">{HERO_TITLE.join(" ")}</span>
+            <span aria-hidden>
+              {HERO_TITLE.map((word, i) => (
+                <Fragment key={word}>
+                  {i > 0 && " "}
+                  {i === 2 && <br className="hidden sm:inline" />}
+                  <span className="hero-word">
+                    <span
+                      className={cn(i === HERO_TITLE.length - 1 && "marker-draw")}
+                      style={{ "--d": `${80 + i * 60}ms` } as CSSProperties}
+                    >
+                      {word}
                     </span>
-                  </Fragment>
-                ))}
-              </span>
-            </h1>
-            <p className="hero-in mx-auto mt-6 max-w-2xl type-lead text-balance text-ink-2 [--d:280ms]">
-              Il cittadino prepara l’ISEE dal telefono, nella sua lingua. Il vostro operatore trova
-              tutto in ordine, con i mancanti in cima.
+                  </span>
+                </Fragment>
+              ))}
+            </span>
+          </h1>
+
+          <div className="mt-8 xl:col-span-4 xl:row-start-2 xl:mt-12 xl:pe-4">
+            <p className="hero-in t-lead max-w-[36ch] text-ink [--d:280ms]">
+              Per CAF e patronati. Il cittadino prepara l’ISEE dal telefono, nella sua lingua; il
+              vostro operatore trova tutto in ordine, con i mancanti in cima.
             </p>
-            <div className="hero-in mt-9 flex flex-col justify-center gap-3 [--d:360ms] sm:flex-row">
-              <Button asChild size="lg" className="cta-sheen group">
-                <a href="#pilota">
-                  Parliamo del pilota
-                  <Arrow />
-                </a>
-              </Button>
-              <Button asChild size="lg" variant="secondary">
-                <a href="#come-funziona">Guarda come funziona</a>
-              </Button>
-            </div>
-            <ul className="hero-in mx-auto mt-7 flex w-fit flex-col gap-2 text-start text-sm text-ink-2 [--d:420ms] sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6">
+            <a
+              href="#pilota"
+              className="ticket-btn group hero-in t-body mt-8 inline-flex min-h-13 items-center gap-2.5 rounded-md px-6 font-semibold text-on-stamp transition-transform duration-150 ease-(--ease-out) [--d:360ms] active:scale-[0.98]"
+            >
+              Parliamo del pilota
+              <Arrow className="text-marker" />
+            </a>
+            <ul className="hero-in t-body mt-8 grid gap-2.5 text-ink [--d:420ms]">
               {HERO_FACTS.map((fact) => (
-                <li key={fact} className="flex items-center gap-2">
-                  <Check className="size-3.5 shrink-0 text-stamp" strokeWidth={2.5} aria-hidden />
+                <li key={fact} className="flex items-baseline gap-3">
+                  <span aria-hidden className="ticket-dot translate-y-[0.06em] text-stamp" />
                   {fact}
                 </li>
               ))}
             </ul>
             {DEMO_OFFICE && (
-              <p className="hero-in mt-5 text-sm text-ink-2 [--d:460ms]">
+              <p className="hero-in t-body mt-6 [--d:460ms]">
                 <Link
                   href={`/s/${DEMO_OFFICE}`}
-                  className="font-semibold text-stamp underline underline-offset-4"
+                  className="font-semibold text-stamp underline decoration-[0.07em] underline-offset-[0.2em]"
                 >
                   Prova la demo dal telefono
                 </Link>
@@ -285,305 +234,222 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* The stage: the live example on a desk surface. */}
-          <div className="hero-stage stage relative mt-14 rounded-[2rem] p-4 [--d:520ms] sm:p-6 lg:mt-16 lg:p-12">
-            <IntakeDemo />
+          {/* The stage bleeds off the right edge, past the frame on very wide screens too. */}
+          <div
+            className={cn(
+              "stage-open stage-cut relative mt-14 bg-stamp px-6 pt-8 pb-8 text-on-stamp [--d:520ms] [--notch-y:3.5rem] [--notch:18px] sm:px-10 sm:pt-12 sm:[--notch-y:96px] sm:[--notch:30px] xl:col-span-8 xl:col-start-5 xl:row-start-2 xl:mt-12 xl:rounded-ss-[28px] xl:ps-14 xl:pe-14 xl:pt-14 xl:pb-14",
+              "-mx-[var(--site-margin)] xl:ms-0 xl:-me-[calc(var(--site-margin)+max(0px,(100vw-105rem)/2))]",
+            )}
+          >
+            <div className="stage-settle xl:max-w-[54rem]">
+              <IntakeDemo />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How it works: sticky picture, four steps */}
-      <section
-        id="come-funziona"
-        aria-labelledby="come-title"
-        className="scroll-mt-16 border-t border-line bg-surface"
-      >
-        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
-          <SectionIntro
-            id="come-title"
-            eyebrow="Come funziona"
-            title="Le domande dello sportello, prima dello sportello."
-          />
-          <div className="mt-16 lg:mt-8">
-            <HowItWorks />
-          </div>
-        </div>
+      {/* How it works: one practice across four fields. */}
+      <section id="come-funziona" aria-labelledby="come-title" className="scroll-mt-16">
+        <HowItWorks titleId="come-title" />
       </section>
 
-      {/* Operators */}
+      {/* Operators: the names of the dossier's parts and the console laid on the ticket. */}
       <section
         id="operatori"
         data-header="dark"
         aria-labelledby="operatori-title"
-        className="grain grain-dark relative scroll-mt-16 overflow-hidden bg-contrast text-on-contrast"
+        className="scroll-mt-16 bg-contrast text-on-contrast"
       >
-        <div aria-hidden className="band-light pointer-events-none absolute inset-0" />
-        <div className="relative mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:pt-32">
-          <SectionIntro
-            id="operatori-title"
-            inverted
-            className="mx-auto text-center [&_p:first-child]:justify-center [&_p:last-child]:mx-auto [&_p:last-child]:max-w-[34rem] [&_p:last-child]:text-balance"
-            eyebrow="Per l’operatore"
-            title="Apre il fascicolo e sa già dove guardare."
-            lead="Poi copia nel vostro gestionale: prospetto DSU, PDF e originali in un solo ZIP."
-          />
-          <ul
-            data-reveal="stagger"
-            className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-3 text-on-contrast/85"
-          >
-            {OPERATOR_FEATURES.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-2.5">
-                <span
-                  aria-hidden
-                  className="grid size-8 place-items-center rounded-lg bg-on-contrast/[0.06] ring-1 ring-on-contrast/10"
-                >
-                  <Icon className="size-4 text-marker" />
-                </span>
-                {text}
-              </li>
-            ))}
-          </ul>
-          <div className="glow mt-16 [--glow-color:rgb(123_144_255/0.18)] lg:mt-20">
-            <div className="scroll-tilt edge-light">
-              <DossierPreview />
-            </div>
-          </div>
-        </div>
-        <div className="h-24 lg:h-32" />
+        <OperatorShowcase titleId="operatori-title" />
       </section>
 
-      {/* AI */}
-      <section aria-labelledby="ai-title" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
-        <div className="grid items-center gap-16 lg:grid-cols-2 lg:gap-20">
-          <div>
-            <SectionIntro
-              id="ai-title"
-              eyebrow="Intelligenza artificiale"
-              title="L’AI propone. L’operatore decide."
-              lead="Legge documenti e racconti, accanto a regole scritte con le fonti ufficiali."
-            />
-            <ul data-reveal="stagger" className="mt-10 grid gap-4">
-              {AI_POINTS.map((point) => (
-                <li key={point} className="flex items-center gap-3 text-lg">
-                  <span
-                    aria-hidden
-                    className="grid size-6 shrink-0 place-items-center rounded-full bg-stamp-wash text-stamp"
-                  >
-                    <Check className="size-3.5" strokeWidth={2.5} />
-                  </span>
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div data-reveal className="glow">
-            <OperatorSnippet />
-          </div>
+      {/* AI: the two switches a CAF has, and what each leaves when it is off. */}
+      <section aria-labelledby="ai-title" className="pt-28 xl:pt-40">
+        <div data-reveal="stagger" className="frame grid gap-x-6 pb-14 xl:grid-cols-12 xl:pb-16">
+          <h2 id="ai-title" className="t-head xl:col-span-7">
+            L’AI propone. L’operatore decide.
+          </h2>
+          <p className="t-lead mt-6 max-w-[40ch] text-ink xl:col-span-4 xl:col-start-9 xl:mt-0 xl:self-end">
+            Legge documenti e racconti, accanto a regole scritte con le fonti ufficiali. Nulla parte
+            verso gli enti.
+          </p>
         </div>
+        <AiSwitches />
       </section>
 
-      {/* Practices and figures */}
+      {/* The peak: the visitor's own number. */}
       <section
         id="pratiche"
+        data-header="stamp"
         aria-labelledby="pratiche-title"
-        className="scroll-mt-16 border-y border-line bg-surface"
+        className="ticket scroll-mt-16 bg-stamp text-on-stamp [--notch-y:2.75rem] [--notch:2rem] max-sm:[--notch:1.25rem]"
       >
-        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
-          <SectionIntro
-            id="pratiche-title"
-            eyebrow="Pratiche"
-            title="Si parte dall’ISEE, quando serve di più."
-          />
-          <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:gap-16">
-            {FACTS.map((fact) => (
-              <p key={fact.value} data-reveal className="border-t-2 border-ink pt-5">
-                <span className="flex items-end justify-between gap-6">
-                  <span className="block font-display text-[clamp(4.5rem,10vw,8rem)] leading-none font-semibold tracking-[-0.01em]">
-                    <CountUp value={fact.value} suffix="%" />
-                  </span>
-                  <HundredGrid value={fact.value} />
-                </span>
-                <span className="mt-3 block text-xl text-ink">{fact.label}</span>
-                <a
-                  href={fact.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-block text-sm text-ink-3 underline underline-offset-2 hover:text-ink"
-                >
-                  {fact.source}
-                  <ArrowUpRight className="ms-0.5 inline size-3.5 align-[-0.1em]" aria-hidden />
-                  <span className="sr-only"> (si apre in una nuova scheda)</span>
-                </a>
-              </p>
-            ))}
+        <div className="frame grid min-h-[88svh] gap-x-6 py-24 xl:grid-cols-12 xl:py-28">
+          <div className="flex flex-col xl:col-span-8">
+            <h2 id="pratiche-title" data-reveal className="t-head">
+              Quante DSU fate in un anno?
+            </h2>
+            <p className="t-body mt-5 max-w-[44ch] text-on-stamp">
+              In Italia l’85% delle DSU passa da un CAF (<Source {...SOURCES.caf} />
+              ), e quasi tutte arrivano nello stesso trimestre.
+            </p>
+            <PeakFigure />
           </div>
-          <div
-            data-reveal
-            className="mt-16 flex flex-wrap items-center gap-x-3 gap-y-3 border-t border-line pt-8 text-body-sm"
-          >
-            <span className="inline-flex items-center gap-2 rounded-full bg-stamp px-3.5 py-1.5 font-semibold text-on-stamp">
-              <span aria-hidden className="size-1.5 rounded-full bg-marker" />
-              ISEE ordinario · pilota da gennaio 2027
-            </span>
-            {NEXT_PRACTICES.map((name) => (
-              <span
-                key={name}
-                className="rounded-full px-3.5 py-1.5 text-ink-2 ring-1 ring-line-strong"
-              >
-                {name}
-              </span>
-            ))}
-            <span className="text-ink-3">in preparazione</span>
+          <div className="mt-10 grid content-end gap-6 xl:col-span-4 xl:col-start-9 xl:mt-0">
+            <p className="t-body max-w-[34ch] text-on-stamp">
+              Il 71% delle DSU arriva tra gennaio e marzo (<Source {...SOURCES.quarter} />
+              ). Il numero grande è quella media nazionale applicata al vostro: non è una
+              previsione.
+            </p>
+            <p className="t-body max-w-[34ch] text-on-stamp">
+              <span className="font-semibold">Si parte dall’ISEE ordinario,</span> quando serve di
+              più. In preparazione: {NEXT_PRACTICES.join(", ")}.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Data and responsibility */}
-      <section
-        id="dati"
-        data-header="dark"
-        aria-labelledby="dati-title"
-        className="grain grain-dark relative scroll-mt-16 bg-contrast text-on-contrast"
-      >
-        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32">
-          <SectionIntro
-            id="dati-title"
-            inverted
-            eyebrow="Dati e responsabilità"
-            title="Documenti di persone vere, trattati di conseguenza."
-          />
-          <SpotlightGrid
-            as="dl"
-            className="mt-14 overflow-hidden rounded-2xl bg-on-contrast/10"
-            gridClassName="grid gap-px sm:grid-cols-2"
-          >
-            {DATA_FACTS.map(({ icon: Icon, title, body }, i) => (
-              <div
-                key={title}
-                data-reveal
-                style={{ "--reveal-delay": `${(i % 2) * 80}ms` } as CSSProperties}
-                className="bg-contrast p-7 sm:p-8"
-              >
-                <span
-                  aria-hidden
-                  className="grid size-10 place-items-center rounded-xl bg-on-contrast/[0.06] ring-1 ring-on-contrast/10"
-                >
-                  <Icon className="size-5 text-marker" />
-                </span>
-                <dt className="mt-5 font-display text-xl font-semibold">{title}</dt>
-                <dd className="mt-1.5 text-on-contrast/75">{body}</dd>
-              </div>
-            ))}
-          </SpotlightGrid>
-          <Link
-            href="/sicurezza"
-            className="group mt-10 inline-flex min-h-11 items-center gap-2 rounded-sm font-semibold text-marker underline-offset-4 hover:underline focus-visible:outline-marker"
-          >
-            Tutti i controlli di sicurezza
-            <Arrow className="size-4" />
-          </Link>
+      {/* Data and responsibility: the statement, the table pushed right, the activity log. */}
+      <section id="dati" aria-labelledby="dati-title" className="scroll-mt-16 py-28 xl:py-40">
+        <div className="frame grid gap-x-6 xl:grid-cols-12">
+          <h2 id="dati-title" data-reveal className="t-head xl:col-span-12 xl:ps-[3vw]">
+            I dati restano del CAF.
+          </h2>
+          <div className="mt-14 max-xl:order-last xl:col-span-5 xl:row-start-2 xl:mt-24 xl:self-end">
+            <ActivityLog />
+          </div>
+          <div className="mt-14 xl:col-span-5 xl:col-start-8 xl:row-start-2 xl:mt-24 xl:self-end">
+            <div className="grid gap-y-11">
+              {DATA_ROWS.map((group, g) => (
+                <dl key={g} data-reveal="stagger" className="grid gap-y-5">
+                  {group.map(([kind, what, note]) => (
+                    <div
+                      key={kind}
+                      className="t-body grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-0.5 sm:grid-cols-[8rem_minmax(0,1fr)_auto]"
+                    >
+                      <dt className="text-ink-2 max-sm:col-span-2">{kind}</dt>
+                      <dd className="font-semibold text-ink">{what}</dd>
+                      <dd className="text-end text-ink-2">{note}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ))}
+            </div>
+            <Link
+              href="/sicurezza"
+              className="group t-body mt-12 inline-flex min-h-11 items-center gap-2 rounded-sm font-semibold text-stamp"
+            >
+              Tutti i controlli di sicurezza
+              <Arrow className="size-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Pilot */}
-      <section id="pilota" aria-labelledby="pilota-title" className="scroll-mt-16">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-14 px-4 py-24 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:py-32">
-          <div className="min-w-0">
+      {/* Pilot: the calendar drawn to scale, then the coupon to send. */}
+      <section id="pilota" aria-labelledby="pilota-title" className="scroll-mt-16 pb-28 xl:pb-40">
+        <div className="frame">
+          <div data-reveal="stagger" className="grid gap-x-6 xl:grid-cols-12">
             {/* DA DECIDERE: gratuità fino al 31 marzo 2027, «potete fermarvi quando volete» e
                 tetto di pratiche del pilota (docs/gtm/pilota.md propone 500 fascicoli per sede, da
                 approvare). Finché non è deciso il tetto resta «volumi concordati», senza numeri. */}
-            <SectionIntro
-              id="pilota-title"
-              eyebrow="Pilota 2027"
-              title="Tre sportelli per il picco di gennaio."
-              lead="Gratis fino al 31 marzo 2027, intelligenza artificiale inclusa, con volumi concordati prima di partire. Potete fermarvi quando volete."
-            />
-            <ol data-reveal="stagger" className="thread relative mt-12 grid">
-              {PILOT_TIMELINE.map((step) => (
-                <li key={step.when} className="relative ps-6 pb-7 last:pb-0">
-                  <span
-                    aria-hidden
-                    className="absolute -start-[4.5px] top-[7px] size-2.5 rounded-full bg-stamp ring-4 ring-paper"
-                  />
-                  <p className="font-semibold text-ink">{step.when}</p>
-                  <p className="mt-0.5 text-ink-2">{step.what}</p>
-                </li>
-              ))}
-            </ol>
+            <h2 id="pilota-title" className="t-head xl:col-span-7">
+              Tre sportelli per il picco di gennaio.
+            </h2>
+            <p className="t-lead mt-6 max-w-[40ch] text-ink xl:col-span-4 xl:col-start-9 xl:mt-0 xl:self-end">
+              Gratis fino al 31 marzo 2027, intelligenza artificiale inclusa, con volumi concordati
+              prima di partire. Potete fermarvi quando volete.
+            </p>
           </div>
-          <div className="lg:sticky lg:top-24 lg:self-start">
+
+          <ol data-ui data-reveal="stagger" className="mt-16 grid gap-1.5 md:flex">
+            {PILOT_TIMELINE.map((step, i) => (
+              <li
+                key={step.when}
+                style={{ flexGrow: PILOT_MONTHS[i] } as CSSProperties}
+                className="flex min-w-0 flex-col md:basis-0"
+              >
+                <span
+                  className={cn(
+                    "t-lead flex min-h-16 items-start rounded-[6px] px-5 pt-4 font-display font-semibold md:min-h-[12rem]",
+                    PILOT_FIELDS[i],
+                  )}
+                >
+                  {step.when}
+                </span>
+                <span className="t-body mt-3 mb-4 max-w-[26ch] text-ink md:mb-0 md:pe-3">
+                  {step.what}
+                </span>
+              </li>
+            ))}
+          </ol>
+
+          <div data-reveal className="mt-24 xl:mt-32">
             <PilotForm />
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section aria-labelledby="faq-title" className="border-t border-line bg-surface">
-        <div className="mx-auto grid max-w-6xl gap-12 px-4 py-24 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:py-32">
-          <div className="lg:sticky lg:top-24 lg:self-start">
-            <SectionIntro id="faq-title" eyebrow="Domande" title="Domande dei CAF" />
+      {/* FAQ: the heading holds while the tiles pass; one tile open at a time. */}
+      <section aria-labelledby="faq-title" className="bg-surface py-28 xl:py-40">
+        <div className="frame grid gap-x-6 gap-y-12 xl:grid-cols-12">
+          <div className="xl:col-span-4">
+            <h2 id="faq-title" className="t-head xl:sticky xl:top-24">
+              Domande dei CAF
+            </h2>
           </div>
-          <div data-reveal="stagger" className="border-t border-line">
+          <div data-reveal="stagger" className="grid gap-2 xl:col-span-8">
             {FAQ.map((item) => (
-              <details key={item.q} className="group border-b border-line">
-                <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-6 rounded-sm py-4 text-lg font-semibold transition-colors hover:text-stamp [&::-webkit-details-marker]:hidden">
+              <details
+                key={item.q}
+                name="faq"
+                className="group rounded-[14px] bg-sunk transition-colors duration-200 open:bg-stamp open:text-on-stamp"
+              >
+                <summary className="t-lead flex min-h-[4.5rem] cursor-pointer list-none items-center justify-between gap-6 rounded-[14px] px-6 py-4 font-medium focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
                   {item.q}
-                  <span
-                    aria-hidden
-                    className="grid size-8 shrink-0 place-items-center rounded-full text-ink-3 ring-1 ring-line-strong transition-[transform,background-color,color] duration-200 ease-(--ease-out) group-open:rotate-45 group-open:bg-stamp group-open:text-on-stamp group-open:ring-stamp"
-                  >
-                    <svg
-                      viewBox="0 0 12 12"
-                      className="size-3"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                    >
-                      <path d="M6 1v10M1 6h10" strokeLinecap="round" />
-                    </svg>
+                  <span aria-hidden className="relative size-4 shrink-0">
+                    <span className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-current" />
+                    <span className="absolute inset-y-0 left-1/2 w-[3px] -translate-x-1/2 rounded-full bg-current transition-transform duration-200 ease-(--ease-out) group-open:rotate-90" />
                   </span>
                 </summary>
-                <p className="max-w-[62ch] animate-rise pb-6 leading-relaxed text-ink-2">
-                  {item.a}
-                </p>
+                <p className="t-body max-w-[56ch] animate-rise px-6 pb-7">{item.a}</p>
               </details>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Closing call to action */}
-      <section
-        id="chiusura"
-        aria-labelledby="chiusura-title"
-        className="mx-auto max-w-6xl px-4 py-24 sm:px-6 lg:py-32"
-      >
-        <div
-          data-reveal
-          className="grain grain-dark relative overflow-hidden rounded-[2rem] bg-contrast px-6 py-16 text-center text-on-contrast shadow-[0_40px_80px_-40px_rgb(20_27_45/0.5)] sm:px-10 lg:py-24"
+      {/* The close: the counter's call, the whole band one link. */}
+      <section id="chiusura" aria-labelledby="chiusura-title">
+        <a
+          href="#pilota"
+          data-header="stamp"
+          className="call-band ticket group relative flex min-h-[46svh] flex-col justify-between overflow-clip transition-colors duration-150 [--notch-y:50%] [--notch:2.5rem] focus-visible:outline-none max-sm:[--notch:1.25rem] sm:min-h-[60svh]"
         >
-          <div aria-hidden className="closing-light pointer-events-none absolute inset-0 -z-0" />
-          <div className="scroll-ticket absolute end-12 top-10 hidden lg:block">
-            <QueueTicket number="A 319" label="Il prossimo" className="rotate-[6deg]" />
-          </div>
-          <h2 id="chiusura-title" className="relative mx-auto max-w-2xl font-display type-section">
-            Mezz’ora per capire se fa per voi.
-          </h2>
-          <p className="relative mx-auto mt-5 max-w-xl type-lead text-on-contrast/75">
-            Una pratica di prova, dall’inizio al vostro gestionale.
-          </p>
-          <Button
-            asChild
-            size="lg"
-            variant="marker"
-            className="cta-sheen group mt-10 w-full focus-visible:outline-marker sm:w-auto"
+          <span className="frame flex items-start justify-between gap-6 pt-8 sm:pt-10">
+            <span id="chiusura-title" className="call-sentence t-lead max-w-[26ch] font-semibold">
+              Mezz’ora per capire se fa per voi. Parliamo del pilota.
+            </span>
+            <svg
+              aria-hidden
+              viewBox="0 0 48 48"
+              className="call-arrow size-8 shrink-0 sm:size-12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 36 36 12M16 12h20v20" />
+            </svg>
+          </span>
+          <span
+            aria-hidden
+            className="frame block font-display text-[clamp(5.5rem,34vw,36rem)] leading-[0.86] font-extrabold tracking-[-0.03em] [font-stretch:92%]"
           >
-            <a href="#pilota">
-              Parliamo del pilota
-              <Arrow />
-            </a>
-          </Button>
-        </div>
+            <span className="block pt-[0.04em] pb-[max(1.5rem,0.08em)]">Avanti</span>
+          </span>
+        </a>
       </section>
     </>
   );

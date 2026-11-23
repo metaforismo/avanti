@@ -1,5 +1,4 @@
 import { EditorialType } from "@/components/brand/editorial-type";
-import { MobileCta } from "@/components/landing/mobile-cta";
 import { RevealScan } from "@/components/landing/reveal-scan";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
@@ -18,7 +17,6 @@ export default function SiteLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         <main id="contenuto">{children}</main>
         <SiteFooter />
-        <MobileCta />
         <RevealScan />
       </div>
     </EditorialType>
