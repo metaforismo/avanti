@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { KnowledgeAsk } from "@/components/console/knowledge-ask";
-import { PageContainer, PageHeader, SectionHeader } from "@/components/ui/page-header";
+import { Plus } from "lucide-react";
+import { PANEL } from "@/components/console/admin/panel";
+import { SplitSection } from "@/components/console/admin/setting-row";
+import { PageContainer, PageHeader } from "@/components/ui/page-header";
+import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = { title: "Aiuto" };
 
@@ -36,105 +40,127 @@ const FAQ = [
   ],
 ] as const;
 
+const FLOW = [
+  [
+    "Il cittadino inizia",
+    "Inquadra il QR in sala d'attesa o apre il link che gli mandi da Nuova pratica. Racconta, risponde, fotografa i documenti.",
+  ],
+  [
+    "Trovi il fascicolo in coda",
+    "Cosa manca e cosa non torna sono in cima, raggruppati per persona.",
+  ],
+  [
+    "Verifichi o chiedi",
+    "Verifica, Rifiuta (con un motivo che il cittadino legge tradotto) o Non serve. Per quello che manca: Chiedi integrazione.",
+  ],
+  [
+    "Copi nel gestionale",
+    "Segna come pronta: si apre il Prospetto DSU, nell'ordine del modello, con un pulsante Copia per ogni valore e il documento da guardare per saldi e importi.",
+  ],
+  ["Chiudi", "Scarica PDF o JSON se servono all'archivio del CAF, poi archivia."],
+] as const;
+
 export default function HelpPage() {
   return (
-    <PageContainer width="form">
+    <PageContainer
+      width="wide"
+      className="flex flex-col gap-8 [&>section+section]:border-t [&>section+section]:border-line [&>section+section]:pt-8"
+    >
       <PageHeader
         title="Aiuto"
-        lead="Avanti prepara la pratica prima che il cittadino arrivi. Tu verifichi e decidi; la pratica ufficiale si fa come sempre nel vostro gestionale."
+        lead="Avanti prepara la pratica prima che il cittadino arrivi; tu verifichi e decidi, la pratica ufficiale si fa nel vostro gestionale."
       />
 
-      <div className="mt-8">
-        <KnowledgeAsk />
-      </div>
+      <KnowledgeAsk />
 
-      <section className="mt-10" aria-labelledby="flow">
-        <SectionHeader id="flow" title={<>Una pratica, dall&apos;inizio alla fine</>} />
-        <ol className="mt-4 grid gap-4">
-          {[
-            [
-              "Il cittadino inizia",
-              "Inquadra il QR in sala d'attesa o apre il link che gli mandi da Nuova pratica. Racconta, risponde, fotografa i documenti.",
-            ],
-            [
-              "Trovi il fascicolo in coda",
-              "Cosa manca e cosa non torna sono in cima, raggruppati per persona.",
-            ],
-            [
-              "Verifichi o chiedi",
-              "Verifica, Rifiuta (con un motivo che il cittadino legge tradotto) o Non serve. Per quello che manca: Chiedi integrazione.",
-            ],
-            [
-              "Copi nel gestionale",
-              "Segna come pronta: si apre il Prospetto DSU, nell'ordine del modello, con un pulsante Copia per ogni valore e il documento da guardare per saldi e importi.",
-            ],
-            ["Chiudi", "Scarica PDF o JSON se servono all'archivio del CAF, poi archivia."],
-          ].map(([title, body], i) => (
-            <li key={title} className="flex gap-4">
-              <span className="tabular grid size-8 shrink-0 place-items-center rounded-full bg-stamp font-display font-bold text-on-stamp">
-                {i + 1}
-              </span>
-              <div>
-                <h3 className="font-semibold">{title}</h3>
-                <p className="mt-0.5 text-ink-2">{body}</p>
+      <section aria-labelledby="flow">
+        <SplitSection
+          titleId="flow"
+          title={<>Una pratica, dall&apos;inizio alla fine</>}
+          lead="Cinque passi, dal QR in sala d'attesa all'archivio."
+        >
+          {/* A real ordered list: the order is the content. */}
+          <ol
+            className={cn(PANEL, "list-inside list-decimal divide-y divide-line marker:text-ink-3")}
+          >
+            {FLOW.map(([title, body]) => (
+              <li key={title} className="px-5 py-3 text-sm font-semibold">
+                {title}
+                <p className="mt-0.5 ps-4 text-[0.8125rem] leading-snug font-normal text-ink-2">
+                  {body}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </SplitSection>
+      </section>
+
+      <section aria-labelledby="queue">
+        <SplitSection
+          titleId="queue"
+          title="Gli stati della coda"
+          lead="Dove si trova una pratica, e chi deve muoversi."
+        >
+          <dl className={cn(PANEL, "divide-y divide-line")}>
+            {QUEUE.map(([term, description]) => (
+              <div key={term} className="grid gap-1 px-5 py-3 sm:grid-cols-[11rem_1fr]">
+                <dt className="text-sm font-semibold">{term}</dt>
+                <dd className="text-[0.8125rem] leading-snug text-ink-2">{description}</dd>
               </div>
+            ))}
+          </dl>
+        </SplitSection>
+      </section>
+
+      <section aria-labelledby="good">
+        <SplitSection
+          titleId="good"
+          title="Da sapere"
+          lead="Le cose che si chiedono il primo giorno."
+        >
+          <ul className={cn(PANEL, "divide-y divide-line text-sm text-ink-2")}>
+            <li className="px-5 py-3">
+              La revisione e il cronometro partono alla tua prima azione, non quando apri la
+              pratica.
             </li>
-          ))}
-        </ol>
+            <li className="px-5 py-3">
+              Il link del cittadino è personale: non incollarlo in gruppi o email condivise.
+            </li>
+            <li className="px-5 py-3">
+              Le note interne si salvano da sole e non le vede il cittadino.
+            </li>
+            <li className="px-5 py-3">
+              Nel visore dei documenti V verifica, R rifiuta e le frecce ← → passano al documento
+              precedente o successivo. Premi ? da qualsiasi pagina per tutte le scorciatoie.
+            </li>
+            <li className="px-5 py-3">
+              Il cartello per la sala d&apos;attesa si stampa da{" "}
+              <Link href="/console/sportelli" className="font-semibold text-stamp hover:underline">
+                Sportelli e QR
+              </Link>
+              .
+            </li>
+          </ul>
+        </SplitSection>
       </section>
 
-      <section className="mt-10" aria-labelledby="queue">
-        <SectionHeader id="queue" title="Gli stati della coda" />
-        <dl className="mt-4 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
-          {QUEUE.map(([term, description]) => (
-            <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[12rem_1fr]">
-              <dt className="font-semibold">{term}</dt>
-              <dd className="text-ink-2">{description}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className="mt-10" aria-labelledby="good">
-        <SectionHeader id="good" title="Da sapere" />
-        <ul className="mt-4 grid gap-3 text-ink-2">
-          <li>
-            La revisione e il cronometro partono alla tua prima azione, non quando apri la pratica.
-          </li>
-          <li>Il link del cittadino è personale: non incollarlo in gruppi o email condivise.</li>
-          <li>Le note interne si salvano da sole e non le vede il cittadino.</li>
-          <li>
-            Nel visore dei documenti V verifica, R rifiuta e le frecce ← → passano al documento
-            precedente o successivo. Premi ? da qualsiasi pagina per tutte le scorciatoie.
-          </li>
-          <li>
-            Il cartello per la sala d&apos;attesa si stampa da{" "}
-            <Link
-              href="/console/sportelli"
-              className="font-semibold text-stamp underline underline-offset-2"
-            >
-              Sportelli e QR
-            </Link>
-            .
-          </li>
-        </ul>
-      </section>
-
-      <section className="mt-10" aria-labelledby="faq">
-        <SectionHeader id="faq" title="Domande frequenti" />
-        <div className="mt-4 divide-y divide-line border-y border-line">
-          {FAQ.map(([q, a]) => (
-            <details key={q} className="group py-1">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 py-2 font-semibold [&::-webkit-details-marker]:hidden">
-                {q}
-                <span aria-hidden className="text-ink-3 transition-transform group-open:rotate-45">
-                  +
-                </span>
-              </summary>
-              <p className="pb-4 text-ink-2">{a}</p>
-            </details>
-          ))}
-        </div>
+      <section aria-labelledby="faq">
+        <SplitSection titleId="faq" title="Domande frequenti">
+          <div className={cn(PANEL, "divide-y divide-line")}>
+            {FAQ.map(([q, a]) => (
+              <details key={q} className="group px-5">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+                  {q}
+                  <Plus
+                    aria-hidden
+                    className="size-4 shrink-0 text-ink-3 transition-transform duration-150 group-open:rotate-45"
+                  />
+                </summary>
+                <p className="pb-4 text-[0.8125rem] leading-snug text-ink-2">{a}</p>
+              </details>
+            ))}
+          </div>
+        </SplitSection>
       </section>
     </PageContainer>
   );

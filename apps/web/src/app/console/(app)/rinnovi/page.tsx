@@ -24,6 +24,7 @@ import { formatDateTime, type Tone } from "@/lib/console/labels";
 
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
+import { PANEL } from "@/components/console/admin/panel";
 
 const formatDate = (iso: string) =>
   new Intl.DateTimeFormat("it-IT", {
@@ -214,6 +215,7 @@ export default function RenewalsPage() {
             value={String(shownYear)}
             aria-label="Anno del rinnovo"
             compact
+            className="h-8 text-sm"
             onChange={(e) => {
               setChosenYear(Number(e.target.value));
               reset();
@@ -231,7 +233,7 @@ export default function RenewalsPage() {
       <div
         role="group"
         aria-label="Stato"
-        className="-mx-1 mt-6 flex gap-1 overflow-x-auto [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)] pe-6 pb-1 md:[mask-image:none] md:pe-0"
+        className="mt-5 flex w-fit max-w-full [scrollbar-width:none] gap-0.5 overflow-x-auto rounded-sm bg-sunk p-0.5 [&::-webkit-scrollbar]:hidden"
       >
         {STATUSES.map(({ key, label, hint }) => {
           const active = key === status;
@@ -247,18 +249,19 @@ export default function RenewalsPage() {
                 reset();
               }}
               className={cn(
-                "flex h-8 shrink-0 items-center gap-2 rounded-sm px-3 text-sm transition-colors duration-100",
+                "flex h-8 shrink-0 items-center gap-2 rounded-xs border px-3 text-sm transition-colors duration-100",
+                "focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none",
                 active
-                  ? "bg-surface font-semibold text-ink shadow-raised ring-1 ring-line"
-                  : "text-ink-2 hover:bg-sunk hover:text-ink",
+                  ? "border-line bg-surface font-semibold text-ink"
+                  : "border-transparent text-ink-2 hover:text-ink",
               )}
             >
               {label}
               {count !== undefined && (
                 <span
                   className={cn(
-                    "tabular min-w-5 rounded-full px-1.5 text-center text-[0.8125rem]",
-                    active ? "bg-stamp-wash text-stamp" : "bg-sunk",
+                    "tabular text-[0.8125rem]",
+                    active ? "font-semibold text-ink" : "font-normal text-ink-3",
                   )}
                 >
                   {count}
@@ -297,7 +300,7 @@ export default function RenewalsPage() {
         ) : !data ? (
           <div className="grid gap-2">
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-16 rounded-lg" />
+              <Skeleton key={i} className="h-16 rounded-md" />
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -319,8 +322,8 @@ export default function RenewalsPage() {
           )
         ) : (
           <>
-            <div className="overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
-              <div className="hidden grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-4 border-b border-line bg-sunk/60 px-4 py-2 text-[0.8125rem] font-medium text-ink-3 md:grid">
+            <div className={cn(PANEL, "overflow-hidden")}>
+              <div className="hidden h-9 grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-4 border-b border-line px-4 text-[0.8125rem] font-medium text-ink-3 md:grid">
                 {selectable ? (
                   <input
                     type="checkbox"
@@ -373,7 +376,7 @@ export default function RenewalsPage() {
       </section>
 
       {selected.size > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur lg:start-60">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface shadow-dock lg:start-60">
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
             <p className="text-sm">
               <span className="tabular font-semibold">{selected.size}</span>{" "}
@@ -461,7 +464,7 @@ function RenewalRow({
   return (
     <li
       className={cn(
-        "grid gap-x-4 gap-y-2 px-4 py-3.5 transition-colors duration-100 hover:bg-sunk/40 md:grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] md:items-center",
+        "grid gap-x-4 gap-y-1.5 px-4 py-3 transition-colors duration-100 hover:bg-sunk/40 md:grid-cols-[2rem_minmax(0,1.6fr)_7rem_minmax(0,1.4fr)_minmax(0,1fr)] md:items-center",
         checked && "bg-stamp-wash/50",
       )}
     >
@@ -477,7 +480,7 @@ function RenewalRow({
         <span className="hidden md:block" />
       )}
       <span className="min-w-0">
-        <span className="block truncate font-semibold" title={name}>
+        <span className="block truncate text-sm font-semibold" title={name}>
           {name}
         </span>
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -502,22 +505,15 @@ function RenewalRow({
         <Users className="size-4 text-ink-3" aria-hidden />
         {people(item.householdCount)}
       </span>
-      <span className="flex flex-wrap gap-1.5 text-sm">
+      {/* Counts in words, one colour only on what needs doing: no row of three pills. */}
+      <span className="tabular flex flex-wrap gap-x-2 text-sm text-ink-2">
         {valid > 0 && (
-          <Pill className="text-[0.8125rem]" tone="ok" size="xs">
+          <span>
             {valid} {valid === 1 ? "valido" : "validi"}
-          </Pill>
+          </span>
         )}
-        {toUpdate > 0 && (
-          <Pill className="text-[0.8125rem]" tone="warn" size="xs">
-            {toUpdate} da aggiornare
-          </Pill>
-        )}
-        {toVerify > 0 && (
-          <Pill className="text-[0.8125rem]" tone="neutral" size="xs">
-            {toVerify} da verificare
-          </Pill>
-        )}
+        {toUpdate > 0 && <span className="font-semibold text-warn">{toUpdate} da aggiornare</span>}
+        {toVerify > 0 && <span>{toVerify} da verificare</span>}
         {valid + toUpdate + toVerify === 0 && <span className="text-ink-3">Nessuno</span>}
       </span>
       <span className="min-w-0 text-sm text-ink-2">
@@ -586,7 +582,7 @@ function ResultDialog({
             Se un link si perde, se ne genera uno nuovo da «Invitati».
           </Notice>
         )}
-        <ul className="divide-y divide-line rounded-lg ring-1 ring-line">
+        <ul className="divide-y divide-line rounded-md border border-line">
           {response.items.map((item) => (
             <li key={item.caseId} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
               <span className="min-w-0 flex-1">
