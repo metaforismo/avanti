@@ -334,10 +334,11 @@ function CasesPanel({ metrics, report }: { metrics: Metrics; report: ReactNode }
       <dl className="mt-1 flex-1 divide-y divide-line">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between gap-4 py-3">
-            <div className="min-w-0">
-              <dt className="text-sm font-semibold text-ink">{row.label}</dt>
-              <dd className="text-[0.8125rem] leading-snug text-ink-3">{row.note}</dd>
-            </div>
+            {/* The note belongs to the term: a <dd> inside a <div> of its own breaks the list. */}
+            <dt className="min-w-0">
+              <span className="block text-sm font-semibold text-ink">{row.label}</span>
+              <span className="block text-[0.8125rem] leading-snug text-ink-3">{row.note}</span>
+            </dt>
             <dd
               className={cn(
                 "tabular shrink-0 text-2xl leading-none font-semibold",
