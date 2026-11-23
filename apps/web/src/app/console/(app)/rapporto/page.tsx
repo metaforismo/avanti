@@ -376,7 +376,7 @@ function ReportView() {
           <p className="-mt-4 text-[0.8125rem] text-ink-3">
             Generato il <span className="tabular">{formatDateTime(data.generatedAt)}</span>. Ogni
             apertura e ogni download finiscono nel{" "}
-            <Link href="/console/registro" className="text-stamp hover:underline">
+            <Link href="/console/registro" className="text-stamp underline underline-offset-2">
               registro attività
             </Link>
             .
@@ -595,7 +595,7 @@ function Totals({
                   Non impostato:{" "}
                   <Link
                     href="/console/impostazioni#baseline"
-                    className="text-stamp hover:underline"
+                    className="text-stamp underline underline-offset-2"
                   >
                     aggiungilo nelle impostazioni
                   </Link>
@@ -612,7 +612,10 @@ function Totals({
           <>
             I totali restano nascosti perché insieme al dettaglio permetterebbero di ricavare il
             gruppo piccolo; il conteggio esatto, per uso interno, è in{" "}
-            <Link href={metricsHref} className="font-semibold text-stamp hover:underline">
+            <Link
+              href={metricsHref}
+              className="font-semibold text-stamp underline underline-offset-2"
+            >
               Metriche
             </Link>
             .{" "}
