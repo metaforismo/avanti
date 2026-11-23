@@ -13,10 +13,9 @@ import type { OrganizationSettings } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { LIMITS, message, wholeNumber, type NumberKey as Key } from "./settings-limits";
-import { NumberInput, SettingGroup, ToggleRow, ValueRow } from "./setting-row";
+import { NumberInput, SettingGroup, SplitSection, ToggleRow, ValueRow } from "./setting-row";
 import { Select } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
-import { SectionHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useOperator } from "@/lib/console/operator-context";
@@ -26,6 +25,12 @@ import { useWarnBeforeUnload } from "@/lib/use-warn-before-unload";
 import { focusFirstError } from "@/lib/validation";
 
 type Errors = Partial<Record<Key, string>>;
+
+const HEADING = {
+  titleId: "settings-title",
+  title: "Parametri",
+  lead: "Valgono per tutto il CAF e per le pratiche create da adesso.",
+};
 
 const snapshotOf = (form: HTMLFormElement | null) =>
   form ? JSON.stringify([...new FormData(form).entries()]) : null;
@@ -42,17 +47,14 @@ export function SettingsSection({
 
   return (
     <section id="parametri" aria-labelledby="settings-title">
-      <SectionHeader
-        id="settings-title"
-        title="Parametri"
-        lead="Valgono per tutto il CAF e per le pratiche create da adesso."
-      />
       {settings.status === "error" && !settings.data ? (
-        <Notice tone="danger" className="mt-4">
-          Parametri non disponibili: {settings.error.message}
-        </Notice>
+        <SplitSection {...HEADING}>
+          <Notice tone="danger">Parametri non disponibili: {settings.error.message}</Notice>
+        </SplitSection>
       ) : !settings.data ? (
-        <Skeleton className="mt-4 h-40 rounded-lg" />
+        <SplitSection {...HEADING}>
+          <Skeleton className="h-96 rounded-md" />
+        </SplitSection>
       ) : (
         <SettingsForm
           initial={settings.data}
@@ -225,179 +227,190 @@ function SettingsForm({
       onChange={() => {
         if (state !== "saving") setState(snapshot() === saved.current ? "idle" : "dirty");
       }}
-      className="mt-4 grid gap-7 outline-none"
+      className="outline-none"
     >
-      <SettingGroup title="Pratiche e conservazione">
-        <ValueRow
-          label="Minuti per pratica prima di Avanti"
-          hint="Misurati su una settimana normale: servono alle metriche per il tempo risparmiato. Facoltativo."
-          error={errors.baselineMinutesPerCase}
-        >
-          {(p) => (
-            <NumberInput
-              {...p}
-              {...number("baselineMinutesPerCase")}
-              defaultValue={initial.baselineMinutesPerCase ?? ""}
-              placeholder="—"
+      {/* The form spans both columns: the save bar in the strip above sits within it. */}
+      <SplitSection {...HEADING}>
+        <div className="grid gap-7">
+          <SettingGroup title="Pratiche e conservazione">
+            <ValueRow
+              label="Minuti per pratica prima di Avanti"
+              hint="Misurati su una settimana normale: servono alle metriche per il tempo risparmiato. Facoltativo."
+              error={errors.baselineMinutesPerCase}
+            >
+              {(p) => (
+                <NumberInput
+                  {...p}
+                  {...number("baselineMinutesPerCase")}
+                  defaultValue={initial.baselineMinutesPerCase ?? ""}
+                  placeholder="—"
+                />
+              )}
+            </ValueRow>
+            <ValueRow
+              label="Validità dei link per i cittadini"
+              hint="Giorni. Poi il cittadino deve chiederne uno nuovo."
+              error={errors.linkDays}
+            >
+              {(p) => (
+                <NumberInput {...p} {...number("linkDays")} defaultValue={initial.linkDays} />
+              )}
+            </ValueRow>
+            <ValueRow
+              label="Conservazione dei fascicoli"
+              hint="Giorni dopo la chiusura o la scadenza. Non riguarda l'archivio del vostro gestionale."
+              error={errors.retentionDays}
+            >
+              {(p) => (
+                <NumberInput
+                  {...p}
+                  {...number("retentionDays")}
+                  defaultValue={initial.retentionDays}
+                />
+              )}
+            </ValueRow>
+          </SettingGroup>
+
+          <SettingGroup title="Avvisi via email">
+            <ToggleRow
+              name="notifyCitizenSubmission"
+              defaultChecked={initial.notifyCitizenSubmission}
+              label="Ricevuta al cittadino quando invia la pratica"
+              hint="Codice, sportello e prossimo passo. Nessun link né dati dei documenti; al massimo due al giorno per indirizzo."
             />
-          )}
-        </ValueRow>
-        <ValueRow
-          label="Validità dei link per i cittadini"
-          hint="Giorni. Poi il cittadino deve chiederne uno nuovo."
-          error={errors.linkDays}
-        >
-          {(p) => <NumberInput {...p} {...number("linkDays")} defaultValue={initial.linkDays} />}
-        </ValueRow>
-        <ValueRow
-          label="Conservazione dei fascicoli"
-          hint="Giorni dopo la chiusura o la scadenza. Non riguarda l'archivio del vostro gestionale."
-          error={errors.retentionDays}
-        >
-          {(p) => (
-            <NumberInput {...p} {...number("retentionDays")} defaultValue={initial.retentionDays} />
-          )}
-        </ValueRow>
-      </SettingGroup>
-
-      <SettingGroup title="Avvisi via email">
-        <ToggleRow
-          name="notifyCitizenSubmission"
-          defaultChecked={initial.notifyCitizenSubmission}
-          label="Ricevuta al cittadino quando invia la pratica"
-          hint="Codice, sportello e prossimo passo. Nessun link né dati dei documenti; al massimo due al giorno per indirizzo."
-        />
-        <ToggleRow
-          name="notifyCitizenReady"
-          defaultChecked={initial.notifyCitizenReady}
-          label="Avvisa il cittadino quando la pratica è pronta"
-          hint="Solo se ha lasciato l'email. Le richieste di integrazione gli arrivano sempre."
-        />
-        <ToggleRow
-          name="notifyCitizenRenewals"
-          defaultChecked={initial.notifyCitizenRenewals}
-          label="Invita al rinnovo ISEE chi l'ha chiesto"
-          hint="Solo a chi ha dato il consenso con la pratica dell'anno prima."
-        />
-        <ToggleRow
-          name="notifyOperatorDigest"
-          defaultChecked={initial.notifyOperatorDigest}
-          label="Riepilogo giornaliero agli operatori"
-          hint="Quante pratiche aspettano la revisione, senza dati dei cittadini."
-        />
-        <ToggleRow
-          name="notifyCitizenReminders"
-          defaultChecked={initial.notifyCitizenReminders}
-          label="Ricorda al cittadino l'integrazione richiesta"
-          hint="Si ferma appena risponde o la pratica cambia stato."
-        />
-        <ValueRow label="Primo promemoria" hint="Dopo quanti giorni senza risposta.">
-          {(p) => (
-            <Select {...p} name="reminderFirst" defaultValue={selects.reminderFirst} compact>
-              {[2, 3, 5, 7].map((d) => (
-                <option key={d} value={d}>
-                  Dopo {d} giorni
-                </option>
-              ))}
-            </Select>
-          )}
-        </ValueRow>
-        <ValueRow label="Secondo promemoria">
-          {(p) => (
-            <Select {...p} name="reminderSecond" defaultValue={selects.reminderSecond} compact>
-              <option value="0">Nessuno</option>
-              {[3, 4, 7].map((d) => (
-                <option key={d} value={d}>
-                  Dopo altri {d} giorni
-                </option>
-              ))}
-            </Select>
-          )}
-        </ValueRow>
-      </SettingGroup>
-
-      <SettingGroup title="Intelligenza artificiale">
-        <ToggleRow
-          name="aiCitizenAssistant"
-          defaultChecked={initial.aiCitizenAssistant}
-          label="AI per i cittadini"
-          hint="Capisce il racconto, guida l'intervista e trascrive la voce. Spenta: domande una alla volta e nulla va a un fornitore."
-        />
-        <ToggleRow
-          name="aiCopilot"
-          defaultChecked={initial.aiCopilot}
-          label="Copilota per gli operatori"
-          hint="Riepilogo, controlli incrociati, importi dai documenti, bozze e domande normative. Spento: restano i controlli con le regole."
-        />
-      </SettingGroup>
-
-      <SettingGroup id="quasi-pronta" title="Pratica «quasi pronta»">
-        {initial.nearReadySuspendedAt && (
-          <Notice tone="warn" role="none" className="rounded-none">
-            Sospesa il {new Date(initial.nearReadySuspendedAt).toLocaleDateString("it-IT")} dopo un
-            errore grave segnalato da un operatore. Torna «in ombra» finché non scegli di nuovo
-            «Visibile agli operatori».
-          </Notice>
-        )}
-        <ValueRow
-          label="Modalità"
-          hint="In ombra il suggerimento si misura senza mostrarlo: è come si inizia il pilota. Non segna mai una pratica come pronta."
-        >
-          {(p) => (
-            <Select {...p} name="nearReadyMode" defaultValue={selects.nearReadyMode} compact>
-              <option value="off">Spenta</option>
-              <option value="shadow">In ombra</option>
-              <option value="visible">Visibile agli operatori</option>
-            </Select>
-          )}
-        </ValueRow>
-        <ValueRow
-          label="Soglia di lettura, dati critici"
-          hint="Percentuale. Identità, nucleo, anni: sotto soglia la pratica non è suggerita."
-          error={errors.nearReadyCriticalThreshold}
-        >
-          {(p) => (
-            <NumberInput
-              {...p}
-              {...number("nearReadyCriticalThreshold")}
-              defaultValue={Math.round(initial.nearReadyCriticalThreshold * 100)}
+            <ToggleRow
+              name="notifyCitizenReady"
+              defaultChecked={initial.notifyCitizenReady}
+              label="Avvisa il cittadino quando la pratica è pronta"
+              hint="Solo se ha lasciato l'email. Le richieste di integrazione gli arrivano sempre."
             />
-          )}
-        </ValueRow>
-        <ValueRow
-          label="Soglia di lettura, altri dati"
-          hint="Percentuale."
-          error={errors.nearReadyOtherThreshold}
-        >
-          {(p) => (
-            <NumberInput
-              {...p}
-              {...number("nearReadyOtherThreshold")}
-              defaultValue={Math.round(initial.nearReadyOtherThreshold * 100)}
+            <ToggleRow
+              name="notifyCitizenRenewals"
+              defaultChecked={initial.notifyCitizenRenewals}
+              label="Invita al rinnovo ISEE chi l'ha chiesto"
+              hint="Solo a chi ha dato il consenso con la pratica dell'anno prima."
             />
-          )}
-        </ValueRow>
-      </SettingGroup>
+            <ToggleRow
+              name="notifyOperatorDigest"
+              defaultChecked={initial.notifyOperatorDigest}
+              label="Riepilogo giornaliero agli operatori"
+              hint="Quante pratiche aspettano la revisione, senza dati dei cittadini."
+            />
+            <ToggleRow
+              name="notifyCitizenReminders"
+              defaultChecked={initial.notifyCitizenReminders}
+              label="Ricorda al cittadino l'integrazione richiesta"
+              hint="Si ferma appena risponde o la pratica cambia stato."
+            />
+            <ValueRow label="Primo promemoria" hint="Dopo quanti giorni senza risposta.">
+              {(p) => (
+                <Select {...p} name="reminderFirst" defaultValue={selects.reminderFirst} compact>
+                  {[2, 3, 5, 7].map((d) => (
+                    <option key={d} value={d}>
+                      Dopo {d} giorni
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </ValueRow>
+            <ValueRow label="Secondo promemoria">
+              {(p) => (
+                <Select {...p} name="reminderSecond" defaultValue={selects.reminderSecond} compact>
+                  <option value="0">Nessuno</option>
+                  {[3, 4, 7].map((d) => (
+                    <option key={d} value={d}>
+                      Dopo altri {d} giorni
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </ValueRow>
+          </SettingGroup>
 
-      <SettingGroup title="Sicurezza degli accessi">
-        <ToggleRow
-          name="mfaRequired"
-          defaultChecked={initial.mfaRequired}
-          disabled={!canRequireMfa}
-          label="Verifica in due passaggi obbligatoria per tutti"
-          hint={
-            canRequireMfa
-              ? "Chi non l'ha ancora attivata dovrà farlo al prossimo accesso. Chi perde il telefono lo sblocchi tu da Operatori."
-              : "Prima attivala per te dalla pagina Account: poi potrai richiederla a tutti."
-          }
-        />
-      </SettingGroup>
+          <SettingGroup title="Intelligenza artificiale">
+            <ToggleRow
+              name="aiCitizenAssistant"
+              defaultChecked={initial.aiCitizenAssistant}
+              label="AI per i cittadini"
+              hint="Capisce il racconto, guida l'intervista e trascrive la voce. Spenta: domande una alla volta e nulla va a un fornitore."
+            />
+            <ToggleRow
+              name="aiCopilot"
+              defaultChecked={initial.aiCopilot}
+              label="Copilota per gli operatori"
+              hint="Riepilogo, controlli incrociati, importi dai documenti, bozze e domande normative. Spento: restano i controlli con le regole."
+            />
+          </SettingGroup>
 
-      {formError && <Notice tone="danger">{formError}</Notice>}
+          <SettingGroup id="quasi-pronta" title="Pratica «quasi pronta»">
+            {initial.nearReadySuspendedAt && (
+              <Notice tone="warn" role="none" className="rounded-none">
+                Sospesa il {new Date(initial.nearReadySuspendedAt).toLocaleDateString("it-IT")} dopo
+                un errore grave segnalato da un operatore. Torna «in ombra» finché non scegli di
+                nuovo «Visibile agli operatori».
+              </Notice>
+            )}
+            <ValueRow
+              label="Modalità"
+              hint="In ombra il suggerimento si misura senza mostrarlo: è come si inizia il pilota. Non segna mai una pratica come pronta."
+            >
+              {(p) => (
+                <Select {...p} name="nearReadyMode" defaultValue={selects.nearReadyMode} compact>
+                  <option value="off">Spenta</option>
+                  <option value="shadow">In ombra</option>
+                  <option value="visible">Visibile agli operatori</option>
+                </Select>
+              )}
+            </ValueRow>
+            <ValueRow
+              label="Soglia di lettura, dati critici"
+              hint="Percentuale. Identità, nucleo, anni: sotto soglia la pratica non è suggerita."
+              error={errors.nearReadyCriticalThreshold}
+            >
+              {(p) => (
+                <NumberInput
+                  {...p}
+                  {...number("nearReadyCriticalThreshold")}
+                  defaultValue={Math.round(initial.nearReadyCriticalThreshold * 100)}
+                />
+              )}
+            </ValueRow>
+            <ValueRow
+              label="Soglia di lettura, altri dati"
+              hint="Percentuale."
+              error={errors.nearReadyOtherThreshold}
+            >
+              {(p) => (
+                <NumberInput
+                  {...p}
+                  {...number("nearReadyOtherThreshold")}
+                  defaultValue={Math.round(initial.nearReadyOtherThreshold * 100)}
+                />
+              )}
+            </ValueRow>
+          </SettingGroup>
+
+          <SettingGroup title="Sicurezza degli accessi">
+            <ToggleRow
+              name="mfaRequired"
+              defaultChecked={initial.mfaRequired}
+              disabled={!canRequireMfa}
+              label="Verifica in due passaggi obbligatoria per tutti"
+              hint={
+                canRequireMfa
+                  ? "Chi non l'ha ancora attivata dovrà farlo al prossimo accesso. Chi perde il telefono lo sblocchi tu da Operatori."
+                  : "Prima attivala per te dalla pagina Account: poi potrai richiederla a tutti."
+              }
+            />
+          </SettingGroup>
+
+          {formError && <Notice tone="danger">{formError}</Notice>}
+        </div>
+      </SplitSection>
       {saveBar &&
         createPortal(
           state === "idle" ? null : (
-            <div className="pointer-events-auto flex h-full animate-fade-in items-center gap-2 bg-paper">
+            <div className="pointer-events-auto flex h-full animate-fade-in items-center gap-2 bg-surface">
               {state === "saved" ? (
                 <span className="flex items-center gap-1.5 text-sm font-semibold text-ok">
                   <Check className="size-4 animate-check-in" aria-hidden />

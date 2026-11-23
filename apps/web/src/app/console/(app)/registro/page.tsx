@@ -18,6 +18,7 @@ import { useOperator } from "@/lib/console/operator-context";
 import { useDownload } from "@/lib/console/use-download";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
+import { PANEL } from "@/components/console/admin/panel";
 
 /** The questions a CAF manager actually asks, each answered by one kind of event. */
 const QUESTIONS: { label: string; action?: AuditAction }[] = [
@@ -222,17 +223,17 @@ function AuditLog() {
             {page.error.message}
           </Notice>
         ) : !page.data ? (
-          <Skeleton className="h-64 rounded-lg" />
+          <Skeleton className="h-64 rounded-md" />
         ) : items.length === 0 ? (
           <EmptyState icon={SearchX} title="Nessuna attività con questi filtri.">
             Allarga il periodo o scegli «Tutte le attività».
           </EmptyState>
         ) : (
           <>
-            <div className="overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
+            <div className={cn(PANEL, "overflow-hidden")}>
               <div
                 aria-hidden
-                className="hidden gap-4 border-b border-line bg-sunk/60 px-4 py-2 text-[0.8125rem] font-medium text-ink-3 md:grid md:grid-cols-[11rem_minmax(0,1fr)_10rem]"
+                className="hidden h-9 items-center gap-4 border-b border-line px-4 text-[0.8125rem] font-medium text-ink-3 md:grid md:grid-cols-[11rem_minmax(0,1fr)_10rem]"
               >
                 <span>Quando</span>
                 <span>Attività</span>
@@ -327,16 +328,11 @@ function EventRow({
       : undefined;
 
   return (
-    <li
-      className={cn(
-        "grid gap-1 px-4 py-3 transition-colors duration-100 hover:bg-sunk/40 md:grid-cols-[11rem_minmax(0,1fr)_10rem] md:items-center md:gap-4",
-        failed && "bg-warn-wash/50 shadow-[inset_3px_0_0_var(--warn)] hover:bg-warn-wash/70",
-      )}
-    >
+    <li className="grid gap-1 px-4 py-3 transition-colors duration-100 hover:bg-sunk/40 md:grid-cols-[11rem_minmax(0,1fr)_10rem] md:items-center md:gap-4">
       <time dateTime={event.at} className="text-sm text-ink-3 tabular-nums">
         {formatDateTime(event.at)}
       </time>
-      <p className="min-w-0">
+      <p className="min-w-0 text-sm">
         {/* Who tried a failed login is unknown by definition: only the targeted account is. */}
         {!failed && <span className="font-semibold">{actor}</span>}{" "}
         <span className={cn(failed ? "text-warn" : "text-ink-2")}>

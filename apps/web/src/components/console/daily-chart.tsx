@@ -2,23 +2,25 @@
 
 import { useCallback, useId, useMemo, useRef, useState } from "react";
 import type { Metrics } from "@avanti/contracts";
-import { BarChart3 } from "lucide-react";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SectionHeader } from "@/components/ui/page-header";
+import { PANEL, PanelTitle } from "@/components/console/admin/panel";
 import { cn } from "@/lib/cn";
 
-// Validated pair (light surface): passes lightness, chroma, CVD and contrast checks.
+// One hue, on the series the screen is about (what reached the desk); the context series is
+// grey. Told apart by tone and by position in each day's pair, never by two competing hues.
 const SERIES = [
-  { key: "started", label: "Avviate", color: "var(--chart-started)" },
-  { key: "submitted", label: "Inviate", color: "var(--chart-submitted)" },
+  { key: "started", label: "Avviate", color: "color-mix(in srgb, var(--ink-3) 45%, transparent)" },
+  { key: "submitted", label: "Inviate", color: "var(--stamp)" },
 ] as const;
 
-const HEIGHT = 220;
 const PAD = { top: 12, right: 16, bottom: 28, left: 32 };
 // With few days that have something in them a line is flat stretches and a jump: bars say what
 // happened each day. Lines come back once most days have data, or when bars would be slivers.
 const MIN_DAYS_FOR_LINES = 7;
-const MIN_BAR_SLOT = 9;
+const MIN_HEIGHT = 180;
+// Below 9 px a day the pair no longer fits side by side: the two bars overlap, the grey one
+// behind, so a 30-day phone chart still shows days and not a line between jumps.
+const MIN_PAIR_SLOT = 9;
+const MIN_BAR_SLOT = 3;
 const dayLabel = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short" });
 
 /** A top for the axis on whole-number steps (1, 2, 5, 10, 20…), at most four of them. */
@@ -32,10 +34,14 @@ function axisOf(value: number) {
   }
 }
 
-export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
+export function DailyChart({ daily, className }: { daily: Metrics["daily"]; className?: string }) {
   const [hover, setHover] = useState<number | null>(null);
   const [asTable, setAsTable] = useState(false);
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const width = size.width;
+  // The plot takes the height its frame has: in a row it fills the panel to the neighbour's
+  // foot (no blank band under the note); alone, the frame's minimum.
+  const HEIGHT = Math.max(MIN_HEIGHT, size.height);
   const svgRef = useRef<SVGSVGElement>(null);
   const titleId = useId();
 
@@ -45,9 +51,12 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
   const frame = useCallback((node: HTMLDivElement | null) => {
     observer.current?.disconnect();
     if (!node) return;
-    setWidth(Math.floor(node.clientWidth));
+    setSize({ width: Math.floor(node.clientWidth), height: Math.floor(node.clientHeight) });
     observer.current = new ResizeObserver(([entry]) =>
-      setWidth(Math.floor(entry!.contentRect.width)),
+      setSize({
+        width: Math.floor(entry!.contentRect.width),
+        height: Math.floor(entry!.contentRect.height),
+      }),
     );
     observer.current.observe(node);
   }, []);
@@ -72,7 +81,7 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
           : PAD.left + (daily.length <= 1 ? innerW / 2 : (i / (daily.length - 1)) * innerW),
       y: (v: number) => PAD.top + innerH - (v / axis.top) * innerH,
     };
-  }, [daily, width, bars]);
+  }, [daily, width, bars, HEIGHT]);
 
   const empty = daily.every((d) => d.started === 0 && d.submitted === 0);
   const ticks = Array.from({ length: axis.top / axis.step + 1 }, (_, i) => i * axis.step);
@@ -90,42 +99,38 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
   return (
     <section
       aria-labelledby={titleId}
-      className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:p-6"
+      className={cn(PANEL, "flex min-w-0 flex-col p-5", className)}
     >
-      <SectionHeader
-        id={titleId}
-        title="Pratiche al giorno"
-        className="items-center"
-        actions={
-          <div className="flex items-center gap-4">
-            <ul className="flex gap-4 text-sm text-ink-2" aria-label="Legenda">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <PanelTitle id={titleId}>Pratiche al giorno</PanelTitle>
+        <div className="flex items-center gap-4">
+          {!empty && (
+            <ul className="flex gap-3 text-[0.8125rem] text-ink-2" aria-label="Legenda">
               {SERIES.map((s) => (
                 <li key={s.key} className="flex items-center gap-1.5">
                   <span
                     aria-hidden
-                    className={cn(bars ? "size-2.5 rounded-xs" : "h-0.5 w-4 rounded-full")}
+                    className={cn(bars ? "size-2 rounded-[1px]" : "h-0.5 w-3.5 rounded-full")}
                     style={{ background: s.color }}
                   />
                   {s.label}
                 </li>
               ))}
             </ul>
+          )}
+          {!empty && (
             <button
               type="button"
               onClick={() => setAsTable((v) => !v)}
-              className="rounded-sm text-sm font-semibold text-stamp hover:underline"
+              className="rounded-xs text-[0.8125rem] font-semibold text-stamp hover:underline focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none"
             >
               {asTable ? "Mostra grafico" : "Mostra tabella"}
             </button>
-          </div>
-        }
-      />
+          )}
+        </div>
+      </div>
 
-      {empty ? (
-        <EmptyState icon={BarChart3} title="Nessuna pratica nel periodo." className="mt-6 py-10">
-          Il grafico compare appena un cittadino avvia una pratica.
-        </EmptyState>
-      ) : asTable ? (
+      {asTable && !empty ? (
         <div className="mt-4 max-h-80 overflow-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-surface text-ink-3">
@@ -153,14 +158,14 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
           </table>
         </div>
       ) : (
-        <div ref={frame} className="relative mt-4" style={{ minHeight: HEIGHT }}>
+        <div ref={frame} className="relative mt-3 min-h-[180px] flex-1 lg:min-h-[220px]">
           {width > 0 && (
             <svg
               ref={svgRef}
               width={width}
               height={HEIGHT}
               viewBox={`0 0 ${width} ${HEIGHT}`}
-              className="block touch-pan-y select-none"
+              className="absolute inset-0 block touch-pan-y select-none"
               role="img"
               aria-label="Pratiche avviate e inviate al giorno. Usa la tabella per i valori."
               onPointerMove={onMove}
@@ -173,9 +178,8 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
                     x2={width - PAD.right}
                     y1={y(tick)}
                     y2={y(tick)}
-                    stroke="var(--line)"
+                    stroke={tick === 0 ? "var(--line-strong)" : "var(--line)"}
                     strokeWidth={1}
-                    strokeDasharray={tick === 0 ? undefined : "2 4"}
                   />
                   <text
                     x={PAD.left - 8}
@@ -214,19 +218,22 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
                     />
                   )}
                   {daily.map((d, i) => {
-                    const w = Math.max(1.5, Math.min(8, (slot - 3) / 2));
+                    const paired = slot >= MIN_PAIR_SLOT;
+                    const w = paired ? Math.min(8, (slot - 3) / 2) : Math.max(2, slot - 2);
                     return SERIES.map((s, k) => {
                       const value = d[s.key];
                       if (value === 0) return null;
                       const h = Math.max(2, y(0) - y(value));
+                      // Overlapped, the sent bar is narrower: the started one shows at its sides.
+                      const bw = paired || k === 0 ? w : Math.max(1.5, w * 0.5);
                       return (
                         <rect
                           key={`${d.date}-${s.key}`}
-                          x={x(i) - w - 1 + k * (w + 2)}
+                          x={paired ? x(i) - w - 1 + k * (w + 2) : x(i) - bw / 2}
                           y={y(0) - h}
-                          width={w}
+                          width={bw}
                           height={h}
-                          rx={Math.min(2, w / 2)}
+                          rx={Math.min(1, bw / 2)}
                           fill={s.color}
                         />
                       );
@@ -247,7 +254,7 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
                   )}
                   {/* A flat tint under the sent line: the shape of the day reads before the numbers. */}
                   <polygon
-                    fill="var(--chart-submitted)"
+                    fill="var(--stamp)"
                     fillOpacity={0.08}
                     points={`${x(0)},${y(0)} ${daily.map((d, i) => `${x(i)},${y(d.submitted)}`).join(" ")} ${x(daily.length - 1)},${y(0)}`}
                   />
@@ -256,7 +263,7 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
                       <polyline
                         fill="none"
                         stroke={s.color}
-                        strokeWidth={2.25}
+                        strokeWidth={2}
                         strokeLinejoin="round"
                         strokeLinecap="round"
                         points={daily.map((d, i) => `${x(i)},${y(d[s.key])}`).join(" ")}
@@ -300,9 +307,12 @@ export function DailyChart({ daily }: { daily: Metrics["daily"] }) {
           )}
         </div>
       )}
-      {!empty && !asTable && bars && (
-        <p className="mt-3 text-[0.8125rem] text-ink-3">
-          Pochi giorni di dati: il grafico si riempie con l&apos;uso.
+      {/* An empty period is drawn too: the axis and its zero line, and one sentence. */}
+      {!asTable && (empty || bars) && (
+        <p className="mt-2 text-[0.8125rem] text-ink-3">
+          {empty
+            ? "Nessuna pratica nel periodo: le barre compaiono appena un cittadino ne avvia una."
+            : "Pochi giorni di dati: il grafico si riempie con l’uso."}
         </p>
       )}
     </section>

@@ -1,13 +1,15 @@
 "use client";
 
-import { AlertOctagon, AlertTriangle, CheckCircle2, Minus, RefreshCw } from "lucide-react";
+import { AlertOctagon, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 import type { Route } from "next";
 import type { SystemStatus, SystemStatusLevel } from "@avanti/contracts";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
-import { PageContainer, PageHeader, SectionHeader } from "@/components/ui/page-header";
+import { PageContainer, PageHeader } from "@/components/ui/page-header";
+import { Pill } from "@/components/ui/pill";
+import { PANEL, PanelTitle } from "@/components/console/admin/panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/console/labels";
 import { useOperator } from "@/lib/console/operator-context";
@@ -104,6 +106,7 @@ function StatusView() {
         actions={
           <Button
             variant="secondary"
+            size="sm"
             loading={status.refreshing || status.reloading}
             onClick={() => reload()}
           >
@@ -118,7 +121,13 @@ function StatusView() {
           {status.error.message}
         </Notice>
       ) : !status.data ? (
-        <Skeleton className="mt-6 h-64 rounded-lg" />
+        <div className="mt-6 grid items-start gap-4 lg:grid-cols-3" aria-hidden>
+          <Skeleton className="h-[30rem] rounded-md lg:col-span-2" />
+          <div className="grid gap-4">
+            <Skeleton className="h-40 rounded-md" />
+            <Skeleton className="h-80 rounded-md" />
+          </div>
+        </div>
       ) : (
         <>
           {status.status === "error" && (
@@ -134,125 +143,134 @@ function StatusView() {
   );
 }
 
+const SEVERITY: Record<SystemStatusLevel, number> = { problem: 0, attention: 1, ok: 2 };
+
 function StatusBody({ data }: { data: SystemStatus }) {
   const overall = LEVEL[data.status];
   const { database, storage, ai, maintenance, retention, email } = data.components;
   const counters = data.counters;
+  const components = [
+    { key: "database", name: "Database", level: database.status, code: database.code },
+    { key: "storage", name: "Archivio documenti", level: storage.status, code: storage.code },
+    {
+      key: "ai",
+      name: "Analisi con AI",
+      level: ai.status,
+      code: ai.code,
+      extra: ai.configured ? (ai.mode === "fallback" ? "Ora: regole" : "Ora: AI") : null,
+      chart: ai.hourly ? <AiChart hourly={ai.hourly} /> : null,
+    },
+    {
+      key: "maintenance",
+      name: "Manutenzione automatica",
+      level: maintenance.status,
+      code: maintenance.code,
+      extra: lastRun(maintenance.lastFinishedAt),
+    },
+    {
+      key: "retention",
+      name: "Conservazione (pulizia dei fascicoli)",
+      level: retention.status,
+      code: retention.code,
+      extra: lastRun(retention.lastFinishedAt),
+    },
+    {
+      key: "email",
+      name: "Avvisi via email",
+      level: email.status,
+      code: email.code,
+      extra: emailSummary(email),
+    },
+  ];
+  // What needs looking at comes first; among equals the order stays the usual one.
+  const sorted = [...components].sort((a, b) => SEVERITY[a.level] - SEVERITY[b.level]);
+  const working = components.filter((c) => c.level === "ok").length;
 
   return (
-    <div className="mt-6 grid gap-8">
+    <div className="mt-6 grid gap-4 lg:grid-cols-3">
       {/* Announces only the verdict, so a refresh every minute stays quiet unless it changes. */}
       <p role="status" className="sr-only">
         {overall.headline}
       </p>
-      <section
-        aria-label="Riepilogo"
-        className={cn(
-          "flex items-center gap-5 rounded-lg p-6 shadow-raised ring-1",
-          data.status === "ok" && "bg-ok-wash ring-ok/20",
-          data.status === "attention" && "bg-warn-wash ring-warn/25",
-          data.status === "problem" && "bg-danger-wash ring-danger/25",
-        )}
-      >
-        <span
-          className={cn(
-            "grid size-12 shrink-0 place-items-center rounded-full bg-surface shadow-raised ring-1 ring-line",
-            overall.tone,
-          )}
-        >
-          <overall.icon className="size-6" aria-hidden />
-        </span>
-        <div>
-          <p className="font-display text-[1.75rem] leading-tight font-[650] tracking-[-0.012em]">
+      <section aria-labelledby="components-title" className={cn(PANEL, "lg:col-span-2")}>
+        <div className="border-b border-line p-5">
+          <p className="flex items-center gap-2.5 text-2xl leading-tight font-semibold">
+            <overall.icon className={cn("size-6 shrink-0", overall.tone)} aria-hidden />
             {overall.headline}
           </p>
-          <p className="mt-0.5 text-sm text-ink-2">
-            {onlyNotStarted(data) &&
-              "Alcune attività non sono ancora partite: nei primi giorni è normale. Se resta così per più di un giorno, contatta il supporto. "}
-            Controllato il {formatDateTime(data.generatedAt)}
+          <p className="mt-1.5 text-sm text-ink-2">
+            <span className="tabular">
+              {working} componenti su {components.length} funzionano
+            </span>
+            {" · controllato il "}
+            <span className="tabular">{formatDateTime(data.generatedAt)}</span>
           </p>
+          {onlyNotStarted(data) && (
+            <p className="mt-1 text-sm text-ink-2">
+              Alcune attività non sono ancora partite: nei primi giorni è normale. Se resta così per
+              più di un giorno, contatta il supporto.
+            </p>
+          )}
         </div>
-      </section>
-
-      {data.usage && <UsageCard usage={data.usage} />}
-
-      <section aria-labelledby="components-title">
-        <SectionHeader id="components-title" title="Componenti" />
-        <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
-          <ComponentRow name="Database" level={database.status} code={database.code} />
-          <ComponentRow name="Archivio documenti" level={storage.status} code={storage.code} />
-          <ComponentRow
-            name="Analisi con AI"
-            level={ai.status}
-            code={ai.code}
-            extra={ai.configured ? (ai.mode === "fallback" ? "Ora: regole" : "Ora: AI") : null}
-          >
-            {ai.hourly && <AiChart hourly={ai.hourly} />}
-          </ComponentRow>
-          <ComponentRow
-            name="Manutenzione automatica"
-            level={maintenance.status}
-            code={maintenance.code}
-            extra={lastRun(maintenance.lastFinishedAt)}
-          />
-          <ComponentRow
-            name="Conservazione (pulizia dei fascicoli)"
-            level={retention.status}
-            code={retention.code}
-            extra={lastRun(retention.lastFinishedAt)}
-          />
-          <ComponentRow
-            name="Avvisi via email"
-            level={email.status}
-            code={email.code}
-            extra={emailSummary(email)}
-          />
+        <PanelTitle id="components-title" className="px-5 pt-4">
+          Componenti
+        </PanelTitle>
+        <ul className="divide-y divide-line px-5">
+          {sorted.map((c) => (
+            <ComponentRow key={c.key} name={c.name} level={c.level} code={c.code} extra={c.extra}>
+              {c.chart}
+            </ComponentRow>
+          ))}
         </ul>
       </section>
 
-      <section aria-labelledby="counters-title">
-        <SectionHeader id="counters-title" title={<>Da tenere d&apos;occhio</>} />
-        <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Counter
-            label="Documenti in analisi da più di 10 minuti"
-            level={counters.documentsProcessingOver10Minutes.status}
-            count={counters.documentsProcessingOver10Minutes.count}
-          />
-          <Counter
-            label="Pratiche in attesa del cittadino da più di 7 giorni"
-            level={counters.casesWaitingForCitizenOver7Days.status}
-            count={counters.casesWaitingForCitizenOver7Days.count}
-            href="/console?stato=needs_citizen"
-          />
-          <Counter
-            label="Link dei cittadini in scadenza nei prossimi 7 giorni"
-            level={counters.linksExpiringWithin7Days.status}
-            count={counters.linksExpiringWithin7Days.count}
-          />
-          <Counter
-            label="Pratiche e registrazioni oltre il periodo di conservazione"
-            level={counters.retentionOverdue.status}
-            count={counters.retentionOverdue.count}
-          />
-          <Counter
-            label="Errori del servizio nelle ultime 24 ore"
-            level={counters.recentApiErrors24Hours.status}
-            count={counters.recentApiErrors24Hours.count}
-          />
-          <Counter
-            label="Avvisi email non partiti nelle ultime 24 ore"
-            level={email.failed24Hours ? email.status : "ok"}
-            count={email.failed24Hours}
-          />
-          <Counter
-            label="Avvisi email in coda"
-            level={counters.notificationsQueued.status}
-            count={counters.notificationsQueued.count}
-          />
-        </dl>
-      </section>
+      <div className="flex flex-col gap-4">
+        {data.usage && <UsageCard usage={data.usage} />}
+        {/* Stretched to the components' foot: the rows share the extra height, no blank band. */}
+        <section aria-labelledby="counters-title" className={cn(PANEL, "flex flex-1 flex-col p-5")}>
+          <PanelTitle id="counters-title">Da tenere d&apos;occhio</PanelTitle>
+          <dl className="mt-1 flex flex-1 flex-col divide-y divide-line">
+            <Counter
+              label="Documenti in analisi da più di 10 minuti"
+              level={counters.documentsProcessingOver10Minutes.status}
+              count={counters.documentsProcessingOver10Minutes.count}
+            />
+            <Counter
+              label="Pratiche in attesa del cittadino da più di 7 giorni"
+              level={counters.casesWaitingForCitizenOver7Days.status}
+              count={counters.casesWaitingForCitizenOver7Days.count}
+              href="/console?stato=needs_citizen"
+            />
+            <Counter
+              label="Link dei cittadini in scadenza entro 7 giorni"
+              level={counters.linksExpiringWithin7Days.status}
+              count={counters.linksExpiringWithin7Days.count}
+            />
+            <Counter
+              label="Pratiche e registrazioni oltre la conservazione"
+              level={counters.retentionOverdue.status}
+              count={counters.retentionOverdue.count}
+            />
+            <Counter
+              label="Errori del servizio nelle ultime 24 ore"
+              level={counters.recentApiErrors24Hours.status}
+              count={counters.recentApiErrors24Hours.count}
+            />
+            <Counter
+              label="Avvisi email non partiti nelle ultime 24 ore"
+              level={email.failed24Hours ? email.status : "ok"}
+              count={email.failed24Hours}
+            />
+            <Counter
+              label="Avvisi email in coda"
+              level={counters.notificationsQueued.status}
+              count={counters.notificationsQueued.count}
+            />
+          </dl>
+        </section>
+      </div>
 
-      <p className="text-sm text-ink-3">
+      <p className="text-[0.8125rem] text-ink-3 lg:col-span-3">
         Versione{" "}
         {data.version.tag ??
           (data.version.commit ? data.version.commit.slice(0, 7) : "di sviluppo")}
@@ -277,33 +295,32 @@ function ComponentRow({
   extra?: string | null;
   children?: ReactNode;
 }) {
-  const { icon: Icon, label, tone } = LEVEL[level];
+  const { icon: Icon, label } = LEVEL[level];
   return (
-    <li className="grid gap-2 px-5 py-4">
+    <li className="grid gap-1 py-3.5">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <p className="font-semibold">{name}</p>
-        <span className="flex items-center gap-3 text-sm">
-          {extra && <span className="text-ink-3">{extra}</span>}
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-semibold",
-              level === "ok" && "bg-ok-wash",
-              level === "attention" && "bg-warn-wash",
-              level === "problem" && "bg-danger-wash",
-              tone,
-            )}
-          >
-            <Icon className="size-3.5" aria-hidden />
+        <p className="text-sm font-semibold">{name}</p>
+        <span className="flex items-center gap-3">
+          {extra && <span className="tabular text-[0.8125rem] text-ink-3">{extra}</span>}
+          <Pill tone={TONE[level]}>
+            <Icon aria-hidden />
             {label}
-          </span>
+          </Pill>
         </span>
       </div>
-      <p className="max-w-2xl text-sm text-ink-3">{CODES[code]}</p>
-      {children && <div className="mt-1">{children}</div>}
+      <p className="max-w-2xl text-[0.8125rem] leading-snug text-ink-3">{CODES[code]}</p>
+      {children && <div className="mt-2">{children}</div>}
     </li>
   );
 }
 
+const TONE: Record<SystemStatusLevel, "ok" | "warn" | "danger"> = {
+  ok: "ok",
+  attention: "warn",
+  problem: "danger",
+};
+
+/** One count per row: what is counted on the left, the figure on the right. */
 function Counter({
   label,
   level,
@@ -315,22 +332,31 @@ function Counter({
   count: number | null;
   href?: Route;
 }) {
-  // An unmeasured value gets no verdict: a green tick would read as "all good".
-  const { icon: Icon, tone } = count === null ? { icon: Minus, tone: "text-ink-3" } : LEVEL[level];
+  // A fine count needs no mark: only what needs looking at carries the status colour.
+  const flagged = count !== null && level !== "ok";
+  const { icon: Icon, tone } = LEVEL[level];
   return (
-    <div className="flex flex-col justify-between gap-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-line">
-      <dt className="text-sm text-ink-2">{label}</dt>
-      <dd className="flex items-center gap-2">
-        {/* null means "not measured": never show it as zero. */}
-        <span className="font-display text-[2rem] leading-none font-semibold tracking-[-0.02em] tabular-nums">
-          {count === null ? "—" : count.toLocaleString("it-IT")}
-        </span>
-        <Icon className={cn("size-4.5 shrink-0", tone)} aria-hidden />
-        {count === null && <span className="text-sm text-ink-3">non disponibile</span>}
+    <div className="flex min-h-11 flex-1 items-center justify-between gap-4 py-2">
+      <dt className="min-w-0 text-[0.8125rem] leading-snug text-ink-2">
+        {label}
         {href && count !== null && count > 0 && (
-          <Link href={href} className="ms-auto text-sm font-semibold text-stamp hover:underline">
-            Vedi le pratiche
-          </Link>
+          <>
+            {" · "}
+            <Link href={href} className="font-semibold text-stamp hover:underline">
+              Vedi le pratiche
+            </Link>
+          </>
+        )}
+      </dt>
+      <dd className="flex shrink-0 items-center gap-1.5">
+        {flagged && <Icon className={cn("size-3.5", tone)} aria-hidden />}
+        {/* null means "not measured": never show it as zero. */}
+        {count === null ? (
+          <span className="text-[0.8125rem] text-ink-3">non misurato</span>
+        ) : (
+          <span className={cn("tabular text-base font-semibold", flagged && tone)}>
+            {count.toLocaleString("it-IT")}
+          </span>
         )}
       </dd>
     </div>
@@ -352,9 +378,8 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
     }),
     { successes: 0, fallbacks: 0, errors: 0 },
   );
-  if (total.successes + total.fallbacks + total.errors === 0) {
-    return <p className="text-sm text-ink-3">Nessuna analisi nelle ultime 24 ore.</p>;
-  }
+  // An empty day is drawn too: 24 notches on the baseline and one sentence.
+  const none = total.successes + total.fallbacks + total.errors === 0;
   const hour = (iso: string) =>
     new Intl.DateTimeFormat("it-IT", {
       hour: "2-digit",
@@ -365,12 +390,19 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
   return (
     <figure className="grid gap-2">
       <figcaption className="flex flex-wrap gap-x-4 gap-y-1 text-[0.8125rem] text-ink-2">
-        <span>Ultime 24 ore:</span>
-        <Legend swatch="bg-[var(--chart-ai)]">con AI {total.successes}</Legend>
-        <Legend swatch="bg-[var(--chart-fallback)] hatch">con le regole {total.fallbacks}</Legend>
-        <Legend swatch="rounded-full bg-danger">errori {total.errors}</Legend>
+        <span>{none ? "Nessuna analisi nelle ultime 24 ore." : "Ultime 24 ore:"}</span>
+        {!none && (
+          <>
+            <Legend swatch="bg-stamp">con AI {total.successes}</Legend>
+            <Legend swatch="bg-line-strong hatch">con le regole {total.fallbacks}</Legend>
+            <Legend swatch="rounded-full bg-danger">errori {total.errors}</Legend>
+          </>
+        )}
       </figcaption>
-      <div className="flex h-20 items-end gap-0.5 border-b border-line" aria-hidden>
+      <div
+        className={cn("flex items-end gap-0.5 border-b border-line-strong", none ? "h-3" : "h-20")}
+        aria-hidden
+      >
         {hourly.map((h) => {
           const ai = (h.successes / max) * 100;
           const rules = (h.fallbacks / max) * 100;
@@ -385,16 +417,13 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
               )}
               {rules > 0 && (
                 <span
-                  className="hatch min-h-[3px] rounded-t-[2px] bg-[var(--chart-fallback)]"
+                  className="hatch min-h-[3px] rounded-t-[2px] bg-line-strong"
                   style={{ height: `${rules}%` }}
                 />
               )}
               {ai > 0 && (
                 <span
-                  className={cn(
-                    "min-h-[3px] bg-[var(--chart-ai)]",
-                    rules > 0 ? "" : "rounded-t-[2px]",
-                  )}
+                  className={cn("min-h-[3px] bg-stamp", rules > 0 ? "" : "rounded-t-[2px]")}
                   style={{ height: `${ai}%` }}
                 />
               )}
@@ -425,9 +454,9 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
           {hourly.map((h) => (
             <tr key={h.hour}>
               <th scope="row">{hour(h.hour)}</th>
-              <td>{h.successes}</td>
-              <td>{h.fallbacks}</td>
-              <td>{h.errors}</td>
+              <td className="text-end">{h.successes}</td>
+              <td className="text-end">{h.fallbacks}</td>
+              <td className="text-end">{h.errors}</td>
             </tr>
           ))}
         </tbody>
@@ -459,28 +488,26 @@ function UsageCard({ usage }: { usage: NonNullable<SystemStatus["usage"]> }) {
   const tone =
     percent === null || percent < 90 ? "bg-stamp" : percent < 100 ? "bg-warn" : "bg-danger";
   return (
-    <section
-      aria-labelledby="usage-title"
-      className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line"
-    >
-      <h2 id="usage-title" className="text-sm font-semibold text-ink-2">
-        Uso del piano, {monthName(usage.month)}
-      </h2>
-      <p className="mt-2 flex flex-wrap items-baseline gap-x-2 font-display text-2xl font-semibold">
-        <span className="tabular text-[2.5rem] leading-none tracking-[-0.03em]">
+    <section aria-labelledby="usage-title" className={cn(PANEL, "p-5")}>
+      <PanelTitle id="usage-title">Uso del piano, {monthName(usage.month)}</PanelTitle>
+      <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
+        <span className="tabular text-2xl leading-none font-semibold">
           {usage.delivered.toLocaleString("it-IT")}
         </span>
-        <span>{usage.delivered === 1 ? "fascicolo consegnato" : "fascicoli consegnati"}</span>
-        {usage.cap !== null && (
-          <span className="font-sans text-base font-normal text-ink-2">
-            su <span className="tabular">{usage.cap.toLocaleString("it-IT")}</span> inclusi
-          </span>
-        )}
+        <span className="text-sm text-ink-2">
+          {usage.delivered === 1 ? "fascicolo consegnato" : "fascicoli consegnati"}
+          {usage.cap !== null && (
+            <>
+              {" "}
+              su <span className="tabular">{usage.cap.toLocaleString("it-IT")}</span> inclusi
+            </>
+          )}
+        </span>
       </p>
-      {percent !== null && (
+      {percent !== null && usage.cap !== null && (
         <>
           <div
-            className="mt-3 h-2 overflow-hidden rounded-full bg-sunk"
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-sunk"
             role="meter"
             aria-label="Quota del mese usata"
             aria-valuemin={0}
@@ -489,11 +516,16 @@ function UsageCard({ usage }: { usage: NonNullable<SystemStatus["usage"]> }) {
             aria-valuetext={`${percent}%`}
           >
             <div
-              className={cn("h-full rounded-full", tone)}
-              style={{ width: `${Math.min(percent, 100)}%` }}
+              className={cn("h-full origin-left rounded-full", tone)}
+              style={{ transform: `scaleX(${Math.min(percent, 100) / 100})` }}
             />
           </div>
-          <p className="mt-2 text-sm text-ink-2">
+          {/* Both ends labelled: the fill reads as a share of the plan, not as a level. */}
+          <p className="tabular mt-1.5 flex justify-between text-[0.8125rem] text-ink-3">
+            <span>0</span>
+            <span>{usage.cap.toLocaleString("it-IT")}</span>
+          </p>
+          <p className="mt-2 text-[0.8125rem] text-ink-2">
             {percent >= 100
               ? "Quota del mese superata: i cittadini continuano a inviare e ne parliamo noi con voi."
               : percent >= 70
@@ -502,7 +534,7 @@ function UsageCard({ usage }: { usage: NonNullable<SystemStatus["usage"]> }) {
           </p>
         </>
       )}
-      <p className="mt-2 text-[0.8125rem] text-ink-3">
+      <p className="mt-2 text-[0.8125rem] leading-snug text-ink-3">
         Un fascicolo conta una volta, al primo invio del cittadino: integrazioni e reinvii sono
         inclusi.
       </p>

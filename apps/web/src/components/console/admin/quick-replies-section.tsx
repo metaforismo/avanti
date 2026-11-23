@@ -8,10 +8,12 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
-import { SectionHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { useResource } from "@/lib/console/use-resource";
+import { PANEL } from "./panel";
+import { SplitSection } from "./setting-row";
+import { cn } from "@/lib/cn";
 
 const MAX_REPLIES = 50;
 
@@ -75,8 +77,8 @@ export function QuickRepliesSection() {
 
   return (
     <section id="risposte-rapide" aria-labelledby="replies-title">
-      <SectionHeader
-        id="replies-title"
+      <SplitSection
+        titleId="replies-title"
         title="Risposte rapide"
         lead={
           <>
@@ -87,6 +89,7 @@ export function QuickRepliesSection() {
         actions={
           <Button
             variant="secondary"
+            size="sm"
             ref={addButton}
             onClick={() => {
               setDialogError(null);
@@ -98,156 +101,158 @@ export function QuickRepliesSection() {
             Aggiungi risposta
           </Button>
         }
-      />
-
-      {error && (
-        <Notice tone="danger" className="mt-4">
-          {error}
-        </Notice>
-      )}
-
-      {list.status === "error" && !list.data ? (
-        <Notice tone="danger" className="mt-4">
-          Risposte non disponibili: {list.error.message}
-        </Notice>
-      ) : !list.data ? (
-        <Skeleton className="mt-4 h-32 rounded-lg" />
-      ) : replies.length === 0 ? (
-        <EmptyState title="Nessuna risposta rapida." className="mt-4 py-10">
-          Aggiungi le richieste che fate più spesso, per esempio «Foto illeggibile» o «Manca la
-          pagina con la firma».
-        </EmptyState>
-      ) : (
-        <ol className="mt-4 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
-          {replies.map((reply, index) => (
-            <li key={reply.id} className="flex flex-wrap items-start gap-x-4 gap-y-2 px-4 py-3">
-              <div className="min-w-0 flex-1 basis-64">
-                <p className="font-semibold">{reply.title}</p>
-                <p className="line-clamp-2 text-sm text-ink-2">{reply.text}</p>
-              </div>
-              <div className="flex gap-1">
-                <Button
-                  id={`move-up-${reply.id}`}
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Sposta su: ${reply.title}`}
-                  aria-disabled={index === 0 || undefined}
-                  className="aria-disabled:opacity-50"
-                  onClick={() => index > 0 && void move(index, -1)}
-                >
-                  <ArrowUp className="size-4" aria-hidden />
-                </Button>
-                <Button
-                  id={`move-down-${reply.id}`}
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Sposta giù: ${reply.title}`}
-                  aria-disabled={index === replies.length - 1 || undefined}
-                  className="aria-disabled:opacity-50"
-                  onClick={() => index < replies.length - 1 && void move(index, 1)}
-                >
-                  <ArrowDown className="size-4" aria-hidden />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Modifica: ${reply.title}`}
-                  onClick={() => {
-                    setDialogError(null);
-                    setEditing(reply);
-                  }}
-                >
-                  <Pencil className="size-4" aria-hidden />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Elimina: ${reply.title}`}
-                  onClick={() => {
-                    setDialogError(null);
-                    setRemoving(reply);
-                  }}
-                >
-                  <Trash2 className="size-4" aria-hidden />
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-      <p role="status" className="sr-only">
-        {announcement}
-      </p>
-      {replies.length >= MAX_REPLIES && (
-        <p className="mt-2 text-sm text-ink-3">
-          Hai raggiunto il massimo di {MAX_REPLIES}: eliminane una per aggiungerne altre.
-        </p>
-      )}
-
-      <Dialog
-        open={editing !== null}
-        onOpenChange={(open) => !open && setEditing(null)}
-        title={editing === "new" ? "Nuova risposta rapida" : "Modifica risposta rapida"}
-        description="Scrivi in italiano: Avanti la traduce nella lingua del cittadino quando la invii."
       >
-        {editing !== null && (
-          <ReplyForm
-            initial={editing === "new" ? null : editing}
-            onSave={async (input) => {
-              const saved = await act(
-                "save",
-                () =>
-                  editing === "new"
-                    ? apiFetch("/api/quick-replies", { method: "POST", body: input })
-                    : apiFetch(`/api/quick-replies/${editing.id}`, {
-                        method: "PATCH",
-                        body: input,
-                      }),
-                true,
-              );
-              if (saved) setEditing(null);
-              return saved;
-            }}
-            saving={pending === "save"}
-            error={dialogError}
-          />
+        {error && (
+          <Notice tone="danger" className="mb-4">
+            {error}
+          </Notice>
         )}
-      </Dialog>
 
-      <Dialog
-        open={removing !== null}
-        onOpenChange={(open) => !open && setRemoving(null)}
-        title="Eliminare la risposta rapida?"
-        description="Sparisce per tutti gli operatori. I messaggi già inviati non cambiano."
-        returnFocusTo={addButton}
-      >
-        {removing && (
-          <div className="flex flex-wrap gap-3">
-            {dialogError && (
-              <Notice tone="danger" className="w-full">
-                {dialogError}
-              </Notice>
-            )}
-            <Button
-              variant="danger"
-              loading={pending === "delete"}
-              onClick={async () => {
-                const done = await act(
-                  "delete",
-                  () => apiFetch(`/api/quick-replies/${removing.id}`, { method: "DELETE" }),
+        {list.status === "error" && !list.data ? (
+          <Notice tone="danger" className="mb-4">
+            Risposte non disponibili: {list.error.message}
+          </Notice>
+        ) : !list.data ? (
+          <Skeleton className="h-32 rounded-md" />
+        ) : replies.length === 0 ? (
+          <EmptyState title="Nessuna risposta rapida." className="py-10">
+            Aggiungi le richieste che fate più spesso, per esempio «Foto illeggibile» o «Manca la
+            pagina con la firma».
+          </EmptyState>
+        ) : (
+          <ol className={cn(PANEL, "divide-y divide-line overflow-hidden")}>
+            {replies.map((reply, index) => (
+              <li key={reply.id} className="flex flex-wrap items-start gap-x-4 gap-y-2 px-5 py-3">
+                <div className="min-w-0 flex-1 basis-64">
+                  <p className="text-sm font-semibold">{reply.title}</p>
+                  <p className="line-clamp-2 text-[0.8125rem] leading-snug text-ink-3">
+                    {reply.text}
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    id={`move-up-${reply.id}`}
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Sposta su: ${reply.title}`}
+                    aria-disabled={index === 0 || undefined}
+                    className="aria-disabled:opacity-50"
+                    onClick={() => index > 0 && void move(index, -1)}
+                  >
+                    <ArrowUp className="size-4" aria-hidden />
+                  </Button>
+                  <Button
+                    id={`move-down-${reply.id}`}
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Sposta giù: ${reply.title}`}
+                    aria-disabled={index === replies.length - 1 || undefined}
+                    className="aria-disabled:opacity-50"
+                    onClick={() => index < replies.length - 1 && void move(index, 1)}
+                  >
+                    <ArrowDown className="size-4" aria-hidden />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Modifica: ${reply.title}`}
+                    onClick={() => {
+                      setDialogError(null);
+                      setEditing(reply);
+                    }}
+                  >
+                    <Pencil className="size-4" aria-hidden />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Elimina: ${reply.title}`}
+                    onClick={() => {
+                      setDialogError(null);
+                      setRemoving(reply);
+                    }}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        <p role="status" className="sr-only">
+          {announcement}
+        </p>
+        {replies.length >= MAX_REPLIES && (
+          <p className="mt-2 text-sm text-ink-3">
+            Hai raggiunto il massimo di {MAX_REPLIES}: eliminane una per aggiungerne altre.
+          </p>
+        )}
+
+        <Dialog
+          open={editing !== null}
+          onOpenChange={(open) => !open && setEditing(null)}
+          title={editing === "new" ? "Nuova risposta rapida" : "Modifica risposta rapida"}
+          description="Scrivi in italiano: Avanti la traduce nella lingua del cittadino quando la invii."
+        >
+          {editing !== null && (
+            <ReplyForm
+              initial={editing === "new" ? null : editing}
+              onSave={async (input) => {
+                const saved = await act(
+                  "save",
+                  () =>
+                    editing === "new"
+                      ? apiFetch("/api/quick-replies", { method: "POST", body: input })
+                      : apiFetch(`/api/quick-replies/${editing.id}`, {
+                          method: "PATCH",
+                          body: input,
+                        }),
                   true,
                 );
-                if (done) setRemoving(null);
+                if (saved) setEditing(null);
+                return saved;
               }}
-            >
-              Elimina «{removing.title}»
-            </Button>
-            <Button variant="ghost" onClick={() => setRemoving(null)}>
-              Annulla
-            </Button>
-          </div>
-        )}
-      </Dialog>
+              saving={pending === "save"}
+              error={dialogError}
+            />
+          )}
+        </Dialog>
+
+        <Dialog
+          open={removing !== null}
+          onOpenChange={(open) => !open && setRemoving(null)}
+          title="Eliminare la risposta rapida?"
+          description="Sparisce per tutti gli operatori. I messaggi già inviati non cambiano."
+          returnFocusTo={addButton}
+        >
+          {removing && (
+            <div className="flex flex-wrap gap-3">
+              {dialogError && (
+                <Notice tone="danger" className="w-full">
+                  {dialogError}
+                </Notice>
+              )}
+              <Button
+                variant="danger"
+                loading={pending === "delete"}
+                onClick={async () => {
+                  const done = await act(
+                    "delete",
+                    () => apiFetch(`/api/quick-replies/${removing.id}`, { method: "DELETE" }),
+                    true,
+                  );
+                  if (done) setRemoving(null);
+                }}
+              >
+                Elimina «{removing.title}»
+              </Button>
+              <Button variant="ghost" onClick={() => setRemoving(null)}>
+                Annulla
+              </Button>
+            </div>
+          )}
+        </Dialog>
+      </SplitSection>
     </section>
   );
 }

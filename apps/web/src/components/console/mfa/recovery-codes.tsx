@@ -47,7 +47,7 @@ export function RecoveryCodes({
         Verifica in due passaggi attiva.
       </Notice>
       <div>
-        <h3 ref={heading} tabIndex={-1} className="font-display text-lg font-semibold outline-none">
+        <h3 ref={heading} tabIndex={-1} className="text-base font-semibold outline-none">
           Salva i codici di recupero
         </h3>
         <p className="mt-1 text-ink-2">
