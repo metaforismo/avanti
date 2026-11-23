@@ -37,12 +37,9 @@ export function CitizenQuestions({
   return (
     <section
       aria-labelledby="citizen-questions-title"
-      className="rounded-lg bg-surface p-5 ring-2 ring-stamp/30"
+      className="rounded-md border-2 border-stamp/40 bg-surface p-5"
     >
-      <h2
-        id="citizen-questions-title"
-        className="flex items-center gap-2 font-display text-xl font-semibold"
-      >
+      <h2 id="citizen-questions-title" className="flex items-center gap-2 text-lg font-semibold">
         <MessageCircleQuestion className="size-5 text-stamp" aria-hidden />
         {questions.length === 1
           ? "Il cittadino ti ha scritto"

@@ -107,7 +107,7 @@ export function CitizenNoticeStatus({
         </Button>
       )}
       {printable && (
-        <Button size="sm" variant="ghost" asChild>
+        <Button size="sm" variant="ghost" asChild className="-ms-3 justify-self-start">
           <a href={printPath(dossier.id)} target="_blank" rel="noopener">
             <Printer className="size-4" aria-hidden />
             Stampa i documenti da portare

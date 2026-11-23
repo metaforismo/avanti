@@ -55,11 +55,11 @@ export function FindingsSummary({
   return (
     <section
       aria-labelledby="findings-title"
-      className="overflow-hidden rounded-lg ring-1 ring-line"
+      className="overflow-hidden rounded-md border border-line"
     >
       <h2
         id="findings-title"
-        className="flex flex-wrap items-baseline gap-x-3 bg-surface px-5 pt-4 pb-3 font-display text-xl font-semibold"
+        className="flex flex-wrap items-baseline gap-x-3 bg-surface px-5 pt-4 pb-3 text-lg font-semibold"
       >
         Da guardare
         <span className="text-sm font-normal text-ink-3">{summary}</span>
@@ -233,7 +233,7 @@ function SourceButton({ onOpen, className }: { onOpen: () => void; className?: s
       onClick={onOpen}
       aria-describedby={id}
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-sm px-2 text-xs font-medium text-ink-3 transition-colors duration-100 hover:bg-sunk hover:text-ink",
+        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-sm px-2 text-[0.8125rem] font-medium text-ink-3 transition-colors duration-100 hover:bg-sunk hover:text-ink",
         className,
       )}
     >

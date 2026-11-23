@@ -182,7 +182,7 @@ export function DocumentViewer({
             event.preventDefault();
             document.getElementById("checklist-section")?.focus();
           }}
-          className="console-viewer fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface outline-none lg:inset-y-3 lg:start-auto lg:end-3 lg:w-[min(64rem,calc(100vw-1.5rem))] lg:rounded-xl lg:shadow-float lg:ring-1 lg:ring-line xl:w-[min(80rem,calc(100vw-1.5rem))]"
+          className="console-viewer fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface outline-none lg:inset-y-2 lg:start-auto lg:end-2 lg:w-[min(64rem,calc(100vw-1rem))] lg:rounded-lg lg:border lg:border-line xl:w-[min(80rem,calc(100vw-1rem))]"
         >
           {doc && (
             <>
@@ -202,7 +202,7 @@ export function DocumentViewer({
                       </Pill>
                     )}
                   </div>
-                  <Primitive.Description className="truncate text-xs text-ink-3">
+                  <Primitive.Description className="truncate text-[0.8125rem] text-ink-3">
                     <span dir="auto">{doc.fileName}</span> · caricato{" "}
                     {formatDateTime(doc.uploadedAt)}
                   </Primitive.Description>
@@ -303,7 +303,7 @@ export function DocumentViewer({
                         Controllo automatico
                       </h3>
                       {analysis && (
-                        <p className="text-xs text-ink-3">
+                        <p className="text-[0.8125rem] text-ink-3">
                           {analysis.engine === "ai" ? "AI" : "Senza AI"} · certezza{" "}
                           <span
                             className={cn(
@@ -399,7 +399,7 @@ export function DocumentViewer({
                         )}
                       </>
                     )}
-                    <p className="mt-5 text-xs text-ink-3">
+                    <p className="mt-5 text-[0.8125rem] text-ink-3">
                       Il controllo automatico può sbagliare: la verifica finale spetta
                       all&apos;operatore.
                     </p>
@@ -438,7 +438,7 @@ function DocumentRail({
       className="hidden min-h-0 flex-col border-e border-line bg-paper xl:flex"
     >
       <ol ref={list} className="grid min-h-0 flex-1 content-start gap-px overflow-y-auto p-2">
-        {dossier.documents.map((d, i) => {
+        {dossier.documents.map((d) => {
           const item = dossier.checklist.find((it) => it.id === d.checklistItemId);
           const state = railState(item);
           const active = d.id === current;
@@ -450,7 +450,8 @@ function DocumentRail({
                 onClick={() => !active && onNavigate(d)}
                 className={cn(
                   "grid w-full grid-cols-[1rem_minmax(0,1fr)] items-start gap-x-2 rounded-sm px-2 py-1.5 text-start transition-colors duration-100",
-                  active ? "bg-surface shadow-xs ring-1 ring-line" : "hover:bg-sunk",
+                  // The selected file takes the nav's grey pill: never mistaken for a focus ring.
+                  active ? "bg-sunk" : "hover:bg-sunk/60",
                 )}
               >
                 <span
@@ -459,7 +460,6 @@ function DocumentRail({
                 />
                 <span className="min-w-0">
                   <span className="flex min-w-0 items-baseline gap-1.5 text-sm">
-                    <span className="tabular shrink-0 text-xs text-ink-3">{i + 1}</span>
                     {/* A file name in Arabic keeps its own direction instead of scrambling. */}
                     <span
                       dir="auto"
@@ -468,7 +468,7 @@ function DocumentRail({
                       {d.analysis?.detectedLabel ?? d.fileName}
                     </span>
                   </span>
-                  <span className="block truncate text-xs text-ink-3">
+                  <span className="block truncate text-[0.8125rem] text-ink-3">
                     {state.label}
                     {item && memberSuffix(item) ? ` · ${memberSuffix(item)}` : ""}
                   </span>
@@ -478,7 +478,7 @@ function DocumentRail({
           );
         })}
       </ol>
-      <p className="flex items-center gap-1.5 border-t border-line px-4 py-2.5 text-xs text-ink-3">
+      <p className="flex items-center gap-1.5 border-t border-line px-4 py-2.5 text-[0.8125rem] text-ink-3">
         <Kbd>←</Kbd>
         <Kbd>→</Kbd>
         <span>per scorrere</span>
@@ -616,7 +616,7 @@ function Decision({
               <KeyHint>R</KeyHint>
             </Button>
           </div>
-          <p className="mt-2.5 text-xs text-ink-3">
+          <p className="mt-2.5 text-[0.8125rem] text-ink-3">
             Poi passa al prossimo documento da controllare.
           </p>
         </>

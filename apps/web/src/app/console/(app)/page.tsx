@@ -150,6 +150,8 @@ function Queue() {
   });
   const selectedIds = selection.query === query ? selection.ids : EMPTY;
   const [assigned, setAssigned] = useState<{ text: string; partial: boolean } | null>(null);
+  // When the list on screen was last fetched: the queue refreshes itself every 30 seconds.
+  const fetchedAt = list.data ? arrivedAt(list.data) : null;
 
   // Keep the queue fresh while an operator works on it.
   const { reload } = list;
@@ -285,6 +287,29 @@ function Queue() {
       </Select>
     </>
   );
+  // The finding goes under the title, where it is read first: in the submitted tab, the cases
+  // nobody took for too long; elsewhere what the tab holds. Then when the list was fetched.
+  const lead =
+    erasure || !list.data ? null : (
+      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+        {status === "submitted" ? (
+          <span className={cn("inline-flex items-start gap-1.5", overdue > 0 && "text-warn")}>
+            {overdue > 0 && <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />}
+            {overdue > 0
+              ? `${casesLabel(overdue)} non ${overdue === 1 ? "assegnata aspetta" : "assegnate aspettano"} da più di 2 giorni lavorativi.`
+              : "Nessuna pratica aspetta da più di 2 giorni lavorativi."}
+          </span>
+        ) : (
+          <span>{CASE_STATUS[status].hint}.</span>
+        )}
+        {fetchedAt && (
+          <span className="tabular">
+            Aggiornata alle{" "}
+            <time dateTime={fetchedAt.toISOString()}>{clock.format(fetchedAt)}</time>
+          </span>
+        )}
+      </span>
+    );
   const sortControl = (className?: string) => (
     <SegmentedControl
       label="Ordina le pratiche inviate"
@@ -300,7 +325,7 @@ function Queue() {
 
   return (
     <PageContainer width="wide" className={cn(selected.length > 0 && "pb-28")}>
-      <PageHeader title="Pratiche" />
+      <PageHeader title="Pratiche" lead={lead} />
 
       {/* The live region stays mounted so the confirmation is announced when it appears. */}
       <div role="status">
@@ -377,13 +402,11 @@ function Queue() {
         )
       )}
 
-      {/* On a phone the tabs scroll sideways; the fade at the end says there is more. */}
-      <div className="relative mt-5 max-sm:-me-4">
-        <div
-          role="group"
-          aria-label="Stato"
-          className="-mx-1 flex [scrollbar-width:none] gap-1 overflow-x-auto pb-1 max-sm:pe-6 sm:flex-wrap sm:overflow-visible"
-        >
+      {/* The status tabs on one rule, the active one underlined in ink; the sort for the
+          submitted tab at the far end. On a phone the tabs wrap as chips: a row that scrolls
+          sideways hides the last tabs behind the screen edge. */}
+      <div className="mt-5 flex items-end justify-between gap-x-6 gap-y-3 sm:border-b sm:border-line">
+        <div role="group" aria-label="Stato" className="flex flex-wrap gap-1.5 sm:gap-x-6">
           {STATUS_ORDER.map((key) => {
             const active = !erasure && key === status;
             const count = counts?.[key];
@@ -395,22 +418,23 @@ function Queue() {
                 title={CASE_STATUS[key].hint}
                 onClick={() => setParam("stato", key === "submitted" ? "" : key)}
                 className={cn(
-                  "flex h-8 shrink-0 items-center gap-2 rounded-sm px-3 text-sm transition-colors duration-100",
+                  "flex h-8 shrink-0 items-center gap-2 text-sm transition-colors duration-100",
+                  "max-sm:rounded-full max-sm:px-3",
+                  "sm:-mb-px sm:h-10 sm:border-b-2",
                   active
-                    ? "bg-surface font-semibold text-ink shadow-[0_1px_2px_rgb(20_27_45/0.08)] ring-1 ring-line"
-                    : "text-ink-2 hover:bg-sunk hover:text-ink",
+                    ? "font-semibold text-ink max-sm:bg-sunk sm:border-ink"
+                    : "text-ink-2 hover:text-ink max-sm:border max-sm:border-line sm:border-transparent",
                 )}
               >
                 {CASE_STATUS[key].label}
                 {count !== undefined && (
                   <span
                     className={cn(
-                      "tabular min-w-5 rounded-full px-1.5 text-center text-xs font-medium",
+                      "tabular min-w-5 text-center text-[0.8125rem] font-medium",
+                      // The one count that is work waiting carries the data hue.
                       key === "submitted" && count > 0
-                        ? "bg-stamp text-on-stamp"
-                        : active
-                          ? "bg-sunk text-ink-2"
-                          : "text-ink-3",
+                        ? "rounded-full bg-stamp px-1.5 leading-5 text-on-stamp"
+                        : "text-ink-3",
                     )}
                   >
                     {count}
@@ -420,14 +444,11 @@ function Queue() {
             );
           })}
         </div>
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 end-0 w-6 bg-linear-to-l from-paper sm:hidden"
-        />
+        {status === "submitted" && !erasure && sortControl("mb-1.5 max-md:hidden")}
       </div>
 
       <div className={cn("mt-4 flex flex-wrap items-center gap-2", erasure && "hidden")}>
-        <div className="relative min-w-0 flex-[1_1_0%] md:min-w-64 md:flex-[2_1_18rem]">
+        <div className="relative min-w-0 flex-[1_1_0%] md:min-w-64 md:flex-[1_1_18rem]">
           <Search
             className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
             aria-hidden
@@ -451,7 +472,7 @@ function Queue() {
             onBlur={() => setParam("q", search.trim())}
             placeholder="Cerca per nome o codice pratica…"
             aria-label="Cerca pratiche"
-            className="peer h-10 w-full rounded-sm bg-surface ps-9 pe-9 text-body-sm ring-1 ring-line-strong ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
+            className="peer h-10 w-full rounded-sm bg-surface ps-9 pe-9 text-sm ring-1 ring-line-field ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none md:h-8"
           />
           {!search && (
             <kbd
@@ -468,7 +489,7 @@ function Queue() {
                 setSearch("");
                 setParam("q", "");
               }}
-              className="absolute end-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-ink-3 hover:text-ink"
+              className="absolute end-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-ink-3 hover:text-ink md:size-7"
               aria-label="Cancella ricerca"
             >
               <X className="size-4" />
@@ -478,7 +499,7 @@ function Queue() {
         {/* The three filters wrap together under the search, never one alone on a line. On a
             phone they take the first screen: there they wait behind one button, in a sheet. */}
         {/* Chosen by CSS, not by script: the first paint on a phone is already the phone's. */}
-        <div className="grid flex-[3_1_32rem] gap-2 max-md:hidden sm:grid-cols-3">
+        <div className="grid flex-[0_1_36rem] gap-2 max-md:hidden sm:grid-cols-3 [&_select]:h-8 [&_select]:text-sm">
           {filterFields}
         </div>
         <Button
@@ -523,29 +544,12 @@ function Queue() {
         </div>
       </Dialog>
 
-      {status === "submitted" && !erasure && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <p
-            className={cn(
-              "flex items-center gap-2 text-sm",
-              overdue > 0 ? "text-warn" : "text-ink-3",
-            )}
-          >
-            <Clock className="size-4 shrink-0" aria-hidden />
-            {overdue > 0
-              ? `${casesLabel(overdue)} non ${overdue === 1 ? "assegnata aspetta" : "assegnate aspettano"} da più di 2 giorni lavorativi.`
-              : "Nessuna pratica aspetta da più di 2 giorni lavorativi."}
-          </p>
-          {sortControl("max-md:hidden")}
-        </div>
-      )}
-
       <p role="status" className="sr-only">
         {list.status === "ready"
           ? `${casesLabel(items.length)}: ${erasure ? "richieste di cancellazione" : CASE_STATUS[status].label.toLowerCase()}`
           : ""}
       </p>
-      <section aria-busy={list.status === "loading" || list.refreshing} className="mt-5">
+      <section aria-busy={list.status === "loading" || list.refreshing} className="mt-4">
         {list.status === "error" && !list.data ? (
           <Notice
             tone="danger"
@@ -575,11 +579,12 @@ function Queue() {
           )
         ) : (
           <>
-            {/* One table: the column heads sit in the card's top band, over their columns. */}
-            <div className="overflow-hidden rounded-md bg-surface ring-1 ring-line">
+            {/* One table straight on the sheet: grey heads over a rule, then rows split by rules.
+                It overhangs the text column by 12px so a row's hover fill has room. */}
+            <div className="-mx-3 border-b border-line">
               <div
                 className={cn(
-                  "flex items-center border-b border-line bg-paper/70 text-xs font-medium text-ink-3",
+                  "flex items-center border-b border-line text-[0.8125rem] font-medium text-ink-3",
                   !admin && "max-md:hidden",
                 )}
               >
@@ -598,7 +603,7 @@ function Queue() {
                 )}
                 <div
                   className={cn(
-                    "hidden h-9 flex-1 items-center gap-4 px-4 md:grid",
+                    "hidden h-9 flex-1 items-center gap-4 px-3 md:grid",
                     COLUMNS,
                     admin && "ps-1",
                   )}
@@ -705,7 +710,7 @@ function SelectAll({
 
 /** The queue's columns, shared by the head band, the rows and the skeleton. */
 const COLUMNS =
-  "md:grid-cols-[minmax(13.75rem,1.6fr)_minmax(0,1fr)_8rem_8rem_6rem] xl:grid-cols-[minmax(13.75rem,1.6fr)_minmax(0,1fr)_9rem_8.5rem_7rem]";
+  "md:grid-cols-[minmax(13.75rem,1.6fr)_minmax(0,1fr)_8rem_8rem_6rem] xl:grid-cols-[minmax(13.75rem,1.25fr)_minmax(0,1fr)_11rem_9rem_7rem]";
 
 function QueueRow({
   item,
@@ -758,7 +763,7 @@ function QueueRow({
         onPointerEnter={prefetch}
         onFocus={prefetch}
         className={cn(
-          "grid min-h-18 min-w-0 flex-1 content-center gap-x-4 gap-y-1 px-4 py-2 focus-visible:outline-offset-[-2px] md:min-h-14 md:items-center",
+          "grid min-h-18 min-w-0 flex-1 content-center gap-x-4 gap-y-1 px-3 py-2 focus-visible:outline-offset-[-2px] md:min-h-14 md:items-center",
           COLUMNS,
           selection && "ps-1",
         )}
@@ -911,7 +916,7 @@ function Problems({ item }: { item: CaseListItem }) {
           label={`Suggerimento dell’AI: ${PRIORITY[ai].badge.toLowerCase()}`}
         />
       )}
-      {nothing && <span className="text-ok">Nessuno</span>}
+      {nothing && <span className="text-ink-3">Nessuno</span>}
     </span>
   );
 }
@@ -937,6 +942,16 @@ function Indicator({
     </Tooltip>
   );
 }
+
+// Each response object is new on every fetch: the first time one is rendered is when it arrived.
+const ARRIVED = new WeakMap<object, Date>();
+function arrivedAt(data: object) {
+  let at = ARRIVED.get(data);
+  if (!at) ARRIVED.set(data, (at = new Date()));
+  return at;
+}
+
+const clock = new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" });
 
 const waitingSince = (days: number) =>
   days === 0 ? "arrivata oggi" : days === 1 ? "arrivata ieri" : `in attesa da ${days} giorni`;
@@ -1021,14 +1036,14 @@ function QueueSkeleton() {
       <p role="status" className="sr-only">
         Caricamento delle pratiche…
       </p>
-      <div className="overflow-hidden rounded-md bg-surface ring-1 ring-line" aria-hidden>
-        <div className="h-9 border-b border-line bg-paper/70 max-md:hidden" />
+      <div className="-mx-3 border-b border-line" aria-hidden>
+        <div className="h-9 border-b border-line max-md:hidden" />
         <div className="divide-y divide-line">
           {Array.from({ length: 6 }, (_, i) => (
             <div
               key={i}
               className={cn(
-                "grid min-h-18 items-center gap-x-4 gap-y-2 px-4 py-2 md:min-h-14",
+                "grid min-h-18 items-center gap-x-4 gap-y-2 px-3 py-2 md:min-h-14",
                 COLUMNS,
               )}
             >

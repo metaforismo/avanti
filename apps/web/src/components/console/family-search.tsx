@@ -104,7 +104,7 @@ export function FamilySearch({ onOpen }: { onOpen: () => void }) {
               Nessuna pratica per questa persona nel vostro CAF: crea una pratica nuova qui sotto.
             </p>
           ) : (
-            <ul className="divide-y divide-line rounded-md bg-surface ring-1 ring-line">
+            <ul className="divide-y divide-line rounded-md border border-line bg-surface">
               {result.items.map((item) => (
                 <li key={item.caseId} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                   <span className="min-w-0 flex-1">

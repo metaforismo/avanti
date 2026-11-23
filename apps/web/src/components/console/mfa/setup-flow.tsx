@@ -140,7 +140,7 @@ export function MfaSetupFlow({
             <QrCode
               value={step.setup.otpauthUri}
               label="Codice QR da inquadrare con l'app di autenticazione"
-              className="size-48 overflow-hidden rounded-md ring-1 ring-line [&_svg]:size-full"
+              className="size-48 overflow-hidden rounded-md border border-line [&_svg]:size-full"
             />
           </div>
           <div className="grid gap-3">

@@ -21,7 +21,7 @@ export default function NotFound() {
           Se stavi aprendo il link della tua pratica, controlla di averlo copiato per intero oppure
           chiedi allo sportello di inviarlo di nuovo.
         </p>
-        <Button asChild size="lg" variant="secondary" className="mt-8">
+        <Button asChild size="lg" className="mt-8">
           <Link href="/">Vai alla pagina iniziale</Link>
         </Button>
       </div>

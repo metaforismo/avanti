@@ -100,7 +100,7 @@ export function SettingsNav({
       ref={stripRef}
       id="settings-strip"
       className={cn(
-        "sticky top-14 z-20 grid h-12 items-center border-b bg-paper transition-[border-color] duration-150 lg:top-0",
+        "sticky top-14 z-20 grid h-12 items-center border-b bg-surface transition-[border-color] duration-150 lg:top-0",
         stuck ? "border-line" : "border-transparent",
       )}
     >
@@ -108,14 +108,14 @@ export function SettingsNav({
         ref={rail}
         className={cn(
           "col-start-1 row-start-1 min-w-0 [scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden",
-          "transition-opacity duration-150 max-sm:[mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]",
+          "transition-opacity duration-150",
           barOpen && "pointer-events-none opacity-0",
         )}
         inert={barOpen}
       >
         <nav
           aria-label="Sezioni"
-          className="flex w-fit rounded-sm bg-sunk p-0.5 max-sm:me-6"
+          className="flex w-fit rounded-sm bg-sunk p-0.5"
           onClick={(event) => {
             const link = (event.target as HTMLElement).closest("a");
             if (link) setActive(link.hash.slice(1));
@@ -132,8 +132,8 @@ export function SettingsNav({
                   "inline-flex h-8 shrink-0 items-center rounded-xs px-3 text-sm font-medium whitespace-nowrap transition-colors duration-100",
                   "focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none",
                   current
-                    ? "bg-surface text-ink shadow-xs ring-1 ring-line"
-                    : "text-ink-2 hover:text-ink",
+                    ? "border border-line bg-surface text-ink"
+                    : "border border-transparent text-ink-2 hover:text-ink",
                 )}
               >
                 {section.label}

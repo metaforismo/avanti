@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
-import { SectionHeader } from "@/components/ui/page-header";
 import { apiFetch, ApiRequestError } from "@/lib/api";
 import { officePlace } from "@/lib/office-place";
 import { useOperator, useReplaceOperator } from "@/lib/console/operator-context";
 import { useHashTarget, useOpenOnHash } from "@/lib/console/use-hash-target";
 import { focusFirstError, text } from "@/lib/validation";
+import { PANEL } from "./panel";
+import { SplitSection } from "./setting-row";
+import { cn } from "@/lib/cn";
 
 /** Offices come with the operator profile; after a change the page reloads it. */
 export function OfficesSection({ onChanged }: { onChanged: () => void }) {
@@ -40,65 +42,66 @@ export function OfficesSection({ onChanged }: { onChanged: () => void }) {
 
   return (
     <section ref={section} id="sportelli" aria-labelledby="offices-title">
-      <SectionHeader
-        id="offices-title"
+      <SplitSection
+        titleId="offices-title"
         title="Sportelli"
         lead="Ogni sportello ha il suo link pubblico e il suo cartello con QR."
         actions={
-          <Button variant="secondary" onClick={() => edit("new")}>
+          <Button variant="secondary" size="sm" onClick={() => edit("new")}>
             <Plus className="size-4" aria-hidden />
             Aggiungi sportello
           </Button>
         }
-      />
-      <ul className="mt-4 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
-        {offices.map((office) => (
-          <li key={office.id} className="flex items-center gap-4 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">{office.name}</p>
-              <p className="truncate text-sm text-ink-3" title={officeDetails(office)}>
-                {officeDetails(office)}
-              </p>
-            </div>
-            <Button
-              ref={offices.length === 1 ? editButton : undefined}
-              variant="ghost"
-              size="sm"
-              onClick={() => edit(office)}
-              aria-label={`Modifica ${office.name}`}
-            >
-              <Pencil className="size-4" aria-hidden />
-              Modifica
-            </Button>
-          </li>
-        ))}
-      </ul>
-      <Dialog
-        open={editing !== null}
-        onOpenChange={(open) => !open && setEditing(null)}
-        returnFocusTo={linked ? editButton : undefined}
-        title={editing === "new" ? "Nuovo sportello" : "Modifica sportello"}
-        description="Nome, indirizzo e orari compaiono al cittadino all'inizio della pratica e sul cartello."
       >
-        {editing !== null && (
-          <OfficeForm
-            office={editing === "new" ? null : editing}
-            onSaved={(office) => {
-              setEditing(null);
-              // The saved office goes into the profile now, not when the reload below answers:
-              // reopened before then, the form showed (and saved back) the old values, and the
-              // name check ran against the old names.
-              replaceOperator({
-                ...operator,
-                offices: offices.some((o) => o.id === office.id)
-                  ? offices.map((o) => (o.id === office.id ? office : o))
-                  : [...offices, office],
-              });
-              onChanged();
-            }}
-          />
-        )}
-      </Dialog>
+        <ul className={cn(PANEL, "divide-y divide-line overflow-hidden")}>
+          {offices.map((office) => (
+            <li key={office.id} className="flex items-center gap-4 px-5 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{office.name}</p>
+                <p className="truncate text-[0.8125rem] text-ink-3" title={officeDetails(office)}>
+                  {officeDetails(office)}
+                </p>
+              </div>
+              <Button
+                ref={offices.length === 1 ? editButton : undefined}
+                variant="ghost"
+                size="sm"
+                onClick={() => edit(office)}
+                aria-label={`Modifica ${office.name}`}
+              >
+                <Pencil className="size-4" aria-hidden />
+                Modifica
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <Dialog
+          open={editing !== null}
+          onOpenChange={(open) => !open && setEditing(null)}
+          returnFocusTo={linked ? editButton : undefined}
+          title={editing === "new" ? "Nuovo sportello" : "Modifica sportello"}
+          description="Nome, indirizzo e orari compaiono al cittadino all'inizio della pratica e sul cartello."
+        >
+          {editing !== null && (
+            <OfficeForm
+              office={editing === "new" ? null : editing}
+              onSaved={(office) => {
+                setEditing(null);
+                // The saved office goes into the profile now, not when the reload below answers:
+                // reopened before then, the form showed (and saved back) the old values, and the
+                // name check ran against the old names.
+                replaceOperator({
+                  ...operator,
+                  offices: offices.some((o) => o.id === office.id)
+                    ? offices.map((o) => (o.id === office.id ? office : o))
+                    : [...offices, office],
+                });
+                onChanged();
+              }}
+            />
+          )}
+        </Dialog>
+      </SplitSection>
     </section>
   );
 }

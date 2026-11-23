@@ -38,73 +38,84 @@ export function MfaAccountSection() {
   };
 
   return (
-    <section id="verifica" className="mt-10 scroll-mt-20" aria-labelledby="mfa-title">
-      <h2
-        id="mfa-title"
-        ref={title}
-        tabIndex={-1}
-        className="font-display text-xl font-semibold outline-none"
-      >
-        Verifica in due passaggi
-      </h2>
-      <p className="mt-1 mb-5 max-w-2xl text-ink-2">
-        Oltre alla password, all&apos;accesso chiede un codice dall&apos;app sul tuo telefono. Se
-        qualcuno scopre la password, senza il telefono non entra nei fascicoli delle famiglie.
-      </p>
-      {notice && (
-        <Notice tone="ok" className="mb-5">
-          {notice}
-        </Notice>
-      )}
-      {status.status === "error" && !status.data ? (
-        <Notice tone="danger">{status.error.message}</Notice>
-      ) : !status.data ? (
-        <Spinner label="Caricamento" />
-      ) : typeof mode === "object" ? (
-        <RecoveryCodes
-          codes={mode.codes}
-          doneLabel="Fatto"
-          onDone={() => finish("Nuovi codici di recupero salvati. Quelli vecchi non valgono più.")}
-        />
-      ) : mode === "setup" ? (
-        <MfaSetupFlow doneLabel="Fatto" onDone={() => finish(null)} onCancel={cancel} />
-      ) : mode === "regenerate" || mode === "disable" ? (
-        <SensitiveForm
-          mode={mode}
-          onCancel={cancel}
-          onDone={(codes) =>
-            codes ? setMode({ codes }) : finish("Verifica in due passaggi disattivata.")
-          }
-        />
-      ) : status.data.enabled ? (
-        <Enabled
-          status={status.data}
-          onRegenerate={() => {
-            setNotice(null);
-            setMode("regenerate");
-          }}
-          onDisable={() => {
-            setNotice(null);
-            setMode("disable");
-          }}
-        />
-      ) : (
-        <div className="flex flex-wrap items-center gap-4 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line">
-          <ShieldAlert className="size-6 shrink-0 text-warn" aria-hidden />
-          <p className="min-w-0 flex-1">
-            <span className="font-semibold">Non attiva.</span>{" "}
-            <span className="text-ink-2">Serve un&apos;app di autenticazione sul telefono.</span>
-          </p>
-          <Button
-            onClick={() => {
+    <section
+      id="verifica"
+      className="grid scroll-mt-20 gap-x-10 gap-y-4 lg:grid-cols-[15rem_minmax(0,1fr)]"
+      aria-labelledby="mfa-title"
+    >
+      {/* The same two columns as SplitSection; the title here also takes the focus back. */}
+      <div className="lg:sticky lg:top-6 lg:self-start">
+        <h2
+          id="mfa-title"
+          ref={title}
+          tabIndex={-1}
+          className="text-lg leading-snug font-semibold outline-none"
+        >
+          Verifica in due passaggi
+        </h2>
+        <p className="mt-1 text-sm text-ink-3">
+          All&apos;accesso chiede anche un codice dall&apos;app sul tuo telefono: con la sola
+          password nessuno entra nei fascicoli delle famiglie.
+        </p>
+      </div>
+      <div className="min-w-0">
+        {notice && (
+          <Notice tone="ok" className="mb-5">
+            {notice}
+          </Notice>
+        )}
+        {status.status === "error" && !status.data ? (
+          <Notice tone="danger">{status.error.message}</Notice>
+        ) : !status.data ? (
+          <Spinner label="Caricamento" />
+        ) : typeof mode === "object" ? (
+          <RecoveryCodes
+            codes={mode.codes}
+            doneLabel="Fatto"
+            onDone={() =>
+              finish("Nuovi codici di recupero salvati. Quelli vecchi non valgono più.")
+            }
+          />
+        ) : mode === "setup" ? (
+          <MfaSetupFlow doneLabel="Fatto" onDone={() => finish(null)} onCancel={cancel} />
+        ) : mode === "regenerate" || mode === "disable" ? (
+          <SensitiveForm
+            mode={mode}
+            onCancel={cancel}
+            onDone={(codes) =>
+              codes ? setMode({ codes }) : finish("Verifica in due passaggi disattivata.")
+            }
+          />
+        ) : status.data.enabled ? (
+          <Enabled
+            status={status.data}
+            onRegenerate={() => {
               setNotice(null);
-              setMode("setup");
+              setMode("regenerate");
             }}
-          >
-            Attiva
-          </Button>
-        </div>
-      )}
+            onDisable={() => {
+              setNotice(null);
+              setMode("disable");
+            }}
+          />
+        ) : (
+          <div className="flex flex-wrap items-center gap-4 rounded-md border border-line bg-surface p-5">
+            <ShieldAlert className="size-5 shrink-0 text-warn" aria-hidden />
+            <p className="min-w-0 flex-1 text-sm">
+              <span className="font-semibold">Non attiva.</span>{" "}
+              <span className="text-ink-2">Serve un&apos;app di autenticazione sul telefono.</span>
+            </p>
+            <Button
+              onClick={() => {
+                setNotice(null);
+                setMode("setup");
+              }}
+            >
+              Attiva
+            </Button>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -120,9 +131,9 @@ function Enabled({
 }) {
   const few = status.recoveryCodesRemaining <= 3;
   return (
-    <div className="grid gap-4 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line">
-      <p className="flex items-center gap-3">
-        <ShieldCheck className="size-6 shrink-0 text-ok" aria-hidden />
+    <div className="grid gap-4 rounded-md border border-line bg-surface p-5">
+      <p className="flex items-center gap-3 text-sm">
+        <ShieldCheck className="size-5 shrink-0 text-ok" aria-hidden />
         <span>
           <span className="font-semibold">Attiva.</span>{" "}
           <span className={few ? "text-warn" : "text-ink-2"}>

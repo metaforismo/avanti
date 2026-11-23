@@ -1,6 +1,39 @@
 import { useId, type ComponentProps, type InputHTMLAttributes, type ReactNode } from "react";
 import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
+import { PANEL } from "./panel";
+
+/**
+ * A settings area as two columns (house rule of the settings layout): its name, what it is for
+ * and its one action on the left, kept in view while its panels scroll on the right; stacked on
+ * a phone. The aside stops under the sticky strip of the page (3 rem + 1 rem of air).
+ */
+export function SplitSection({
+  titleId,
+  title,
+  lead,
+  actions,
+  children,
+}: {
+  titleId: string;
+  title: ReactNode;
+  lead?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid gap-x-10 gap-y-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <div className="lg:sticky lg:top-16 lg:self-start">
+        <h2 id={titleId} className="text-lg leading-snug font-semibold text-ink">
+          {title}
+        </h2>
+        {lead && <p className="mt-1 text-sm text-ink-3">{lead}</p>}
+        {actions && <div className="mt-4 flex flex-wrap gap-2">{actions}</div>}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
 
 /**
  * Building blocks of the settings page, after Linear's settings: a small title above a card whose
@@ -24,19 +57,17 @@ export function SettingGroup({
     <div id={id} className={className}>
       {title && (
         <div className="mb-2">
-          <h3 className="text-sm font-semibold text-ink">{title}</h3>
-          {lead && <p className="mt-0.5 text-sm text-ink-3">{lead}</p>}
+          <h3 className="text-[0.8125rem] font-medium text-ink-3">{title}</h3>
+          {lead && <p className="mt-0.5 text-[0.8125rem] text-ink-3">{lead}</p>}
         </div>
       )}
-      <div className="divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
-        {children}
-      </div>
+      <div className={cn(PANEL, "divide-y divide-line overflow-hidden")}>{children}</div>
     </div>
   );
 }
 
 const rowLayout =
-  "grid gap-x-6 gap-y-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center";
+  "grid gap-x-6 gap-y-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center";
 
 /** A yes/no setting. A native checkbox drawn as a switch: forms, labels and tests keep working. */
 export function ToggleRow({
@@ -53,16 +84,21 @@ export function ToggleRow({
     <label
       className={cn(
         rowLayout,
+        // A switch stays at the right of its name on a phone too: it is small enough.
+        "grid-cols-[minmax(0,1fr)_auto] items-center",
         "cursor-pointer transition-colors duration-100 hover:bg-sunk/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:hover:bg-transparent has-[:focus-visible]:bg-sunk/50",
         className,
       )}
     >
-      <span className="min-w-0 sm:order-1">
-        <span id={labelId} className="block font-semibold">
+      <span className="order-1 min-w-0">
+        <span id={labelId} className="block text-sm font-semibold">
           {label}
         </span>
         {hint && (
-          <span id={hintId} className="mt-0.5 block max-w-xl text-sm text-ink-3">
+          <span
+            id={hintId}
+            className="mt-0.5 block max-w-xl text-[0.8125rem] leading-snug text-ink-3"
+          >
             {hint}
           </span>
         )}
@@ -73,7 +109,7 @@ export function ToggleRow({
         aria-describedby={hintId}
         {...input}
         className={cn(
-          "relative h-6 w-10 shrink-0 cursor-pointer appearance-none justify-self-start rounded-full bg-line-field sm:order-2 sm:justify-self-end",
+          "relative order-2 h-6 w-10 shrink-0 cursor-pointer appearance-none justify-self-end rounded-full bg-line-field",
           "transition-colors duration-150 ease-(--ease-out) checked:bg-stamp",
           "after:absolute after:start-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:shadow-sm",
           "after:transition-transform after:duration-150 after:ease-(--ease-out) checked:after:translate-x-4",
@@ -109,16 +145,16 @@ export function ValueRow({
   return (
     <div className={cn(rowLayout, className)}>
       <div className="min-w-0">
-        <label htmlFor={id} className="block font-semibold">
+        <label htmlFor={id} className="block text-sm font-semibold">
           {label}
         </label>
         {hint && !error && (
-          <p id={hintId} className="mt-0.5 max-w-xl text-sm text-ink-3">
+          <p id={hintId} className="mt-0.5 max-w-xl text-[0.8125rem] leading-snug text-ink-3">
             {hint}
           </p>
         )}
         {error && (
-          <p id={errorId} role="alert" className="mt-0.5 text-sm font-medium text-danger">
+          <p id={errorId} role="alert" className="mt-0.5 text-[0.8125rem] font-medium text-danger">
             {error}
           </p>
         )}

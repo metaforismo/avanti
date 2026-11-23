@@ -5,7 +5,7 @@ export const alt = "Avanti: il fascicolo arriva pronto";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-/** The landing's hero as a card: ruled paper, the title with its highlighter, the ticket. */
+/** The landing's hero as a card: paper, the title with its highlighter, the stamp-blue slip. */
 export default function OpenGraphImage() {
   return new ImageResponse(
     <div
@@ -17,8 +17,6 @@ export default function OpenGraphImage() {
         justifyContent: "space-between",
         padding: "64px 80px",
         background: "#f7f8f6",
-        backgroundImage:
-          "repeating-linear-gradient(to bottom, transparent 0 47px, rgba(20,27,45,0.06) 47px 48px)",
         color: "#141b2d",
         position: "relative",
       }}
@@ -40,31 +38,28 @@ export default function OpenGraphImage() {
           </svg>
           Avanti
         </div>
-        <div
-          style={{
-            display: "flex",
-            fontSize: 24,
-            fontWeight: 700,
-            color: "#2440b3",
-            background: "#e9edfb",
-            padding: "8px 18px",
-            borderRadius: 999,
-          }}
-        >
-          Pilota ISEE · gennaio 2027
+        <div style={{ display: "flex", fontSize: 28, fontWeight: 700, color: "#2440b3" }}>
+          Pilota ISEE da gennaio 2027
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
         <div style={{ display: "flex", fontSize: 100, fontWeight: 800, lineHeight: 1 }}>
           Il fascicolo arriva&nbsp;
           <span
-            style={{
-              backgroundImage: "linear-gradient(transparent 58%, #ffe45c 58%)",
-              padding: "0 8px",
-              margin: "0 -8px",
-            }}
+            style={{ display: "flex", position: "relative", padding: "0 8px", margin: "0 -8px" }}
           >
-            pronto.
+            <span
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 6,
+                height: 40,
+                background: "#ffe45c",
+                borderRadius: 4,
+              }}
+            />
+            <span style={{ position: "relative" }}>pronto.</span>
           </span>
         </div>
         <div style={{ fontSize: 32, color: "#485067", maxWidth: 920, lineHeight: 1.35 }}>

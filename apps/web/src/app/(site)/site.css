@@ -1,154 +1,205 @@
 /*
- * Public site only: texture, scroll reveals and the hero's entrance. The console and the citizen
- * pages never load this file, so none of it costs them a byte or a frame.
+ * Public site only. The console and the citizen pages never load this file.
  *
- * In the components layer: Tailwind's utilities (hover lifts, explicit transitions) still win.
+ * One motif runs the site: the queue ticket of the logo (a slip with two half-moon notches,
+ * the number you take at the counter before someone calls «Avanti!»). It is cut, never drawn:
+ * a mask with radial holes, so the ground shows through on paper and on colour alike. It shapes
+ * the hero stage, the primary button, the bullets, the pilot coupon, the closing band and the
+ * mark in the footer. Surfaces are told apart by flat fields of colour, never by lines,
+ * shadows or gradients (DESIGN.md, «Sito»).
+ *
+ * In the components layer: Tailwind's utilities still win.
  */
 @layer components {
   :root {
-    /* Long, soft landing for things that arrive once (reveals, the hero). UI feedback keeps
-       --ease-out from globals.css. */
+    /* Long, soft landing for things that arrive once. UI feedback keeps --ease-out. */
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-    --reveal-distance: 14px;
+    --reveal-distance: 22px;
+    /* One pair of outer margins for the whole site, header included. */
+    --site-margin: clamp(1.25rem, 2.4vw, 2.25rem);
   }
 
   html:has(.site) {
     scrollbar-color: var(--line-strong) var(--paper);
     scroll-behavior: smooth;
     /* globals.css reserves room for the citizen's header (144px): here the sections bring their
-       own `scroll-mt` for the 64px bar, and the two would add up, leaving a link's target far
-       below the bar with the end of the previous section above it. */
+       own `scroll-mt` for the 64px bar, and the two would add up. */
     scroll-padding: 0;
   }
-  /* Glows and tilted sheets may reach past the edge on a phone: clip, never scroll sideways.
-     `clip`, not `hidden`, keeps the sticky header and pictures working. */
+  /* The hero stage bleeds off the right edge: clip it, never scroll sideways. `clip`, not
+     `hidden`, keeps the sticky header and sticky headings working. */
   html:has(.site),
   html:has(.site) body {
     overflow-x: clip;
   }
 
+  /* The frame: the same margins everywhere, capped on very wide screens. */
+  .frame {
+    width: 100%;
+    max-width: 105rem;
+    margin-inline: auto;
+    padding-inline: var(--site-margin);
+  }
+
+  /* Type steps of the site, on top of the brand utilities of globals.css (same face, same
+     tracking): display, heading, statement, body. Small text is Tailwind's text-sm (14px). */
+  .t-display {
+    font-family: var(--font-display-face, var(--font-body)), system-ui, sans-serif;
+    font-size: clamp(2.875rem, 6.6vw, 7rem);
+    line-height: 0.96;
+    font-weight: 650;
+    letter-spacing: -0.006em;
+    font-stretch: 96%;
+    text-wrap: balance;
+  }
+  .t-head {
+    font-family: var(--font-display-face, var(--font-body)), system-ui, sans-serif;
+    font-size: clamp(2rem, 5.2vw, 4.75rem);
+    line-height: 1;
+    font-weight: 650;
+    letter-spacing: -0.007em;
+    font-stretch: 96%;
+    text-wrap: balance;
+  }
+  /* The line under a title, a closing sentence, the questions of the FAQ. */
+  .t-lead {
+    font-size: clamp(1.1875rem, 1rem + 0.55vw, 1.5rem);
+    line-height: 1.4;
+    text-wrap: pretty;
+  }
+  /* A sentence or a name set large but not a title: the AI switches, the operator's parts. */
+  .t-sub {
+    font-family: var(--font-display-face, var(--font-body)), system-ui, sans-serif;
+    font-size: clamp(1.5rem, 1rem + 1.8vw, 2.25rem);
+    line-height: 1.12;
+    font-weight: 600;
+    letter-spacing: -0.008em;
+    text-wrap: balance;
+  }
+  .t-body {
+    font-size: clamp(1.0625rem, 1rem + 0.2vw, 1.1875rem);
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+  /*
+   * The ticket, cut out. `--notch` is the radius of the two half-moons on the side edges,
+   * `--notch-y` where they sit. A mask also cuts the focus outline: a masked control shows its
+   * focus inside (.ticket-btn) or by swapping its colours (.call-band). The radial gradients
+   * here and below are masks (the holes), never a visible fill.
+   */
+  .ticket {
+    --notch: 12px;
+    --notch-y: 50%;
+    --ticket-mask:
+      radial-gradient(
+        circle var(--notch) at 0 var(--notch-y),
+        #0000 calc(var(--notch) - 0.5px),
+        #000 var(--notch)
+      ),
+      radial-gradient(
+        circle var(--notch) at 100% var(--notch-y),
+        #0000 calc(var(--notch) - 0.5px),
+        #000 var(--notch)
+      );
+    mask-image: var(--ticket-mask);
+    mask-composite: intersect;
+  }
+  /*
+   * The primary action is a ticket. The mask also cuts the focus outline, so focus is drawn
+   * inside: a 3px ring in the marker (in stamp on a marker ticket), on top of the fill.
+   */
+  .ticket-btn {
+    background-color: var(--ticket-fill, var(--stamp)) !important;
+    box-shadow: none !important;
+    mask-image:
+      radial-gradient(circle 6px at 0 50%, #0000 5.5px, #000 6px),
+      radial-gradient(circle 6px at 100% 50%, #0000 5.5px, #000 6px);
+    mask-composite: intersect;
+    transition:
+      background-color 180ms ease,
+      transform 150ms var(--ease-out);
+  }
+  .ticket-btn:focus-visible {
+    outline: none !important;
+    box-shadow: inset 0 0 0 3px var(--ticket-ring, var(--marker)) !important;
+  }
+  @media (hover: hover) {
+    .ticket-btn:hover {
+      background-color: var(--ticket-fill-hover, var(--stamp-hover)) !important;
+    }
+  }
+  /* The bullet: the same slip at text size. */
+  .ticket-dot {
+    display: inline-block;
+    flex: none;
+    width: 0.9em;
+    height: 0.68em;
+    border-radius: 0.12em;
+    background: currentColor;
+    mask-image:
+      radial-gradient(circle 0.13em at 0 50%, #0000 0.12em, #000 0.13em),
+      radial-gradient(circle 0.13em at 100% 50%, #0000 0.12em, #000 0.13em);
+    mask-composite: intersect;
+  }
+
+  /* The pilot coupon: each half carries half of the two notches (pilot-form.tsx). */
+  .coupon-stub {
+    --cut:
+      radial-gradient(circle 14px at 0 100%, #0000 13.5px, #000 14px),
+      radial-gradient(circle 14px at 100% 100%, #0000 13.5px, #000 14px);
+    mask-image: var(--cut);
+    mask-composite: intersect;
+  }
+  .coupon-body {
+    --cut:
+      radial-gradient(circle 14px at 0 0, #0000 13.5px, #000 14px),
+      radial-gradient(circle 14px at 100% 0, #0000 13.5px, #000 14px);
+    mask-image: var(--cut);
+    mask-composite: intersect;
+  }
+  @media (width >= 64rem) {
+    .coupon-stub {
+      --cut:
+        radial-gradient(circle 14px at 100% 0, #0000 13.5px, #000 14px),
+        radial-gradient(circle 14px at 100% 100%, #0000 13.5px, #000 14px);
+    }
+    .coupon-body {
+      --cut:
+        radial-gradient(circle 14px at 0 0, #0000 13.5px, #000 14px),
+        radial-gradient(circle 14px at 0 100%, #0000 13.5px, #000 14px);
+    }
+  }
+
   /*
    * Scroll reveals. The hidden starting state is not here: lib/site/reveal.ts adds it after
-   * hydration, only below the fold and only without prefers-reduced-motion. Without
-   * JavaScript, or with reduced motion, everything is simply there.
+   * hydration, only below the fold and only without prefers-reduced-motion.
    */
   [data-reveal],
   [data-reveal="stagger"] > * {
     transition:
-      opacity 600ms var(--ease-out-expo),
-      transform 800ms var(--ease-out-expo);
+      opacity 700ms var(--ease-out-expo),
+      transform 900ms var(--ease-out-expo);
     transition-delay: var(--reveal-delay, 0ms);
   }
   [data-reveal="stagger"] > :nth-child(2) {
-    --reveal-delay: 60ms;
+    --reveal-delay: 80ms;
   }
   [data-reveal="stagger"] > :nth-child(3) {
-    --reveal-delay: 120ms;
+    --reveal-delay: 160ms;
   }
   [data-reveal="stagger"] > :nth-child(4) {
-    --reveal-delay: 180ms;
-  }
-  [data-reveal="stagger"] > :nth-child(5) {
     --reveal-delay: 240ms;
   }
-  [data-reveal="stagger"] > :nth-child(n + 6) {
+  [data-reveal="stagger"] > :nth-child(n + 5) {
     --reveal-delay: 300ms;
-  }
-
-  /* A rule that draws itself when its section arrives (the steps' connector). */
-  [data-reveal] .draw-x,
-  [data-reveal="stagger"] .draw-x {
-    transform-origin: left center;
-    transition: transform 1100ms var(--ease-out-expo) 200ms;
-  }
-  [dir="rtl"] .draw-x {
-    transform-origin: right center;
-  }
-
-  /*
-   * Product pictures: a 1px translucent edge, a top highlight and three stacked shadows (contact,
-   * near, far) instead of one blurry one. On dark bands the edge turns light.
-   */
-  .card-premium {
-    background: var(--surface);
-    border-radius: 1rem;
-    box-shadow:
-      0 0 0 1px rgb(20 27 45 / 0.07),
-      inset 0 1px 0 rgb(255 255 255 / 0.7),
-      0 1px 2px rgb(20 27 45 / 0.05),
-      0 8px 16px -6px rgb(20 27 45 / 0.08),
-      0 32px 64px -24px rgb(20 27 45 / 0.22);
-  }
-  .card-premium-dark {
-    box-shadow:
-      0 0 0 1px rgb(255 255 255 / 0.1),
-      0 1px 2px rgb(0 0 0 / 0.2),
-      0 24px 48px -12px rgb(0 0 0 / 0.45),
-      0 60px 120px -40px rgb(0 0 0 / 0.6);
-  }
-
-  /* A soft light behind a picture: a radial wash, no blur filter to pay for. */
-  .glow {
-    position: relative;
-    isolation: isolate;
-  }
-  .glow::before {
-    content: "";
-    position: absolute;
-    inset: -12% -8%;
-    z-index: -1;
-    pointer-events: none;
-    background: radial-gradient(
-      50% 50% at 50% 45%,
-      var(--glow-color, rgb(36 64 179 / 0.12)),
-      transparent 70%
-    );
-  }
-
-  /*
-   * Scroll-linked, where the browser supports scroll-driven animations: each element runs on its
-   * own view timeline, so rows of a picture compose one after another as the page scrolls. Where
-   * it isn't supported, or with reduced motion, the picture is simply complete.
-   */
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .scroll-tilt {
-        transform-origin: 50% 0;
-        animation: scroll-tilt linear both;
-        animation-timeline: view();
-        animation-range: entry 0% cover 35%;
-      }
-      .scroll-compose {
-        animation: scroll-compose linear both;
-        animation-timeline: view();
-        animation-range: entry 10% cover 30%;
-      }
-      /* The closing ticket settles into its tilt as the card comes up. */
-      .scroll-ticket {
-        animation: scroll-ticket linear both;
-        animation-timeline: view();
-        animation-range: entry 0% cover 45%;
-      }
-    }
-  }
-  @keyframes scroll-tilt {
-    from {
-      opacity: 0.5;
-      transform: perspective(1800px) rotateX(16deg) scale(0.92) translateY(24px);
-    }
-  }
-  @keyframes scroll-compose {
-    from {
-      opacity: 0;
-      transform: translate3d(0, 16px, 0);
-    }
   }
 
   /*
    * The hero title, word by word: each word rises out of its own line box. The clip has room
    * for the ascender of an «f», the descender of a «p» and the marker stroke; the negative
-   * margin gives that room back, so the layout is as if it weren't there. The word is also
-   * transparent for its first moments: a clip with a hard edge never shows a half-cut letter.
+   * margin gives that room back. The word is transparent for its first moments: a clip with a
+   * hard edge never shows a half-cut letter.
    */
   .hero-word {
     display: inline-block;
@@ -159,232 +210,40 @@
   }
   .hero-word > span {
     display: inline-block;
-    animation: word-rise 600ms var(--ease-out-expo) both;
+    animation: word-rise 700ms var(--ease-out-expo) both;
     animation-delay: var(--d, 0ms);
   }
-
-  /*
-   * The stage under the hero: it arrives tilted back, as if laid on the desk, and stands up.
-   * One transform, once; the perspective is part of it so no wrapper flattens the 3D.
-   */
-  .hero-stage {
-    transform-origin: 50% 0;
-    animation: stage-rise 800ms var(--ease-out-expo) both;
-    animation-delay: var(--d, 0ms);
-  }
-
-  /*
-   * The stage surface: a light from the top edge, a 1px rim brighter on top than at the
-   * bottom, and the faint dot grid of a cutting mat that fades towards the edges.
-   */
-  .stage {
-    position: relative;
-    isolation: isolate;
-    background:
-      radial-gradient(70% 55% at 50% 0%, rgb(255 255 255 / 0.9), transparent 70%),
-      linear-gradient(180deg, color-mix(in srgb, var(--sunk) 55%, var(--paper)), var(--sunk));
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.9),
-      inset 0 0 0 1px rgb(20 27 45 / 0.06),
-      0 1px 2px rgb(20 27 45 / 0.04),
-      0 40px 80px -40px rgb(20 27 45 / 0.25);
-  }
-  .stage::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    pointer-events: none;
-    background-image: radial-gradient(rgb(20 27 45 / 0.13) 1px, transparent 1.2px);
-    background-size: 22px 22px;
-    background-position: 11px 11px;
-    mask-image: radial-gradient(85% 75% at 50% 45%, #000 30%, transparent 85%);
-  }
-
-  /* A very soft wash of the stamp blue and the marker yellow behind the hero title. */
-  .hero-aura {
-    background:
-      radial-gradient(38% 46% at 32% 18%, rgb(36 64 179 / 0.07), transparent 70%),
-      radial-gradient(30% 40% at 70% 22%, rgb(255 228 92 / 0.12), transparent 70%);
-  }
-
-  /*
-   * The hand-off between the citizen's words and the dossier: a short track with the brand
-   * chevron in the middle. Each fact that lands sends a dot along it (keyed in React, so the
-   * animation restarts). Horizontal from lg, vertical when the two pictures are stacked.
-   */
-  .flow-dot {
-    animation: flow-y 620ms var(--ease-in-out) both;
-  }
-  .flow-pulse {
-    animation: flow-pulse 620ms var(--ease-out) both;
-  }
-  @media (width >= 64rem) {
-    .flow-dot {
-      animation-name: flow-x;
-    }
-  }
-  [dir="rtl"] .flow-dot {
-    --flow-dir: -1;
-  }
-  /* The row of the dossier that just got its fact: one flash of the marker, then gone. */
-  .land-flash {
-    animation: land-flash 1100ms var(--ease-out) both;
-  }
-
-  /* Dark bands: light falling from above the section, and a bright hairline on the top edge
-     of the picture, as on glass. */
-  .band-light {
-    background:
-      radial-gradient(60% 50% at 50% 0%, rgb(84 110 230 / 0.28), transparent 70%),
-      radial-gradient(40% 30% at 50% 100%, rgb(84 110 230 / 0.12), transparent 70%);
-  }
-  .closing-light {
-    background:
-      radial-gradient(50% 70% at 50% 120%, rgb(84 110 230 / 0.45), transparent 70%),
-      radial-gradient(40% 50% at 50% -20%, rgb(84 110 230 / 0.16), transparent 70%);
-  }
-  .edge-light {
-    position: relative;
-  }
-  .edge-light::after {
-    content: "";
-    position: absolute;
-    inset-inline: 8%;
-    top: -1px;
-    height: 1px;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgb(255 255 255 / 0.85) 30%,
-      rgb(255 228 92 / 0.9) 50%,
-      rgb(255 255 255 / 0.85) 70%,
-      transparent
-    );
-  }
-
-  /* The thread of a calendar (the pilot): one segment per step, from the centre of its dot to
-     the centre of the next one, drawn downwards as the step arrives. Pseudo-elements, so the
-     list keeps only its items. The last step has none: the thread ends on its dot. */
-  .thread > li:not(:last-child)::before {
-    content: "";
-    position: absolute;
-    inset-inline-start: 0;
-    top: 12px;
-    bottom: -12px;
-    width: 1px;
-    background: var(--line-strong);
-    transform-origin: center top;
-    transition: transform 700ms var(--ease-out-expo) calc(var(--reveal-delay, 0ms) + 150ms);
-  }
-  .thread > li:first-child::before {
-    background: linear-gradient(to bottom, var(--stamp), var(--line-strong));
-  }
-
-  /* Squares of a 10×10 figure filling one after another (--i is the index). */
-  [data-reveal] .fill-in {
-    transition:
-      opacity 400ms var(--ease-out),
-      transform 500ms var(--ease-out-expo);
-    transition-delay: calc(var(--i, 0) * 9ms + 200ms);
-  }
-
-  /* A stamp pressed when its picture scrolls into view. */
-  [data-revealed] .press-on-reveal {
-    animation: stamp-press 520ms var(--ease-out) 500ms both;
-  }
-
-  /*
-   * A pointer light that follows the cursor across a grid of cells on a dark band. It sits
-   * under the cells, so only the 1px gaps between them light up, plus a faint glow above.
-   * Moved with transform only (spotlight-grid.tsx).
-   */
-  .spotlight {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 28rem;
-    height: 28rem;
-    margin: -14rem 0 0 -14rem;
-    border-radius: 50%;
-    pointer-events: none;
-    background: radial-gradient(closest-side, var(--spot, rgb(255 228 92 / 0.55)), transparent);
-    opacity: 0;
-    transition: opacity 300ms var(--ease-out);
-  }
-  [data-spot-on] > .spotlight {
-    opacity: 1;
-  }
-
-  /* Primary CTAs: a soft sheen crosses the button once on hover. */
-  .cta-sheen {
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
-  }
-  .cta-sheen::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background: linear-gradient(
-      100deg,
-      transparent 30%,
-      rgb(255 255 255 / 0.28) 50%,
-      transparent 70%
-    );
-    transform: translateX(-110%);
-  }
-  @media (hover: hover) {
-    .cta-sheen:hover::after {
-      transform: translateX(110%);
-      transition: transform 800ms var(--ease-out-expo);
-    }
-  }
-
   /* The hero arrives on load, from CSS: it must not wait for hydration. */
   .hero-in {
     animation: site-rise var(--dur, 700ms) var(--ease-out-expo) both;
     animation-delay: var(--d, 0ms);
   }
 
-  /* Paper grain: a fixed SVG noise, multiplied on light grounds and screened on dark ones. */
-  .grain {
-    isolation: isolate;
+  /*
+   * The signature move: the stage opens like a slip pulled from the dispenser. It rises from
+   * below its place while the work on it settles from a slightly larger scale. Transform and
+   * opacity only (a clip-path shutter would repaint the whole stage every frame).
+   */
+  .stage-open {
+    animation: stage-rise 1100ms var(--ease-out-expo) both;
+    animation-delay: var(--d, 0ms);
   }
-  .grain::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    border-radius: inherit;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.1 0 0 0 0 0.18 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    opacity: 0.22;
-    mix-blend-mode: multiply;
-  }
-  .grain-dark::after {
-    opacity: 0.12;
-    mix-blend-mode: screen;
-    filter: invert(1);
+  .stage-open > .stage-settle {
+    transform-origin: 0 0;
+    animation: stage-settle 1300ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--d, 0ms) + 60ms);
   }
 
-  /* The ruled lines of a register, fading out from the top of a hero. */
-  .ruled {
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0 39px,
-      rgb(20 27 45 / 0.055) 39px 40px
+  /* The hero stage: a flat stamp-blue field with the ticket's notch cut into its left edge. */
+  .stage-cut {
+    mask-image: radial-gradient(
+      circle var(--notch, 36px) at 0 var(--notch-y, 120px),
+      #0000 calc(var(--notch, 36px) - 0.5px),
+      #000 var(--notch, 36px)
     );
-    mask-image: radial-gradient(120% 80% at 50% 0%, #000 25%, transparent 75%);
   }
 
-  /* The highlighter drawn under one word of a title, left to right, once on load. A pseudo-
-     element scaled on X: the same gesture as the .marker stroke, but composited. */
+  /* The highlighter drawn under one word of the hero title, left to right, once on load. */
   .marker-draw {
     position: relative;
     z-index: 0;
@@ -400,58 +259,146 @@
     border-radius: 0.06em;
     background: var(--marker);
     transform-origin: left center;
-    animation: marker-draw 500ms var(--ease-out-expo) 520ms both;
+    animation: marker-draw 500ms var(--ease-out-expo) 640ms both;
   }
   [dir="rtl"] .marker-draw::before {
     transform-origin: right center;
   }
 
-  /* Rubber stamp pressed onto the sheet: overshoots, then settles. The tilt is the element's own
-     `rotate`, which composes with this transform. */
+  /*
+   * The hand-off between the citizen's words and the dossier, in the hero demo: each fact that
+   * lands sends a dot along a short track (keyed in React, so the animation restarts).
+   */
+  .flow-dot {
+    animation: flow-y 620ms var(--ease-in-out) both;
+  }
+  .flow-pulse {
+    animation: flow-pulse 620ms var(--ease-out) both;
+  }
+  @media (width >= 48rem) {
+    .flow-dot {
+      animation-name: flow-x;
+    }
+  }
+  [dir="rtl"] .flow-dot {
+    --flow-dir: -1;
+  }
+  /* The row of the dossier that just got its fact: one flash of the marker, then gone. */
+  .land-flash {
+    animation: land-flash 1100ms var(--ease-out) both;
+  }
+  /* Rubber stamp pressed onto the sheet: overshoots, then settles. */
   .stamp-press {
     animation: stamp-press 520ms var(--ease-out) both;
   }
-
-  /* A check mark ticked in a list. */
   .tick-in {
     animation: tick-in 360ms var(--ease-out) both;
+  }
+
+  /* The four fields of «Prima dello sportello»: the card rises a little under the pointer. */
+  @media (hover: hover) {
+    .field-card {
+      transition: transform 150ms var(--ease-out);
+    }
+    .field:hover .field-card {
+      transform: translate3d(0, -6px, 0);
+    }
+  }
+
+  /* The operator's fragments swap with a short crossfade and a small rise. */
+  .swap {
+    transition:
+      opacity 300ms var(--ease-out),
+      transform 420ms var(--ease-out-expo);
+  }
+  .swap[data-off] {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+    pointer-events: none;
+    /* Gone once faded: nothing hidden lies under the shown part. */
+    visibility: hidden;
+    transition:
+      opacity 200ms var(--ease-out),
+      transform 200ms var(--ease-out),
+      visibility 0s linear 200ms;
+  }
+
+  /*
+   * The closing band is one link: the field and the word swap colours under the pointer and
+   * on keyboard focus.
+   */
+  .call-band {
+    background: var(--stamp);
+    color: var(--marker);
+  }
+  .call-band .call-sentence {
+    color: var(--on-stamp);
+  }
+  .call-band:focus-visible,
+  .call-band:hover {
+    background: var(--marker);
+    color: var(--stamp);
+  }
+  .call-band:focus-visible .call-sentence,
+  .call-band:hover .call-sentence {
+    color: var(--ink);
+  }
+  .call-band .call-arrow {
+    transition: transform 240ms var(--ease-out);
+  }
+  @media (hover: hover) {
+    .call-band:hover .call-arrow {
+      transform: translate3d(4px, -4px, 0);
+    }
   }
 
   @keyframes word-rise {
     from {
       opacity: 0;
-      transform: translate3d(0, 125%, 0);
+      transform: translate3d(0, 115%, 0);
     }
     35% {
       opacity: 1;
     }
   }
+  @keyframes site-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+  }
+  @keyframes site-fade {
+    from {
+      opacity: 0;
+    }
+  }
   @keyframes stage-rise {
     from {
       opacity: 0;
-      transform: perspective(2400px) translate3d(0, 24px, 0) rotateX(6deg);
+      transform: translate3d(0, 64px, 0);
+    }
+    40% {
+      opacity: 1;
     }
   }
-  @keyframes menu-fade {
+  @keyframes stage-settle {
     from {
       opacity: 0;
+      transform: scale(1.06);
+    }
+    35% {
+      opacity: 1;
     }
   }
-  @keyframes menu-fade-out {
-    to {
-      opacity: 0;
-    }
-  }
-  @keyframes menu-rise {
+  @keyframes marker-draw {
     from {
-      opacity: 0;
-      transform: translate3d(0, 8px, 0);
+      transform: scaleX(0);
     }
   }
   @keyframes flow-x {
     from {
       opacity: 0;
-      transform: translate3d(calc(-2rem * var(--flow-dir, 1)), 0, 0) scale(0.6);
+      transform: translate3d(calc(-1.5rem * var(--flow-dir, 1)), 0, 0) scale(0.6);
     }
     30%,
     70% {
@@ -459,7 +406,7 @@
     }
     to {
       opacity: 0;
-      transform: translate3d(calc(2rem * var(--flow-dir, 1)), 0, 0) scale(0.6);
+      transform: translate3d(calc(1.5rem * var(--flow-dir, 1)), 0, 0) scale(0.6);
     }
   }
   @keyframes flow-y {
@@ -492,27 +439,6 @@
       opacity: 0;
     }
   }
-  @keyframes scroll-ticket {
-    from {
-      transform: translate3d(0, 40px, 0) rotate(18deg);
-    }
-  }
-  @keyframes site-rise {
-    from {
-      opacity: 0;
-      transform: translate3d(0, 18px, 0);
-    }
-  }
-  @keyframes site-fade {
-    from {
-      opacity: 0;
-    }
-  }
-  @keyframes marker-draw {
-    from {
-      transform: scaleX(0);
-    }
-  }
   @keyframes stamp-press {
     0% {
       opacity: 0;
@@ -533,11 +459,26 @@
       transform: scale(0.4);
     }
   }
+  @keyframes menu-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes menu-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes menu-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
+    }
+  }
 
   /*
    * The mobile menu: a sheet under the header. It fades in while the links rise one after the
-   * other (40ms apart, from the second one); closing is a single 150ms fade. The page behind is
-   * locked (site-header.tsx), and the fixed bar at the bottom steps out of the way.
+   * other (40ms apart); closing is a single 150ms fade.
    */
   .menu-sheet {
     animation: menu-fade 150ms var(--ease-out) both;
@@ -550,30 +491,6 @@
     animation: menu-rise 240ms var(--ease-out) both;
     animation-delay: calc(var(--i, 0) * 40ms + 30ms);
   }
-  html[data-menu-open] [data-mobile-cta] {
-    visibility: hidden;
-  }
-
-  /* A row that scrolls sideways fades out where it continues (--fade-s / --fade-e are the
-     widths, 0 where there is nothing more to see), instead of being cut with a hard edge. */
-  .fade-x {
-    mask-image: linear-gradient(
-      to right,
-      transparent,
-      #000 var(--fade-s, 0px),
-      #000 calc(100% - var(--fade-e, 0px)),
-      transparent
-    );
-  }
-  [dir="rtl"] .fade-x {
-    mask-image: linear-gradient(
-      to left,
-      transparent,
-      #000 var(--fade-s, 0px),
-      #000 calc(100% - var(--fade-e, 0px)),
-      transparent
-    );
-  }
 
   @media (prefers-reduced-motion: reduce) {
     .menu-sheet,
@@ -585,18 +502,19 @@
       animation-duration: 120ms;
       animation-delay: 0ms;
     }
-    .thread > li:not(:last-child)::before {
-      transition: none;
-    }
     .hero-word > span,
-    .hero-stage,
     .hero-in,
+    .stage-open,
+    .stage-open > .stage-settle,
     .marker-draw::before,
     .stamp-press,
     .tick-in {
       animation-name: site-fade !important;
       animation-duration: 150ms !important;
       animation-delay: 0ms !important;
+    }
+    .swap[data-off] {
+      transform: none;
     }
     html:has(.site) {
       scroll-behavior: auto;
@@ -605,10 +523,6 @@
     .flow-pulse,
     .land-flash {
       animation: none;
-    }
-    .cta-sheen::after,
-    .spotlight {
-      display: none;
     }
   }
 }

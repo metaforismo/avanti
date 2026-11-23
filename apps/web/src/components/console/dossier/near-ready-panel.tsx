@@ -92,8 +92,8 @@ function Shell({
         >
           <CheckCheck className="size-4" />
         </span>
-        <h2 className="flex-1 basis-64 font-display text-lg font-semibold">{title}</h2>
-        {meta && <span className="text-xs text-ink-3">{meta}</span>}
+        <h2 className="flex-1 basis-64 text-base font-semibold">{title}</h2>
+        {meta && <span className="text-[0.8125rem] text-ink-3">{meta}</span>}
       </div>
       <div className="grid gap-4 p-5">{children}</div>
     </section>
@@ -211,7 +211,7 @@ function Suggestion({
       </div>
       {near.criticalFields.length > 0 && <Fields near={near} dossier={dossier} actions={actions} />}
       {dismissing ? (
-        <div className="grid gap-3 rounded-md bg-paper p-4 ring-1 ring-line">
+        <div className="grid gap-3 rounded-md border border-line bg-paper p-4">
           <ReasonSelect value={reason} onChange={setReason} label="Perché non è quasi pronta?" />
           <label className="grid gap-1 text-sm">
             <span className="font-semibold">Nota (facoltativa, senza dati del cittadino)</span>
@@ -262,7 +262,7 @@ function Suggestion({
           </Button>
         </div>
       )}
-      <p className="text-xs text-ink-3">
+      <p className="text-[0.8125rem] text-ink-3">
         Il suggerimento non segna la pratica come pronta: lo decidi tu, dopo i controlli.
       </p>
     </Shell>
@@ -307,7 +307,7 @@ function Accepted({
                   }
                   className="flex w-full items-center gap-3 rounded-sm px-2 py-1.5 text-start hover:bg-sunk"
                 >
-                  <span className="tabular grid size-5 shrink-0 place-items-center rounded-full bg-sunk text-xs font-semibold text-ink-2">
+                  <span className="tabular grid size-5 shrink-0 place-items-center rounded-full bg-sunk text-[0.8125rem] font-semibold text-ink-2">
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1 truncate" title={requestLabel(item)}>
@@ -324,7 +324,7 @@ function Accepted({
       )}
       <List title="Da controllare a vista" icon="eye" items={near.visualChecks} />
       {notReady ? (
-        <div className="grid gap-3 rounded-md bg-paper p-4 ring-1 ring-line">
+        <div className="grid gap-3 rounded-md border border-line bg-paper p-4">
           <ReasonSelect value={reason} onChange={setReason} label="Che cosa non andava?" />
           <label className="grid gap-1 text-sm">
             <span className="font-semibold">Era un errore grave?</span>
@@ -411,7 +411,7 @@ function Recheck({ actions }: { actions: DossierActions }) {
 
 function NotEligible({ near, actions }: { near: NearReady; actions: DossierActions }) {
   return (
-    <details className="group rounded-lg bg-surface ring-1 ring-line">
+    <details className="group rounded-md border border-line bg-surface">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-3 text-sm [&::-webkit-details-marker]:hidden">
         <CheckCheck className="size-4 text-ink-3" aria-hidden />
         <span className="flex-1 text-ink-2">Non è una pratica da revisione rapida</span>
@@ -470,7 +470,7 @@ function Fields({
   return (
     <div>
       <h3 className="text-sm font-semibold text-ink-2">Dati decisivi e da dove vengono</h3>
-      <ul className="mt-2 divide-y divide-line rounded-md ring-1 ring-line">
+      <ul className="mt-2 divide-y divide-line rounded-md border border-line">
         {near.criticalFields.map((field) => {
           const doc = field.documentId
             ? dossier.documents.find((d) => d.id === field.documentId)
@@ -483,7 +483,7 @@ function Fields({
               <span className="min-w-0 flex-1 font-semibold">
                 {field.label}
                 {field.critical && (
-                  <span className="ms-1.5 text-xs font-normal text-ink-3">critico</span>
+                  <span className="ms-1.5 text-[0.8125rem] font-normal text-ink-3">critico</span>
                 )}
               </span>
               {doc ? (
@@ -501,7 +501,7 @@ function Fields({
                   {field.source === "answer" ? "Risposta del cittadino" : "Verificato a mano"}
                 </span>
               )}
-              <span className="tabular text-xs text-ink-3">
+              <span className="tabular text-[0.8125rem] text-ink-3">
                 {field.source === "ai" ? `lettura ${Math.round(field.confidence * 100)}%` : ""}
               </span>
             </li>

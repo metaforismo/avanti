@@ -101,7 +101,7 @@ export function ChecklistSection({
         {[...groups.entries()].map(([key, group]) => (
           <div key={key}>
             <h3 className="mb-2 text-sm font-semibold text-ink-2">{group.title}</h3>
-            <ul className="divide-y divide-line overflow-hidden rounded-lg bg-surface ring-1 ring-line">
+            <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
               {group.items.map((item) => (
                 <ChecklistRow
                   key={item.id}
@@ -118,7 +118,7 @@ export function ChecklistSection({
         {unmatched.length > 0 && (
           <div>
             <h3 className="mb-2 text-sm font-semibold text-ink-2">Documenti non abbinati</h3>
-            <ul className="flex flex-wrap gap-2 rounded-lg bg-surface p-3 ring-1 ring-line">
+            <ul className="flex flex-wrap gap-2 rounded-md border border-line bg-surface p-3">
               {unmatched.map((doc) => (
                 <li key={doc.id} className="max-w-full min-w-0">
                   <DocChip doc={doc} earlierRejection onClick={() => actions.openDocument(doc)} />
@@ -252,7 +252,7 @@ function ChecklistRow({
         <div className="min-w-0 flex-1 basis-60">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold">{item.title}</p>
-            {!item.required && <span className="text-xs text-ink-3">facoltativo</span>}
+            {!item.required && <span className="text-[0.8125rem] text-ink-3">facoltativo</span>}
           </div>
           {/* The item's own warnings read as notes, not as the loudest block of the page: the
               colour is in the icon, the text stays ink, two lines at most until asked. */}
@@ -465,7 +465,7 @@ function DocChip({
         {name}
       </span>
       {guess && (
-        <span className="shrink-0 text-xs text-warn" title={guess.detail}>
+        <span className="shrink-0 text-[0.8125rem] text-warn" title={guess.detail}>
           <span aria-hidden>· </span>
           {guess.label}
           <span className="sr-only">: {guess.detail}</span>
@@ -473,7 +473,7 @@ function DocChip({
       )}
       {earlierRejection && doc.rejectedAt && (
         <span
-          className="shrink-0 text-xs font-semibold text-danger"
+          className="shrink-0 text-[0.8125rem] font-semibold text-danger"
           title="Resta nel fascicolo ma non entra nello ZIP dei documenti."
         >
           <span aria-hidden>· </span>
@@ -485,7 +485,7 @@ function DocChip({
       )}
       {reuse && (
         <span
-          className={`shrink-0 text-xs font-semibold ${REUSE[reuse.status].tone}`}
+          className={`shrink-0 text-[0.8125rem] font-semibold ${REUSE[reuse.status].tone}`}
           title={reuse.reason}
         >
           <span aria-hidden>· </span>

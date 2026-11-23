@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -146,8 +146,14 @@ export function Field({
         </p>
       )}
       {error && (
-        <p id={errorId} className="animate-fade-in text-sm font-medium text-danger" role="alert">
-          {error}
+        <p
+          id={errorId}
+          className="flex animate-fade-in items-start gap-1.5 text-sm font-medium text-danger"
+          role="alert"
+        >
+          {/* 14px, on the first line of the message: the icon says «error» without colour. */}
+          <AlertCircle className="mt-[0.1875rem] size-3.5 shrink-0" aria-hidden />
+          <span className="min-w-0">{error}</span>
         </p>
       )}
     </div>

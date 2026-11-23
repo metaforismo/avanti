@@ -45,38 +45,32 @@ export default function AccessibilityPage() {
   return (
     <article>
       <PageHero
-        eyebrow="Accessibilità"
         title="Allo sportello arriva chiunque."
         lead="Pensato prima di tutto per chi fa più fatica con la burocrazia."
       />
 
-      <RuleList items={PRACTICES} columns={2} />
+      <RuleList items={PRACTICES} label="Per chi è pensato" />
 
-      <section
-        aria-labelledby="checks"
-        className="mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:py-28"
-      >
-        <div data-reveal="stagger">
-          <p className="mb-4 flex items-center gap-2.5 type-eyebrow text-stamp">
-            <span aria-hidden className="h-px w-6 bg-current opacity-60" />
-            Verifiche
-          </p>
-          <h2 id="checks" className="font-display type-section">
-            Cosa verifichiamo
-          </h2>
-          <p className="mt-5 type-lead text-ink-2">
-            Nessuna conformità dichiarata senza una valutazione di terzi. Nel pilota proviamo il
-            percorso con chi usa tecnologie assistive.
-          </p>
+      <section aria-labelledby="checks" className="py-24 lg:py-32">
+        <div className="frame grid gap-x-6 gap-y-10 lg:grid-cols-12">
+          <div data-reveal="stagger" className="lg:col-span-5">
+            <h2 id="checks" className="t-head">
+              Cosa verifichiamo
+            </h2>
+            <p className="t-body mt-5 max-w-[36ch] text-ink">
+              Nessuna conformità dichiarata senza una valutazione di terzi. Nel pilota proviamo il
+              percorso con chi usa tecnologie assistive.
+            </p>
+          </div>
+          <ul data-reveal="stagger" className="grid content-end gap-5 lg:col-span-6 lg:col-start-7">
+            {CHECKS.map((item) => (
+              <li key={item} className="t-body flex gap-3.5 text-ink">
+                <Check className="mt-1 size-5 shrink-0 text-ok" aria-hidden />
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
-        <ul data-reveal="stagger" className="grid content-start border-t border-line">
-          {CHECKS.map((item) => (
-            <li key={item} className="flex gap-3 border-b border-line py-4">
-              <Check className="mt-0.5 size-5 shrink-0 text-ok" aria-hidden />
-              {item}
-            </li>
-          ))}
-        </ul>
       </section>
 
       <PageCta title="Hai trovato un ostacolo?">

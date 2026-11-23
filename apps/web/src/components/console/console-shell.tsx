@@ -269,9 +269,11 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
       >
         Vai al contenuto
       </a>
-      {/* Citizens' names and file names can be one long unbroken word: wrap rather than overflow. */}
+      {/* Citizens' names and file names can be one long unbroken word: wrap rather than overflow.
+          The frame (sidebar on paper) holds the work on one white sheet: depth from a single
+          tone step and a 1px edge, no shadow. On a phone the sheet is the whole screen. */}
       <div className="min-h-dvh bg-paper wrap-break-word lg:grid lg:grid-cols-[14rem_1fr]">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between bg-paper px-4 lg:hidden">
           <Link href="/console" className="rounded-sm">
             <Logo />
           </Link>
@@ -300,7 +302,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         <aside
           id="console-menu"
           className={cn(
-            "z-20 flex-col overscroll-contain border-e border-line bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh",
+            "z-20 flex-col overscroll-contain bg-paper lg:sticky lg:top-0 lg:flex lg:h-dvh",
             menuOpen
               ? "fixed inset-x-0 top-14 bottom-0 flex animate-fade-in overflow-y-auto"
               : "hidden",
@@ -312,11 +314,12 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
             </Link>
           </div>
           <div className="grid gap-1.5 px-2.5 pt-3 lg:pt-1">
-            {/* Tinted, not filled: the one filled button on screen belongs to the page. */}
+            {/* Neutral, not filled: the one filled button on screen belongs to the page, and
+                the frame carries no colour. */}
             <Button
               size="sm"
-              variant="tinted"
-              className="h-9 w-full justify-start px-2.5"
+              variant="secondary"
+              className="h-8 w-full justify-start px-2.5 ring-line"
               onClick={() => setCreating(true)}
             >
               <Plus className="size-4" aria-hidden />
@@ -327,7 +330,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => setSearching(true)}
               aria-keyshortcuts="Meta+K Control+K"
-              className="flex h-9 items-center gap-2.5 rounded-sm bg-paper px-2.5 text-sm text-ink-3 ring-1 ring-line transition-colors duration-100 ring-inset hover:text-ink-2 hover:ring-line-strong"
+              className="flex h-8 items-center gap-2.5 rounded-sm border border-line bg-surface px-2.5 text-sm text-ink-3 transition-colors duration-100 hover:border-line-strong hover:text-ink-2"
             >
               <Search className="size-4" aria-hidden />
               <span className="flex-1 text-start">Cerca</span>
@@ -341,7 +344,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
             <NavList items={visible.filter((item) => !item.adminOnly && !item.footer)} />
             {operator.role === "admin" && (
               <>
-                <p className="mt-5 px-2.5 pb-1 text-xs font-medium text-ink-3">Amministrazione</p>
+                <p className="mt-6 px-2.5 pb-1 text-[0.8125rem] text-ink-3">Amministrazione</p>
                 <NavList items={visible.filter((item) => item.adminOnly)} />
               </>
             )}
@@ -353,7 +356,13 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
           <OperatorCard operator={operator} />
         </aside>
 
-        <main id="contenuto" tabIndex={-1} className="min-w-0 outline-none">
+        {/* overflow-clip, not hidden: the corners clip the page's sticky bars without making
+            the sheet a scroll container, so the window keeps scrolling and sticky keeps working. */}
+        <main
+          id="contenuto"
+          tabIndex={-1}
+          className="min-h-[calc(100dvh-3.5rem)] min-w-0 bg-surface outline-none lg:my-2 lg:me-2 lg:min-h-[calc(100dvh-1rem)] lg:overflow-clip lg:rounded-lg lg:border lg:border-line"
+        >
           {expired && <SessionExpired />}
           {children}
         </main>
@@ -386,11 +395,8 @@ function SessionExpired() {
   // room above the content and, sticky, stays in sight wherever the failed action was. Above
   // the page's own sticky bars (z-20): while the session is over, their actions can't work.
   return (
-    <div
-      role="alert"
-      className="sticky top-14 z-30 border-b border-danger/25 bg-danger-wash text-danger lg:top-0"
-    >
-      <div className="flex flex-wrap items-start gap-x-3 gap-y-2 px-4 py-2.5 sm:px-6 lg:items-center lg:gap-x-4 lg:px-10">
+    <div role="alert" className="sticky top-14 z-30 bg-danger-wash text-danger lg:top-0">
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-2 px-4 py-2.5 sm:px-6 lg:items-center lg:gap-x-4 lg:px-8">
         <AlertTriangle className="mt-0.5 size-5 shrink-0 lg:mt-0" aria-hidden />
         <p className="min-w-0 flex-1 basis-72 text-body-sm">
           <strong className="font-semibold">La sessione è scaduta.</strong> Finché non accedi di
@@ -421,10 +427,11 @@ function NavList({ items }: { items: NavItem[] }) {
                 active ? "bg-sunk text-ink" : "text-ink-2 hover:bg-sunk/70 hover:text-ink",
               )}
             >
+              {/* The active item is the grey pill alone: no colour in the frame. */}
               <Icon
                 className={cn(
                   "size-4 shrink-0",
-                  active ? "text-stamp" : "text-ink-3 group-hover:text-ink-2",
+                  active ? "text-ink" : "text-ink-3 group-hover:text-ink-2",
                 )}
                 aria-hidden
               />
@@ -443,8 +450,8 @@ function RecentCases({ operatorId }: { operatorId: string }) {
   const pathname = usePathname();
   if (recent.length === 0) return null;
   return (
-    <div className="mt-5">
-      <p className="px-2.5 pb-1 text-xs font-medium text-ink-3">Aperte di recente</p>
+    <div className="mt-6">
+      <p className="px-2.5 pb-1 text-[0.8125rem] text-ink-3">Aperte di recente</p>
       {/* minmax(0, 1fr): a long name truncates instead of widening the column past the sidebar. */}
       <ul className="grid grid-cols-[minmax(0,1fr)] gap-0.5">
         {recent.slice(0, 5).map((item) => {
@@ -457,7 +464,7 @@ function RecentCases({ operatorId }: { operatorId: string }) {
                 aria-current={active ? "page" : undefined}
                 title={item.name ?? undefined}
                 className={cn(
-                  "block truncate rounded-sm px-2.5 py-1.5 text-sm leading-5 transition-colors duration-100",
+                  "block h-8 truncate rounded-sm px-2.5 py-1.5 text-sm leading-5 transition-colors duration-100",
                   active ? "bg-sunk text-ink" : "text-ink-2 hover:bg-sunk hover:text-ink",
                 )}
               >
@@ -489,7 +496,7 @@ function OperatorCard({ operator }: { operator: Operator }) {
   }
 
   return (
-    <div className="flex items-center gap-2.5 border-t border-line px-3 py-3">
+    <div className="flex items-center gap-2.5 px-3 py-3">
       <span
         aria-hidden
         className="grid size-8 shrink-0 place-items-center rounded-full bg-contrast font-display text-sm font-semibold text-on-contrast"
@@ -504,7 +511,7 @@ function OperatorCard({ operator }: { operator: Operator }) {
         >
           {operator.name}
         </Link>
-        <p className="truncate text-xs text-ink-3" title={operator.organization.name}>
+        <p className="truncate text-[0.8125rem] text-ink-3" title={operator.organization.name}>
           {operator.organization.name}
         </p>
       </div>
