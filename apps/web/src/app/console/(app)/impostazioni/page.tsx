@@ -39,11 +39,11 @@ export default function SettingsPage() {
 
   return (
     <PageContainer
-      width="form"
-      className="flex flex-col gap-10 [&>section+section]:border-t [&>section+section]:border-line [&>section+section]:pt-10"
+      width="wide"
+      className="flex flex-col gap-8 [&>section+section]:border-t [&>section+section]:border-line [&>section+section]:pt-8"
     >
       <style>{ANCHOR_OFFSET}</style>
-      <PageHeader title="Impostazioni" lead={operator.organization.name} className="-mb-4" />
+      <PageHeader title="Impostazioni" lead={operator.organization.name} className="-mb-5" />
       <SettingsNav sections={SECTIONS} barOpen={barOpen} barRef={setBar} />
       <OperatorsSection />
       <OfficesSection onChanged={reloadOperator} />

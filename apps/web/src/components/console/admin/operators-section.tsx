@@ -17,7 +17,6 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
 import { Notice } from "@/components/ui/notice";
-import { SectionHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, ApiRequestError } from "@/lib/api";
@@ -27,6 +26,8 @@ import { useResource } from "@/lib/console/use-resource";
 import { initialsOf } from "@/lib/console/initials";
 import { useHashTarget, useOpenOnHash } from "@/lib/console/use-hash-target";
 import { focusFirstError, isEmail, text } from "@/lib/validation";
+import { PANEL } from "./panel";
+import { SplitSection } from "./setting-row";
 
 type Risky = "password" | "mfa" | "deactivate" | "promote" | "demote";
 
@@ -155,150 +156,148 @@ export function OperatorsSection() {
 
   return (
     <section ref={section} id="operatori" aria-labelledby="operators-title">
-      <SectionHeader
-        id="operators-title"
+      <SplitSection
+        titleId="operators-title"
         title="Operatori"
         lead="Chi può accedere alla console di questo CAF."
         actions={
-          <Button ref={addButton} variant="secondary" onClick={() => setAdding(true)}>
+          <Button ref={addButton} variant="secondary" size="sm" onClick={() => setAdding(true)}>
             <UserPlus className="size-4" aria-hidden />
             Aggiungi operatore
           </Button>
         }
-      />
-
-      {error && (
-        <Notice tone="danger" className="mt-4">
-          {error}
-        </Notice>
-      )}
-
-      {list.status === "error" && !list.data ? (
-        <Notice tone="danger" className="mt-4">
-          Elenco non disponibile: {list.error.message}
-        </Notice>
-      ) : !list.data ? (
-        <Skeleton className="mt-4 h-32 rounded-lg" />
-      ) : (
-        <ul className="mt-4 divide-y divide-line overflow-hidden rounded-lg bg-surface shadow-raised ring-1 ring-line">
-          {list.data.map((operator) => {
-            const isMe = operator.id === me.id;
-            return (
-              <li
-                key={operator.id}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 transition-colors duration-100 hover:bg-sunk/40"
-              >
-                <span
-                  aria-hidden
-                  className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-full text-[0.8125rem] font-bold",
-                    operator.active ? "bg-contrast text-on-contrast" : "bg-sunk text-ink-2",
-                  )}
-                >
-                  {initialsOf(operator.name)}
-                </span>
-                <div className="min-w-0 flex-1 basis-56">
-                  <p className="flex flex-wrap items-center gap-2 font-semibold">
-                    {operator.name}
-                    {isMe && <span className="text-sm font-normal text-ink-3">(tu)</span>}
-                    {operator.role === "admin" && (
-                      <Pill className="text-[0.8125rem]" tone="stamp">
-                        Amministratore
-                      </Pill>
-                    )}
-                    {!operator.active && (
-                      <Pill className="text-[0.8125rem]" tone="muted">
-                        Disattivato
-                      </Pill>
-                    )}
-                    {operator.mfaEnabled && (
-                      <Pill className="text-[0.8125rem]" tone="ok">
-                        Verifica in due passaggi
-                      </Pill>
-                    )}
-                  </p>
-                  <p className="truncate text-sm text-ink-3" title={operator.email}>
-                    {operator.email},{" "}
-                    {operator.lastLoginAt
-                      ? `ultimo accesso ${timeAgo(operator.lastLoginAt)}`
-                      : "mai entrato"}
-                  </p>
-                </div>
-                {!isMe && (
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {!operator.active && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        loading={pending === `activate:${operator.id}`}
-                        onClick={() => void reactivate(operator)}
-                      >
-                        Riattiva
-                      </Button>
-                    )}
-                    <OperatorMenu operator={operator} onAsk={ask} />
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      <Dialog
-        open={adding}
-        onOpenChange={setAdding}
-        returnFocusTo={addButton}
-        title="Nuovo operatore"
-        description="Riceverà una password temporanea da cambiare al primo accesso."
       >
-        <AddOperatorForm
-          onCreated={(result) => {
-            setAdding(false);
-            setIssued(result);
-            list.reload();
-          }}
-        />
-      </Dialog>
-
-      <Dialog
-        open={confirming !== null}
-        onOpenChange={(open) => !open && setConfirming(null)}
-        title={confirming ? RISKY[confirming.kind].title : ""}
-        description={confirming ? RISKY[confirming.kind].description : undefined}
-      >
-        {confirming && (
-          <div className="grid gap-4">
-            <p className="text-ink-2">
-              <span className="font-semibold text-ink">{confirming.operator.name}</span>{" "}
-              {RISKY[confirming.kind].effect}
-            </p>
-            {confirmError && <Notice tone="danger">{confirmError}</Notice>}
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant={RISKY[confirming.kind].danger ? "danger" : "primary"}
-                loading={pending === `${confirming.kind}:${confirming.operator.id}`}
-                onClick={() => void confirm()}
-              >
-                {RISKY[confirming.kind].action}
-              </Button>
-              <Button variant="ghost" onClick={() => setConfirming(null)}>
-                Annulla
-              </Button>
-            </div>
-          </div>
+        {error && (
+          <Notice tone="danger" className="mb-4">
+            {error}
+          </Notice>
         )}
-      </Dialog>
 
-      <Dialog
-        open={issued !== null}
-        onOpenChange={(open) => !open && setIssued(null)}
-        dismissible={false}
-        title="Password temporanea"
-        description="Non la vedrai più: comunicala di persona o per telefono, non per email."
-      >
-        {issued && <IssuedAccess issued={issued} onDone={() => setIssued(null)} />}
-      </Dialog>
+        {list.status === "error" && !list.data ? (
+          <Notice tone="danger" className="mb-4">
+            Elenco non disponibile: {list.error.message}
+          </Notice>
+        ) : !list.data ? (
+          <Skeleton className="h-32 rounded-md" />
+        ) : (
+          <ul className={cn(PANEL, "divide-y divide-line overflow-hidden")}>
+            {list.data.map((operator) => {
+              const isMe = operator.id === me.id;
+              return (
+                <li
+                  key={operator.id}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors duration-100 hover:bg-sunk/40 sm:px-5"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "grid size-9 shrink-0 place-items-center rounded-full text-[0.8125rem] font-bold",
+                      operator.active ? "bg-contrast text-on-contrast" : "bg-sunk text-ink-2",
+                    )}
+                  >
+                    {initialsOf(operator.name)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {/* One status mark per row: «Disattivato». Role and two-step are facts, in words. */}
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                      {operator.name}
+                      {isMe && <span className="font-normal text-ink-3">(tu)</span>}
+                      {!operator.active && (
+                        <Pill className="text-[0.8125rem]" tone="muted">
+                          Disattivato
+                        </Pill>
+                      )}
+                    </p>
+                    <p
+                      className="truncate text-[0.8125rem] text-ink-3"
+                      title={`${operator.email}, ${operator.lastLoginAt ? `ultimo accesso ${timeAgo(operator.lastLoginAt)}` : "mai entrato"}`}
+                    >
+                      {operator.role === "admin" && (
+                        <span className="font-medium text-ink-2">Amministratore · </span>
+                      )}
+                      {operator.email} ·{" "}
+                      {operator.lastLoginAt
+                        ? `ultimo accesso ${timeAgo(operator.lastLoginAt)}`
+                        : "mai entrato"}
+                      {operator.mfaEnabled && " · verifica in due passaggi"}
+                    </p>
+                  </div>
+                  {!isMe && (
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {!operator.active && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          loading={pending === `activate:${operator.id}`}
+                          onClick={() => void reactivate(operator)}
+                        >
+                          Riattiva
+                        </Button>
+                      )}
+                      <OperatorMenu operator={operator} onAsk={ask} />
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <Dialog
+          open={adding}
+          onOpenChange={setAdding}
+          returnFocusTo={addButton}
+          title="Nuovo operatore"
+          description="Riceverà una password temporanea da cambiare al primo accesso."
+        >
+          <AddOperatorForm
+            onCreated={(result) => {
+              setAdding(false);
+              setIssued(result);
+              list.reload();
+            }}
+          />
+        </Dialog>
+
+        <Dialog
+          open={confirming !== null}
+          onOpenChange={(open) => !open && setConfirming(null)}
+          title={confirming ? RISKY[confirming.kind].title : ""}
+          description={confirming ? RISKY[confirming.kind].description : undefined}
+        >
+          {confirming && (
+            <div className="grid gap-4">
+              <p className="text-ink-2">
+                <span className="font-semibold text-ink">{confirming.operator.name}</span>{" "}
+                {RISKY[confirming.kind].effect}
+              </p>
+              {confirmError && <Notice tone="danger">{confirmError}</Notice>}
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant={RISKY[confirming.kind].danger ? "danger" : "primary"}
+                  loading={pending === `${confirming.kind}:${confirming.operator.id}`}
+                  onClick={() => void confirm()}
+                >
+                  {RISKY[confirming.kind].action}
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirming(null)}>
+                  Annulla
+                </Button>
+              </div>
+            </div>
+          )}
+        </Dialog>
+
+        <Dialog
+          open={issued !== null}
+          onOpenChange={(open) => !open && setIssued(null)}
+          dismissible={false}
+          title="Password temporanea"
+          description="Non la vedrai più: comunicala di persona o per telefono, non per email."
+        >
+          {issued && <IssuedAccess issued={issued} onDone={() => setIssued(null)} />}
+        </Dialog>
+      </SplitSection>
     </section>
   );
 }
