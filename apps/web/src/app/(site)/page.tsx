@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { Fragment, type CSSProperties } from "react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ActivityLog } from "@/components/landing/activity-log";
 import { AiSwitches } from "@/components/landing/ai-switches";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { IntakeDemo } from "@/components/landing/intake-demo";
 import { OperatorShowcase } from "@/components/landing/operator-showcase";
 import { PeakFigure } from "@/components/landing/peak-figure";
 import { PilotForm } from "@/components/landing/pilot-form";
-import archivePhoto from "@/components/landing/pictures/archivio-pescia-faldoni.jpg";
 import { cn } from "@/lib/cn";
 
 const DESCRIPTION =
@@ -64,7 +63,7 @@ const DATA_ROWS = [
   ],
   [
     ["Accessi", "tutti registrati", "il registro si esporta"],
-    ["AI", "solo ciò che serve", "senza garanzie, solo regole"],
+    ["AI", "con fornitori approvati", "altrimenti, solo regole"],
     ["Enti", "nessun invio", "la DSU la trasmette il CAF"],
   ],
 ] as const;
@@ -238,7 +237,7 @@ export default function HomePage() {
           {/* The stage bleeds off the right edge, past the frame on very wide screens too. */}
           <div
             className={cn(
-              "stage-open stage-cut relative mt-14 bg-stamp px-6 pt-8 pb-6 text-on-stamp [--d:520ms] [--notch-y:3.5rem] [--notch:18px] sm:px-10 sm:pt-12 sm:[--notch-y:96px] sm:[--notch:30px] xl:col-span-8 xl:col-start-5 xl:row-start-2 xl:mt-12 xl:rounded-ss-[28px] xl:ps-14 xl:pe-14 xl:pt-14 xl:pb-10",
+              "stage-open stage-cut relative mt-14 bg-stamp px-6 pt-8 pb-8 text-on-stamp [--d:520ms] [--notch-y:3.5rem] [--notch:18px] sm:px-10 sm:pt-12 sm:[--notch-y:96px] sm:[--notch:30px] xl:col-span-8 xl:col-start-5 xl:row-start-2 xl:mt-12 xl:rounded-ss-[28px] xl:ps-14 xl:pe-14 xl:pt-14 xl:pb-14",
               "-mx-[var(--site-margin)] xl:ms-0 xl:-me-[calc(var(--site-margin)+max(0px,(100vw-105rem)/2))]",
             )}
           >
@@ -310,22 +309,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Data and responsibility: the statement, the table pushed right, the archive. */}
+      {/* Data and responsibility: the statement, the table pushed right, the activity log. */}
       <section id="dati" aria-labelledby="dati-title" className="scroll-mt-16 py-28 xl:py-40">
         <div className="frame grid gap-x-6 xl:grid-cols-12">
           <h2 id="dati-title" data-reveal className="t-head xl:col-span-12 xl:ps-[3vw]">
             I dati restano del CAF.
           </h2>
-          <figure className="mt-14 hidden overflow-clip bg-sunk xl:col-span-4 xl:row-start-2 xl:mt-24 xl:block xl:self-end">
-            <Image
-              src={archivePhoto}
-              alt="Scaffali di un archivio di Stato con i faldoni di carta legati, dietro grate di ferro"
-              sizes="(min-width: 80rem) 30vw, 60vw"
-              loading="eager"
-              className="drift aspect-[4/5] w-full object-cover"
-            />
-          </figure>
-          <div className="mt-14 xl:col-span-5 xl:col-start-8 xl:row-start-2 xl:mt-24">
+          <div className="mt-14 max-xl:order-last xl:col-span-5 xl:row-start-2 xl:mt-24 xl:self-end">
+            <ActivityLog />
+          </div>
+          <div className="mt-14 xl:col-span-5 xl:col-start-8 xl:row-start-2 xl:mt-24 xl:self-end">
             <div className="grid gap-y-11">
               {DATA_ROWS.map((group, g) => (
                 <dl key={g} data-reveal="stagger" className="grid gap-y-5">
@@ -350,15 +343,6 @@ export default function HomePage() {
               <Arrow className="size-4" />
             </Link>
           </div>
-          <figure className="ms-auto mt-12 w-[60%] overflow-clip bg-sunk xl:hidden">
-            <Image
-              src={archivePhoto}
-              alt="Scaffali di un archivio di Stato con i faldoni di carta legati, dietro grate di ferro"
-              sizes="60vw"
-              loading="eager"
-              className="aspect-[4/5] w-full object-cover"
-            />
-          </figure>
         </div>
       </section>
 
@@ -461,9 +445,9 @@ export default function HomePage() {
           </span>
           <span
             aria-hidden
-            className="frame block font-display text-[clamp(5.5rem,34vw,36rem)] leading-[0.74] font-extrabold tracking-[-0.03em] [font-stretch:92%]"
+            className="frame block font-display text-[clamp(5.5rem,34vw,36rem)] leading-[0.86] font-extrabold tracking-[-0.03em] [font-stretch:92%]"
           >
-            <span className="block translate-y-[0.06em] pb-6">Avanti</span>
+            <span className="block pt-[0.04em] pb-[max(1.5rem,0.08em)]">Avanti</span>
           </span>
         </a>
       </section>

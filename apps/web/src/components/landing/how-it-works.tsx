@@ -158,7 +158,7 @@ export function HowItWorks({ titleId }: { titleId: string }) {
         <li
           key={clause}
           className={cn(
-            "field relative flex flex-col gap-8 px-[var(--site-margin)] py-12 sm:min-h-[38rem] sm:px-8 sm:py-10 xl:min-h-[84svh]",
+            "field relative flex flex-col gap-7 px-[var(--site-margin)] py-10 sm:min-h-[30rem] sm:px-8 sm:py-10 xl:min-h-[34rem]",
             tone,
           )}
         >

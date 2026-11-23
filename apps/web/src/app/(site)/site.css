@@ -323,17 +323,6 @@
       visibility 0s linear 200ms;
   }
 
-  /* The archive photograph drifts a few per cent as it crosses the screen. */
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .drift {
-        animation: drift linear both;
-        animation-timeline: view();
-        animation-range: entry 0% exit 100%;
-      }
-    }
-  }
-
   /*
    * The closing band is one link: the field and the word swap colours under the pointer and
    * on keyboard focus.
@@ -404,14 +393,6 @@
   @keyframes marker-draw {
     from {
       transform: scaleX(0);
-    }
-  }
-  @keyframes drift {
-    from {
-      transform: translate3d(0, -4%, 0) scale(1.08);
-    }
-    to {
-      transform: translate3d(0, 4%, 0) scale(1.08);
     }
   }
   @keyframes flow-x {

@@ -13,7 +13,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Stamp } from "@/components/brand/desk-objects";
 import { MISSING } from "@/components/ui/missing";
 import { cn } from "@/lib/cn";
@@ -26,7 +26,7 @@ import { cn } from "@/lib/cn";
 
 function Panel({ title, meta, children }: { title: string; meta?: string; children: ReactNode }) {
   return (
-    <div data-ui className="h-full w-full overflow-hidden rounded-[10px] bg-surface text-ink">
+    <div data-ui className="w-full overflow-hidden rounded-[10px] bg-surface text-ink">
       <div className="border-b border-line px-5 py-3.5">
         <p className="flex flex-wrap items-center gap-1.5 text-xs">
           <span className="rounded-full bg-stamp-wash px-2 py-0.5 font-semibold text-stamp">
@@ -227,36 +227,66 @@ const PARTS = [
   },
 ] as const;
 
+/** Where the ticket starts under each part (it breaks the ticket's top edge) and how far it
+    runs past the part's bottom. */
+const TICKET_TOP = 48;
+const TICKET_BELOW = 40;
+
 export function OperatorShowcase({ titleId }: { titleId: string }) {
   const [active, setActive] = useState(0);
   const factId = useId();
   const part = PARTS[active] ?? PARTS[0];
+  // Each part's ticket follows that part's height; the stage keeps the tallest one's, so
+  // choosing a part never moves anything outside this section.
+  const partRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [heights, setHeights] = useState<number[]>([]);
+
+  useLayoutEffect(() => {
+    const nodes = partRefs.current.filter((n): n is HTMLDivElement => n !== null);
+    const read = () => setHeights(partRefs.current.map((n) => n?.offsetHeight ?? 0));
+    read();
+    const observer = new ResizeObserver(read);
+    nodes.forEach((n) => observer.observe(n));
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="frame grid gap-10 py-24 xl:grid-cols-12 xl:gap-x-6 xl:gap-y-6 xl:py-20">
+    <div className="frame grid gap-10 py-24 xl:grid-cols-12 xl:gap-x-6 xl:py-28">
       {/* The ticket and the part of the console laid on it. */}
-      <div className="relative xl:col-span-7 xl:col-start-6 xl:row-start-1 xl:self-end">
-        {/* The part sits in the flow, breaking the ticket's top edge; the ticket fills the
-            space behind it down to a margin under the part, so nothing overflows on a phone. */}
-        <div className="relative mx-auto w-full max-w-[36rem] px-[5%] pb-[9%]">
-          {PARTS.map((p, i) => (
-            <span
-              key={p.name}
-              aria-hidden
-              data-off={i === active ? undefined : ""}
-              className={cn(
-                "swap ticket absolute inset-x-0 top-12 bottom-0 rounded-[14px] [--notch:28px] max-sm:[--notch:18px]",
-                p.ticket,
-              )}
-            />
-          ))}
+      <div className="relative xl:col-span-7 xl:col-start-6 xl:row-start-1">
+        <div
+          className="relative mx-auto w-full max-w-[36rem] px-[5%]"
+          style={{ paddingBottom: TICKET_BELOW }}
+        >
+          {PARTS.map((p, i) => {
+            const height = heights[i];
+            return (
+              <span
+                key={p.name}
+                aria-hidden
+                data-off={i === active ? undefined : ""}
+                style={
+                  height
+                    ? { top: TICKET_TOP, height: height - TICKET_TOP + TICKET_BELOW }
+                    : { top: TICKET_TOP, bottom: 0 }
+                }
+                className={cn(
+                  "swap ticket absolute inset-x-0 rounded-[14px] [--notch:28px] max-sm:[--notch:18px]",
+                  p.ticket,
+                )}
+              />
+            );
+          })}
           <div className="relative grid">
             {PARTS.map(({ name, Visual }, i) => (
               <div
                 key={name}
+                ref={(node) => {
+                  partRefs.current[i] = node;
+                }}
                 aria-hidden={i !== active}
                 data-off={i === active ? undefined : ""}
-                className="swap col-start-1 row-start-1"
+                className="swap col-start-1 row-start-1 self-start"
               >
                 <Visual />
               </div>
@@ -265,8 +295,9 @@ export function OperatorShowcase({ titleId }: { titleId: string }) {
         </div>
       </div>
 
-      {/* The names of the parts: the heading is the first line of the list. */}
-      <div className="xl:col-span-5 xl:col-start-1 xl:row-span-2 xl:row-start-1 xl:self-end">
+      {/* The names of the parts, the heading as their first line, and what the chosen one does.
+          Top-aligned with the part on the right. */}
+      <div className="xl:col-span-5 xl:col-start-1 xl:row-start-1">
         <h2 id={titleId} className="t-sub text-on-contrast/70">
           Cosa vede l’operatore
         </h2>
@@ -294,15 +325,10 @@ export function OperatorShowcase({ titleId }: { titleId: string }) {
             </li>
           ))}
         </ul>
+        <p id={factId} aria-live="polite" className="t-body mt-8 max-w-[34ch] text-on-contrast">
+          {part.fact}
+        </p>
       </div>
-
-      <p
-        id={factId}
-        aria-live="polite"
-        className="t-body max-w-[34ch] text-on-contrast xl:col-span-4 xl:col-start-9 xl:row-start-2 xl:max-w-[30ch] xl:justify-self-end"
-      >
-        {part.fact}
-      </p>
     </div>
   );
 }

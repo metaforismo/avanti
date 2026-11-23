@@ -82,35 +82,51 @@ export function IntakeDemo() {
 
   return (
     <div ref={rootRef}>
-      <div
-        role="group"
-        aria-label="Lingua del cittadino nell’esempio"
-        className="mb-5 flex flex-wrap items-center gap-1.5"
-      >
-        {/* font-sans on the labels: one word in Arabic or Bengali reads fine in the system
+      {/* The languages and, at the far end of the same row, what the example is. */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <div
+          role="group"
+          aria-label="Lingua del cittadino nell’esempio"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {/* font-sans on the labels: one word in Arabic or Bengali reads fine in the system
             font, and would otherwise fetch 270 KB of Noto above the fold. */}
-        {SAMPLES.map((s, i) => (
-          <button
-            key={s.lang}
-            type="button"
-            lang={s.lang}
-            aria-pressed={i === sampleIndex}
-            onClick={() => {
-              if (i === sampleIndex) return;
-              setSampleIndex(i);
-              replay();
-            }}
-            className={cn(
-              "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 font-sans text-[0.9375rem] transition-[background-color,color,transform] duration-150 ease-(--ease-out) focus-visible:outline-marker active:scale-[0.96]",
-              i === sampleIndex
-                ? "bg-surface font-semibold text-stamp"
-                : "bg-on-stamp/12 text-on-stamp hover:bg-on-stamp/20",
-            )}
-          >
-            {i === sampleIndex && <Check className="size-3.5" strokeWidth={2.5} aria-hidden />}
-            {s.label}
-          </button>
-        ))}
+          {SAMPLES.map((s, i) => (
+            <button
+              key={s.lang}
+              type="button"
+              lang={s.lang}
+              aria-pressed={i === sampleIndex}
+              onClick={() => {
+                if (i === sampleIndex) return;
+                setSampleIndex(i);
+                replay();
+              }}
+              className={cn(
+                "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 font-sans text-[0.9375rem] transition-[background-color,color,transform] duration-150 ease-(--ease-out) focus-visible:outline-marker active:scale-[0.96]",
+                i === sampleIndex
+                  ? "bg-surface font-semibold text-stamp"
+                  : "bg-on-stamp/12 text-on-stamp hover:bg-on-stamp/20",
+              )}
+            >
+              {i === sampleIndex && <Check className="size-3.5" strokeWidth={2.5} aria-hidden />}
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <p className="flex min-h-11 items-center gap-3 text-sm text-on-stamp">
+          <span>Esempio con dati inventati.</span>
+          {done && !reduced && (
+            <button
+              type="button"
+              onClick={replay}
+              className="-me-2 inline-flex min-h-11 animate-fade-in items-center gap-1.5 rounded-sm px-2 font-semibold text-on-stamp transition-opacity hover:opacity-80 focus-visible:outline-marker"
+            >
+              <RotateCcw className="size-3.5" aria-hidden />
+              Rivedi
+            </button>
+          )}
+        </p>
       </div>
 
       <div className="grid items-start gap-0 md:grid-cols-[minmax(0,0.86fr)_auto_minmax(0,1.14fr)] md:items-center">
@@ -272,20 +288,6 @@ export function IntakeDemo() {
           />
         </div>
       </div>
-
-      <p className="mt-4 flex min-h-11 items-center justify-between gap-3 text-sm text-on-stamp">
-        <span>Esempio con dati inventati.</span>
-        {done && !reduced && (
-          <button
-            type="button"
-            onClick={replay}
-            className="-me-2 inline-flex min-h-11 animate-fade-in items-center gap-1.5 rounded-sm px-2 font-semibold text-on-stamp transition-opacity hover:opacity-80 focus-visible:outline-marker"
-          >
-            <RotateCcw className="size-3.5" aria-hidden />
-            Rivedi
-          </button>
-        )}
-      </p>
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { PICTURE_CREDITS } from "@/lib/site/credits";
 
 // The order of the page (as in the header), then the pages that stand on their own.
 const COLUMNS = [
@@ -89,27 +88,6 @@ export function SiteFooter() {
             <p>
               Avanti non è un servizio della Pubblica Amministrazione e non è un CAF. Gli esempi sul
               sito usano dati inventati.
-            </p>
-            <p>
-              Fotografia:{" "}
-              {PICTURE_CREDITS.map((credit) => (
-                <span key={credit.source}>
-                  <a
-                    href={credit.source}
-                    className="underline decoration-[0.07em] underline-offset-[0.2em] hover:text-ink"
-                  >
-                    {credit.title}
-                  </a>
-                  , di {credit.creator},{" "}
-                  <a
-                    href={credit.licenceUrl}
-                    className="underline decoration-[0.07em] underline-offset-[0.2em] hover:text-ink"
-                  >
-                    {credit.licence}
-                  </a>
-                  , via Wikimedia Commons.
-                </span>
-              ))}
             </p>
           </div>
         </div>
