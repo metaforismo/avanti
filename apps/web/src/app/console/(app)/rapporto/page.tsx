@@ -33,6 +33,7 @@ import { useDownload } from "@/lib/console/use-download";
 import { useResource } from "@/lib/console/use-resource";
 import { cn } from "@/lib/cn";
 import { NearReadyPilot } from "@/components/console/near-ready-pilot";
+import { PANEL, PanelTitle } from "@/components/console/admin/panel";
 
 // Calendar days in Italian time, as the report counts them.
 const romeDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" });
@@ -210,58 +211,46 @@ function ReportView() {
     if (failed) setSaveError(`Download non riuscito. ${failed}`);
   };
 
+  const actions = (
+    <>
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={!downloadable}
+        loading={downloadable && files.pending?.endsWith("format=pdf")}
+        onClick={() => void save("pdf")}
+      >
+        <FileText className="size-4" aria-hidden />
+        Scarica PDF
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={!downloadable}
+        loading={downloadable && files.pending?.endsWith("format=csv")}
+        onClick={() => void save("csv")}
+      >
+        <Download className="size-4" aria-hidden />
+        Scarica CSV
+      </Button>
+    </>
+  );
+
   return (
     <PageContainer width="wide">
       <PageHeader
         title="Rapporto del pilota"
-        lead={
-          <>
-            Numeri aggregati da condividere con chi decide. Nessun dato dei cittadini: i gruppi con
-            meno di 5 pratiche compaiono come «&lt;5».
-          </>
-        }
-        actions={
-          downloadable ? (
-            <>
-              <Button
-                variant="secondary"
-                loading={files.pending?.endsWith("format=pdf")}
-                onClick={() => void save("pdf")}
-              >
-                <FileText className="size-4" aria-hidden />
-                Scarica PDF
-              </Button>
-              <Button
-                variant="secondary"
-                loading={files.pending?.endsWith("format=csv")}
-                onClick={() => void save("csv")}
-              >
-                <Download className="size-4" aria-hidden />
-                Scarica CSV
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="secondary" disabled>
-                <FileText className="size-4" aria-hidden />
-                Scarica PDF
-              </Button>
-              <Button variant="secondary" disabled>
-                <Download className="size-4" aria-hidden />
-                Scarica CSV
-              </Button>
-            </>
-          )
-        }
+        lead="Numeri aggregati da condividere con chi decide, senza dati dei cittadini."
+        actions={actions}
       />
 
+      {/* One row of 32 px controls: the period first, then the office. */}
       <form
-        className="mt-6 flex flex-wrap items-end gap-3 rounded-lg bg-surface p-4 shadow-raised ring-1 ring-line"
+        className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2"
         onSubmit={(e) => e.preventDefault()}
       >
         <SegmentedControl
           label="Periodi frequenti"
-          size="md"
           value={active ?? ""}
           options={choices.map((choice) => ({ value: choice.key, label: choice.label }))}
           onChange={(key) => {
@@ -271,49 +260,49 @@ function ReportView() {
             apply({ dal: choice.from, al: choice.to });
           }}
         />
-        <DateField
-          label="Dal"
-          value={shown.from}
-          max={shown.to || undefined}
-          onChange={(e) => setDraft({ ...shown, from: e.target.value })}
-          onBlur={commit}
-          onKeyDown={onDateKey}
-          aria-invalid={draft && invalid ? true : undefined}
-          aria-describedby={draft && invalid ? "period-error" : undefined}
-        />
-        <DateField
-          label="Al"
-          value={shown.to}
-          min={shown.from || undefined}
-          onChange={(e) => setDraft({ ...shown, to: e.target.value })}
-          onBlur={commit}
-          onKeyDown={onDateKey}
-          aria-invalid={draft && invalid ? true : undefined}
-          aria-describedby={draft && invalid ? "period-error" : undefined}
-        />
+        <span className="flex items-center gap-2">
+          <DateField
+            label="Dal"
+            value={shown.from}
+            max={shown.to || undefined}
+            onChange={(e) => setDraft({ ...shown, from: e.target.value })}
+            onBlur={commit}
+            onKeyDown={onDateKey}
+            aria-invalid={draft && invalid ? true : undefined}
+            aria-describedby={draft && invalid ? "period-error" : undefined}
+          />
+          <DateField
+            label="Al"
+            value={shown.to}
+            min={shown.from || undefined}
+            onChange={(e) => setDraft({ ...shown, to: e.target.value })}
+            onBlur={commit}
+            onKeyDown={onDateKey}
+            aria-invalid={draft && invalid ? true : undefined}
+            aria-describedby={draft && invalid ? "period-error" : undefined}
+          />
+        </span>
         {operator.offices.length > 1 && (
-          <label className="grid gap-1 text-sm">
-            <span className="text-ink-2">Sportello</span>
-            <Select
-              value={officeId}
-              onChange={(e) => apply({ sportello: e.target.value })}
-              compact
-              className="h-9 text-sm"
-            >
-              <option value="">Tutti gli sportelli</option>
-              {operator.offices.map((office) => (
-                <option key={office.id} value={office.id}>
-                  {office.name}
-                </option>
-              ))}
-            </Select>
-          </label>
+          <Select
+            value={officeId}
+            aria-label="Sportello"
+            onChange={(e) => apply({ sportello: e.target.value })}
+            compact
+            className="h-8 text-sm"
+          >
+            <option value="">Tutti gli sportelli</option>
+            {operator.offices.map((office) => (
+              <option key={office.id} value={office.id}>
+                {office.name}
+              </option>
+            ))}
+          </Select>
         )}
       </form>
       {saveError && (
         <Notice
           tone="danger"
-          className="mt-2"
+          className="mt-3"
           onDismiss={() => setSaveError(null)}
           dismissLabel="Chiudi avviso"
         >
@@ -321,20 +310,16 @@ function ReportView() {
         </Notice>
       )}
       {draft && invalid && (
-        <Notice tone="danger" id="period-error" className="mt-2">
+        <Notice tone="danger" id="period-error" className="mt-3">
           {invalid}
         </Notice>
       )}
-      <p className="mt-2 text-[0.8125rem] text-ink-3">
-        «—» è un dato nascosto o non ancora misurabile, e sotto ogni «—» c&apos;è il motivo; «&lt;5»
-        vuol dire meno di 5 pratiche. Servono a non rendere riconoscibili poche persone.
-      </p>
 
       {report.status === "error" && !data ? (
         <Notice
           tone="danger"
           size="page"
-          className="mt-8"
+          className="mt-6"
           title="Rapporto non disponibile."
           action={
             <Button variant="secondary" onClick={() => void report.reload()}>
@@ -345,17 +330,20 @@ function ReportView() {
           {report.error.message}
         </Notice>
       ) : !data ? (
-        <div className="mt-8 grid gap-10">
+        <div className="mt-6 grid gap-8" aria-hidden>
           <p role="status" className="sr-only">
             Preparazione del rapporto
           </p>
-          <Skeleton className="h-56 rounded-lg" />
-          <Skeleton className="h-48 rounded-lg" />
+          <Skeleton className="h-72 rounded-md" />
+          <Skeleton className="h-48 rounded-md" />
         </div>
       ) : (
         <div
           aria-busy={report.refreshing || undefined}
-          className={cn("mt-8 grid gap-10 transition-opacity", report.refreshing && "opacity-60")}
+          className={cn(
+            "mt-6 grid gap-8 transition-opacity duration-150",
+            report.refreshing && "opacity-60",
+          )}
         >
           <p role="status" className="sr-only">
             {report.refreshing
@@ -367,32 +355,15 @@ function ReportView() {
               {report.error.message} Sotto resta il rapporto precedente.
             </Notice>
           )}
-          <Thresholds group={data.total} />
+          <Thresholds group={data.total} report={data} />
           <Totals group={data.total} report={data} metricsHref={metricsHref} />
           {data.offices.length > 1 && !officeId && <Offices offices={data.offices} />}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Distribution
-              title="Lingue usate dai cittadini"
-              rows={data.total.byLanguage.map((r) => ({
-                key: r.language,
-                label: LANGUAGE_IT[r.language],
-                count: r.count,
-              }))}
-            />
-            <Distribution
-              title="Tipi di pratica"
-              rows={data.total.byPractice.map((r) => ({
-                key: r.practiceId ?? "none",
-                label: r.practiceId ? PRACTICE_SHORT[r.practiceId] : "Non ancora classificata",
-                count: r.count,
-              }))}
-            />
-          </div>
-          <details className="group rounded-lg bg-surface shadow-raised ring-1 ring-line">
-            <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-5 py-4 font-display text-lg font-semibold [&::-webkit-details-marker]:hidden">
+          <Who group={data.total} />
+          <details className={cn(PANEL, "group")}>
+            <summary className="flex cursor-pointer list-none items-center gap-3 rounded-md px-5 py-4 text-base font-semibold focus-visible:ring-2 focus-visible:ring-stamp focus-visible:outline-none [&::-webkit-details-marker]:hidden">
               <span className="flex-1">Come contiamo</span>
               <ChevronDown
-                className="size-5 shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180"
+                className="size-4 shrink-0 text-ink-3 transition-transform duration-150 group-open:rotate-180"
                 aria-hidden
               />
             </summary>
@@ -402,17 +373,17 @@ function ReportView() {
               ))}
             </ul>
           </details>
-          <p className="text-sm text-ink-3">
-            Generato il {formatDateTime(data.generatedAt)}. Ogni apertura e ogni download finiscono
-            nel{" "}
-            <Link href="/console/registro" className="underline underline-offset-2">
+          <p className="-mt-4 text-[0.8125rem] text-ink-3">
+            Generato il <span className="tabular">{formatDateTime(data.generatedAt)}</span>. Ogni
+            apertura e ogni download finiscono nel{" "}
+            <Link href="/console/registro" className="text-stamp hover:underline">
               registro attività
             </Link>
             .
           </p>
         </div>
       )}
-      <div className="mt-12 border-t border-line pt-10">
+      <div className="mt-8">
         <NearReadyPilot />
       </div>
     </PageContainer>
@@ -425,19 +396,19 @@ function ReportView() {
  */
 function DateField({ label, ...props }: { label: string } & Omit<ComponentProps<"input">, "type">) {
   return (
-    <label className="grid gap-1 text-sm">
-      <span className="text-ink-2">{label}</span>
+    <label className="flex items-center gap-2 text-sm text-ink-2">
+      <span>{label}</span>
       <span className="relative block">
         <Input
           type="date"
           {...props}
           className={cn(
-            "tabular h-9 w-40 pe-9 text-sm",
-            "[&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-y-0 [&::-webkit-calendar-picker-indicator]:end-0 [&::-webkit-calendar-picker-indicator]:w-9 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
+            "tabular h-8 w-[9.5rem] pe-8 text-sm",
+            "[&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-y-0 [&::-webkit-calendar-picker-indicator]:end-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
           )}
         />
         <CalendarDays
-          className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
+          className="pointer-events-none absolute end-2.5 top-1/2 size-4 -translate-y-1/2 text-ink-3"
           aria-hidden
         />
       </span>
@@ -445,37 +416,84 @@ function DateField({ label, ...props }: { label: string } & Omit<ComponentProps<
   );
 }
 
-function Thresholds({ group }: { group: PilotReportGroup }) {
+/** The sample against the protocol's minimum, as a bar at its true ratio with both ends named. */
+function SampleBar({ threshold }: { threshold: PilotThreshold }) {
+  const sample = threshold.sample;
+  const min = threshold.minimumSample;
+  if (typeof sample !== "number") {
+    return (
+      <p className="text-[0.8125rem] text-ink-3">
+        {sample === "<5" ? "Campione: meno di 5" : "Campione nascosto"}; minimo{" "}
+        <span className="tabular">{min}</span>
+      </p>
+    );
+  }
+  const ratio = Math.min(1, sample / min);
   return (
-    <section aria-labelledby="thresholds-title">
-      <SectionHeader
-        id="thresholds-title"
-        title="Le tre soglie del pilota"
-        lead="Decise prima di iniziare: dicono se ha senso proseguire. Con meno di 50 pratiche o con il periodo ancora aperto, il rapporto non dà un esito."
-      />
-      <ul className="mt-4 grid gap-4 md:grid-cols-3">
+    <div>
+      <p className="flex justify-between text-[0.8125rem] text-ink-3">
+        <span>
+          Campione <span className="tabular font-semibold text-ink">{sample}</span>
+        </span>
+        <span className="tabular">minimo {min}</span>
+      </p>
+      <span aria-hidden className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-sunk">
+        <span
+          className={cn(
+            "block h-full origin-left rounded-full",
+            ratio >= 1 ? "bg-ink-3" : "bg-line-strong",
+          )}
+          style={{ transform: `scaleX(${ratio})` }}
+        />
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The screen's answer: one panel, the three thresholds side by side, each with its outcome as
+ * the largest line, what it measured and how much of the required sample there is.
+ */
+function Thresholds({ group, report }: { group: PilotReportGroup; report: PilotReport }) {
+  const reached = group.thresholds.filter((t) => t.outcome === "raggiunta").length;
+  const decided = group.thresholds.filter((t) => t.outcome !== "dati_insufficienti").length;
+  const open = report.period.observedUntilExclusive < report.period.endExclusive;
+  const finding =
+    decided === 0
+      ? `Nessuna soglia ha ancora un esito: servono almeno ${Math.max(...group.thresholds.map((t) => t.minimumSample))} pratiche${open ? " e un periodo concluso" : ""}.`
+      : `${reached} ${reached === 1 ? "soglia raggiunta" : "soglie raggiunte"} su ${group.thresholds.length}.`;
+  return (
+    <section aria-labelledby="thresholds-title" className={PANEL}>
+      <div className="border-b border-line px-5 py-4">
+        <h2 id="thresholds-title" className="text-lg font-semibold">
+          Le tre soglie del pilota
+        </h2>
+        <p className="mt-1 text-sm text-ink-2">
+          {finding} Decise prima di iniziare: dicono se ha senso proseguire.
+        </p>
+      </div>
+      <ul className="grid divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0">
         {group.thresholds.map((threshold) => {
           const outcome = OUTCOME[threshold.outcome];
           const copy = THRESHOLD[threshold.id];
           const value = observed(threshold);
           return (
-            <li
-              key={threshold.id}
-              className="flex flex-col rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line"
-            >
-              <h3 className="font-semibold">{copy.title}</h3>
-              <p className="mt-1 text-sm text-ink-2">{copy.target}</p>
-              <p className={cn("mt-4 flex items-center gap-2 font-semibold", outcome.tone)}>
-                <outcome.icon className="size-5 shrink-0" aria-hidden />
-                {outcome.label}
-                {value && <span className="tabular text-ink">· {value}</span>}
+            <li key={threshold.id} className="flex flex-col gap-3 p-5">
+              <div>
+                <h3 className="text-sm font-semibold">{copy.title}</h3>
+                <p className="mt-0.5 text-[0.8125rem] leading-snug text-ink-3">{copy.target}</p>
+              </div>
+              <p className="flex items-center gap-2">
+                <outcome.icon className={cn("size-5 shrink-0", outcome.tone)} aria-hidden />
+                <span className={cn("text-xl leading-tight font-semibold", outcome.tone)}>
+                  {outcome.label}
+                </span>
+                {value && <span className="tabular text-xl font-semibold text-ink">{value}</span>}
               </p>
-              <p className="mt-2 text-sm text-ink-2">{explanation(threshold)}</p>
-              <p className="mt-auto pt-3 text-[0.8125rem] text-ink-3">
-                {threshold.sample === null
-                  ? `Campione nascosto; minimo ${threshold.minimumSample}`
-                  : `Campione: ${threshold.sample} su un minimo di ${threshold.minimumSample}`}
-              </p>
+              <p className="text-[0.8125rem] leading-snug text-ink-2">{explanation(threshold)}</p>
+              <div className="mt-auto pt-1">
+                <SampleBar threshold={threshold} />
+              </div>
             </li>
           );
         })}
@@ -500,7 +518,7 @@ function Totals({
   const hidden = group.starts === null || group.deliveries === null;
   const why = "Nascosto: un dato del periodo ha meno di 5 pratiche";
   return (
-    <section aria-labelledby="totals-title">
+    <section aria-labelledby="totals-title" className="grid gap-4">
       <SectionHeader
         id="totals-title"
         title="Cosa è successo nel periodo"
@@ -510,150 +528,163 @@ function Totals({
             : ""
         }.`}
       />
-      <dl className="mt-4 grid gap-px overflow-hidden rounded-lg bg-line shadow-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-4">
-        <Tile
-          label="Pratiche avviate"
-          value={count(group.starts)}
-          note={group.starts === null ? why : "Create nel periodo"}
-        />
-        <Tile
-          label="Inviate allo sportello"
-          value={count(group.deliveries)}
-          note={
-            group.deliveries === null
-              ? why
-              : group.deliveryRate.value === null
-                ? "Percentuale non calcolabile: troppo poche pratiche"
-                : `${percent(group.deliveryRate.value)} delle avviate`
-          }
-        />
-        <Tile
-          label="Complete all'invio"
-          value={percent(group.completeness.value)}
-          note={
-            group.completeness.value === null
-              ? hidden
+      <div className={PANEL}>
+        <dl className="grid grid-cols-2 lg:grid-cols-4 [&>*]:border-line lg:[&>*+*]:border-s max-lg:[&>*:nth-child(even)]:border-s max-lg:[&>*:nth-child(n+3)]:border-t">
+          <Tile
+            label="Pratiche avviate"
+            value={count(group.starts)}
+            note={group.starts === null ? why : "Create nel periodo"}
+          />
+          <Tile
+            label="Inviate allo sportello"
+            value={count(group.deliveries)}
+            note={
+              group.deliveries === null
                 ? why
-                : "Servono almeno 5 invii con il dato registrato"
-              : "Senza problemi bloccanti segnalati da Avanti"
-          }
-        />
-        <Tile
-          label="Richieste di integrazione"
-          value={count(group.integrations.requests)}
-          note={
-            group.integrations.requests === null
-              ? why
-              : `Su ${count(group.integrations.cases)} ${group.integrations.cases === 1 ? "pratica" : "pratiche"}`
-          }
-        />
-      </dl>
-      {hidden && (
-        <p className="mt-2 text-[0.8125rem] text-ink-3">
-          Il totale resta nascosto perché mostrarlo insieme al dettaglio permetterebbe di ricavare
-          il gruppo piccolo. Il conteggio esatto, per uso interno, è in{" "}
-          <Link
-            href={metricsHref}
-            className="font-semibold text-stamp underline underline-offset-2"
-          >
-            Metriche
-          </Link>
-          .
-        </p>
-      )}
-      <div className="mt-4 grid gap-4 rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line sm:grid-cols-3">
-        <Figure
-          label="Dalla creazione al primo invio"
-          value={formatMinutes(toSubmission?.value ?? null)}
-          note={
-            toSubmission?.value == null
-              ? "Nascosto: servono almeno 5 pratiche misurabili"
-              : "Media, comprese pause e attese del cittadino"
-          }
-        />
-        <Figure
-          label="Revisione allo sportello"
-          value={formatMinutes(review?.value ?? null)}
-          note={
-            review?.value == null
-              ? "Nascosto: servono almeno 5 revisioni registrate"
-              : "Media, comprese pause"
-          }
-        />
-        <Figure
-          label="Prima di Avanti (dichiarato)"
-          value={baseline === null ? "—" : formatMinutes(baseline)}
-          note={
-            baseline === null ? (
-              <>
-                Non impostato:{" "}
-                <Link
-                  href="/console/impostazioni#baseline"
-                  className="underline underline-offset-2"
-                >
-                  aggiungilo nelle impostazioni
-                </Link>
-              </>
-            ) : (
-              "Minuti per pratica stimati dal CAF, non misurati"
-            )
-          }
-        />
+                : group.deliveryRate.value === null
+                  ? "Percentuale non calcolabile: troppo poche pratiche"
+                  : `${percent(group.deliveryRate.value)} delle avviate`
+            }
+          />
+          <Tile
+            label="Complete all'invio"
+            value={percent(group.completeness.value)}
+            note={
+              group.completeness.value === null
+                ? hidden
+                  ? why
+                  : "Servono almeno 5 invii con il dato registrato"
+                : "Senza problemi bloccanti segnalati da Avanti"
+            }
+          />
+          <Tile
+            label="Richieste di integrazione"
+            value={count(group.integrations.requests)}
+            note={
+              group.integrations.requests === null
+                ? why
+                : `Su ${count(group.integrations.cases)} ${group.integrations.cases === 1 ? "pratica" : "pratiche"}`
+            }
+          />
+        </dl>
+        <dl className="grid divide-line border-t border-line max-sm:divide-y sm:grid-cols-3 sm:divide-x">
+          <Tile
+            label="Dalla creazione al primo invio"
+            value={formatMinutes(toSubmission?.value ?? null)}
+            note={
+              toSubmission?.value == null
+                ? "Nascosto: servono almeno 5 pratiche misurabili"
+                : "Media, comprese pause e attese del cittadino"
+            }
+          />
+          <Tile
+            label="Revisione allo sportello"
+            value={formatMinutes(review?.value ?? null)}
+            note={
+              review?.value == null
+                ? "Nascosto: servono almeno 5 revisioni registrate"
+                : "Media, comprese pause"
+            }
+          />
+          <Tile
+            label="Prima di Avanti (dichiarato)"
+            value={baseline === null ? "—" : formatMinutes(baseline)}
+            note={
+              baseline === null ? (
+                <>
+                  Non impostato:{" "}
+                  <Link
+                    href="/console/impostazioni#baseline"
+                    className="text-stamp hover:underline"
+                  >
+                    aggiungilo nelle impostazioni
+                  </Link>
+                </>
+              ) : (
+                "Minuti per pratica stimati dal CAF, non misurati"
+              )
+            }
+          />
+        </dl>
       </div>
-      <p className="mt-2 text-sm text-ink-3">
-        Sono tempi di calendario: non si confrontano con i minuti di lavoro. Il risparmio netto si
-        misura con il cronometro durante il pilota.
+      <p className="-mt-1 max-w-3xl text-[0.8125rem] leading-snug text-ink-3">
+        {hidden && (
+          <>
+            I totali restano nascosti perché insieme al dettaglio permetterebbero di ricavare il
+            gruppo piccolo; il conteggio esatto, per uso interno, è in{" "}
+            <Link href={metricsHref} className="font-semibold text-stamp hover:underline">
+              Metriche
+            </Link>
+            .{" "}
+          </>
+        )}
+        «&lt;5» vuol dire meno di 5 pratiche. I tempi sono di calendario: non si confrontano con i
+        minuti di lavoro, il risparmio netto si misura con il cronometro durante il pilota.
       </p>
     </section>
   );
 }
 
 function Offices({ offices }: { offices: PilotReportGroup[] }) {
+  const th = "h-9 px-4 text-[0.8125rem] font-medium whitespace-nowrap text-ink-3";
   return (
-    <section aria-labelledby="offices-title">
+    <section aria-labelledby="offices-title" className="grid gap-4">
       <SectionHeader id="offices-title" title="Per sportello" />
-      <div className="mt-4 overflow-x-auto rounded-lg bg-surface shadow-raised ring-1 ring-line">
+      {/* On a phone each office is a two-line row: the name, then every figure in words. */}
+      <ul className={cn(PANEL, "divide-y divide-line px-4 sm:hidden")}>
+        {offices.map((group) => (
+          <li key={group.office?.id ?? "none"} className="py-3">
+            <p className="text-sm font-semibold">{group.office?.name ?? "Senza sportello"}</p>
+            <p className="tabular mt-0.5 text-[0.8125rem] text-ink-3">
+              Avviate {count(group.starts)} · Inviate {count(group.deliveries)} · Complete{" "}
+              {percent(group.completeness.value)} · Integrazioni{" "}
+              {count(group.integrations.requests)}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <div className={cn(PANEL, "overflow-x-auto max-sm:hidden")}>
         <table className="w-full text-sm">
-          <thead className="text-ink-2">
+          <thead>
             <tr className="border-b border-line">
-              <th scope="col" className="px-4 py-3 text-start font-medium">
+              <th scope="col" className={cn(th, "w-2/5 text-start")}>
                 Sportello
               </th>
-              <th scope="col" className="px-4 py-3 text-end font-medium">
+              <th scope="col" className={cn(th, "text-end")}>
                 Avviate
               </th>
-              <th scope="col" className="px-4 py-3 text-end font-medium">
+              <th scope="col" className={cn(th, "text-end")}>
                 Inviate
               </th>
-              <th scope="col" className="px-4 py-3 text-end font-medium">
+              <th scope="col" className={cn(th, "text-end")}>
                 Complete all&apos;invio
               </th>
-              <th scope="col" className="px-4 py-3 text-end font-medium">
+              <th scope="col" className={cn(th, "text-end")}>
                 Integrazioni
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
             {offices.map((group) => (
-              <tr key={group.office?.id ?? "none"}>
-                <th scope="row" className="px-4 py-3 text-start font-semibold">
+              <tr key={group.office?.id ?? "none"} className="h-11">
+                <th scope="row" className="px-4 text-start font-semibold">
                   {group.office?.name ?? "Senza sportello"}
                 </th>
-                <td className="tabular px-4 py-3 text-end">{count(group.starts)}</td>
-                <td className="tabular px-4 py-3 text-end">
-                  {count(group.deliveries)}
+                <Cell value={count(group.starts)} />
+                <td className="tabular px-4 text-end">
+                  <CellValue value={count(group.deliveries)} />
                   {group.deliveryRate.value !== null && (
                     <span className="ms-1 text-ink-3">({percent(group.deliveryRate.value)})</span>
                   )}
                 </td>
-                <td className="tabular px-4 py-3 text-end">{percent(group.completeness.value)}</td>
-                <td className="tabular px-4 py-3 text-end">{count(group.integrations.requests)}</td>
+                <Cell value={percent(group.completeness.value)} />
+                <Cell value={count(group.integrations.requests)} />
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-[0.8125rem] text-ink-3">
+      <p className="-mt-1 text-[0.8125rem] text-ink-3">
         «—» in una cella: lo sportello ha meno di 5 pratiche, o mostrarla permetterebbe di ricavare
         il dato di un altro.
       </p>
@@ -661,54 +692,96 @@ function Offices({ offices }: { offices: PilotReportGroup[] }) {
   );
 }
 
-function Distribution({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: { key: string; label: string; count: PilotCount }[];
-}) {
+/** A hidden or missing value is a small grey dash, never a figure-sized one. */
+function CellValue({ value }: { value: string }) {
+  return value === "—" ? <span className="text-ink-3">—</span> : <>{value}</>;
+}
+
+function Cell({ value }: { value: string }) {
   return (
-    <section className="rounded-lg bg-surface p-5 shadow-raised ring-1 ring-line">
-      <h2 className="font-display text-lg font-semibold">{title}</h2>
-      {rows.length === 0 ? (
-        <p className="mt-3 text-ink-3">Nessuna pratica nel periodo.</p>
-      ) : (
-        <table className="mt-3 w-full text-sm">
-          <tbody className="divide-y divide-line">
-            {rows.map((row) => (
-              <tr key={row.key}>
-                <th scope="row" className="py-2 text-start font-normal text-ink-2">
-                  {row.label}
-                </th>
-                <td className="tabular py-2 text-end font-semibold">{count(row.count)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+    <td className="tabular px-4 text-end">
+      <CellValue value={value} />
+    </td>
+  );
+}
+
+/** Languages and kinds of practice in one panel: the long list in two columns, no half-empty card. */
+function Who({ group }: { group: PilotReportGroup }) {
+  return (
+    <section aria-labelledby="who-title" className={cn(PANEL, "p-5")}>
+      <PanelTitle id="who-title">Chi ha usato Avanti</PanelTitle>
+      <div className="mt-3 grid gap-x-10 gap-y-6 lg:grid-cols-3">
+        <Distribution
+          title="Lingue usate dai cittadini"
+          className="lg:col-span-2"
+          columns
+          rows={group.byLanguage.map((r) => ({
+            key: r.language,
+            label: LANGUAGE_IT[r.language],
+            count: r.count,
+          }))}
+        />
+        <Distribution
+          title="Tipi di pratica"
+          rows={group.byPractice.map((r) => ({
+            key: r.practiceId ?? "none",
+            label: r.practiceId ? PRACTICE_SHORT[r.practiceId] : "Non ancora classificata",
+            count: r.count,
+          }))}
+        />
+      </div>
     </section>
   );
 }
 
-function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
+function Distribution({
+  title,
+  rows,
+  columns = false,
+  className,
+}: {
+  title: string;
+  rows: { key: string; label: string; count: PilotCount }[];
+  columns?: boolean;
+  className?: string;
+}) {
   return (
-    <div className="bg-surface px-5 py-4">
-      <dt className="text-sm text-ink-2">{label}</dt>
-      <dd className="tabular mt-1 font-display text-4xl font-semibold tracking-[-0.02em]">
-        {value}
-      </dd>
-      {note && <dd className="mt-1 text-[0.8125rem] leading-snug text-ink-3">{note}</dd>}
+    <div className={className}>
+      <h3 className="text-[0.8125rem] text-ink-3">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-3">Nessuna pratica nel periodo.</p>
+      ) : (
+        <dl className={cn("mt-1 text-sm", columns && "gap-x-10 sm:columns-2")}>
+          {rows.map((row) => (
+            <div
+              key={row.key}
+              className="flex h-9 break-inside-avoid items-center justify-between gap-3 border-b border-line"
+            >
+              <dt className="truncate text-ink-2">{row.label}</dt>
+              <dd className="tabular font-semibold">
+                <CellValue value={count(row.count)} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </div>
   );
 }
 
-function Figure({ label, value, note }: { label: string; value: string; note: ReactNode }) {
+function Tile({ label, value, note }: { label: string; value: string; note?: ReactNode }) {
   return (
-    <div>
-      <p className="text-sm text-ink-2">{label}</p>
-      <p className="tabular mt-1 font-display text-3xl font-semibold">{value}</p>
-      <p className="mt-1 text-[0.8125rem] leading-snug text-ink-3">{note}</p>
+    <div className="px-4 py-4 sm:px-5">
+      <dt className="text-[0.8125rem] text-ink-3">{label}</dt>
+      <dd
+        className={cn(
+          "tabular mt-1 text-2xl leading-tight font-semibold",
+          value === "—" && "text-base leading-[1.875rem] text-ink-3",
+        )}
+      >
+        {value}
+      </dd>
+      {note && <dd className="mt-1 text-[0.8125rem] leading-snug text-ink-3">{note}</dd>}
     </div>
   );
 }
