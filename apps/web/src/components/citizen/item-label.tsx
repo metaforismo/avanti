@@ -14,7 +14,11 @@ export function ItemLabel({ item }: { item: Pick<ChecklistItem, "title" | "membe
       {owner && (
         <span className="text-ink-2">
           {" "}
-          (<bdi>{owner}</bdi>)
+          {/* Brackets and name wrap as one: «(Prova» on one line and «)» on the next reads as
+              two fragments in a right-to-left sentence. A long name may still wrap inside. */}
+          <span className={owner.length <= 28 ? "whitespace-nowrap" : undefined}>
+            (<bdi>{owner}</bdi>)
+          </span>
         </span>
       )}
     </span>
