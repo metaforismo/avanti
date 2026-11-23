@@ -1,280 +1,188 @@
-"use client";
-
 import { AlertTriangle, Check, FileText, FileWarning, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { MISSING } from "@/components/ui/missing";
 import { cn } from "@/lib/cn";
 
-const STEPS = [
-  {
-    title: "Racconta",
-    body: "Con parole sue, dal telefono, in una delle otto lingue.",
-  },
-  {
-    title: "Conferma",
-    body: "Avanti chiede solo quello che manca e ripete cosa ha capito.",
-  },
-  {
-    title: "Carica",
-    body: "Foto o PDF. Anno sbagliato o pagina mancante? Lo sa subito.",
-  },
-  {
-    title: "Consegna",
-    body: "Il fascicolo arriva in coda, in italiano, con i mancanti in cima.",
-  },
-] as const;
+/*
+ * «Prima dello sportello»: the same practice, one card, carried across four fields of colour as
+ * it gets further along. The cards are fragments of the real screens with invented data
+ * (`data-ui`): the citizen's three (the missing document is theirs to fetch, so `warn`) and the
+ * operator's queue row (a missing required document blocks the case, so `danger`).
+ */
 
-/* The four pictures: fragments of the real screens, invented data, decorative (the text next to
-   them says the same). All four sit in the same frame, 400×340 with its bar on top, so the
-   picture changes and the frame doesn't. */
-
-function Frame({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
+function Card({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="card-premium mx-auto w-full max-w-[25rem] p-2 lg:h-[21.25rem]">
-      <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-[0.75rem] bg-paper">
-        <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3 text-xs">
-          <span className="font-semibold">CAF di prova · ISEE</span>
-          <span className="text-ink-3">Dati inventati</span>
-        </div>
-        <div className={cn("grid min-h-0 flex-1 content-center", !flush && "gap-3 p-4")}>
-          {children}
-        </div>
-      </div>
+    <div
+      data-ui
+      className="field-card w-full max-w-[17.5rem] overflow-hidden rounded-[10px] bg-surface text-ink"
+    >
+      <p className="flex items-center justify-between gap-2 border-b border-line px-3.5 py-2.5 text-[0.8125rem]">
+        <span className="font-semibold">{label}</span>
+        <span className="text-ink-3">Dati inventati</span>
+      </p>
+      <div className="grid gap-2.5 p-3.5 text-sm">{children}</div>
     </div>
   );
 }
 
-const LANGS = [
-  { lang: "ro", text: "Trebuie să fac ISEE, locuiesc cu mama mea." },
-  { lang: "uk", text: "Мені потрібно зробити ISEE, я живу з мамою." },
-  { lang: "it", text: "Devo fare l’ISEE, vivo con mia madre." },
-] as const;
-
-function VisualTell() {
+function Tell() {
   return (
-    <Frame>
-      {LANGS.map((item, i) => (
-        <p
-          key={item.lang}
-          lang={item.lang}
-          className={cn(
-            "ms-auto w-fit max-w-[90%] rounded-2xl rounded-se-md px-3.5 py-2.5 text-sm",
-            i === LANGS.length - 1
-              ? "bg-surface text-ink shadow-raised ring-1 ring-line"
-              : "bg-sunk text-ink-2",
-          )}
-        >
-          {item.text}
-        </p>
-      ))}
-    </Frame>
+    <Card label="Dal telefono">
+      <p
+        lang="ro"
+        className="ms-auto w-fit max-w-[92%] rounded-2xl rounded-se-md bg-stamp px-3.5 py-2.5 text-on-stamp"
+      >
+        Trebuie să fac ISEE, locuiesc cu mama mea și am un cont Fineco.
+      </p>
+      <p className="text-[0.8125rem] text-ink-3">Scritto in rumeno, con parole sue</p>
+    </Card>
   );
 }
 
-function VisualConfirm() {
+function Confirm() {
   return (
-    <Frame>
-      <div className="rounded-xl bg-surface p-4 shadow-raised ring-1 ring-stamp/20">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="size-4 text-stamp" />
-          Ho capito così
-        </p>
-        <dl className="mt-2 divide-y divide-line text-sm">
-          {(
-            [
-              ["Persone nel nucleo", "2"],
-              ["Casa", "In affitto"],
-              ["Conti", "1, Fineco"],
-            ] as const
-          ).map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-3 py-2">
-              <dt className="text-ink-3">{k}</dt>
-              <dd className="font-semibold">{v}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="mt-3 flex h-10 items-center justify-center gap-2 rounded-md bg-stamp text-sm font-semibold text-on-stamp">
-          <Check className="size-4" />
-          Sì, è giusto
-        </p>
-      </div>
-    </Frame>
+    <Card label="Ho capito così">
+      <dl className="grid">
+        {(
+          [
+            ["Persone nel nucleo", "2"],
+            ["Casa", "In affitto"],
+            ["Conti", "1, Fineco"],
+          ] as const
+        ).map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-3 border-b border-line py-1.5">
+            <dt className="text-ink-3">{k}</dt>
+            <dd className="font-semibold">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="flex h-9 items-center justify-center gap-1.5 rounded-md bg-stamp text-sm font-semibold text-on-stamp">
+        <Check className="size-4" aria-hidden />
+        Sì, è giusto
+      </p>
+    </Card>
   );
 }
 
-function VisualUpload() {
+function Upload() {
   return (
-    <Frame>
+    <Card label="Documenti">
       {(
         [
-          ["Carta d’identità", "Leggibile, valida", "ok"],
+          ["Carta d’identità", "Leggibile", "ok"],
           ["Certificazione Unica", "È del 2024: serve la 2026", "warn"],
           ["Estratto conto Fineco", "Manca la pagina 2", "warn"],
         ] as const
       ).map(([name, note, tone]) => (
-        <div
-          key={name}
-          className="flex items-center gap-3 rounded-xl bg-surface p-3 shadow-raised ring-1 ring-line"
-        >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-sunk">
-            <FileText className="size-4 text-ink-3" />
+        <div key={name} className="flex items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-sunk">
+            <FileText className="size-4 text-ink-3" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold">{name}</span>
-            <span className={cn("block text-xs", tone === "ok" ? "text-ok" : MISSING.citizen.text)}>
+            <span className="block truncate font-semibold">{name}</span>
+            <span
+              className={cn(
+                "block text-[0.8125rem]",
+                tone === "ok" ? "text-ok" : MISSING.citizen.text,
+              )}
+            >
               {note}
             </span>
           </span>
           {tone === "ok" ? (
-            <Check className="size-4 shrink-0 text-ok" />
+            <Check className="size-4 shrink-0 text-ok" aria-hidden />
           ) : (
-            <AlertTriangle className={cn("size-4 shrink-0", MISSING.citizen.text)} />
+            <AlertTriangle className={cn("size-4 shrink-0", MISSING.citizen.text)} aria-hidden />
           )}
         </div>
       ))}
-    </Frame>
+    </Card>
   );
 }
 
-function VisualDeliver() {
+function Deliver() {
   return (
-    <Frame flush>
-      <div className="border-b border-line px-5 py-3">
-        <p className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="rounded-full bg-stamp-wash px-2 py-0.5 font-semibold text-stamp">
-            Da revisionare
-          </span>
-          <span className="rounded-full bg-sunk px-2 py-0.5 font-semibold text-ink-2">
-            Cittadina in rumeno
+    <Card label="Coda delle pratiche">
+      <div>
+        <p className="flex items-baseline justify-between gap-2">
+          <span className="font-display text-lg font-semibold">Ioana Popescu</span>
+          <span className={cn("shrink-0 text-[0.8125rem] font-semibold", MISSING.operator.text)}>
+            1 mancante
           </span>
         </p>
-        <div className="mt-2 flex items-baseline justify-between gap-3">
-          <p className="font-display text-xl font-semibold">Ioana Popescu</p>
-          <p className={cn("shrink-0 text-xs font-semibold", MISSING.operator.text)}>1 mancante</p>
-        </div>
-        <p className="text-sm text-ink-3">ISEE ordinario 2027 · 2 persone</p>
+        <p className="text-[0.8125rem] text-ink-3">ISEE ordinario 2027 · 2 persone · rumeno</p>
       </div>
-      {/* The operator's picture: a missing required document blocks the case (danger). */}
-      <div className={cn("flex gap-2.5 px-5 py-3 text-sm", MISSING.operator.wash)}>
-        <FileWarning className={cn("mt-0.5 size-4 shrink-0", MISSING.operator.text)} />
+      <p className={cn("flex gap-2 rounded-md px-2.5 py-2", MISSING.operator.wash)}>
+        <FileWarning className={cn("mt-0.5 size-4 shrink-0", MISSING.operator.text)} aria-hidden />
         <span>
-          <span className="block font-semibold">Manca 1 documento</span>
-          <span className="text-ink-2">Giacenza media 2025 · Fineco</span>
+          <span className="block font-semibold">Giacenza media 2025</span>
+          <span className="text-[0.8125rem] text-ink-2">Conto Fineco, già chiesta</span>
         </span>
-      </div>
-      <ul className="divide-y divide-line text-sm">
-        {["Documenti d’identità", "Redditi 2025", "Visura catastale"].map((label) => (
-          <li key={label} className="flex items-center gap-2.5 px-5 py-2">
-            <Check className="size-4 shrink-0 text-ok" />
-            {label}
-          </li>
-        ))}
-      </ul>
-    </Frame>
+      </p>
+      <p className="flex items-center gap-1.5 text-[0.8125rem] text-ink-2">
+        <Sparkles className="size-3.5 text-stamp" aria-hidden />
+        Riepilogo pronto, in italiano
+      </p>
+    </Card>
   );
 }
 
-const VISUALS = [VisualTell, VisualConfirm, VisualUpload, VisualDeliver];
+const FIELDS = [
+  {
+    clause: "Prima racconta, a parole sue e nella sua lingua.",
+    tone: "bg-marker text-ink",
+    Visual: Tell,
+  },
+  {
+    clause: "Poi conferma quello che Avanti ha capito.",
+    tone: "bg-stamp text-on-stamp",
+    Visual: Confirm,
+  },
+  {
+    clause: "Poi carica foto o PDF, con un primo controllo.",
+    tone: "bg-folder text-ink",
+    Visual: Upload,
+  },
+  {
+    clause: "Infine il fascicolo arriva in coda, in italiano.",
+    tone: "bg-contrast text-on-contrast",
+    Visual: Deliver,
+  },
+] as const;
 
-/**
- * The four steps, with the picture held on screen (sticky) and changing as each step is read.
- * On a phone each step carries its own picture instead.
- */
-export function HowItWorks() {
-  const [active, setActive] = useState(0);
-  const stepRefs = useRef<(HTMLLIElement | null)[]>([]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) setActive(Number((entry.target as HTMLElement).dataset.step));
-        }
-      },
-      { rootMargin: "-45% 0px -45% 0px" },
-    );
-    stepRefs.current.forEach((node) => node && observer.observe(node));
-    return () => observer.disconnect();
-  }, []);
-
+/** Four fields edge to edge: one practice, further along in each. */
+export function HowItWorks({ titleId }: { titleId: string }) {
   return (
-    <div className="grid gap-16 lg:grid-cols-2 lg:gap-20">
-      <div className="relative">
-        {/* Progress rail: fills step by step as each one is read (desktop, where the picture
-            stays put and the rail is what says how far along you are). */}
-        <div aria-hidden className="absolute inset-y-[18vh] -start-8 hidden w-px bg-line lg:block">
+    <ol className="grid sm:grid-cols-2 xl:grid-cols-4">
+      {FIELDS.map(({ clause, tone, Visual }, i) => (
+        <li
+          key={clause}
+          className={cn(
+            "field relative flex flex-col gap-8 px-[var(--site-margin)] py-12 sm:min-h-[38rem] sm:px-8 sm:py-10 xl:min-h-[84svh]",
+            tone,
+          )}
+        >
+          {i === 0 && (
+            <h2 id={titleId} className="t-sub font-extrabold">
+              Prima dello sportello
+            </h2>
+          )}
           <div
-            className="h-full w-full origin-top bg-stamp transition-transform duration-700 ease-(--ease-out)"
-            style={{ transform: `scaleY(${(active + 1) / STEPS.length})` }}
-          />
-        </div>
-        <ol className="grid gap-16 lg:gap-0 lg:py-[18vh]">
-          {STEPS.map((step, i) => {
-            const Visual = VISUALS[i]!;
-            return (
-              <li
-                key={step.title}
-                ref={(node) => {
-                  stepRefs.current[i] = node;
-                }}
-                data-step={i}
-                // Inactive steps are dimmed with colour, not opacity: they stay readable (AA).
-                data-active={i === active || undefined}
-                className="group lg:flex lg:min-h-[52vh] lg:flex-col lg:justify-center"
-              >
-                <p className="tabular inline-grid h-7 min-w-10 place-items-center self-start rounded-full bg-stamp-wash px-2.5 font-mono text-sm text-stamp transition-[background-color,color] duration-500 lg:bg-sunk lg:text-ink-3 lg:group-data-active:bg-stamp lg:group-data-active:text-on-stamp">
-                  0{i + 1}
-                </p>
-                <h3 className="mt-3 font-display text-[clamp(2rem,3.6vw,3rem)] leading-[1.02] font-semibold tracking-[-0.008em] transition-colors duration-500 lg:text-ink-3 lg:group-data-active:text-ink">
-                  {step.title}
-                </h3>
-                <p className="mt-3 max-w-sm type-lead text-ink-2 transition-colors duration-500 lg:text-ink-3 lg:group-data-active:text-ink-2">
-                  {step.body}
-                </p>
-                <div aria-hidden className="glow mt-10 lg:hidden">
-                  <Visual />
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-
-      <div aria-hidden className="hidden lg:block">
-        {/* The progress dashes sit above the frame and stay there to the last step; the frame
-            has one size, so nothing around it moves when the picture changes. */}
-        <div className="glow sticky top-[calc(50vh-11.5rem)] flex flex-col items-center gap-4">
-          <div className="flex gap-1.5">
-            {STEPS.map((step, i) => (
-              <span
-                key={step.title}
-                className={cn(
-                  "h-1 w-8 rounded-full transition-colors duration-500",
-                  i === active ? "bg-stamp" : i < active ? "bg-stamp/40" : "bg-line-strong",
-                )}
-              />
-            ))}
+            data-reveal
+            style={{ "--reveal-delay": `${i * 90}ms` } as CSSProperties}
+            className="flex flex-1 items-center sm:justify-center"
+          >
+            <Visual />
           </div>
-          <div className="grid w-full">
-            {VISUALS.map((Visual, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "col-start-1 row-start-1 transition-[opacity,transform] duration-[220ms] ease-(--ease-out)",
-                  i === active
-                    ? "translate-y-0 opacity-100"
-                    : cn(
-                        "pointer-events-none opacity-0",
-                        i < active ? "-translate-y-1.5" : "translate-y-1.5",
-                      ),
-                )}
-              >
-                <Visual />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+          <p
+            data-reveal
+            style={{ "--reveal-delay": `${i * 90 + 120}ms` } as CSSProperties}
+            className="font-display text-[clamp(1.375rem,1.66vw,1.5rem)] leading-[1.15] font-semibold tracking-[-0.006em] text-balance"
+          >
+            {clause}
+          </p>
+        </li>
+      ))}
+    </ol>
   );
 }

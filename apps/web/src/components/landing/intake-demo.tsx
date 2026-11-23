@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, FileWarning, Mic, RotateCcw } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QueueTicket, Stamp } from "@/components/brand/desk-objects";
 import { CHEVRON_PATH } from "@/components/brand/mark";
 import { MISSING } from "@/components/ui/missing";
@@ -11,7 +11,7 @@ import { SAMPLES } from "./intake-demo-samples";
 
 /** The samples keep the plain apostrophe a keyboard types (the backend tests those exact
     sentences); the page draws the typographic one. */
-const typographic = (text: string) => text.replace(/(?<=\p{L})'(?=\p{L})/gu, "\u2019");
+const typographic = (text: string) => text.replace(/(?<=\p{L})'(?=\p{L})/gu, "’");
 
 /** What the operator reads: always Italian, whatever language the citizen used. */
 const FACTS = [
@@ -37,9 +37,10 @@ const FACTS_END = FACTS.length;
 const LAST_PHASE = FACTS_END + CHECKLIST.length + 1;
 
 /**
- * The hero: what a citizen writes, in their own words and language, becoming the dossier the
- * operator opens. Invented data, said so in the caption. The sentences are the ones the
- * extraction is tested on (intake-demo-samples.ts).
+ * The hero's live piece, laid on the blue stage: what a citizen writes, in their own words and
+ * language, becoming the dossier the operator opens. Choosing a language replays it. Invented
+ * data, said so under it. The sentences are the ones the extraction is tested on
+ * (intake-demo-samples.ts). The two cards are fragments of the real screens (`data-ui`).
  */
 export function IntakeDemo() {
   const [sampleIndex, setSampleIndex] = useState(0);
@@ -47,40 +48,7 @@ export function IntakeDemo() {
   const [run, setRun] = useState(0);
   const reduced = usePrefersReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
-  const pillsRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-  // Where the row of languages continues, to fade that edge instead of cutting it.
-  const [more, setMore] = useState({ start: false, end: false });
-
-  useEffect(() => {
-    const node = pillsRef.current;
-    if (!node) return;
-    const read = () => {
-      // scrollLeft is negative in right-to-left: the distance from the start is what matters.
-      const from = Math.abs(node.scrollLeft);
-      const range = node.scrollWidth - node.clientWidth;
-      const next = { start: from > 1, end: range > 1 && from < range - 1 };
-      setMore((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
-    };
-    read();
-    node.addEventListener("scroll", read, { passive: true });
-    const resize = new ResizeObserver(read);
-    resize.observe(node);
-    return () => {
-      node.removeEventListener("scroll", read);
-      resize.disconnect();
-    };
-  }, []);
-
-  /** Brings the chosen language to the middle of the row when the row scrolls. */
-  const centre = (button: HTMLElement) => {
-    const row = pillsRef.current;
-    if (!row || row.scrollWidth <= row.clientWidth) return;
-    const rect = button.getBoundingClientRect();
-    const box = row.getBoundingClientRect();
-    const delta = rect.left - box.left - (row.clientWidth - rect.width) / 2;
-    row.scrollBy({ left: delta, behavior: reduced ? "auto" : "smooth" });
-  };
 
   // Start only once the demo is on screen, so people actually see the sequence.
   useEffect(() => {
@@ -97,7 +65,7 @@ export function IntakeDemo() {
   useEffect(() => {
     if (!visible || reduced) return;
     const timers = Array.from({ length: LAST_PHASE }, (_, i) =>
-      window.setTimeout(() => setPhase(i + 1), 700 + i * STEP_MS),
+      window.setTimeout(() => setPhase(i + 1), 900 + i * STEP_MS),
     );
     return () => timers.forEach(window.clearTimeout);
   }, [visible, reduced, sampleIndex, run]);
@@ -113,131 +81,102 @@ export function IntakeDemo() {
   const done = shown >= LAST_PHASE;
 
   return (
-    <div
-      ref={rootRef}
-      className="grid items-start lg:grid-cols-[minmax(0,0.92fr)_auto_minmax(0,1.08fr)] lg:items-center"
-    >
-      {/* The citizen's screen */}
-      <div className="min-w-0">
-        <div
-          ref={pillsRef}
-          role="group"
-          aria-label="Lingua dell’esempio"
-          style={
-            {
-              "--fade-s": more.start ? "32px" : "0px",
-              "--fade-e": more.end ? "32px" : "0px",
-            } as CSSProperties
-          }
-          className="fade-x -mx-1 mb-3 flex [scrollbar-width:none] items-center gap-1 overflow-x-auto px-1 py-0.5"
-        >
-          {/* font-sans on the labels: one word in Arabic or Bengali reads fine in the system
-              font, and would otherwise fetch 270 KB of Noto above the fold. */}
-          {SAMPLES.map((s, i) => (
-            <button
-              key={s.lang}
-              type="button"
-              lang={s.lang}
-              aria-pressed={i === sampleIndex}
-              onClick={(event) => {
-                centre(event.currentTarget);
-                if (i === sampleIndex) return;
-                setSampleIndex(i);
-                replay();
-              }}
+    <div ref={rootRef}>
+      <div
+        role="group"
+        aria-label="Lingua del cittadino nell’esempio"
+        className="mb-5 flex flex-wrap items-center gap-1.5"
+      >
+        {/* font-sans on the labels: one word in Arabic or Bengali reads fine in the system
+            font, and would otherwise fetch 270 KB of Noto above the fold. */}
+        {SAMPLES.map((s, i) => (
+          <button
+            key={s.lang}
+            type="button"
+            lang={s.lang}
+            aria-pressed={i === sampleIndex}
+            onClick={() => {
+              if (i === sampleIndex) return;
+              setSampleIndex(i);
+              replay();
+            }}
+            className={cn(
+              "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 font-sans text-[0.9375rem] transition-[background-color,color,transform] duration-150 ease-(--ease-out) focus-visible:outline-marker active:scale-[0.96]",
+              i === sampleIndex
+                ? "bg-surface font-semibold text-stamp"
+                : "bg-on-stamp/12 text-on-stamp hover:bg-on-stamp/20",
+            )}
+          >
+            {i === sampleIndex && <Check className="size-3.5" strokeWidth={2.5} aria-hidden />}
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid items-start gap-0 md:grid-cols-[minmax(0,0.86fr)_auto_minmax(0,1.14fr)] md:items-center">
+        {/* The citizen's screen */}
+        <figure data-ui className="min-w-0 overflow-hidden rounded-[14px] bg-paper text-ink">
+          <figcaption className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 text-sm">
+            <span className="font-semibold">CAF di prova · ISEE</span>
+            <span className="text-ink-3">Dal telefono</span>
+          </figcaption>
+          <div className="grid min-h-[15rem] content-between gap-6 px-4 pt-5 pb-4">
+            <p
+              key={`${sample.lang}-${run}`}
+              lang={sample.lang}
+              dir={sample.dir}
               className={cn(
-                "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 font-sans text-sm transition-[background-color,color,transform,box-shadow] duration-150 ease-(--ease-out) active:scale-[0.96]",
-                // A chosen value: stamp-wash, a stamp ring and a tick (DESIGN.md, «Selezionato»).
-                i === sampleIndex
-                  ? "bg-stamp-wash font-semibold text-stamp ring-1 ring-stamp ring-inset"
-                  : "text-ink-2 ring-1 ring-line ring-inset hover:bg-surface hover:text-ink",
+                "w-fit max-w-[96%] animate-rise rounded-3xl bg-surface px-4 py-3 text-[1.0625rem] leading-[1.75] text-ink ring-1 ring-line",
+                sample.dir === "rtl" ? "me-auto rounded-ss-md" : "ms-auto rounded-se-md",
               )}
             >
-              {i === sampleIndex && <Check className="size-3.5" strokeWidth={2.5} aria-hidden />}
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <figure className="card-premium relative rounded-[1.75rem] p-2">
-          <div className="rounded-[1.25rem] bg-paper ring-1 ring-line/70">
-            <figcaption className="flex items-center justify-between border-b border-line px-4 py-3 text-sm">
-              <span className="font-semibold text-ink">CAF di prova · ISEE</span>
-              <span className="hidden text-ink-3 sm:inline">Il cittadino, dal telefono</span>
-            </figcaption>
-            <div className="grid min-h-[13.5rem] content-between gap-6 px-4 pt-5 pb-4 sm:min-h-[12rem]">
-              <p
-                key={`${sample.lang}-${run}`}
-                lang={sample.lang}
-                dir={sample.dir}
-                className={cn(
-                  "w-fit max-w-[95%] animate-rise rounded-3xl bg-surface px-4 py-3 text-[1.125rem] leading-[1.75] text-ink shadow-raised ring-1 ring-line sm:text-[1.1875rem]",
-                  sample.dir === "rtl" ? "me-auto rounded-ss-md" : "ms-auto rounded-se-md",
-                )}
-              >
-                {sample.segments.map((segment, i) =>
-                  typeof segment === "string" ? (
-                    <span key={i}>{typographic(segment)}</span>
-                  ) : (
-                    <mark
-                      key={i}
-                      className={cn(
-                        "bg-transparent [box-decoration-break:clone] bg-no-repeat text-inherit [-webkit-box-decoration-break:clone]",
-                        // The one transition here that is not transform/opacity: the stroke
-                        // follows the line breaks, which a scale on a box can't (DESIGN.md).
-                        "bg-[linear-gradient(var(--marker),var(--marker))] [background-position:0_80%] transition-[background-size] duration-500 ease-(--ease-out)",
-                        sample.dir === "rtl" && "[background-position:100%_80%]",
-                        shown > segment.fact ? "bg-[length:100%_0.95em]" : "bg-[length:0%_0.95em]",
-                      )}
-                    >
-                      {typographic(segment.text)}
-                    </mark>
-                  ),
-                )}
-              </p>
-              {/* Drawn composer: the citizen can also answer by voice. */}
-              <div
-                aria-hidden
-                className="flex h-11 items-center justify-between rounded-full bg-surface ps-4 pe-1.5 text-sm text-ink-3 ring-1 ring-line"
-              >
-                Scrivi o parla, con parole tue
-                <span className="grid size-8 place-items-center rounded-full bg-stamp text-on-stamp">
-                  <Mic className="size-4" />
-                </span>
-              </div>
+              {sample.segments.map((segment, i) =>
+                typeof segment === "string" ? (
+                  <span key={i}>{typographic(segment)}</span>
+                ) : (
+                  <mark
+                    key={i}
+                    className={cn(
+                      "bg-transparent [box-decoration-break:clone] bg-no-repeat text-inherit [-webkit-box-decoration-break:clone]",
+                      // The one transition here that is not transform/opacity: the stroke
+                      // follows the line breaks, which a scale on a box can't (DESIGN.md).
+                      "bg-[linear-gradient(var(--marker),var(--marker))] [background-position:0_80%] transition-[background-size] duration-500 ease-(--ease-out)",
+                      sample.dir === "rtl" && "[background-position:100%_80%]",
+                      shown > segment.fact ? "bg-[length:100%_0.95em]" : "bg-[length:0%_0.95em]",
+                    )}
+                  >
+                    {typographic(segment.text)}
+                  </mark>
+                ),
+              )}
+            </p>
+            {/* Drawn composer: the citizen can also answer by voice. */}
+            <div
+              aria-hidden
+              className="flex h-11 items-center justify-between rounded-full bg-surface ps-4 pe-1.5 text-sm text-ink-3 ring-1 ring-line"
+            >
+              Scrivi o parla, con parole tue
+              <span className="grid size-8 place-items-center rounded-full bg-stamp text-on-stamp">
+                <Mic className="size-4" />
+              </span>
             </div>
           </div>
         </figure>
-      </div>
 
-      <Handoff phase={shown} reduced={reduced} />
+        <Handoff phase={shown} reduced={reduced} />
 
-      {/* The operator's dossier, on a small stack of sheets */}
-      <div className="min-w-0">
-        <div className="relative">
-          <div
-            aria-hidden
-            className="absolute inset-x-3 top-3 -bottom-2.5 rotate-[1.4deg] rounded-xl bg-surface shadow-raised ring-1 ring-line"
-          />
-          <div
-            aria-hidden
-            className="absolute inset-x-1.5 top-1.5 -bottom-1 -rotate-[0.8deg] rounded-xl bg-surface ring-1 ring-line"
-          />
-          <QueueTicket
-            number="A 318"
-            label="In coda"
-            className="absolute -end-2 -top-6 z-10 origin-top-right scale-[0.82] rotate-[4deg] sm:-end-4 sm:-top-5 sm:scale-100"
-          />
-
+        {/* The operator's dossier */}
+        <div data-ui className="relative min-w-0">
           <section
             aria-label="Fascicolo per l’operatore"
-            className="card-premium relative overflow-hidden rounded-xl"
+            className="relative overflow-hidden rounded-[14px] bg-surface text-ink"
           >
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line px-5 py-4 pe-28 sm:px-6 sm:pe-32">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line px-5 py-4 pe-28 sm:pe-32">
               <p className="font-display text-lg font-semibold">Fascicolo per l’operatore</p>
+              {/* The case code is real product data, set as the console sets it. */}
               <span className="font-mono text-xs whitespace-nowrap text-ink-3">AV-2027-000318</span>
             </div>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 px-5 py-4 text-body-sm sm:px-6">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 px-5 py-4 text-body-sm">
               {FACTS.map((fact, i) => (
                 <div key={fact.key} className="contents">
                   <dt className="text-ink-3">{fact.key}</dt>
@@ -267,7 +206,7 @@ export function IntakeDemo() {
                 </div>
               ))}
             </dl>
-            <ul className="relative grid gap-2 border-t border-dashed border-line px-5 pt-4 pb-16 text-body-sm sm:px-6 sm:pb-4">
+            <ul className="relative grid gap-2 border-t border-line px-5 pt-4 pb-16 text-body-sm sm:pb-4">
               {CHECKLIST.map((item, i) => {
                 const ticked = shown > FACTS_END + i;
                 return (
@@ -314,7 +253,7 @@ export function IntakeDemo() {
             </ul>
             <div
               className={cn(
-                "flex items-center gap-2 px-5 py-3 text-sm transition-[opacity,transform] duration-500 ease-(--ease-out) sm:px-6",
+                "flex items-center gap-2 px-5 py-3 text-sm transition-[opacity,transform] duration-500 ease-(--ease-out)",
                 MISSING.operator.wash,
                 MISSING.operator.text,
                 done ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
@@ -325,54 +264,54 @@ export function IntakeDemo() {
               Manca 1 documento: già chiesto al cittadino, nella sua lingua.
             </div>
           </section>
+          {/* The paper number of the queue, laid on the dossier: the shape of the logo. */}
+          <QueueTicket
+            number="A 318"
+            label="In coda"
+            className="absolute -end-1 -top-5 z-10 origin-top-right scale-[0.82] rotate-[4deg] sm:-end-3 sm:scale-95"
+          />
         </div>
-
-        <p className="relative mt-5 flex min-h-11 items-center justify-between gap-3 text-sm text-ink-3">
-          <span>Esempio con dati inventati.</span>
-          {done && !reduced && (
-            <button
-              type="button"
-              onClick={replay}
-              className="-me-2 inline-flex min-h-11 animate-fade-in items-center gap-1.5 rounded-sm px-2 text-ink-2 transition-colors hover:text-ink"
-            >
-              <RotateCcw className="size-3.5" aria-hidden />
-              Rivedi
-            </button>
-          )}
-        </p>
       </div>
+
+      <p className="mt-4 flex min-h-11 items-center justify-between gap-3 text-sm text-on-stamp">
+        <span>Esempio con dati inventati.</span>
+        {done && !reduced && (
+          <button
+            type="button"
+            onClick={replay}
+            className="-me-2 inline-flex min-h-11 animate-fade-in items-center gap-1.5 rounded-sm px-2 font-semibold text-on-stamp transition-opacity hover:opacity-80 focus-visible:outline-marker"
+          >
+            <RotateCcw className="size-3.5" aria-hidden />
+            Rivedi
+          </button>
+        )}
+      </p>
     </div>
   );
 }
 
 /**
- * The step between the two pictures: the brand chevron on a short track. While facts are
- * being read, each one sends a dot across (keyed by phase, so the animation restarts) and the
- * chevron gives a small push. Decorative; horizontal from lg, vertical when stacked.
+ * The step between the two cards: the brand chevron on a marker disc. While facts are being
+ * read, each one sends a dot across (keyed by phase, so the animation restarts) and the chevron
+ * gives a small push. Decorative; horizontal from md, vertical when stacked.
  */
 function Handoff({ phase, reduced }: { phase: number; reduced: boolean }) {
   const moving = !reduced && phase > 0 && phase <= FACTS_END;
   return (
-    <div aria-hidden className="relative mx-auto grid h-20 w-10 place-items-center lg:h-10 lg:w-24">
-      <span className="absolute inset-y-1 start-1/2 w-px -translate-x-1/2 bg-[repeating-linear-gradient(to_bottom,var(--line-strong)_0_4px,transparent_4px_8px)] lg:inset-x-1 lg:inset-y-auto lg:top-1/2 lg:h-px lg:w-auto lg:translate-x-0 lg:-translate-y-1/2 lg:bg-[repeating-linear-gradient(to_right,var(--line-strong)_0_4px,transparent_4px_8px)]" />
-      {moving && (
-        <span
-          key={phase}
-          className="flow-dot absolute size-2.5 rounded-full bg-marker shadow-[0_0_0_3px_rgb(255_228_92/0.35)]"
-        />
-      )}
+    <div aria-hidden className="relative mx-auto grid h-16 w-10 place-items-center md:h-10 md:w-16">
+      {moving && <span key={phase} className="flow-dot absolute size-2.5 rounded-full bg-marker" />}
       <span
         key={moving ? `p${phase}` : "rest"}
         className={cn(
-          "relative grid size-10 place-items-center rounded-full bg-stamp text-on-stamp shadow-[0_6px_16px_-6px_rgb(36_64_179/0.6),inset_0_1px_0_rgb(255_255_255/0.25)]",
+          "relative grid size-10 place-items-center rounded-full bg-marker text-stamp",
           moving && "flow-pulse",
         )}
       >
-        <svg viewBox="11 9 9.5 14" className="h-4 w-3 rotate-90 lg:rotate-0 rtl:lg:-scale-x-100">
+        <svg viewBox="11 9 9.5 14" className="h-4 w-3 rotate-90 md:rotate-0 rtl:md:-scale-x-100">
           <path
             d={CHEVRON_PATH}
             fill="none"
-            stroke="var(--marker)"
+            stroke="var(--stamp)"
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"

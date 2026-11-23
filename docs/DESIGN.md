@@ -8,8 +8,9 @@ tante pratiche al giorno, ogni minuto conta). Il sistema visivo è unico, la den
 
 Avanti si presenta come un oggetto da sportello, non come una startup: carta d'ufficio,
 inchiostro blu del timbro, l'evidenziatore giallo con cui l'operatore segna ciò che conta.
-Nessun gradiente vistoso (solo luci radiali appena percettibili sul sito), nessuna illustrazione generica, nessuna icona "AI" con scintille in primo piano:
-il prodotto si mostra com'è, con dati inventati dichiarati.
+Nessun gradiente, nessuna ombra a riposo e nessun filetto decorativo sul sito, nessuna illustrazione
+generica, nessuna icona "AI" con scintille in primo piano: il prodotto si mostra com'è, con dati
+inventati dichiarati.
 
 ### Marchio
 
@@ -78,13 +79,19 @@ Atkinson Hyperlegible Mono solo per codici e tasti.
 | `type-subsection` | 28 → 40 px                  | Sezione minore o di chiusura                |
 | `type-title`      | 24 px, semibold             | Titoli di scheda e di colonna               |
 | `type-lead`       | 17 → 20 px, interlinea 1,55 | Paragrafo sotto un titolo di sezione        |
-| `type-eyebrow`    | 13 px, maiuscoletto +0,06em | Etichetta sopra il titolo di sezione        |
+| `type-eyebrow`    | 13 px, maiuscoletto +0,06em | Solo console: il sito non ha etichette      |
 | `text-base`       | 16 px                       | Testo corrente (cittadino: mai sotto 16 px) |
 | `text-body-sm`    | 15 px                       | Righe dense della console                   |
 
 Tracking ottico: Bricolage stringe già da sé ai corpi grandi (asse `opsz`), quindi i titoli
 editoriali vanno da −0,008em verso −0,006em man mano che crescono, larghezza 96–98% e peso
 650–660. Con −0,022em e larghezza 88% «rr», «fa» e «sc» si toccavano.
+
+Sul sito pubblico la scala è più ampia e ha cinque passi, in `(site)/site.css`: `t-display`
+(46 → 112 px, il titolo dell'hero), `t-head` (32 → 76 px, titoli di sezione e delle pagine
+secondarie), `t-sub` (24 → 36 px, frasi e nomi grandi che non sono titoli), `t-lead` (19 → 24 px,
+la frase sotto un titolo e le domande delle FAQ), `t-body` (17 → 19 px, il testo corrente, in
+inchiostro pieno). Fuori scala solo la cifra del picco e la parola «Avanti» della chiusura.
 
 Titoli con `text-wrap: balance`, paragrafi con `pretty`, al massimo ~65 caratteri per riga
 (`max-w-2xl` per i lead). I lead centrati hanno `text-balance` e `max-w-[34rem]`: niente parola
@@ -98,13 +105,15 @@ l'area del sito ne contiene uno dritto. Cifre che cambiano o si confrontano: `ta
 
 ## Spaziature, griglia, forme
 
-- Scala di Tailwind (4 px). Ritmo del sito: sezioni `py-20 lg:py-28`, titolo → contenuto
-  `mt-12/14`, etichetta → titolo `mb-4`. Contenitore `max-w-6xl`, margini `px-4 sm:px-6`.
+- Scala di Tailwind (4 px). Sito: una sola cornice `.frame` (margini `--site-margin`, 20 → 36 px,
+  uguali a destra e a sinistra, header compreso; massimo 105 rem), griglia di 12 colonne, sezioni a
+  112–160 px l'una dall'altra; le sezioni cambiano campo di colore invece di avere filetti.
 - Raggi: `xs` 4 · `sm` 6 (pulsanti, campi) · `md` 10 · `lg` 16 (schede) · `xl` 22 (immagini del
   prodotto). Un elemento annidato ha un raggio minore del contenitore.
 - Ombre: `shadow-raised` per schede su carta, `shadow-float` per ciò che sta sopra (fogli,
-  menu), `shadow-frame` per le immagini del prodotto nella landing, `shadow-dock` per le barre
-  in basso. Su fondo scuro si usa l'anello `ring-on-contrast/10`, non l'ombra.
+  menu), `shadow-dock` per le barre in basso. Sul sito nessuna ombra a riposo: le superfici si
+  distinguono per campo di colore; le immagini del prodotto (`data-ui`) tengono i bordi di 1 px
+  della console, come sono nel prodotto.
 - Bersagli: 44 px sul sito e nella console da telefono, 56 px per le scelte del cittadino.
 
 ## Iconografia
@@ -181,12 +190,12 @@ per tutte le aree:
   `ease-in`.
 - **Durate:** feedback 100–160 ms, menu e popover 150–250 ms, fogli 300–340 ms; sul sito i
   reveal 600–800 ms. Le uscite sono più rapide delle entrate.
-- **Header del sito:** `backdrop-filter: blur(14px) saturate(160%)` statico (solo opacità che
-  cambia) quando la pagina si muove; sopra le fasce `data-header="dark"` (operatori, dati) le due
-  tinte (carta e `contrast`) si incrociano in 200 ms e la barra diventa scura, con voci
-  `on-contrast`, CTA `marker` e marchio invertito. Solo per fasce a tutta larghezza: la scheda di
-  chiusura è inset, e una barra scura sulla carta chiara sarebbe grigia ai lati. Il divieto di
-  `backdrop-filter` vale per le barre del cittadino, non per il sito.
+- **Header del sito:** una barra semplice e opaca, senza sfocatura né filetto: compare (opacità)
+  quando la pagina si muove e prende il colore del campo sotto. Sopra le sezioni
+  `data-header="dark"` (operatori) diventa `contrast`, sopra `data-header="stamp"` (il picco, la
+  chiusura) diventa `stamp`; le tinte si incrociano in 200 ms, con voci `on-contrast`, CTA
+  `marker` e marchio invertito (biglietto bianco, freccia `stamp`). Solo per campi a tutta
+  larghezza.
 - **Menu mobile del sito:** foglio a tutto schermo sotto la barra (64 px), pagina bloccata e
   `inert`, voci in `font-display` 28 px alte 56 px; le voci salgono di 8 px con 40 ms tra l'una e
   l'altra (240 ms), la chiusura è una dissolvenza di 150 ms. In basso un solo tasto da 52 px e
@@ -242,63 +251,60 @@ Console e cittadino:
 
 Sito pubblico (`app/(site)/site.css`, caricato solo lì):
 
-**Coreografia dell'hero**, ritardi di partenza: badge 0 · parole del titolo da 80 ms, 50 ms l'una
-dall'altra · lead 280 · CTA 360 · fatti 420 · banco 520. La CTA è leggibile entro 500 ms e tutto è
-fermo entro 1,3 s (l'evidenziatore sotto «pronto» parte a 520 ms e dura 500). La maschera di ogni
-parola ha spazio per l'ascendente della «f» e il discendente della «p» (padding 0,14/0,16em con
-margine negativo uguale) e la parola parte trasparente: un bordo netto non mostra mai mezza
-lettera. Con movimento ridotto è una dissolvenza di 150 ms senza ritardi.
+**Coreografia dell'hero**, ritardi di partenza: parole del titolo da 80 ms, 60 ms l'una
+dall'altra (700 ms ciascuna) · frase 280 · CTA 360 · fatti 420 · palco 520. Il palco blu sale di
+64 px e il suo contenuto si assesta da una scala di 1,06 (1,1–1,3 s, `--ease-out-expo`): è la
+mossa firma, fatta solo di `transform` e `opacity` (una tendina con `clip-path` ridipingerebbe
+tutto il palco a ogni frame). L'evidenziatore sotto «pronto.» parte a 640 ms e dura 500. Con
+movimento ridotto è una dissolvenza di 150 ms senza ritardi.
 
-| Classe / attributo          | Cosa fa                                                                          |
-| --------------------------- | -------------------------------------------------------------------------------- |
-| `hero-in` + `--d`           | Entrata al caricamento, da CSS (non aspetta l'idratazione), 700 ms               |
-| `data-reveal`               | Sale di 14 px e compare quando entra in vista, una volta                         |
-| `data-reveal="stagger"`     | Lo stesso per i figli, 60 ms l'uno dall'altro (massimo 300 ms)                   |
-| `draw-x`                    | Una linea dentro un reveal si disegna da sinistra (`scaleX`)                     |
-| `marker-draw`               | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)                 |
-| `stamp-press` / `tick-in`   | Timbro premuto con piccolo rimbalzo; spunta che compare in scala                 |
-| `grain` / `grain-dark`      | Grana della carta (SVG di rumore) su fondi chiari o scuri                        |
-| `ruled`                     | Righe del registro che sfumano in alto negli hero                                |
-| `hero-word`                 | Titolo dell'hero parola per parola (600 ms), ognuna sale dalla sua riga          |
-| `hero-stage` + `stage`      | Il banco della demo arriva inclinato (24 px, 6°) e si raddrizza, 800 ms          |
-| `flow-dot` / `flow-pulse`   | Passaggio cittadino → fascicolo: un punto per fatto, freccia Avanti              |
-| `land-flash`                | La riga del fascicolo che riceve un fatto lampeggia di giallo                    |
-| `fill-in` + `--i`           | Quadretti della figura 10×10 dei numeri, uno dopo l'altro                        |
-| `thread`                    | Calendario del pilota: un tratto per passo, dal centro di un punto al successivo |
-| `menu-sheet` / `menu-item`  | Menu mobile: dissolvenza 150 ms, voci che salgono di 8 px (40 ms l'una)          |
-| `fade-x`                    | Riga scorrevole sfumata dove continua (`--fade-s`, `--fade-e`), mai tagliata     |
-| `press-on-reveal`           | Timbro premuto quando la sua immagine entra in vista                             |
-| `spotlight`                 | Luce sotto le celle delle fasce scure che segue il puntatore                     |
-| `cta-sheen`                 | Riflesso che attraversa la CTA principale all'hover, una volta                   |
-| `band-light` / `edge-light` | Luce dall'alto sulle fasce scure; filo luminoso sul bordo dell'immagine          |
+| Classe / attributo                     | Cosa fa                                                                      |
+| -------------------------------------- | ---------------------------------------------------------------------------- |
+| `hero-in` + `--d`                      | Entrata al caricamento, da CSS (non aspetta l'idratazione), 700 ms           |
+| `hero-word`                            | Titolo dell'hero parola per parola, ognuna sale dalla sua riga               |
+| `stage-open` / `stage-settle`          | Il palco dell'hero sale; il suo contenuto si assesta dalla scala 1,06        |
+| `marker-draw`                          | Evidenziatore tracciato sotto una parola di un titolo (`scaleX`)             |
+| `data-reveal`                          | Sale di 22 px e compare quando entra in vista, una volta (`--reveal-delay`)  |
+| `data-reveal="stagger"`                | Lo stesso per i figli, 80 ms l'uno dall'altro (massimo 300 ms)               |
+| `ticket` / `ticket-btn` / `ticket-dot` | Il biglietto ritagliato: campo, pulsante, punto elenco (vedi Landing)        |
+| `coupon-stub` / `coupon-body`          | Le due metà del tagliando del pilota, ognuna con mezza tacca                 |
+| `stage-cut`                            | La tacca del biglietto ritagliata nel bordo sinistro del palco dell'hero     |
+| `flow-dot` / `flow-pulse`              | Passaggio cittadino → fascicolo: un punto per fatto, freccia Avanti          |
+| `land-flash`                           | La riga del fascicolo che riceve un fatto lampeggia di giallo                |
+| `stamp-press` / `tick-in`              | Timbro premuto con piccolo rimbalzo; spunta che compare in scala             |
+| `field-card`                           | Nei quattro campi la scheda sale di 6 px sotto il puntatore (150 ms)         |
+| `swap` + `data-off`                    | Le parti della console si scambiano: dissolvenza di 300 ms e 10 px di salita |
+| `drift`                                | La fotografia dell'archivio scorre del 4% mentre attraversa lo schermo       |
+| `call-band`                            | La chiusura: campo e parola si scambiano i colori a hover e focus            |
+| `menu-sheet` / `menu-item`             | Menu mobile: dissolvenza 150 ms, voci che salgono di 8 px (40 ms l'una)      |
 
 I reveal partono dopo l'idratazione (`lib/site/reveal.ts`): un attributo aggiunto prima
 all'HTML del server è un errore di idratazione. Quello che è già a schermo viene segnato come
-visto subito e non lampeggia; solo ciò che sta sotto la piega parte nascosto.
+visto subito e non lampeggia; solo ciò che sta sotto la piega parte nascosto, e qualunque
+intersezione lo rivela (soglia 0: un elenco lungo non resta mai vuoto).
 
 ## Pattern di componenti
 
 Riutilizzabili dalla console e dalle pagine del cittadino con gli stessi token; i componenti
 del sito stanno in `components/landing`, gli oggetti di brand in `components/brand`.
 
-| Pattern                     | Dove                                                          | Regola                                                                                                                                                                                                           |
-| --------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Etichetta + titolo + lead   | `SectionIntro`, `PageHero`                                    | Etichetta in `type-eyebrow` con filetto di 24 px; un solo `h1` per pagina                                                                                                                                        |
-| Fascia di chiusura          | `PageCta`, chiusura della landing                             | Fondo `contrast` con grana, un solo passo successivo, pulsante `marker`                                                                                                                                          |
-| Elenco numerato a filetti   | `RuleList`: sicurezza e accessibilità; passaggi al gestionale | Numero in mono `stamp`, filetto sopra; per sequenze dopo il prodotto, non per il percorso                                                                                                                        |
-| Schede di passaggi          | «Come funziona»                                               | `surface` + `shadow-raised`, sollevamento di 2 px all'hover, filo tratteggiato tra i numeri                                                                                                                      |
-| Immagine del prodotto       | `IntakeDemo`, `DossierPreview`                                | Disegnata sulla pagina vera, `shadow-frame`, «Dati inventati» in didascalia, controlli `aria-hidden`                                                                                                             |
-| Fogli impilati              | fascicolo della demo                                          | Due fogli dietro, ruotati di +1,4° e −0,8°, mai più di due                                                                                                                                                       |
-| Timbro                      | `Stamp`                                                       | Maiuscolo, bordo 2,5 px, ruotato −7°/−9°, `mix-blend-multiply`; solo per uno stato vero (consegnato, ricevuta) o una regola («decide l'operatore»)                                                               |
-| Biglietto della coda        | `QueueTicket`                                                 | Forma del logo con le tacche ritagliate (maschera, raggio 8 px): buca davvero qualunque fondo; l'ombra è un `drop-shadow` del contenitore; decorativo                                                            |
-| Casella da spuntare         | «Prima di trattare dati reali»                                | Vuota quando la cosa va ancora fatta: non disegnare spunte per impegni futuri                                                                                                                                    |
-| CTA ripetuta                | hero, chiusura, header, menu, barra mobile, invio del modulo  | Sempre verso `#pilota`, un solo verbo e la freccia («Parliamo del pilota», mai «ISEE», «Parliamone», «Candida»). Il «non impegna» sta nella nota sotto il tasto                                                  |
-| Barra in basso sul telefono | `MobileCta`                                                   | Compare dopo l'hero, sparisce sopra modulo, chiusura e footer; `inert` quando nascosta, safe area                                                                                                                |
-| Header                      | `SiteHeader`                                                  | Sfondo sfocato che compare scorrendo (opacità), scuro sopra le fasce `data-header="dark"`; voci nell'ordine della pagina; sezione attiva con `aria-current="location"`; focus `stamp` 2 px, `marker` sullo scuro |
-| Frecce                      | ovunque                                                       | → (`ArrowRight`, avanza di 2 px all'hover) per andare dentro Avanti, anche «Nel dettaglio» (ruota di 90° da aperto); ↗ solo per i link esterni. Niente ›, ↳                                                      |
-| FAQ                         | `details` nativo                                              | Risposta che sale all'apertura, icona + che ruota di 45° e si riempie di `stamp`                                                                                                                                 |
-| Numeri con fonte            | `CountUp`                                                     | Il server scrive il valore finale; conta solo se arriva da sotto la piega; fonte linkata sotto                                                                                                                   |
-| Focus                       | globale                                                       | Contorno `stamp` di 2 px a 2 px di distanza; su fondo scuro `outline-marker`                                                                                                                                     |
+| Pattern               | Dove                                           | Regola                                                                                                                                                                                                                                                                                                |
+| --------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Titolo + frase        | sezioni del sito, `PageHero`                   | Niente etichetta sopra il titolo: il titolo dice cosa c'è (`t-head`), la frase sta all'altro capo della stessa riga (colonne 9–12, `t-lead`); un solo `h1` per pagina                                                                                                                                 |
+| Fascia di chiusura    | `PageCta`, chiusura della landing              | Campo `stamp` a tutta larghezza con le due tacche del biglietto ai lati; nella landing tutta la fascia è un link e «Avanti» in `marker` la riempie                                                                                                                                                    |
+| Righe con titolo      | `RuleList`: sicurezza e accessibilità          | Titolo nella metà sinistra, testo intero a destra sulla stessa riga; righe separate dallo spazio, niente numeri né filetti                                                                                                                                                                            |
+| Quattro campi         | «Prima dello sportello»                        | Quattro campi di colore affiancati (marker, stamp, folder, contrast) con la stessa pratica un passo più avanti in ognuno; la frase in basso comincia con la parola d'ordine (Prima, Poi, Infine)                                                                                                      |
+| Immagine del prodotto | `IntakeDemo`, `OperatorShowcase`, `HowItWorks` | Frammento della schermata vera con radice `data-ui`: bordi di 1 px e raggio 10–14 px della console, nessuna ombra; «Dati inventati» detto in pagina; controlli disegnati `aria-hidden`                                                                                                                |
+| Parti della console   | «Cosa vede l'operatore»                        | I nomi delle parti in `t-sub` (attivo in `on-contrast`, gli altri al 55%: 5,6:1); scegliendo un nome la parte si posa sul biglietto, che cambia colore                                                                                                                                                |
+| Timbro                | `Stamp`                                        | Maiuscolo, bordo 2,5 px, ruotato −7°/−9°, `mix-blend-multiply`; solo per uno stato vero (consegnato, ricevuta) o una regola («decide l'operatore»)                                                                                                                                                    |
+| Biglietto della coda  | `QueueTicket`                                  | Forma del logo con le tacche ritagliate (maschera, raggio 8 px): buca davvero qualunque fondo; l'ombra è un `drop-shadow` del contenitore; decorativo                                                                                                                                                 |
+| Casella da spuntare   | «Prima di trattare dati reali»                 | Vuota quando la cosa va ancora fatta: non disegnare spunte per impegni futuri                                                                                                                                                                                                                         |
+| CTA ripetuta          | hero, chiusura, header, menu, invio del modulo | Sempre verso `#pilota`, un solo verbo e la freccia («Parliamo del pilota», mai «ISEE», «Parliamone», «Candida»). Il «non impegna» sta nella nota sotto il tasto. Ha la forma del biglietto (`ticket-btn`)                                                                                             |
+| Header                | `SiteHeader`                                   | Barra opaca che compare scorrendo (opacità) e prende il colore del campo sotto; voci nell'ordine della pagina; sezione attiva con `aria-current="location"`; sul telefono il marchio, la CTA e il menu (sotto 400 px il marchio senza scritta). Nessuna barra fissa in basso: coprirebbe il contenuto |
+| Frecce                | ovunque                                        | → (`ArrowRight`, avanza di 2 px all'hover) per andare dentro Avanti, anche «Nel dettaglio» (ruota di 90° da aperto); ↗ solo per i link esterni. Niente ›, ↳                                                                                                                                           |
+| FAQ                   | `details` nativo con `name="faq"`              | Piastrelle `sunk` (raggio 14 px), una aperta alla volta; aperta diventa `stamp` con testo `on-stamp`; il + è fatto di due barre di 3 px e una ruota di 90°; titolo `sticky` a sinistra                                                                                                                |
+| Numeri con fonte      | «Quante DSU fate in un anno?»                  | La cifra è del visitatore: DSU dell'anno × 71% (INPS), ricalcolata a ogni movimento del cursore; il server scrive quella per 1200; fonti linkate accanto, «non è una previsione» detto in pagina                                                                                                      |
+| Focus                 | globale                                        | Contorno `stamp` di 2 px a 2 px di distanza; su fondo scuro `outline-marker`                                                                                                                                                                                                                          |
 
 ### Cittadino
 
@@ -372,38 +378,46 @@ Il riferimento è Linear: tante pratiche al giorno, la gerarchia la fa il peso, 
 
 ## Landing
 
-Pubblico e tono in [gtm/pubblico.md](gtm/pubblico.md). **Less is better:** ogni sezione ha un
-titolo forte, al massimo una riga di lead e un'immagine che porta il messaggio; i dettagli stanno
-nelle FAQ chiuse e nelle pagine dedicate. Sequenza: hero centrato con la demo su un piano di lavoro
-→ «Come funziona» con l'immagine fissa che cambia a ogni passaggio (`HowItWorks`) → **operatori
-(scuro)** con la console che si inclina e si compone allo scroll → AI («L'AI propone, l'operatore
-decide») → cifre con fonte e pratiche → **dati (scuro)** in quattro celle → pilota con modulo
-fisso → FAQ → **chiusura (scuro)**. Un solo accento per sezione: blu sul chiaro, giallo sullo
-scuro. Le immagini del prodotto (`card-premium`: bordo di 1 px traslucido, luce in alto, tre
-ombre) sono disegnate sulle pagine vere, con «Dati inventati»; niente loghi né testimonianze
-finché non ci sono clienti veri (lo spiega una FAQ).
+Pubblico e tono in [gtm/pubblico.md](gtm/pubblico.md). Direzione del 23 novembre 2026, data con
+Taste Skill 2.1.5 (`draw.mjs`, seme 757250961, «One motif», palette e caratteri della marca
+tenuti): **una sola forma presa dal soggetto governa tutto il sito.** «Avanti!» è la chiamata
+dello sportello al numero successivo; il biglietto della coda (il marchio) diventa:
 
-Le quattro immagini di «Come funziona» stanno nella stessa cornice (400×340, barra «CAF di prova ·
-ISEE» in alto) e cambiano con una dissolvenza incrociata di 220 ms e 6 px di salita; i trattini di
-avanzamento restano fissi sopra la cornice fino all'ultimo passo. Il documento mancante segue
-l'area che la figura rappresenta (cittadino `warn`, operatore `danger`). Le pagine secondarie
-(sicurezza, privacy, accessibilità) hanno un solo `PageHero` (96 px sopra, 64 sotto, `type-page`,
-lead `type-lead`) e un solo pattern di contenuto, l'elenco numerato a filetti; la privacy tiene
-l'indice laterale.
+- il palco blu dell'hero, con la tacca ritagliata nel bordo sinistro, che sborda a destra;
+- il pulsante principale (`ticket-btn`, tacche di 6 px) e i punti degli elenchi (`ticket-dot`);
+- il biglietto su cui si posa la console in «Cosa vede l'operatore»;
+- il campo blu del picco e la fascia di chiusura, con le tacche ai lati;
+- il tagliando del pilota (matrice `stamp`, corpo `folder`, perforazione di punti carta);
+- il marchio costruito in grande nel footer.
 
-Scroll-linked dove il browser supporta le animazioni guidate dallo scroll (`scroll-tilt`,
-`scroll-compose` in `site.css`, ognuna sulla propria `view()` timeline): altrove, o con
-movimento ridotto, l'immagine è semplicemente completa. Nei passaggi i testi non attivi si
-attenuano con il colore (`ink-3`), non con l'opacità, così restano AA.
+Le tacche sono sempre ritagliate con una maschera (il fondo si vede attraverso), mai dipinte.
 
-La demo dell'hero è l'unico momento orchestrato: parte quando è in vista; frase evidenziata →
-fatto nel fascicolo (5 volte), checklist spuntata riga per riga, poi timbro «Consegnato allo
-sportello» e avviso del mancante. Il cambio lingua ridisegna il messaggio con una dissolvenza
-e riparte; il fascicolo resta in italiano.
+Sequenza: hero (titolo sulla carta, demo dal vivo sul palco) → «Prima dello sportello» (quattro
+campi con la stessa pratica) → «Cosa vede l'operatore» (contrast, nomi grandi e parti della
+console) → «L'AI propone. L'operatore decide.» (i due interruttori veri delle impostazioni, con
+cosa resta da spenti) → «Quante DSU fate in un anno?» (campo `stamp`, cifra del visitatore) →
+«I dati restano del CAF.» (tabella spinta a destra, fotografia d'archivio) → pilota (calendario in
+scala, tagliando) → FAQ → chiusura «Avanti» → footer.
+
+Regole della casa per il sito, controllate da `inspect.mjs` e `lint.mjs` di Taste Skill:
+
+- titoli al massimo su due righe a ogni larghezza; una frase grande è un paragrafo (≤ 36 px su
+  desktop, ≤ 24 px sul telefono, tre righe);
+- niente etichette sopra i titoli, niente numerazione 01/02, niente monospazio fuori dai frammenti
+  del prodotto, niente filetti, gradienti, ombre a riposo, vetro o schede con icona;
+- margini uguali ai due lati, nessuna metà di sezione vuota, un titolo per ogni sezione;
+- testo corrente in inchiostro pieno da 17 px in su; nulla sotto i 13 px fuori dai frammenti;
+- ogni frammento del prodotto ha la radice `data-ui` e le regole della console al suo interno;
+- le fotografie trovate (`lib/site/credits.ts`) mostrano il mondo intorno al CAF, mai un cliente,
+  una sede o una persona di Avanti, e sono accreditate nel footer.
+
+Eccezioni ammesse, con il motivo: l'evidenziatore della demo è un tratto `linear-gradient` a un
+solo colore (segue le righe a capo); le maschere delle tacche usano `radial-gradient` come buchi;
+nei quattro campi le icone sono dentro i frammenti della console, non in cima a schede.
 
 Controlli prima di cambiarla: 320, 375, 768 e 1440 px senza scorrimento orizzontale, zoom al
-200% (viewport di 720 px), testi lunghi nei nomi della coda (troncati: sono decorativi) e
-nell'email della conferma (`break-all`), axe senza violazioni gravi su tutte le pagine del sito.
+200% (viewport di 720 px), axe senza violazioni gravi su tutte le pagine del sito, e
+`inspect.mjs` senza FAIL a 1440, 768 e 390 (`--allow icon-cards,gradient`).
 
 ## Cosa non diciamo
 
