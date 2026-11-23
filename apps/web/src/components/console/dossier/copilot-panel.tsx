@@ -70,7 +70,7 @@ export function CopilotPanel({
     // The copilot is an aid: if it is unreachable the dossier works as before, quietly.
     if (brief.error.status === 404) return null;
     return (
-      <p className="rounded-lg bg-sunk px-5 py-3 text-sm text-ink-2">
+      <p className="rounded-md bg-sunk px-5 py-3 text-sm text-ink-2">
         Il copilota non è disponibile ora: il fascicolo resta consultabile come sempre.
       </p>
     );
@@ -85,17 +85,15 @@ export function CopilotPanel({
     <section
       aria-labelledby="copilot-title"
       aria-busy={brief.status === "loading" || regenerating || undefined}
-      className="overflow-hidden rounded-lg bg-surface ring-1 ring-stamp/25"
+      className="overflow-hidden rounded-md border border-line bg-surface"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-stamp-wash/50 px-5 py-3">
-        <h2
-          id="copilot-title"
-          className="flex items-center gap-2 font-display text-lg font-semibold"
-        >
+      {/* The AI's mark is the icon alone: the panel is a block of the case like the others. */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-3">
+        <h2 id="copilot-title" className="flex items-center gap-2 text-lg font-semibold">
           <Sparkles className="size-4.5 text-stamp" aria-hidden />
           Copilota
         </h2>
-        <div className="flex items-center gap-2 text-xs text-ink-3">
+        <div className="flex items-center gap-2 text-[0.8125rem] text-ink-3">
           {brief.data && (
             <span title={`Generato il ${formatDateTime(brief.data.generatedAt)}`}>
               {engineLabel(brief.data.engine, brief.data.model)}
@@ -115,9 +113,9 @@ export function CopilotPanel({
       </div>
 
       {!brief.data ? (
-        <SkeletonText lines={3} className="p-5" />
+        <SkeletonText lines={3} className="px-5 pt-2 pb-5" />
       ) : (
-        <div className="grid gap-4 p-5">
+        <div className="grid gap-4 px-5 pt-2 pb-5">
           {stale && (
             <Notice tone="warn">
               La pratica è cambiata dopo questo riepilogo: aggiornalo prima di decidere.
@@ -132,9 +130,8 @@ export function CopilotPanel({
               <ol className="mt-2 grid gap-2">
                 {attention.map((item, i) => (
                   <li key={i} className="flex gap-2.5 text-body-sm">
-                    <span className="tabular mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-sunk text-xs font-semibold text-ink-2">
-                      {i + 1}
-                    </span>
+                    {/* Order is the list's, not a number's: a dot keeps the lines on one edge. */}
+                    <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-stamp" />
                     <SourcedText text={item.text} evidence={item.evidence} onOpen={onEvidence} />
                   </li>
                 ))}
@@ -182,7 +179,7 @@ export function CopilotPanel({
             </Pill>
             <span className="text-ink-2">{brief.data.nextStepReason}</span>
           </p>
-          <p className="text-xs text-ink-3">
+          <p className="text-[0.8125rem] text-ink-3">
             Suggerimenti automatici: possono sbagliare. Ogni decisione resta tua.
           </p>
         </div>
@@ -296,7 +293,7 @@ export function EvidenceChips({
               type="button"
               onClick={() => onOpen(e)}
               title={e.label}
-              className="max-w-72 truncate rounded-full bg-sunk px-2.5 py-0.5 text-xs font-semibold text-ink-2 transition-colors duration-100 hover:bg-stamp-wash hover:text-stamp"
+              className="max-w-72 truncate rounded-full bg-sunk px-2.5 py-0.5 text-[0.8125rem] font-semibold text-ink-2 transition-colors duration-100 hover:bg-stamp-wash hover:text-stamp"
             >
               {e.label}
             </button>

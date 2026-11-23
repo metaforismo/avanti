@@ -153,7 +153,7 @@ export function DossierChat({
               </Primitive.Description>
             </div>
             <Primitive.Close
-              className="grid size-9 shrink-0 place-items-center rounded-md bg-surface text-ink-3 ring-1 ring-line hover:text-ink"
+              className="grid size-9 shrink-0 place-items-center rounded-md border border-line bg-surface text-ink-3 hover:text-ink"
               aria-label="Chiudi"
             >
               <X className="size-5" aria-hidden />
@@ -272,7 +272,10 @@ function Turn({
           {response.citations.length > 0 && (
             <ul className="mt-3 grid gap-1">
               {response.citations.map((citation) => (
-                <li key={citation.id} className="flex items-start gap-1.5 text-xs text-ink-3">
+                <li
+                  key={citation.id}
+                  className="flex items-start gap-1.5 text-[0.8125rem] text-ink-3"
+                >
                   <BookOpen className="mt-0.5 size-3 shrink-0" aria-hidden />
                   {citation.url ? (
                     <a
@@ -291,7 +294,7 @@ function Turn({
               ))}
             </ul>
           )}
-          <div className="mt-2 flex items-center gap-2 text-xs text-ink-3">
+          <div className="mt-2 flex items-center gap-2 text-[0.8125rem] text-ink-3">
             <CopyButton
               iconOnly
               value={plainAnswer(response.answer)}

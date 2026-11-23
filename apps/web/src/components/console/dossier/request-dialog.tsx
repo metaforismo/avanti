@@ -235,7 +235,7 @@ function RequestForm({
   );
 
   const items = (
-    <div className="max-h-56 overflow-y-auto rounded-md ring-1 ring-line">
+    <div className="max-h-56 overflow-y-auto rounded-md border border-line">
       {candidates.map(renderItem)}
       {others.length > 0 && (
         <details className="border-t border-line">
@@ -253,7 +253,7 @@ function RequestForm({
       {reply ? (
         <>
           <figure className="rounded-md bg-stamp-wash px-4 py-3">
-            <figcaption className="text-xs font-semibold text-ink-3">
+            <figcaption className="text-[0.8125rem] font-semibold text-ink-3">
               Il cittadino ha scritto
             </figcaption>
             <blockquote dir="auto" className="mt-1 whitespace-pre-line">
@@ -265,7 +265,7 @@ function RequestForm({
               </p>
             )}
           </figure>
-          <details className="rounded-md ring-1 ring-line">
+          <details className="rounded-md border border-line">
             <summary className="cursor-pointer px-3 py-2 text-sm font-semibold">
               Chiedi anche dei documenti{selected.length > 0 ? ` (${selected.length})` : ""}
             </summary>
@@ -295,7 +295,7 @@ function RequestForm({
               <Sparkles className="size-4 text-stamp" aria-hidden />
               Bozza con l&apos;AI
             </Button>
-            <span className="text-xs text-ink-3">
+            <span className="text-[0.8125rem] text-ink-3">
               Scrive il messaggio dalle voci selezionate: rileggilo prima di inviare.
             </span>
           </div>
@@ -333,7 +333,7 @@ function RequestForm({
           maxLength={1000}
           className="w-full resize-y rounded-sm bg-surface p-3 text-body-sm ring-1 ring-line-strong ring-inset focus:ring-2 focus:ring-stamp focus:outline-none"
         />
-        <p className="tabular text-end text-xs text-ink-3">{message.length}/1000</p>
+        <p className="tabular text-end text-[0.8125rem] text-ink-3">{message.length}/1000</p>
         <p role="status" className={notice ? "text-sm text-warn" : "sr-only"}>
           {notice}
         </p>

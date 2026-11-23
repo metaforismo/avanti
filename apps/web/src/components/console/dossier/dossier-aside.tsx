@@ -29,7 +29,9 @@ export function DossierAside({
 }) {
   const { citizen } = dossier;
   return (
-    <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5">
+    // The details column of the case, on the sheet itself: sections split by rules, not a stack
+    // of boxes beside the boxes of the main column.
+    <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start lg:border-s lg:border-line lg:ps-6">
       <Card title="Cittadino">
         <div className="grid gap-3 text-body-sm">
           <div>
@@ -70,7 +72,7 @@ export function DossierAside({
         )}
         {dossier.citizenNote && (
           <div className="mt-4 rounded-sm bg-marker-soft px-3 py-2.5 text-body-sm">
-            <p className="text-xs font-semibold text-ink-2">Nota del cittadino</p>
+            <p className="text-[0.8125rem] font-semibold text-ink-2">Nota del cittadino</p>
             <p dir="auto" className="mt-1 whitespace-pre-line">
               {dossier.citizenNote}
             </p>
@@ -81,14 +83,14 @@ export function DossierAside({
       <Card title="Tempi misurati">
         <dl className="grid grid-cols-2 gap-3">
           <div>
-            <dt className="text-sm text-ink-3">Cittadino</dt>
-            <dd className="tabular font-display text-xl font-semibold">
+            <dt className="text-[0.8125rem] text-ink-3">Cittadino</dt>
+            <dd className="tabular text-xl font-semibold">
               {formatMinutes(dossier.timing.citizenMinutes)}
             </dd>
           </div>
           <div>
-            <dt className="text-sm text-ink-3">Revisione</dt>
-            <dd className="tabular font-display text-xl font-semibold">
+            <dt className="text-[0.8125rem] text-ink-3">Revisione</dt>
+            <dd className="tabular text-xl font-semibold">
               {formatMinutes(dossier.timing.reviewMinutes)}
             </dd>
           </div>
@@ -135,7 +137,7 @@ function Timeline({ timeline }: { timeline: CaseDossier["timeline"] }) {
               {event.label}
               {count > 1 && <span className="text-ink-3"> ({count} volte)</span>}
             </p>
-            <p className="text-xs text-ink-3">
+            <p className="text-[0.8125rem] text-ink-3">
               {event.actorName ? `${event.actorName}, ` : ""}
               <time dateTime={event.at} title={formatDateTime(event.at)}>
                 {timeAgo(event.at)}
@@ -174,7 +176,7 @@ function collapseTimeline(timeline: CaseDossier["timeline"]) {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg bg-surface p-4 ring-1 ring-line">
+    <section className="border-b border-line py-5 first:pt-0 last:border-0 max-lg:px-0">
       <h2 className="mb-3 text-sm font-semibold text-ink-2">{title}</h2>
       {children}
     </section>
@@ -222,12 +224,12 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
   }, [dirty]);
 
   return (
-    <section className="rounded-lg bg-surface p-4 ring-1 ring-line">
+    <section className="border-b border-line py-5 last:border-0">
       <div className="mb-2 flex min-h-6 items-center justify-between gap-2">
         <label htmlFor="internal-notes" className="text-sm font-semibold text-ink-2">
           Note interne
         </label>
-        <span className="text-xs text-ink-3" role="status">
+        <span className="text-[0.8125rem] text-ink-3" role="status">
           {state === "saving" ? (
             <Spinner className="size-3.5" label="Salvataggio" />
           ) : state === "saved" && !dirty ? (
@@ -248,7 +250,7 @@ function InternalNotes({ dossier, actions }: { dossier: CaseDossier; actions: Do
         rows={4}
         maxLength={5000}
         placeholder="Visibili solo agli operatori del CAF…"
-        className="w-full resize-y rounded-sm bg-paper p-2.5 text-body-sm ring-1 ring-line ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
+        className="w-full resize-y rounded-sm bg-surface p-2.5 text-body-sm ring-1 ring-line-field ring-inset placeholder:text-ink-3 focus:ring-2 focus:ring-stamp focus:outline-none"
       />
       {colleagueEdited ? (
         <Notice

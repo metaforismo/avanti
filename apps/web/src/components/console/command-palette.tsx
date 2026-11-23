@@ -187,7 +187,7 @@ export function CommandPalette({
         <Primitive.Overlay className="fixed inset-0 z-50 bg-scrim" />
         <Primitive.Content
           aria-describedby={undefined}
-          className="fixed inset-x-3 top-[12dvh] z-50 mx-auto flex max-h-[76dvh] max-w-xl flex-col overflow-hidden rounded-xl bg-surface shadow-float ring-1 ring-line outline-none"
+          className="fixed inset-x-3 top-[12dvh] z-50 mx-auto flex max-h-[76dvh] max-w-xl flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-float outline-none"
         >
           <Primitive.Title className="sr-only">Cerca nella console</Primitive.Title>
           <div className="flex shrink-0 items-center gap-3 border-b border-line px-4">
@@ -260,7 +260,7 @@ export function CommandPalette({
                   {heading && (
                     <p
                       role="presentation"
-                      className="px-2.5 pt-2.5 pb-1 text-xs font-medium text-ink-3"
+                      className="px-2.5 pt-2.5 pb-1 text-[0.8125rem] font-medium text-ink-3"
                     >
                       {heading}
                     </p>
@@ -281,7 +281,7 @@ export function CommandPalette({
                     <Icon
                       className={cn(
                         "size-4 shrink-0",
-                        index === current ? "text-stamp" : "text-ink-3",
+                        index === current ? "text-ink" : "text-ink-3",
                       )}
                       aria-hidden
                     />
@@ -312,7 +312,7 @@ export function CommandPalette({
           </ul>
           <div
             aria-hidden
-            className="hidden shrink-0 items-center gap-4 border-t border-line bg-paper px-4 py-2 text-xs text-ink-3 sm:flex"
+            className="hidden shrink-0 items-center gap-4 border-t border-line bg-paper px-4 py-2 text-[0.8125rem] text-ink-3 sm:flex"
           >
             <span className="flex items-center gap-1.5">
               <Kbd>↑</Kbd>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ArrowUpRight, CornerDownRight, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUp, CornerDownRight, Sparkles } from "lucide-react";
 import { useEffect, useRef, type FormEvent, type ReactNode, type RefObject } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
@@ -44,7 +44,10 @@ export function ThinkingRow({ text }: { text: string }) {
   );
 }
 
-/** Example questions on an empty chat: a list of rows, each one click away from being asked. */
+/**
+ * Example questions on an empty chat: a list of rows, each one click away from being asked.
+ * The arrow is → as everywhere a click stays inside Avanti; ↗ is only for links that leave it.
+ */
 export function Starters({
   items,
   onPick,
@@ -53,7 +56,7 @@ export function Starters({
   onPick: (question: string) => void;
 }) {
   return (
-    <ul className="divide-y divide-line overflow-hidden rounded-xl bg-surface ring-1 ring-line">
+    <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
       {items.map((item) => (
         <li key={item}>
           <button
@@ -62,7 +65,10 @@ export function Starters({
             className="group flex w-full items-center gap-3 px-4 py-3 text-start text-body-sm transition-colors hover:bg-paper focus-visible:bg-paper focus-visible:outline-none"
           >
             <span className="min-w-0 flex-1">{item}</span>
-            <ArrowUpRight className="size-4 shrink-0 text-ink-3 group-hover:text-ink" aria-hidden />
+            <ArrowRight
+              className="rtl-flip size-4 shrink-0 text-ink-3 transition-transform duration-150 ease-(--ease-out) group-hover:translate-x-0.5 group-hover:text-ink rtl:group-hover:-translate-x-0.5"
+              aria-hidden
+            />
           </button>
         </li>
       ))}
@@ -148,7 +154,7 @@ export function ChatInput({
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
-      <div className="flex items-end gap-2 rounded-2xl bg-surface p-1.5 ps-3 ring-1 ring-line focus-within:ring-line-strong">
+      <div className="flex items-end gap-2 rounded-lg border border-line bg-surface p-1.5 ps-3 focus-within:border-line-strong">
         <textarea
           ref={field}
           id={id}
@@ -179,7 +185,7 @@ export function ChatInput({
           {pending ? <Spinner className="size-5" /> : <ArrowUp className="size-5" aria-hidden />}
         </button>
       </div>
-      {footer && <p className="text-center text-xs text-ink-3">{footer}</p>}
+      {footer && <p className="text-center text-[0.8125rem] text-ink-3">{footer}</p>}
     </form>
   );
 }

@@ -226,7 +226,7 @@ function ReuseForm({
 
       <fieldset>
         <legend className="mb-2 text-sm font-semibold">Chi vive ancora nel nucleo</legend>
-        <ul className="divide-y divide-line rounded-md ring-1 ring-line">
+        <ul className="divide-y divide-line rounded-md border border-line">
           {members.map((member, index) => (
             <li key={member.key} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
               {member.id ? (
@@ -341,7 +341,7 @@ function ReuseForm({
             Avanti segnala nella nuova pratica quelli scaduti o da aggiornare. I documenti degli
             altri componenti il cittadino li vede solo se lo indichi.
           </p>
-          <ul className="max-h-64 divide-y divide-line overflow-y-auto rounded-md ring-1 ring-line">
+          <ul className="max-h-64 divide-y divide-line overflow-y-auto rounded-md border border-line">
             {eligible.map((doc) => (
               <li key={doc.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5">
                 <Checkbox

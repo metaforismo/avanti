@@ -31,11 +31,11 @@ export function MessageBubble({
       className={cn(
         "rounded-lg px-4 py-3",
         !fill && "max-w-[85%]",
-        fromCitizen ? "bg-stamp-wash" : "bg-surface ring-1 ring-line",
+        fromCitizen ? "bg-stamp-wash" : "border border-line bg-surface",
         fromCitizen && !fill && "justify-self-end",
       )}
     >
-      <p className="text-xs font-semibold text-ink-3">{meta}</p>
+      <p className="text-[0.8125rem] font-semibold text-ink-3">{meta}</p>
       <p dir="auto" lang={textLang} className="mt-1 whitespace-pre-line">
         {text}
       </p>

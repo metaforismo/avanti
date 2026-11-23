@@ -16,7 +16,7 @@ export function AnswersSection({ dossier }: { dossier: CaseDossier }) {
         {[...sections.entries()].map(([section, answers]) => (
           <div key={section}>
             <h3 className="mb-2 text-sm font-semibold text-ink-2">{section}</h3>
-            <dl className="divide-y divide-line rounded-lg bg-surface ring-1 ring-line">
+            <dl className="divide-y divide-line rounded-md border border-line bg-surface">
               {answers.map((answer) => (
                 <div
                   key={answer.questionId}
@@ -49,8 +49,8 @@ export function ConversationSection({ dossier }: { dossier: CaseDossier }) {
   return (
     <section aria-labelledby="conversation-title">
       <details className="group">
-        <summary className="flex cursor-pointer list-none items-baseline gap-3 font-display text-xl font-semibold [&::-webkit-details-marker]:hidden">
-          <h2 id="conversation-title" className="font-display text-xl font-semibold">
+        <summary className="flex cursor-pointer list-none items-baseline gap-3 text-lg font-semibold [&::-webkit-details-marker]:hidden">
+          <h2 id="conversation-title" className="text-lg font-semibold">
             Conversazione
           </h2>
           <span className="text-sm font-normal text-ink-3 group-open:hidden">
@@ -95,7 +95,7 @@ export function AssistantTurnsSection({ dossier }: { dossier: CaseDossier }) {
     <section aria-labelledby="assistant-turns-title">
       <details className="group">
         <summary className="flex cursor-pointer list-none items-baseline gap-3 [&::-webkit-details-marker]:hidden">
-          <h2 id="assistant-turns-title" className="font-display text-xl font-semibold">
+          <h2 id="assistant-turns-title" className="text-lg font-semibold">
             Domande all&apos;assistente
           </h2>
           <span className="text-sm text-ink-3 group-open:hidden">

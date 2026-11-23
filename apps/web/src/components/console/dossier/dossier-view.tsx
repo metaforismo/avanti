@@ -647,7 +647,7 @@ export function DossierView({ caseId }: { caseId: string }) {
     // phone the bottom room is the action bar's, so the last section never sits under it.
     <PageContainer
       width="7xl"
-      className="wrap-anywhere max-lg:pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pt-2"
+      className="wrap-anywhere max-lg:pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pt-0"
     >
       {/* The case's actions stay in reach while the operator works far down the dossier: on a
           desktop this bar sticks to the top, and once the title has scrolled away it names the
@@ -656,7 +656,7 @@ export function DossierView({ caseId }: { caseId: string }) {
       <div
         ref={setBar}
         className={cn(
-          "flex min-h-11 items-center gap-3 lg:sticky lg:top-0 lg:z-20 lg:-mx-10 lg:min-h-14 lg:border-b lg:bg-paper lg:px-10 lg:py-2.5",
+          "flex min-h-11 items-center gap-3 lg:sticky lg:top-0 lg:z-20 lg:-mx-8 lg:min-h-14 lg:border-b lg:bg-surface lg:px-8 lg:py-2.5",
           compact ? "lg:border-line" : "lg:border-transparent",
         )}
       >
@@ -685,7 +685,7 @@ export function DossierView({ caseId }: { caseId: string }) {
             </span>
             <span
               // Up to 1536px the actions leave room for the name only.
-              className="hidden shrink-0 font-mono text-xs text-ink-3 2xl:inline"
+              className="hidden shrink-0 font-mono text-[0.8125rem] text-ink-3 2xl:inline"
               translate="no"
             >
               {data.reference}
@@ -744,33 +744,35 @@ export function DossierView({ caseId }: { caseId: string }) {
         )}
       </div>
 
-      <header className="mt-3 min-w-0 lg:mt-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <header className="mt-3 min-w-0 lg:mt-4">
+        {/* The person, not the practice, is the title: a January desk sees forty «ISEE
+            ordinario» in a day, and the name is what tells them apart (as in the queue). The
+            state is a chip after the name, never a label above it. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1
+            ref={setTitle}
+            className="font-display text-2xl leading-8 font-[650] tracking-[-0.01em] text-balance"
+          >
+            {citizenName ?? data.headline}
+          </h1>
           <Pill tone={status.tone}>{status.label}</Pill>
-          <span className="font-mono text-sm text-ink-3" translate="no">
+        </div>
+        {/* What, which file and who in one line: taking the case sits by the person it is
+            assigned to. */}
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+          <span>{citizenName ? data.headline : "Cittadino senza nome"}</span>
+          <Dot />
+          <span className="font-mono text-ink-3" translate="no">
             {data.reference}
           </span>
           {data.language !== "it" && (
-            <Pill tone="neutral">Cittadino in {LANGUAGE_IT[data.language].toLowerCase()}</Pill>
+            <>
+              <Dot />
+              <span>Cittadino in {LANGUAGE_IT[data.language].toLowerCase()}</span>
+            </>
           )}
-        </div>
-        {/* The person, not the practice, is the title: a January desk sees forty «ISEE
-            ordinario» in a day, and the name is what tells them apart (as in the queue). */}
-        <h1
-          ref={setTitle}
-          className="mt-2 font-display text-[1.75rem] leading-tight font-[650] tracking-[-0.012em] text-balance"
-        >
-          {citizenName ?? data.headline}
-        </h1>
-        {/* What and who in one line: taking the case sits by the person it is assigned to. */}
-        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-2">
-          <span>{citizenName ? data.headline : "Cittadino senza nome"}</span>
-          <span aria-hidden className="text-ink-3">
-            ·
-          </span>
-          <span className={cn("text-body-sm", data.assignee ? "text-ink-2" : "text-ink-3")}>
-            {assignedName}
-          </span>
+          <Dot />
+          <span className={cn(data.assignee ? "text-ink-2" : "text-ink-3")}>{assignedName}</span>
           {!assignedToMe && data.status !== "closed" && (
             <Button
               variant="ghost"
@@ -840,25 +842,28 @@ export function DossierView({ caseId }: { caseId: string }) {
         </div>
       )}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8">
+      {/* Main column and details column on one 24px gutter; the details column takes the
+          inbox's fixed 304-336px. What is missing comes first: it answers the dossier's question
+          (what stands between this case and «pronta»), then the copilot's reading of it. */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-6">
           <CitizenQuestions
             dossier={data}
             pending={pending}
             onReply={(question) => void openReply(question)}
           />
           {data.nearReady && <NearReadyPanel dossier={data} actions={actions} />}
-          {data.status !== "intake" && <CopilotPanel dossier={data} actions={actions} />}
           <FindingsSummary dossier={data} onOpenDocument={actions.openDocument} />
+          {data.status !== "intake" && <CopilotPanel dossier={data} actions={actions} />}
           {data.facts.length > 0 && (
             <section aria-labelledby="facts-title">
               <h2 id="facts-title" className="sr-only">
                 Riepilogo
               </h2>
-              <dl className="grid gap-px overflow-hidden rounded-lg bg-line ring-1 ring-line sm:grid-cols-2">
+              <dl className="grid gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-2">
                 {data.facts.map((fact) => (
                   <div key={fact.label} className="bg-surface px-4 py-3">
-                    <dt className="text-sm text-ink-3">{fact.label}</dt>
+                    <dt className="text-[0.8125rem] text-ink-3">{fact.label}</dt>
                     <dd className="mt-0.5 font-semibold">{fact.value}</dd>
                   </div>
                 ))}
@@ -1088,6 +1093,12 @@ export function DossierView({ caseId }: { caseId: string }) {
 type Shortcuts = Partial<Record<"v" | "i" | "p" | "n", () => void>>;
 
 /** Single-key shortcuts for the steps every case goes through (listed under «?»). */
+const Dot = () => (
+  <span aria-hidden className="text-ink-3">
+    ·
+  </span>
+);
+
 function DossierShortcuts({ keys, onAsk }: { keys: Shortcuts; onAsk?: () => void }) {
   // Rebound every render: the handlers carry this render's dossier.
   useEffect(() => {
@@ -1177,7 +1188,7 @@ function MenuItem({ children, onSelect }: { children: React.ReactNode; onSelect:
  */
 function DossierSkeleton({ queueHref }: { queueHref: string }) {
   return (
-    <PageContainer width="7xl" className="lg:pt-2">
+    <PageContainer width="7xl" className="lg:pt-0">
       <div className="flex min-h-11 items-center lg:min-h-14 lg:py-2.5">
         <Link
           href={queueHref as Route}
@@ -1187,21 +1198,20 @@ function DossierSkeleton({ queueHref }: { queueHref: string }) {
           Pratiche
         </Link>
       </div>
-      <div role="status" className="mt-3 lg:mt-2">
+      <div role="status" className="mt-3 lg:mt-4">
         <span className="sr-only">Caricamento del fascicolo</span>
-        <Skeleton className="h-5 w-48 rounded-full" />
-        <Skeleton className="mt-3 h-9 w-full max-w-sm" />
-        <Skeleton className="mt-2.5 h-6 w-48" />
-        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="grid content-start gap-8">
-            <Skeleton className="h-48 rounded-lg" />
-            <Skeleton className="h-32 rounded-lg" />
-            <Skeleton className="h-64 rounded-lg" />
+        <Skeleton className="h-8 w-full max-w-sm" />
+        <Skeleton className="mt-1 h-5 w-80 max-w-full" />
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="grid content-start gap-6">
+            <Skeleton className="h-48 rounded-md" />
+            <Skeleton className="h-32 rounded-md" />
+            <Skeleton className="h-64 rounded-md" />
           </div>
-          <div className="hidden content-start gap-5 lg:grid">
-            <Skeleton className="h-40 rounded-lg" />
-            <Skeleton className="h-28 rounded-lg" />
-            <Skeleton className="h-36 rounded-lg" />
+          <div className="hidden content-start gap-5 border-s border-line ps-6 lg:grid">
+            <Skeleton className="h-40 rounded-md" />
+            <Skeleton className="h-28 rounded-md" />
+            <Skeleton className="h-36 rounded-md" />
           </div>
         </div>
       </div>

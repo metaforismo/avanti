@@ -38,11 +38,11 @@ export function DsuSheetSection({
     <details
       open={opened}
       onToggle={(event) => setOpened(event.currentTarget.open)}
-      className="group rounded-lg bg-surface ring-1 ring-line"
+      className="group rounded-md border border-line bg-surface"
     >
       <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-5 py-4 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-xl font-semibold">Prospetto DSU</span>
+          <span className="block text-lg font-semibold">Prospetto DSU</span>
           <span className="block text-sm text-ink-3">
             I dati nell&apos;ordine del modello, pronti da copiare nel gestionale.
           </span>
@@ -164,7 +164,7 @@ function SheetSection({
   const copyable = values.length > 1 ? spreadsheetRows(values) : "";
 
   return (
-    <section aria-label={`Quadro ${section.quadro}`} className="rounded-md ring-1 ring-line">
+    <section aria-label={`Quadro ${section.quadro}`} className="rounded-md border border-line">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-paper px-4 py-2.5">
         <Pill tone="neutral">
           {section.module} · quadro {section.quadro}
@@ -234,7 +234,7 @@ function SheetRow({
     <div className="grid gap-1 px-4 py-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] sm:items-center sm:gap-4">
       <dt className="text-sm text-ink-2">
         {row.label}
-        {row.note && <span className="mt-0.5 block text-xs text-ink-3">{row.note}</span>}
+        {row.note && <span className="mt-0.5 block text-[0.8125rem] text-ink-3">{row.note}</span>}
       </dt>
       <dd className="flex min-w-0 items-center gap-2">
         {row.value !== null ? (
@@ -242,7 +242,7 @@ function SheetRow({
             <span className="min-w-0 flex-1 font-semibold text-ink tabular-nums">
               {row.value}
               {row.source.kind === "document" && (
-                <span className="mt-0.5 block text-xs font-normal text-ink-3">
+                <span className="mt-0.5 block text-[0.8125rem] font-normal text-ink-3">
                   Letto dal documento, confermato
                   {row.source.page ? ` · pagina ${row.source.page}` : ""}
                 </span>
@@ -306,12 +306,12 @@ function PrefillProposal({
     <div className="min-w-0 flex-1 rounded-sm bg-stamp-wash px-3 py-2 ring-1 ring-stamp/15">
       <p className="flex flex-wrap items-baseline gap-x-2">
         <span className="font-semibold text-ink tabular-nums">{value}</span>
-        <span className="inline-flex items-center gap-1 text-xs text-stamp">
+        <span className="inline-flex items-center gap-1 text-[0.8125rem] text-stamp">
           <Sparkles className="size-3" aria-hidden />
           proposto dall&apos;AI
         </span>
       </p>
-      <p className="mt-0.5 text-xs text-ink-2">
+      <p className="mt-0.5 text-[0.8125rem] text-ink-2">
         {document ? (
           <button
             type="button"

@@ -143,7 +143,7 @@ export function FirstSteps({
         : "I fascicoli inviati dai cittadini arriveranno qui. Intanto, quattro passi per partire.";
 
   return (
-    <section aria-labelledby="first-steps" className="rounded-lg bg-surface p-6 ring-1 ring-line">
+    <section aria-labelledby="first-steps" className="rounded-md border border-line bg-surface p-6">
       <SectionHeader id="first-steps" title="Per iniziare" lead={lead} />
       {/* Hidden while a fact is loading: a count that jumps reads as an error. */}
       <div className={cn("mt-4 flex items-center gap-3", !progress.known && "invisible")}>
