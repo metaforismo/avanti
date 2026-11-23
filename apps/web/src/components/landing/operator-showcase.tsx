@@ -86,7 +86,7 @@ function Review() {
 
 function Documents() {
   return (
-    <Panel title="Documenti" meta="6 di 7 verificati">
+    <Panel title="Documenti" meta="3 di 4 verificati">
       <ul className="divide-y divide-line overflow-hidden rounded-md text-sm ring-1 ring-line">
         {(
           [
@@ -116,17 +116,17 @@ function Documents() {
 
 function Amounts() {
   return (
-    <Panel title="Prospetto DSU" meta="quadro FC2">
+    <Panel title="Prospetto DSU" meta="patrimonio immobiliare">
       <div className="relative rounded-md bg-stamp-wash/60 p-4 ring-1 ring-stamp/15">
         <p className="flex items-center gap-1.5 text-[0.8125rem] font-semibold text-stamp">
           <Sparkles className="size-3.5" aria-hidden />
           Proposto dall’AI
         </p>
-        <p className="mt-1 text-sm text-ink-2">Giacenza media 2025 · conto Fineco</p>
-        <p className="mt-1 font-display text-3xl font-semibold tabular-nums">12.430,55 €</p>
+        <p className="mt-1 text-sm text-ink-2">Rendita catastale · casa di proprietà</p>
+        <p className="mt-1 font-display text-3xl font-semibold tabular-nums">612,00 €</p>
         <p className="mt-1.5 flex items-center gap-1.5 text-[0.8125rem] text-ink-2">
           <FileSearch className="size-3.5" aria-hidden />
-          Attestazione Fineco, pagina 2
+          Visura catastale, pagina 1
         </p>
         <p aria-hidden className="mt-3 flex flex-wrap gap-2">
           <span className="inline-flex h-9 items-center gap-1.5 rounded-sm bg-stamp px-3.5 text-sm font-semibold whitespace-nowrap text-on-stamp">
