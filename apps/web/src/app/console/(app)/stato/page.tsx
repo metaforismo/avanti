@@ -454,9 +454,9 @@ function AiChart({ hourly }: { hourly: NonNullable<SystemStatus["components"]["a
           {hourly.map((h) => (
             <tr key={h.hour}>
               <th scope="row">{hour(h.hour)}</th>
-              <td>{h.successes}</td>
-              <td>{h.fallbacks}</td>
-              <td>{h.errors}</td>
+              <td className="text-end">{h.successes}</td>
+              <td className="text-end">{h.fallbacks}</td>
+              <td className="text-end">{h.errors}</td>
             </tr>
           ))}
         </tbody>

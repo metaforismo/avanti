@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 // One hue, on the series the screen is about (what reached the desk); the context series is
 // grey. Told apart by tone and by position in each day's pair, never by two competing hues.
 const SERIES = [
-  { key: "started", label: "Avviate", color: "var(--line-strong)" },
+  { key: "started", label: "Avviate", color: "color-mix(in srgb, var(--ink-3) 45%, transparent)" },
   { key: "submitted", label: "Inviate", color: "var(--stamp)" },
 ] as const;
 

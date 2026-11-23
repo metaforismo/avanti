@@ -239,7 +239,7 @@ function TimePanel({ metrics, admin }: { metrics: Metrics; admin: boolean }) {
       <PanelTitle id="time-title">Tempo per pratica</PanelTitle>
       <p className="tabular mt-4 text-[1.875rem] leading-none font-semibold">{headline}</p>
       <p className="mt-2 text-sm text-ink-2">{subline}</p>
-      <ul className="my-6 grid flex-1 content-center gap-4">
+      <ul className="my-4 grid min-h-32 flex-1 content-evenly gap-y-3">
         {rows.map((row) => (
           <li
             key={row.label}
