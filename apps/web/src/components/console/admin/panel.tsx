@@ -1,11 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-/**
- * A panel of the management pages at rest, the same classes as `Panel` in components/ui: a
- * 1px border on the white sheet, no shadow. A real border, not a ring: a ring is a box-shadow.
- */
-export const PANEL = "rounded-md border border-line bg-surface";
+export { PANEL } from "@/components/ui/panel";
 
 /** The title inside a panel: 16/600 in the text face, like every block of the console. */
 export function PanelTitle({
